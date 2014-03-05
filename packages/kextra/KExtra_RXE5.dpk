@@ -1,0 +1,46 @@
+package KExtra_RXE5;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS ON}
+{$RANGECHECKS ON}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS ON}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'KControls Development Suite - runtime package'}
+{$RUNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  vcl,
+  vclx,
+  vclimg,
+  KControls_RXE5;
+
+contains
+  KExtras in '..\..\source\extra\KExtras.pas',
+  KButtons in '..\..\source\extra\KButtons.pas',
+  KFunctionsW in '..\..\source\extra\KFunctionsW.pas',
+  KHelp in '..\..\source\extra\KHelp.pas',
+  KCharts in '..\..\source\extra\KCharts.pas',
+  KIniFiles in '..\..\source\extra\KIniFiles.pas',
+  KMessages in '..\..\source\extra\KMessages.pas',
+  KMisc in '..\..\source\extra\KMisc.pas',
+  KVentilator in '..\..\source\extra\KVentilator.pas';
+
+end.

@@ -1,0 +1,4 @@
+tkhexeditor BITMAP "tkhexeditor.bmp"
+tkprintpreview BITMAP "tkprintpreview.bmp"
+tkprintpreviewdialog BITMAP "tkprintpreviewdialog.bmp"
+tkprintsetupdialog BITMAP "tkprintsetupdialog.bmp"

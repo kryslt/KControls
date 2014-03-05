@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Package Version="3">
+    <PathDelim Value="\"/>
+    <Name Value="KGridLaz"/>
+    <CompilerOptions>
+      <Version Value="8"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="..\..\source\"/>
+        <OtherUnitFiles Value="..\..\source\"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <CStyleOperator Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+      <Other>
+        <Verbosity>
+          <ShowHints Value="False"/>
+        </Verbosity>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Version Major="1" Minor="7"/>
+    <Files Count="15">
+      <Item1>
+        <Filename Value="kgriddesign.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="kgriddesign"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\..\source\kcontrols.pas"/>
+        <UnitName Value="KControls"/>
+      </Item2>
+      <Item3>
+        <Filename Value="..\..\source\kgrids.lrs"/>
+        <Type Value="LRS"/>
+      </Item3>
+      <Item4>
+        <Filename Value="..\..\source\kdbgrids.pas"/>
+        <UnitName Value="KDBGrids"/>
+      </Item4>
+      <Item5>
+        <Filename Value="..\..\source\kfunctions.pas"/>
+        <UnitName Value="KFunctions"/>
+      </Item5>
+      <Item6>
+        <Filename Value="..\..\source\kgraphics.pas"/>
+        <UnitName Value="KGraphics"/>
+      </Item6>
+      <Item7>
+        <Filename Value="..\..\source\kgrids.pas"/>
+        <UnitName Value="KGrids"/>
+      </Item7>
+      <Item8>
+        <Filename Value="..\..\source\kprintpreview.lfm"/>
+        <Type Value="LFM"/>
+      </Item8>
+      <Item9>
+        <Filename Value="..\..\source\kprintpreview.lrs"/>
+        <Type Value="LRS"/>
+      </Item9>
+      <Item10>
+        <Filename Value="..\..\source\kprintpreview.pas"/>
+        <UnitName Value="KPrintPreview"/>
+      </Item10>
+      <Item11>
+        <Filename Value="..\..\source\kprintsetup.lfm"/>
+        <Type Value="LFM"/>
+      </Item11>
+      <Item12>
+        <Filename Value="..\..\source\kprintsetup.lrs"/>
+        <Type Value="LRS"/>
+      </Item12>
+      <Item13>
+        <Filename Value="..\..\source\kprintsetup.pas"/>
+        <UnitName Value="KPrintSetup"/>
+      </Item13>
+      <Item14>
+        <Filename Value="..\..\source\kcontrols.inc"/>
+        <Type Value="Include"/>
+      </Item14>
+      <Item15>
+        <Filename Value="..\..\source\kcontrols.lrs"/>
+        <Type Value="LRS"/>
+      </Item15>
+    </Files>
+    <Type Value="RunAndDesignTime"/>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="DBFLaz"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="Printer4Lazarus"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)\"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

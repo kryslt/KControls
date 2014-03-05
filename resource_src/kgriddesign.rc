@@ -1,0 +1,5 @@
+tkgrid BITMAP "tkgrid.bmp"
+tkdbgrid BITMAP "tkdbgrid.bmp"
+tkprintpreview BITMAP "tkprintpreview.bmp"
+tkprintpreviewdialog BITMAP "tkprintpreviewdialog.bmp"
+tkprintsetupdialog BITMAP "tkprintsetupdialog.bmp"

@@ -1,0 +1,1 @@
+These units are Delphi only, they still wait for conversion to be compatible with Lazarus. Or some have little meaning now.
