@@ -392,6 +392,9 @@ function CompareStrings(S1, S2: string{$IFDEF USE_WIDEWINPROCS}; Locale: Cardina
 { Creates given directory, even if more folders have to be created. }
 function CreateMultipleDir(const Dir: string): Boolean;
 
+{ Converts hexadecimal digit to nibble. }
+function DigitToNibble(Digit: AnsiChar; var Nibble: Byte): Boolean;
+
 { Performs integer division. If there is a nonzero remainder,
   the result will be incremented. }
 function DivUp(Dividend, Divisor: Integer): Integer;
@@ -545,6 +548,9 @@ function MinMax(Value, Min, Max: Double): Double; overload;
 { Returns a clipped Extended value so that it lies between Min and Max }
 function MinMax(Value, Min, Max: Extended): Extended; overload;
 {$ENDIF}
+
+{ Converts nibble to hexadecimal digit. }
+function NibbleToDigit(Nibble: Byte; UpperCase: Boolean): AnsiChar;
 
 type
   { Callback for quicksort data item comparison. }
@@ -807,6 +813,19 @@ begin
   if not DirectoryExists(Dir) then
     CreateDir(Dir);
   Result := DirectoryExists(Dir);
+end;
+
+function DigitToNibble(Digit: AnsiChar; var Nibble: Byte): Boolean;
+begin
+  Result := True;
+  if (Digit >= '0') and (Digit <= '9') then
+    Nibble := Ord(Digit) - Ord('0')
+  else if (Digit >= 'a') and (Digit <= 'f') then
+    Nibble := Ord(Digit) - Ord('a') + 10
+  else if (Digit >= 'A') and (Digit <= 'F') then
+    Nibble := Ord(Digit) - Ord('A') + 10
+  else
+    Result := False;
 end;
 
 function DivUp(Dividend, Divisor: Integer): Integer;
@@ -1252,7 +1271,6 @@ end;
 function IntToHexStr(Value: Int64; Digits: Byte; const Prefix, Suffix: string; UseLowerCase: Boolean): string;
 var
   B: Byte;
-  C: Char;
 begin
   Result := '';
   if Digits <> 0 then
@@ -1260,13 +1278,7 @@ begin
   repeat
     B := Byte(Value and $F);
     Value := Value shr 4;
-    if B < 10 then
-      C := Chr(Ord('0') + B) else
-      if UseLowerCase then
-        C := Chr(Ord('a') + B - 10)
-      else
-        C := Chr(Ord('A') + B - 10);
-    Result := C + Result;
+    Result := Char(NibbleToDigit(B, not UseLowerCase)) + Result;
   until (Value = 0) or ((Digits <> 0) and (Length(Result) = Digits));
   while Length(Result) < Digits do
     Result := '0' + Result;
@@ -1421,7 +1433,7 @@ function HexStrToInt(S: string; Digits: Byte; Signed: Boolean; var Code: Integer
 var
   I, L, Len: Integer;
   N: Byte;
-  C: Char;
+  C: AnsiChar;
   M: Int64;
 begin
   Result := 0;
@@ -1438,11 +1450,9 @@ begin
     I := 1;
   while I <= Len do
   begin
-    C := S[I];
+    C := AnsiChar(S[I]);
     N := 255;
-    if (C >= '0') and (C <= '9') then N := Ord(C) - Ord('0')
-    else if (C >= 'a') and (C <= 'f') then N := Ord(C) - Ord('a') + 10
-    else if (C >= 'A') and (C <= 'F') then N := Ord(C) - Ord('A') + 10;
+    DigitToNibble(C, N);
     if N > 15 then
     begin
       if CharInSetEx(C, ['h', 'H']) then
@@ -1597,6 +1607,16 @@ begin
     Result := Max;
 end;
 {$ENDIF}
+
+function NibbleToDigit(Nibble: Byte; UpperCase: Boolean): AnsiChar;
+begin
+  if Nibble < 10 then
+    Result := AnsiChar(Ord('0') + Nibble)
+  else if UpperCase then
+    Result := AnsiChar(Ord('A') + Nibble - 10)
+  else
+    Result := AnsiChar(Ord('a') + Nibble - 10);
+end;
 
 procedure QuickSortNR(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareProc;
   AExchangeProc: TQsExchangeProc; ASortedDown: Boolean);
