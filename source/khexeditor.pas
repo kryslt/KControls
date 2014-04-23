@@ -90,30 +90,14 @@ type
     TotalVert: Integer;
   end;
 
-  { Declares possible indexes e.g. for the @link(TKHexEditorColors.Color) property. }
-  TKHexEditorColorIndex = Integer;
+  { Declared for backward compatibility only. }
+  TKHexEditorColorIndex = TKColorIndex;
 
-  { @abstract(Declares @link(TKHexEditorColors) color item description)
-    <UL>
-    <LH>Members:</LH>
-    <LI><I>Def</I> - default color value</LI>
-    <LI><I>Name</I> - color name (can be localized)</LI>
-    </UL>
-  }
-  TKHexEditorColorSpec = record
-    Def: TColor;
-    Name: string;
-  end;
+  { Declared for backward compatibility only. }
+  TKHexEditorColorSpec = TKColorSpec;
 
-  { Declares possible values for the @link(TKCustomHexEditor.DisabledDrawStyle) property }
-  TKHexEditorDisabledDrawStyle = (
-    { The lines will be painted with brighter colors when editor is disabled }
-    eddBright,
-    { The lines will be painted with gray text and white background when editor is disabled }
-    eddGrayed,
-    { The lines will be painted normally when editor is disabled }
-    eddNormal
-  );
+  { Declared for backward compatibility only. }
+  TKHexEditorDisabledDrawStyle = TKEditDisabledDrawStyle;
 
   { Declares drawing styles - possible values for the @link(TKCustomHexEditor.DrawStyles) property }
   TKHexEditorDrawStyle = (
@@ -224,33 +208,11 @@ type
   { Hex editor states can be arbitrary combined }
   TKHexEditorStates = set of TKHexEditorState;
 
-  { @abstract(Declares the color description structure returned by @link(TKHexEditorColors.ColorData) property)
-    <UL>
-    <LH>Members:</LH>
-    <LI><I>Index</I> - color index</LI>
-    <LI><I>Color</I> - current color value</LI>
-    <LI><I>Default</I> - default color value</LI>
-    <LI><I>Name</I> - color name</LI>
-    </UL>
-  }
-  TKHexEditorColorData = record
-    Index: TKHexEditorColorIndex;
-    Color: TColor;
-    Default: TColor;
-    Name: string;
-  end;
+  { Declared for backward compatibility only. }
+  TKHexEditorColorData = TKColorData;
 
-  { Declares possible values for the @link(TKHexEditorColors.ColorScheme) property }
-  TKHexEditorColorScheme = (
-    { GetColor returns normal color currently defined for each item }
-    ecsNormal,
-    { GetColor returns gray for text and line colors and white for background colors }
-    ecsGrayed,
-    { GetColor returns brighter version of normal color }
-    ecsBright,
-    { GetColor returns grayscaled color versions }
-    ecsGrayScale
-  );
+  { Declared for backward compatibility only. }
+  TKHexEditorColorScheme = TKColorScheme;
 
 const
   { Minimum for the @link(TKCustomHexEditor.AddressSize) property }
@@ -358,45 +320,45 @@ const
   cVertLinesDef = clWindowText;
 
   { Index for the @link(TKHexEditorColors.AddressText) color property }
-  ciAddressText = TKHexEditorColorIndex(0);
+  ciAddressText = TKColorIndex(0);
   { Index for the @link(TKHexEditorColors.AddressBkGnd) color property }
-  ciAddressBkGnd = TKHexEditorColorIndex(1);
+  ciAddressBkGnd = TKColorIndex(1);
   { Index for the @link(TKHexEditorColors.BkGnd) color property }
-  ciBkGnd = TKHexEditorColorIndex(2);
+  ciBkGnd = TKColorIndex(2);
   { Index for the @link(TKHexEditorColors.DigitTextEven) color property }
-  ciDigitTextEven = TKHexEditorColorIndex(3);
+  ciDigitTextEven = TKColorIndex(3);
   { Index for the @link(TKHexEditorColors.DigitTextOdd) color property }
-  ciDigitTextOdd = TKHexEditorColorIndex(4);
+  ciDigitTextOdd = TKColorIndex(4);
   { Index for the @link(TKHexEditorColors.DigitBkGnd) color property }
-  ciDigitBkGnd = TKHexEditorColorIndex(5);
+  ciDigitBkGnd = TKColorIndex(5);
   { Index for the @link(TKHexEditorColors.HorzLines) color property }
-  ciHorzLines = TKHexEditorColorIndex(6);
+  ciHorzLines = TKColorIndex(6);
   { Index for the @link(TKHexEditorColors.InactiveCaretBkGnd) color property }
-  ciInactiveCaretBkGnd = TKHexEditorColorIndex(7);
+  ciInactiveCaretBkGnd = TKColorIndex(7);
   { Index for the @link(TKHexEditorColors.InactiveCaretSelBkGnd) color property }
-  ciInactiveCaretSelBkGnd = TKHexEditorColorIndex(8);
+  ciInactiveCaretSelBkGnd = TKColorIndex(8);
   { Index for the @link(TKHexEditorColors.InactiveCaretSelText) color property }
-  ciInactiveCaretSelText = TKHexEditorColorIndex(9);
+  ciInactiveCaretSelText = TKColorIndex(9);
   { Index for the @link(TKHexEditorColors.InactiveCaretText) color property }
-  ciInactiveCaretText = TKHexEditorColorIndex(10);
+  ciInactiveCaretText = TKColorIndex(10);
   { Index for the @link(TKHexEditorColors.LinesHighLight) color property }
-  ciLinesHighLight = TKHexEditorColorIndex(11);
+  ciLinesHighLight = TKColorIndex(11);
   { Index for the @link(TKHexEditorColors.SelBkGnd) color property }
-  ciSelBkGnd = TKHexEditorColorIndex(12);
+  ciSelBkGnd = TKColorIndex(12);
   { Index for the @link(TKHexEditorColors.SelBkGndFocused) color property }
-  ciSelBkGndFocused = TKHexEditorColorIndex(13);
+  ciSelBkGndFocused = TKColorIndex(13);
   { Index for the @link(TKHexEditorColors.SelText) color property }
-  ciSelText = TKHexEditorColorIndex(14);
+  ciSelText = TKColorIndex(14);
   { Index for the @link(TKHexEditorColors.SelTextFocused) color property }
-  ciSelTextFocused = TKHexEditorColorIndex(15);
+  ciSelTextFocused = TKColorIndex(15);
   { Index for the @link(TKHexEditorColors.Separators) color property }
-  ciSeparators = TKHexEditorColorIndex(16);
+  ciSeparators = TKColorIndex(16);
   { Index for the @link(TKHexEditorColors.TextText) color property }
-  ciTextText = TKHexEditorColorIndex(17);
+  ciTextText = TKColorIndex(17);
   { Index for the @link(TKHexEditorColors.TextBkgnd) color property }
-  ciTextBkGnd = TKHexEditorColorIndex(18);
+  ciTextBkGnd = TKColorIndex(18);
   { Index for the @link(TKHexEditorColors.VertLines) color property }
-  ciVertLines = TKHexEditorColorIndex(19);
+  ciVertLines = TKColorIndex(19);
   { Maximum color array index }
   ciHexEditorColorsMax = ciVertLines;
 
@@ -405,9 +367,6 @@ const
 
   { Default value for the @link(TKCustomHexEditor.Addressoffset) property }
   cAddressOffsetDef = 0;
-
-  { Default value for the @link(TKCustomHexEditor.DisabledDrawStyle) property }
-  cDisabledDrawStyleDef = eddBright;
 
   { Default value for the  @link(TKCustomHexEditor.DrawStyles) property }
   cDrawStylesDef = [edAddress, edDigits, edText, edInactiveCaret, edSeparators];
@@ -441,39 +400,17 @@ type
     Colors are accessible via published properties or several public Color*
     properties.
   }
-  TKHexEditorColors = class(TPersistent)
+  TKHexEditorColors = class(TKCustomColors)
   private
-    FOwner: TKCustomHexEditor;
-    FBrightColors: TKColorArray;
-    FColors: TKColorArray;
-    FColorScheme: TKHexEditorColorScheme;
     FSingleBkGnd: Boolean;
-    function GetColor(Index: TKHexEditorColorIndex): TColor;
-    function GetColorData(Index: TKHexEditorColorIndex): TKHexEditorColorData;
-    function GetColorEx(Index: TKHexEditorColorIndex): TColor;
-    function GetColorName(Index: TKHexEditorColorIndex): string;
-    procedure SetColor(Index: TKHexEditorColorIndex; Value: TColor);
-    procedure SetColorEx(Index: TKHexEditorColorIndex; Value: TColor);
-    procedure SetColors(const Value: TKColorArray);
+  protected
+    { Returns the specific color according to ColorScheme. }
+    function InternalGetColor(Index: TKColorIndex): TColor; override;
+    { Returns color specification structure for given index. }
+    function GetColorSpec(Index: TKColorIndex): TKColorSpec; override;
+    { Returns maximum color index. }
+    function GetMaxIndex: Integer; override;
   public
-    { Performs necessary initializations }
-    constructor Create(AOwner: TKCustomHexEditor);
-    { Takes property values from another TKHexEditorColors class }
-    procedure Assign(Source: TPersistent); override;
-    { Clears cached brighter colors }
-    procedure ClearBrightColors;
-    { Initializes the color array. }
-    procedure Initialize; virtual;
-    { Specifies color scheme for reading of published properties - see GetColor in source code}
-    property ColorScheme: TKHexEditorColorScheme read FColorScheme write FColorScheme;
-    { Returns always normal color - regardless of the ColorScheme setting }
-    property Color[Index: TKHexEditorColorIndex]: TColor read GetColorEx write SetColorEx;
-    { Returns always a complete color description }
-    property ColorData[Index: TKHexEditorColorIndex]: TKHexEditorColorData read GetColorData;
-    { Returns (localizable) color name }
-    property ColorName[Index: TKHexEditorColorIndex]: string read GetColorName;
-    { Returns array of normal colors }
-    property Colors: TKColorArray read FColors write SetColors;
     { @link(TKHexEditorColors.BkGnd) is used for all areas if True - @link(edSingleBkGnd) forward }
     property SingleBkGnd: Boolean read FSingleBkGnd write FSingleBkGnd;
   published
@@ -663,7 +600,7 @@ type
     FClipboardFormat: Word;
     FColors: TKHexEditorColors;
     FDigitGrouping: Integer;
-    FDisabledDrawStyle: TKHexEditorDisabledDrawStyle;
+    FDisabledDrawStyle: TKEditDisabledDrawStyle;
     FDrawStyles: TKHexEditorDrawStyles;
     FEditArea: TKHexEditorArea;
     FKeyMapping: TKEditKeyMapping;
@@ -717,7 +654,7 @@ type
     procedure SetCommandKey(Index: TKEditCommand; Value: TKEditKey);
     procedure SetData(Value: TDataSize);
     procedure SetDigitGrouping(Value: Integer);
-    procedure SetDisabledDrawStyle(Value: TKHexEditorDisabledDrawStyle);
+    procedure SetDisabledDrawStyle(Value: TKEditDisabledDrawStyle);
     procedure SetDrawStyles(const Value: TKHexEditorDrawStyles);
     procedure SetEditArea(Value: TKHexEditorArea);
     procedure SetLeftChar(Value: Integer);
@@ -1094,7 +1031,7 @@ type
     { Specifies the byte grouping in the digits area }
     property DigitGrouping: Integer read FDigitGrouping write SetDigitGrouping default cDigitGroupingDef;
     { Specifies the style how the outline is drawn when editor is disabled }
-    property DisabledDrawStyle: TKHexEditorDisabledDrawStyle read FDisabledDrawStyle write SetDisabledDrawStyle default cDisabledDrawStyleDef;
+    property DisabledDrawStyle: TKEditDisabledDrawStyle read FDisabledDrawStyle write SetDisabledDrawStyle default cDisabledDrawStyleDef;
     { Defines areas to paint, whether to paint horizontal and vertical trailing lines,
       area separator lines and caret mark when the editor has no input focus }
     property DrawStyles: TKHexEditorDrawStyles read FDrawStyles write SetDrawStyles stored IsDrawStylesStored;
@@ -1355,8 +1292,7 @@ function BinaryToText(Buffer: PBytes; SelStart, SelEnd: Integer;
   Example: Value = $A18D, Digit = $C, Pos = 3: Result = $AC8D }
 function ReplaceDigit(Value, Digit, Pos: Integer): Integer;
 
-{ Returns the instance-independent color specification for
-  the given color index }
+{ Declared for backward compatibility only. Use @link(TKCustomHexEditor.Colors) and its properties/methods. }
 function GetColorSpec(Index: TKHexEditorColorIndex): TKHexEditorColorSpec;
 
 implementation
@@ -1401,7 +1337,7 @@ begin
   if Convert then
     SetLength(T, Length(S));
   J := 0;
-  for I := 1 to Length(S) do if not CharInSetEx(S[I], [#9, #32]) then
+  for I := 1 to Length(S) do if not CharInSetEx(S[I], [cTAB, cSPACE]) then
   begin
     K := DigitToBin(S[I]);
     if K >= 0 then
@@ -1517,43 +1453,58 @@ begin
   end;
 end;
 
+function GetColorSpec(Index: TKHexEditorColorIndex): TKHexEditorColorSpec;
+var
+  Colors: TKHexEditorColors;
+begin
+  Colors := TKHexEditorColors.Create(nil);
+  try
+    Result.Def := Colors.DefaultColor[Index];
+    Result.Name := Colors.ColorName[Index];
+  finally
+    Colors.Free;
+  end;
+end;
+
 { TKHexEditorColors }
 
-constructor TKHexEditorColors.Create(AOwner: TKCustomHexEditor);
+function TKHexEditorColors.GetColorSpec(Index: TKColorIndex): TKColorSpec;
 begin
-  FOwner := AOwner;
-  Initialize;
-  ClearBrightColors;
-end;
-
-procedure TKHexEditorColors.Assign(Source: TPersistent);
-begin
-  if Source is TKHexEditorColors then
-  begin
-    Colors := TKHexEditorColors(Source).Colors;
-    FOwner.Invalidate;
-  end
+  case Index of
+    ciAddressText: begin Result.Def := cAddressTextDef; Result.Name := sHEAddressText; end;
+    ciAddressBkGnd: begin Result.Def := cAddressBkgndDef; Result.Name := sHEAddressBkGnd; end;
+    ciBkGnd: begin Result.Def := cBkGndDef; Result.Name := sHEBkGnd; end;
+    ciDigitTextEven: begin Result.Def := cDigitTextEvenDef; Result.Name := sHEDigitTextEven; end;
+    ciDigitTextOdd: begin Result.Def := cDigitTextOddDef; Result.Name := sHEDigitTextOdd; end;
+    ciDigitBkGnd: begin Result.Def := cDigitBkGndDef; Result.Name := sHEDigitBkgnd; end;
+    ciHorzLines: begin Result.Def := cHorzLinesDef; Result.Name := sHEHorzLines; end;
+    ciInactiveCaretBkGnd: begin Result.Def := cInactiveCaretBkGndDef; Result.Name := sHEInactiveCaretBkGnd; end;
+    ciInactiveCaretSelBkGnd: begin Result.Def := cInactiveCaretSelBkGndDef; Result.Name := sHEInactiveCaretSelBkGnd; end;
+    ciInactiveCaretSelText: begin Result.Def := cInactiveCaretSelTextDef; Result.Name := sHEInactiveCaretSelText; end;
+    ciInactiveCaretText: begin Result.Def := cInactiveCaretTextDef; Result.Name := sHEInactiveCaretText; end;
+    ciLinesHighLight: begin Result.Def := cLinesHighLightDef; Result.Name := sHELinesHighLight; end;
+    ciSelBkGnd: begin Result.Def := cSelBkGndDef; Result.Name := sHESelBkGnd; end;
+    ciSelBkGndFocused: begin Result.Def := cSelBkGndFocusedDef; Result.Name := sHESelBkGndFocused; end;
+    ciSelText: begin Result.Def := cSelTextDef; Result.Name := sHESelText; end;
+    ciSelTextFocused: begin Result.Def := cSelTextFocusedDef; Result.Name := sHESelTextFocused; end;
+    ciSeparators: begin Result.Def := cSeparatorsDef; Result.Name := sHESeparators; end;
+    ciTextText: begin Result.Def := cTextTextDef; Result.Name := sHETextText; end;
+    ciTextBkGnd: begin Result.Def := cTextBkgndDef; Result.Name := sHETextBkGnd; end;
+    ciVertLines: begin Result.Def := cVertLinesDef; Result.Name := sHEVertLines; end;
   else
-    inherited;
+    Result := inherited;
+  end;
 end;
 
-procedure TKHexEditorColors.ClearBrightColors;
-var
-  I: TKHexEditorColorIndex;
-begin
-  for I := 0 to Length(FBrightColors) - 1 do
-    FBrightColors[I] := clNone;
-end;
-
-function TKHexEditorColors.GetColor(Index: TKHexEditorColorIndex): TColor;
+function TKHexEditorColors.InternalGetColor(Index: TKColorIndex): TColor;
 const
   AreaBkGndSet = [ciAddressBkgnd, ciDigitBkGnd, ciTextBkGnd];
   BkGndSet = [ciAddressBkgnd, ciBkGnd, ciDigitBkGnd, ciInactiveCaretBkGnd,
     ciInactiveCaretSelBkGnd, ciSelBkGnd, ciSelBkGndFocused, ciTextBkgnd];
 begin
   case FColorScheme of
-    ecsGrayed: if Index in BkGndSet then Result := clWindow else Result := clGrayText;
-    ecsBright:
+    csGrayed: if Index in BkGndSet then Result := clWindow else Result := clGrayText;
+    csBright:
     begin
       if FBrightColors[Index] = clNone then
         FBrightColors[Index] := BrightColor(FColors[Index], 0.5, bsOfTop);
@@ -1562,7 +1513,7 @@ begin
       else
         Result := FBrightColors[Index];
     end;
-    ecsGrayScale: Result := ColorToGrayScale(FColors[Index]);
+    csGrayScale: Result := ColorToGrayScale(FColors[Index]);
   else
     if FSingleBkGnd and (Index in AreaBkGndSet) then
       Result := FColors[ciBkGnd]
@@ -1571,61 +1522,9 @@ begin
   end;
 end;
 
-function TKHexEditorColors.GetColorData(Index: TKHexEditorColorIndex): TKHexEditorColorData;
-var
-  ColorSpec: TKHexEditorColorSpec;
+function TKHexEditorColors.GetMaxIndex: Integer;
 begin
-  Result.Index := Index;
-  Result.Color := FColors[Index];
-  ColorSpec := GetColorSpec(Index);
-  Result.Default := ColorSpec.Def;
-  Result.Name := ColorSpec.Name;
-end;
-
-function TKHexEditorColors.GetColorEx(Index: TKHexEditorColorIndex): TColor;
-begin
-  Result := FColors[Index];
-end;
-
-function TKHexEditorColors.GetColorName(Index: TKHexEditorColorIndex): string;
-begin
-  Result := GetColorSpec(Index).Name;
-end;
-
-procedure TKHexEditorColors.Initialize;
-var
-  I: TKHexEditorColorIndex;
-begin
-  SetLength(FColors, ciHexEditorColorsMax + 1);
-  SetLength(FBrightColors, ciHexEditorColorsMax + 1);
-  for I := 0 to Length(FColors) - 1 do
-    FColors[I] := GetColorSpec(I).Def;
-end;
-
-procedure TKHexEditorColors.SetColor(Index: TKHexEditorColorIndex; Value: TColor);
-begin
-  if FColors[Index] <> Value then
-  begin
-    FColors[Index] := Value;
-    FBrightColors[Index] := clNone;
-    if not (csLoading in FOwner.ComponentState) and FOwner.HandleAllocated then
-      FOwner.Invalidate;
-  end;
-end;
-
-procedure TKHexEditorColors.SetColorEx(Index: TKHexEditorColorIndex; Value: TColor);
-begin
-  if FColors[Index] <> Value then
-  begin
-    FColors[Index] := Value;
-    FBrightColors[Index] := clNone;
-  end;
-end;
-
-procedure TKHexEditorColors.SetColors(const Value: TKColorArray);
-begin
-  FColors := Value;
-  ClearBrightColors;
+  Result := ciHexEditorColorsMax;
 end;
 
 { TKHexEditorChangeList }
@@ -3292,6 +3191,15 @@ begin
     Result := False;
 end;
 
+procedure TKCustomHexEditor.HideEditorCaret;
+var
+  P: TPoint;
+begin
+  P := SelToPoint(FSelEnd, FEditArea);
+  HideCaret(Handle);
+  {$IFDEF FPC}SetCaretPosEx(Handle,{$ELSE}SetCaretPos({$ENDIF} P.X, P.Y + 1);
+end;
+
 procedure TKCustomHexEditor.InsertChar(At: Integer; Value: Byte);
 begin
   InsertString(At, AnsiChar(Value), 1);
@@ -3585,7 +3493,7 @@ var
   Fmt: string;
   C: Char;
   R, R1, RClip: TRect;
-  OldColorScheme: TKHexEditorColorScheme;
+  OldColorScheme: TKColorScheme;
   ASelStart, ASelEnd: TKHexEditorSelection;
   AD: TKHexEditorAreaDimensions;
 begin
@@ -3651,17 +3559,17 @@ begin
     if Data.Printing then
     begin
       if Data.PaintColors then
-        FColors.ColorScheme := ecsNormal
+        FColors.ColorScheme := csNormal
       else
-        FColors.ColorScheme := ecsGrayScale;
+        FColors.ColorScheme := csGrayScale;
     end else
     begin
       if Enabled or (FDisabledDrawStyle = eddNormal) then
-        FColors.ColorScheme := ecsNormal
+        FColors.ColorScheme := csNormal
       else if FDisabledDrawStyle = eddGrayed then
-        FColors.ColorScheme := ecsGrayed
+        FColors.ColorScheme := csGrayed
       else
-        FColors.ColorScheme := ecsBright
+        FColors.ColorScheme := csBright
     end;
     FColors.SingleBkGnd := edSingleBkGnd in FDrawStyles;
     // get clip box for updating;
@@ -4402,7 +4310,7 @@ begin
     UpdateEditorCaret;
     Invalidate;
     InvalidatePageSetup;
-  end;  
+  end;
 end;
 
 function TKCustomHexEditor.SelectionValid(Value: TKHexEditorSelection; Area: TKHexEditorArea): Boolean;
@@ -4555,7 +4463,7 @@ begin
   end;
 end;
 
-procedure TKCustomHexEditor.SetDisabledDrawStyle(Value: TKHexEditorDisabledDrawStyle);
+procedure TKCustomHexEditor.SetDisabledDrawStyle(Value: TKEditDisabledDrawStyle);
 begin
   if Value <> FDisabledDrawStyle then
   begin
@@ -4792,15 +4700,6 @@ begin
     FUndoList.Limit := Value;
     FRedoList.Limit := Value;
   end;
-end;
-
-procedure TKCustomHexEditor.HideEditorCaret;
-var
-  P: TPoint;
-begin
-  P := SelToPoint(FSelEnd, FEditArea);
-  HideCaret(Handle);
-  {$IFDEF FPC}SetCaretPosEx(Handle,{$ELSE}SetCaretPos({$ENDIF} P.X, P.Y + 1);
 end;
 
 procedure TKCustomHexEditor.ShowEditorCaret;
@@ -5053,35 +4952,6 @@ procedure TKCustomHexEditor.WMVScroll(var Msg: TLMVScroll);
 begin
   SafeSetFocus;
   ModifyScrollBar(SB_VERT, Msg.ScrollCode, Msg.Pos, True);
-end;
-
-function GetColorSpec(Index: TKHexEditorColorIndex): TKHexEditorColorSpec;
-begin
-  case Index of
-    ciAddressText: begin Result.Def := cAddressTextDef; Result.Name := sHEAddressText; end;
-    ciAddressBkGnd: begin Result.Def := cAddressBkgndDef; Result.Name := sHEAddressBkGnd; end;
-    ciBkGnd: begin Result.Def := cBkGndDef; Result.Name := sHEBkGnd; end;
-    ciDigitTextEven: begin Result.Def := cDigitTextEvenDef; Result.Name := sHEDigitTextEven; end;
-    ciDigitTextOdd: begin Result.Def := cDigitTextOddDef; Result.Name := sHEDigitTextOdd; end;
-    ciDigitBkGnd: begin Result.Def := cDigitBkGndDef; Result.Name := sHEDigitBkgnd; end;
-    ciHorzLines: begin Result.Def := cHorzLinesDef; Result.Name := sHEHorzLines; end;
-    ciInactiveCaretBkGnd: begin Result.Def := cInactiveCaretBkGndDef; Result.Name := sHEInactiveCaretBkGnd; end;
-    ciInactiveCaretSelBkGnd: begin Result.Def := cInactiveCaretSelBkGndDef; Result.Name := sHEInactiveCaretSelBkGnd; end;
-    ciInactiveCaretSelText: begin Result.Def := cInactiveCaretSelTextDef; Result.Name := sHEInactiveCaretSelText; end;
-    ciInactiveCaretText: begin Result.Def := cInactiveCaretTextDef; Result.Name := sHEInactiveCaretText; end;
-    ciLinesHighLight: begin Result.Def := cLinesHighLightDef; Result.Name := sHELinesHighLight; end;
-    ciSelBkGnd: begin Result.Def := cSelBkGndDef; Result.Name := sHESelBkGnd; end;
-    ciSelBkGndFocused: begin Result.Def := cSelBkGndFocusedDef; Result.Name := sHESelBkGndFocused; end;
-    ciSelText: begin Result.Def := cSelTextDef; Result.Name := sHESelText; end;
-    ciSelTextFocused: begin Result.Def := cSelTextFocusedDef; Result.Name := sHESelTextFocused; end;
-    ciSeparators: begin Result.Def := cSeparatorsDef; Result.Name := sHESeparators; end;
-    ciTextText: begin Result.Def := cTextTextDef; Result.Name := sHETextText; end;
-    ciTextBkGnd: begin Result.Def := cTextBkgndDef; Result.Name := sHETextBkGnd; end;
-    ciVertLines: begin Result.Def := cVertLinesDef; Result.Name := sHEVertLines; end;
-  else
-    Result.Def := clNone;
-    Result.Name := '';
-  end;
 end;
 
 end.

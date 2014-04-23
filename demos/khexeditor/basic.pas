@@ -79,7 +79,7 @@ procedure CopyColors(Src, Dest: TKColorArray);
 implementation
 
 uses
-  Math, Res, Forms;
+  Math, Res, Forms, KEditCommon;
 
 type
   PEnumFontData = ^TEnumFontData;

@@ -215,18 +215,6 @@ type
   { Declares possible indexes e.g. for the @link(TKGridColors.Color) property. }
   TKGridColorIndex = Integer;
 
-  { Declares possible values for the @link(TKGridColors.ColorScheme) property. }
-  TKGridColorScheme = (
-    { GetColor returns normal color currently defined for each item. }
-    csNormal,
-    { GetColor returns gray for text. }
-    csGrayed,
-    { GetColor returns brighter version of normal color. }
-    csBright,
-    { GetColor returns grayscaled color versions. }
-    csGrayScale
-  );
-
   { Method type for the Compare parameter e.g. in the
     @link(TKCustomGrid.InternalQuickSortNR) method. }
   TKGridCompareProc = function(ByIndex, Index1, Index2: Integer): Integer of object;
@@ -1225,7 +1213,7 @@ type
     { Read method for the @link(TKGridAxisItem.Objects) property. Without implementation. }
     function GetObjects(Index: Integer): TObject; virtual; abstract;
     { Read method for the @link(TKGridAxisItem.Strings) property. Without implementation. }
-    function GetStrings(Index: Integer): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; virtual; abstract;
+    function GetStrings(Index: Integer): TString; virtual; abstract;
     { Read method for the @link(TKGridAxisItem.Visible) property. Without implementation. }
     function GetVisible: Boolean; virtual;
     { Write method for the @link(TKGridAxisItem.Extent) property. Without implementation. }
@@ -1237,7 +1225,7 @@ type
     { Write method for the @link(TKGridAxisItem.SortMode) property. Without implementation. }
     procedure SetSortMode(const Value: TKGridSortMode); virtual; abstract;
     { Write method for the @link(TKGridAxisItem.Strings) property. Without implementation. }
-    procedure SetStrings(Index: Integer; const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}); virtual; abstract;
+    procedure SetStrings(Index: Integer; const Value: TString); virtual; abstract;
     { Write method for the @link(TKGridAxisItem.Visible) property. Without implementation. }
     procedure SetVisible(Value: Boolean); virtual; abstract;
   public
@@ -1297,7 +1285,7 @@ type
     property SortMode: TKGridSortMode read FSortMode write SetSortMode;
     { Provides access to the obj cell instances corresponding to the column or
       row referred by this TKGridAxisItem instance. }
-    property Strings[Index: Integer]: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF} read GetStrings write SetStrings; default;
+    property Strings[Index: Integer]: TString read GetStrings write SetStrings; default;
     { Shareable property. Determines if the column or row is visible. }
     property Visible: Boolean read GetVisible write SetVisible;
     { Provides access to custom object for Row }
@@ -1324,7 +1312,7 @@ type
     { Read method for the @link(TKGridAxisItem.Objects) property. Implementation for columns. }
     function GetObjects(Index: Integer): TObject; override;
     { Read method for the @link(TKGridAxisItem.Strings) property. Implementation for columns. }
-    function GetStrings(Index: Integer): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; override;
+    function GetStrings(Index: Integer): TString; override;
     { Write method for the @link(TKGridAxisItem.Extent) property. Implementation for columns. }
     procedure SetExtent(const Value: Integer); override;
     { Write method for the @link(TKGridAxisItem.Objects) property. Implementation for columns. }
@@ -1334,7 +1322,7 @@ type
     { Write method for the @link(TKGridAxisItem.SortMode) property. Implementation for columns. }
     procedure SetSortMode(const Value: TKGridSortMode); override;
     { Write method for the @link(TKGridAxisItem.Strings) property. Implementation for columns. }
-    procedure SetStrings(Index: Integer; const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}); override;
+    procedure SetStrings(Index: Integer; const Value: TString); override;
     { Write method for the @link(TKGridAxisItem.Visible) property. Implementation for columns. }
     procedure SetVisible(Value: Boolean); override;
   public
@@ -1383,7 +1371,7 @@ type
     { Read method for the @link(TKGridAxisItem.Objects) property. Implementation for rows. }
     function GetObjects(Index: Integer): TObject; override;
     { Read method for the @link(TKGridAxisItem.Strings) property. Implementation for rows. }
-    function GetStrings(Index: Integer): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; override;
+    function GetStrings(Index: Integer): TString; override;
     { Write method for the @link(TKGridAxisItem.Extent) property. Implementation for rows. }
     procedure SetExtent(const Value: Integer); override;
     { Write method for the @link(TKGridAxisItem.Objects) property. Implementation for rows. }
@@ -1393,7 +1381,7 @@ type
     { Write method for the @link(TKGridAxisItem.SortMode) property. Implementation for rows. }
     procedure SetSortMode(const Value: TKGridSortMode); override;
     { Write method for the @link(TKGridAxisItem.Strings) property. Implementation for rows. }
-    procedure SetStrings(Index: Integer; const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}); override;
+    procedure SetStrings(Index: Integer; const Value: TString); override;
     { Write method for the @link(TKGridAxisItem.Visible) property. Implementation for rows. }
     procedure SetVisible(Value: Boolean); override;
   public
@@ -1528,15 +1516,15 @@ type
     function GetTextPtr: PChar;
   {$ELSE}
     FText: PWideChar; // WideString is slow as storage here
-    function GetText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+    function GetText: TKString;
   {$ENDIF}
-    procedure SetText(const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+    procedure SetText(const Value: TString);
   protected
     { Assigns a new text string into this TKGridTextCell instance. The new
       string will be assigned by a grow on demand method, i.e. the memory
       allocated for the string can only grow within each assignment. It continues
       to grow until the TKGridTextCell instance is destroyed. }
-    procedure AssignText(const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}); virtual;
+    procedure AssignText(const Value: TString); virtual;
     { Cell class aware version of @link(TKCustomGrid.OnEditorCreate).
       Creates a TEdit inplace editor. }
     procedure EditorCreate(ACol, ARow: Integer; var AEditor: TWinControl); override;
@@ -1554,9 +1542,9 @@ type
     procedure Assign(Source: TKGridCell); override;
     { Readonly property. This is the editable text that appears in the cell -
       published as pointer for fast read operations like sorting. }
-    property TextPtr: {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF} read {$IFDEF STRING_IS_UNICODE}GetTextPtr{$ELSE}FText{$ENDIF};
+    property TextPtr: PKText read {$IFDEF STRING_IS_UNICODE}GetTextPtr{$ELSE}FText{$ENDIF};
     { Shareable property. This is the editable text that appears in the cell. }
-    property Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF} read {$IFDEF STRING_IS_UNICODE}FText{$ELSE}GetText{$ENDIF} write SetText;
+    property Text: TString read {$IFDEF STRING_IS_UNICODE}FText{$ELSE}GetText{$ENDIF} write SetText;
   end;
 
   { @abstract(Class for a textual cell with custom appearance)
@@ -1704,7 +1692,7 @@ type
     FSortArrowHAlign: TKHAlign;
     FSortArrowHPadding: Integer;
     FState: TKGridDrawState;
-    FText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+    FText: TString;
     FValidClipping: Boolean;
     FVAlign: TKVAlign;
     FVPadding: Integer;
@@ -1771,7 +1759,7 @@ type
     { Low level method. Paints common parts of a themed and non-themed cell. }
     procedure DrawCellCommon; virtual;
     { Low level method. Paints button frame. }
-    procedure DrawCellButton(Bounds: TRect);
+    procedure DrawCellButton(const Bounds: TRect);
     { Low level method. Paints checkbox frame. }
     procedure DrawCellCheckBox(const Bounds, Interior: TRect);
     { Low level method. Paints the graphic (if any) within the rectangle specified by Interior.
@@ -1785,7 +1773,7 @@ type
     { Low level method. Paints a check box frame. }
     procedure DrawCheckBoxFrame(const ARect: TRect); virtual;
     { Low level method. Paints cell text. }
-    procedure DrawCellText(var ARect: TRect); virtual;
+    procedure DrawCellText(const ARect: TRect); virtual;
     { Low level method. Paints a standard focus rectangle around the focused
       cell. }
     procedure DrawCellFocus(const ARect: TRect; SkipTest: Boolean = False); virtual;
@@ -1911,7 +1899,7 @@ type
     { Specifies the draw state of the cell. }
     property State: TKGridDrawState read FState write FState;
     { Specifies the text that appears in the cell. }
-    property Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF} read FText write FText;
+    property Text: TString read FText write FText;
     { This is the default vertical alignment that will be used to place the text
       within the cell rectangle. }
     property VAlign: TKVAlign read FVAlign write FVAlign;
@@ -1927,44 +1915,23 @@ type
     This container allows to group many colors into one item in object inspector.
     Colors are accessible via published properties or several public Color*
     properties. }
-  TKGridColors = class(TPersistent)
+  TKGridColors = class(TKCustomColors)
   private
-    FGrid: TKCustomGrid;
     FBrightRangeBkGnd: Boolean;
-    FColorScheme: TKGridColorScheme;
-    function GetColor(Index: TKGridColorIndex): TColor;
-    function GetColorEx(Index: TKGridColorIndex): TColor;
-    procedure SetColor(Index: TKGridColorIndex; Value: TColor);
-    procedure SetColorEx(Index: TKGridColorIndex; Value: TColor);
-    procedure SetColors(const Value: TKColorArray);
   protected
-    FBrightColors: TKColorArray;
-    FColors: TKColorArray;
-    { Initializes the color array. }
-    procedure Initialize; virtual;
+    { Returns color specification structure for given index. }
+    function GetColorSpec(Index: TKColorIndex): TKColorSpec; override;
+    { Returns maximum color index. }
+    function GetMaxIndex: Integer; override;
     { Returns the specific color according to ColorScheme. }
-    function InternalGetColor(Index: TKGridColorIndex): TColor; virtual;
-    { Replaces the specific color. }
-    procedure InternalSetColor(Index: TKGridColorIndex; Value: TColor); virtual;
+    function InternalGetColor(Index: TKGridColorIndex): TColor; override;
   public
     { Creates the instance. You can create a custom instance and pass it
-      e.g. to a @link(TKCustomGrid.Colors) property. The AGrid parameter has no meaning
+      e.g. to a @link(TKCustomGrid.Colors) property. The AControl parameter has no meaning
       in this case and you may set it to nil. }
-    constructor Create(AGrid: TKCustomGrid);
-    { Copies the properties of another instance that inherits from
-      TPersistent into this TKGridColors instance. }
-    procedure Assign(Source: TPersistent); override;
-    { Ensures cell range background colors will be brightened if specified by
-      @link(TKGridColors.BrightRangeBkGnd). }
-    procedure BrightRangeBkGnds;
+    constructor Create(AControl: TKCustomControl); override;
     { Clears cached brighter colors. }
-    procedure ClearBrightColors;
-    { Specifies color scheme for reading of published properties - see GetColor in source code}
-    property ColorScheme: TKGridColorScheme read FColorScheme write FColorScheme;
-    { Returns always normal color - regardless of the ColorScheme setting. }
-    property Color[Index: TKGridColorIndex]: TColor read GetColorEx write SetColorEx;
-    { Returns array of normal colors. }
-    property Colors: TKColorArray read FColors write SetColors;
+    procedure ClearBrightColors; override;
   published
     { Specifies if cell range colors should be brightened from focused cell colors. }
     property BrightRangeBkGnd: Boolean read FBrightRangeBkGnd write FBrightRangeBkGnd default True;
@@ -2105,7 +2072,7 @@ type
     function GetAllRowsSelected: Boolean;
     function GetAllColsSelected: Boolean;
     function GetCell(ACol, ARow: Integer): TKGridCell;
-    function GetCells(ACol, ARow: Integer): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+    function GetCells(ACol, ARow: Integer): TString;
     function GetCellSpan(ACol, ARow: Integer): TKGridCellSpan;
     function GetCols(Index: Integer): TKGridCol;
     function GetColWidths(Index: Integer): Integer;
@@ -2144,7 +2111,7 @@ type
   {$ENDIF}
     procedure SetCell(ACol, ARow: Integer; Value: TKGridCell);
     procedure SetCellPainterClass(Value: TKGridCellPainterClass);
-    procedure SetCells(ACol, ARow: Integer; const Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+    procedure SetCells(ACol, ARow: Integer; const Text: TString);
     procedure SetCellSpan(ACol, ARow: Integer; Value: TKGridCellSpan);
     procedure SetCol(Value: Integer);
     procedure SetColCount(Value: Integer);
@@ -2487,7 +2454,7 @@ type
     { Used internally to assign new cell value. }
     procedure InternalSetCell(ACol, ARow: Integer; Value: TKGridCell); virtual;
     { Used internally to assign new text to a cell. }
-    procedure InternalSetCells(ACol, ARow: Integer; const Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}); virtual;
+    procedure InternalSetCells(ACol, ARow: Integer; const Text: TString); virtual;
     { Sets the cell span paramters according to given parameters. Automatically
       splits any existing overlapping areas. Returns a grid rectangle that can
       be used to update all affected cells. }
@@ -3059,7 +3026,7 @@ type
       cell instance. If the cell instance at the position specified by ACol and ARow
       does not inherit from a textual cell class @link(TKGridTextCell), it will be
       created for this cell regardless of the current CellClass assignment. }
-    property Cells[ACol, ARow: Integer]: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF} read GetCells write SetCells;
+    property Cells[ACol, ARow: Integer]: TString read GetCells write SetCells;
     { Specifies the column span and row span for given cell. Always specify positive
       values. Reading this property may return zero or negative values, which
       are used internally to find base cell of the respective merged area. }
@@ -3770,7 +3737,7 @@ function CompareAxisItems(AxisItems1, AxisItems2: TKGridAxisItems): Boolean;
   Call TKCustomGrid.CellPainter.@link(TKGridCellPainter.DefaultDraw) instead. }
 procedure DefaultDrawCell(AGrid: TKCustomGrid; ACol, ARow: Integer; ARect: TRect;
   AState: TKGridDrawState; HAlign: TKHAlign; VAlign: TKVAlign;
-  HPadding, VPadding: Integer; const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+  HPadding, VPadding: Integer; const AText: TString);
 
 { Obsolete function. Call TKCustomGrid.@link(TKCustomGrid.DefaultEditorKeyPreview) instead. }
 procedure DefaultKeyPreview(AGrid: TKCustomGrid; AEditor: TWinControl;
@@ -3881,7 +3848,7 @@ end;
 
 procedure DefaultDrawCell(AGrid: TKCustomGrid; ACol, ARow: Integer; ARect: TRect;
   AState: TKGridDrawState; HAlign: TKHAlign; VAlign: TKVAlign;
-  HPadding, VPadding: Integer; const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+  HPadding, VPadding: Integer; const AText: TString);
 begin
   with AGrid do
   begin
@@ -4195,7 +4162,7 @@ begin
   end;
 end;
 
-function TKGridCol.GetStrings(Index: Integer): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+function TKGridCol.GetStrings(Index: Integer): TString;
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4265,7 +4232,7 @@ begin
   end;
 end;
 
-procedure TKGridCol.SetStrings(Index: Integer; const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure TKGridCol.SetStrings(Index: Integer; const Value: TString);
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4384,7 +4351,7 @@ begin
   end;
 end;
 
-function TKGridRow.GetStrings(Index: Integer): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+function TKGridRow.GetStrings(Index: Integer): TString;
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4454,7 +4421,7 @@ begin
   end;
 end;
 
-procedure TKGridRow.SetStrings(Index: Integer; const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure TKGridRow.SetStrings(Index: Integer; const Value: TString);
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4708,7 +4675,7 @@ begin
     SetText(TKGridTextCell(Source).TextPtr);
 end;
 
-procedure TKGridTextCell.AssignText(const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure TKGridTextCell.AssignText(const Value: TString);
 {$IFNDEF STRING_IS_UNICODE}
 var
   Len: Integer;
@@ -4722,7 +4689,7 @@ begin
   if Value <> '' then
     Move(Value[1], FText^, Len)
   else if FText <> nil then
-    FText[0] := #0;
+    FText[0] := cNULL;
 {$ENDIF}
 end;
 
@@ -4754,7 +4721,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TKGridTextCell.SetText(const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure TKGridTextCell.SetText(const Value: TString);
 begin
 {$IFDEF STRING_IS_UNICODE}
   if Value <> FText then
@@ -5056,15 +5023,22 @@ end;
 
 function TKGridCellPainter.CellTextExtent(const BaseRect: TRect; out Extent: TPoint): Boolean;
 var
-  R: TRect;
+  TextBox: TKTextBox;
 begin
   if (FText <> '') and not IsRectEmpty(BaseRect) then
   begin
-    R := BaseRect;
-    DrawAlignedText(FCanvas, R, FHAlign, FVAlign,
-      FHPadding, FVPadding, FText, FBackColor, FAttributes + [taCalcRect]);
-    Extent.X := R.Right - R.Left;
-    Extent.Y := R.Bottom - R.Top;
+    TextBox := TKTextBox.Create;
+    try
+      TextBox.Attributes := FAttributes;
+      TextBox.HAlign := FHAlign;
+      TextBox.HPadding := FHPadding;
+      TextBox.VAlign := FVAlign;
+      TextBox.VPadding := FVPadding;
+      TextBox.Text := FText;
+      TextBox.Measure(FCanvas, BaseRect, Extent.X, Extent.Y);
+    finally
+      TextBox.Free;
+    end;
     Result := True;
   end else
     Result := False;
@@ -5232,7 +5206,7 @@ var
 begin
   if not (gdEdited in FState) then
   begin
-      BaseRect := FCellRect;
+    BaseRect := FCellRect;
     IsSortArrow := CellSortArrowRect(BaseRect, BoundsSA, InteriorSA);
     if CellCheckBoxRect(BaseRect, Bounds, Interior, stmZoomOutOnly) then // disallow zoom in for check box frame
       DrawCellCheckBox(Bounds, Interior);
@@ -5315,7 +5289,7 @@ begin
   end;
 end;
 
-procedure TKGridCellPainter.DrawCellButton(Bounds: TRect);
+procedure TKGridCellPainter.DrawCellButton(const Bounds: TRect);
 begin
   DrawButtonFrame(Bounds);
   DrawCellText(Bounds);
@@ -5387,10 +5361,26 @@ begin
   end;
 end;
 
-procedure TKGridCellPainter.DrawCellText(var ARect: TRect);
+procedure TKGridCellPainter.DrawCellText(const ARect: TRect);
+var
+  TextBox: TKTextBox;
 begin
-  DrawAlignedText(FCanvas, ARect, FHAlign, FVAlign,
-    FHPadding, FVPadding, FText, FBackColor, FAttributes);
+  if (FText <> '') and not IsRectEmpty(ARect) then
+  begin
+    TextBox := TKTextBox.Create;
+    try
+      TextBox.Attributes := FAttributes;
+      TextBox.BackColor := FBackColor;
+      TextBox.HAlign := FHAlign;
+      TextBox.HPadding := FHPadding;
+      TextBox.VAlign := FVAlign;
+      TextBox.VPadding := FVPadding;
+      TextBox.Text := FText;
+      TextBox.Draw(FCanvas, ARect);
+    finally
+      TextBox.Free;
+    end;
+  end
 end;
 
 procedure TKGridCellPainter.DrawCheckBoxFrame(const ARect: TRect);
@@ -5750,83 +5740,61 @@ end;
 
 { TKGridColors }
 
-constructor TKGridColors.Create(AGrid: TKCustomGrid);
-begin
-  inherited Create;
-  FGrid := AGrid;
-  FBrightRangeBkgnd := True;
-  Initialize;
-  ClearBrightColors;
-  //BrightRangeBkGnds;
-end;
-
-procedure TKGridColors.Assign(Source: TPersistent);
+constructor TKGridColors.Create(AControl: TKCustomControl);
 begin
   inherited;
-  if Source is TKGridColors then
-  begin
-    Colors := TKGridColors(Source).Colors;
-    FGrid.Invalidate;
-  end
+  FBrightRangeBkgnd := True;
 end;
 
-procedure TKGridColors.BrightRangeBkGnds;
+procedure TKGridColors.ClearBrightColors;
+
   procedure DoBright(Src: TColor; var Dest: TColor);
   begin
     Dest := BrightColor(Src, 0.4, bsOfTop);
   end;
+
 begin
-  if FBrightRangeBkGnd and (FGrid.ComponentState * [csDesigning, csLoading] = []) then
+  inherited;
+  if FBrightRangeBkGnd and (FControl.ComponentState * [csDesigning, csLoading] = []) then
   begin
     DoBright(FColors[ciFocusedCellBkGnd], FColors[ciFocusedRangeBkGnd]);
     DoBright(FColors[ciSelectedCellBkGnd], FColors[ciSelectedRangeBkGnd]);
   end;
 end;
 
-procedure TKGridColors.ClearBrightColors;
-var
-  I: TKGridColorIndex;
+function TKGridColors.GetColorSpec(Index: TKColorIndex): TKColorSpec;
 begin
-  for I := 0 to Length(FBrightColors) - 1 do
-    FBrightColors[I] := clNone;
+  case Index of
+    ciCellBkGnd: begin Result.Def := cCellBkGndDef; Result.Name := ''; end;
+    ciCellLines: begin Result.Def := cCellLinesDef; Result.Name := ''; end;
+    ciCellText: begin Result.Def := cCellTextDef; Result.Name := ''; end;
+    ciDragSuggestionBkGnd: begin Result.Def := cDragSuggestionBkGndDef; Result.Name := ''; end;
+    ciDragSuggestionLine: begin Result.Def := cDragSuggestionLineDef; Result.Name := ''; end;
+    ciFixedCellBkGnd: begin Result.Def := cFixedCellBkGndDef; Result.Name := ''; end;
+    ciFixedCellIndication: begin Result.Def := cFixedCellIndicationDef; Result.Name := ''; end;
+    ciFixedCellLines: begin Result.Def := cFixedCellLinesDef; Result.Name := ''; end;
+    ciFixedCellText: begin Result.Def := cFixedCellTextDef; Result.Name := ''; end;
+    ciFixedThemedCellLines: begin Result.Def := cFixedThemedCellLinesDef; Result.Name := ''; end;
+    ciFixedThemedCellHighlight: begin Result.Def := cFixedThemedCellHighlightDef; Result.Name := ''; end;
+    ciFixedThemedCellShadow: begin Result.Def := cFixedThemedCellShadowDef; Result.Name := ''; end;
+    ciFocusedCellBkGnd: begin Result.Def := cFocusedCellBkGndDef; Result.Name := ''; end;
+    ciFocusedCellText: begin Result.Def := cFocusedCellTextDef; Result.Name := ''; end;
+    ciFocusedRangeBkGnd: begin Result.Def := cFocusedRangeBkGndDef; Result.Name := ''; end;
+    ciFocusedRangeText: begin Result.Def := cFocusedRangeTextDef; Result.Name := ''; end;
+    ciSelectedCellBkGnd: begin Result.Def := cSelectedCellBkGndDef; Result.Name := ''; end;
+    ciSelectedCellText: begin Result.Def := cSelectedCellTextDef; Result.Name := ''; end;
+    ciSelectedRangeBkGnd: begin Result.Def := cSelectedRangeBkGndDef; Result.Name := ''; end;
+    ciSelectedRangeText: begin Result.Def := cSelectedRangeTextDef; Result.Name := ''; end;
+    // aki:
+    ciSelectedFixedCellBkGnd: begin Result.Def := cSelectedFixedCellBkGndDef; Result.Name := ''; end;
+  else
+    Result := inherited;
+  end;
 end;
 
-function TKGridColors.GetColor(Index: TKGridColorIndex): TColor;
+function TKGridColors.GetMaxIndex: Integer;
 begin
-  Result := InternalGetColor(Index);
-end;
-
-function TKGridColors.GetColorEx(Index: TKGridColorIndex): TColor;
-begin
-  Result := FColors[Index];
-end;
-
-procedure TKGridColors.Initialize;
-begin
-  SetLength(FColors, ciGridColorsMax + 1);
-  SetLength(FBrightColors, ciGridColorsMax + 1);
-  FColors[ciCellBkGnd] := cCellBkGndDef;
-  FColors[ciCellLines] := cCellLinesDef;
-  FColors[ciCellText] := cCellTextDef;
-  FColors[ciDragSuggestionBkGnd] := cDragSuggestionBkGndDef;
-  FColors[ciDragSuggestionLine] := cDragSuggestionLineDef;
-  FColors[ciFixedCellBkGnd] := cFixedCellBkGndDef;
-  FColors[ciFixedCellIndication] := cFixedCellIndicationDef;
-  FColors[ciFixedCellLines] := cFixedCellLinesDef;
-  FColors[ciFixedCellText] := cFixedCellTextDef;
-  FColors[ciFixedThemedCellLines] := cFixedThemedCellLinesDef;
-  FColors[ciFixedThemedCellHighlight] := cFixedThemedCellHighlightDef;
-  FColors[ciFixedThemedCellShadow] := cFixedThemedCellShadowDef;
-  FColors[ciFocusedCellBkGnd] := cFocusedCellBkGndDef;
-  FColors[ciFocusedCellText] := cFocusedCellTextDef;
-  FColors[ciFocusedRangeBkGnd] := cFocusedRangeBkGndDef;
-  FColors[ciFocusedRangeText] := cFocusedRangeTextDef;
-  FColors[ciSelectedCellBkGnd] := cSelectedCellBkGndDef;
-  FColors[ciSelectedCellText] := cSelectedCellTextDef;
-  FColors[ciSelectedRangeBkGnd] := cSelectedRangeBkGndDef;
-  FColors[ciSelectedRangeText] := cSelectedRangeTextDef;
-  // aki:
-  FColors[ciSelectedFixedCellBkGnd] := cSelectedFixedCellBkGndDef;
+  Result := ciGridColorsMax;
 end;
 
 function TKGridColors.InternalGetColor(Index: TKGridColorIndex): TColor;
@@ -5850,41 +5818,6 @@ begin
   else
     Result := FColors[Index];
   end;
-end;
-
-procedure TKGridColors.InternalSetColor(Index: TKGridColorIndex; Value: TColor);
-begin
-  if FColors[Index] <> Value then
-  begin
-    FColors[Index] := Value;
-    FBrightColors[Index] := clNone;
-    if not (csLoading in FGrid.ComponentState) then
-      FGrid.Invalidate;
-  end;
-end;
-
-procedure TKGridColors.SetColor(Index: TKGridColorIndex; Value: TColor);
-begin
-  InternalSetColor(Index, Value);
-end;
-
-procedure TKGridColors.SetColorEx(Index: TKGridColorIndex; Value: TColor);
-begin
-  if FColors[Index] <> Value then
-  begin
-    FColors[Index] := Value;
-    FBrightColors[Index] := clNone;
-  end;
-end;
-
-procedure TKGridColors.SetColors(const Value: TKColorArray);
-var
-  I: Integer;
-begin
-  for I := 0 to Min(Length(FColors), Length(Value)) - 1 do
-    FColors[I] := Value[I];
-  ClearBrightColors;
-  BrightRangeBkGnds;
 end;
 
 { TKCustomGrid }
@@ -6924,7 +6857,7 @@ procedure TKCustomGrid.DefaultMouseCellHint(ACol, ARow: Integer;
 var
   R: TRect;
   Extent: TPoint;
-  AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  AText: TString;
 begin
   if ColValid(ACol) and Cols[ACol].CellHint then
   begin
@@ -7577,7 +7510,7 @@ begin
     Result := nil;
 end;
 
-function TKCustomGrid.GetCells(ACol, ARow: Integer): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+function TKCustomGrid.GetCells(ACol, ARow: Integer): TString;
 var
   Data: TKGridCell;
 begin
@@ -7896,7 +7829,7 @@ end;
 
 function TKCustomGrid.GetSelectionRect: TRect;
 begin
-  Result := Rect(0,0,0,0);
+  Result := CreateEmptyRect;
   if GridRectToRect(Selection, Result, False, goRangeSelect in FOptions) then
   begin
     if FOptions * [goFixedHorzLine, goHorzLine] = [goFixedHorzLine, goHorzLine] then
@@ -8901,7 +8834,7 @@ begin
   InvalidateCell(ACol, ARow);
 end;
 
-procedure TKCustomGrid.InternalSetCells(ACol, ARow: Integer; const Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure TKCustomGrid.InternalSetCells(ACol, ARow: Integer; const Text: TString);
 var
   Cell, Tmp: TKGridCell;
 begin
@@ -9356,7 +9289,6 @@ procedure TKCustomGrid.Loaded;
 begin
   inherited;
   FColors.ClearBrightColors;
-  FColors.BrightRangeBkGnds;
 end;
 
 procedure TKCustomGrid.LateUpdate(var Msg: TLMessage);
@@ -11512,7 +11444,7 @@ begin
   end;
 end;
 
-procedure TKCustomGrid.SetCells(ACol, ARow: Integer; const Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure TKCustomGrid.SetCells(ACol, ARow: Integer; const Text: TString);
 begin
   if Assigned(FCells) and ColValid(ACol) and RowValid(ARow) then
     InternalSetCells(ACol, ARow, Text);
@@ -12784,7 +12716,7 @@ end;
 
 procedure TKCustomGrid.WMChar(var Msg: {$IFDEF FPC}TLMChar{$ELSE}TWMChar{$ENDIF});
 begin
-  if (goEditing in Options) and CharInSetEx(Char(Msg.CharCode), [^H, #32..#255]) then
+  if (goEditing in Options) and CharInSetEx(Char(Msg.CharCode), [^H, cSPACE..#255]) then
   begin
     EditorMode := True;
     if EditorMode then

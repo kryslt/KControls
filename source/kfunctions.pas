@@ -134,14 +134,20 @@ const
   { Checkbox frame size in logical screen units. }
   cCheckBoxFrameSize = 13;
 
-  { Set of word break characters. }
-  cWordBreaks = [#0, #9,  #32];
-  { Set of line break characters. }
-  cLineBreaks = [#10, #13];
   { Carriage return character. }
   cCR = #10;
   { Line feed character. }
   cLF = #13;
+  { TAB character. }
+  cTAB = #9;
+  { TAB character. }
+  cSPACE = #32;
+  { String terminator. }
+  cNULL = #0;
+  { Set of word break characters. }
+  cWordBreaks = [cNULL, cTAB,  cSPACE];
+  { Set of line break characters. }
+  cLineBreaks = [cCR, cLF];
   { Text ellipsis string. }
   cEllipsis = '...';
 
@@ -305,6 +311,37 @@ type
   { Dynamic array for Char. }
   TDynAnsiChars = array of AnsiChar;
 
+{$IFDEF FPC}
+  { TString is UTF8 string in Lazarus. }
+  TString = string;
+  { TKChar is UTF8 character in Lazarus. }
+  TKChar = TUTF8Char;
+  { PKChar is pointer to UTF8 character in Lazarus. }
+  PKChar = ^TUTF8Char;
+  { PKText is PChar (null terminated UTF8 string) in Lazarus. }
+  PKText = PChar;
+{$ELSE}
+ {$IFDEF STRING_IS_UNICODE}
+  { TString is UnicodeString in unicode aware Delphi. }
+  TString = string;
+  { TKChar is Char in unicode aware Delphi. }
+  TKChar = Char;
+  { PKChar is pointer to Char in unicode aware Delphi. }
+  PKChar = ^Char;
+  { PKText is PChar in unicode aware Delphi. }
+  PKText = PChar;
+ {$ELSE}
+  { TString is WideString in old non-unicode Delphi versions. }
+  TString = WideString;
+  { TKChar is WideChar in old non-unicode Delphi versions. }
+  TKChar = WideChar;
+  { PKChar is pointer to WideChar in old non-unicode Delphi versions. }
+  PKChar = ^WideChar;
+  { PKText is PWideChar in old non-unicode Delphi versions. }
+  PKText = PWideChar;
+  {$ENDIF}
+ {$ENDIF}
+
   { Useful structure to handle general data and size as a single item }
   TDataSize = record
     Data: Pointer;
@@ -320,7 +357,7 @@ type
   TKCurrencyFormat = record
     CurrencyFormat,
     CurrencyDecimals: Byte;
-    CurrencyString: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+    CurrencyString: TString;
     DecimalSep: Char;
     ThousandSep: Char;
     UseThousandSep: Boolean;
@@ -388,6 +425,9 @@ function CompareWideStrings(W1, W2: WideString{$IFDEF USE_WIDEWINPROCS}; Locale:
   user locale unless another locale has been specified in Locale. }
 function CompareStrings(S1, S2: string{$IFDEF USE_WIDEWINPROCS}; Locale: Cardinal = LOCALE_USER_DEFAULT{$ENDIF}): Integer;
 {$ENDIF}
+
+{ Converts tab characters in a string to space characters. }
+procedure ConvertTabsToSpaces(var AText: TString; ASpacesForTab: Integer);
 
 { Creates given directory, even if more folders have to be created. }
 function CreateMultipleDir(const Dir: string): Boolean;
@@ -474,14 +514,17 @@ procedure Exchange(var Value1, Value2: Char); overload;
 function FillMessage(Msg: Cardinal; WParam: WPARAM; LParam: LPARAM): TLMessage;
 
 { Formats the given currency value with to specified parameters. Not thread safe. }
-function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TString;
 
 { Returns the module version for given module. Works under WinX only. }
 function GetAppVersion(const ALibName: string; var MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 
+{ Returns number of a specific character in a string. }
+function GetCharCount(const AText: TString; AChar: TKChar): Integer;
+
 { Returns the Text property of any TWinControl instance as WideString (up to Delphi 2007)
   or string (Delphi 2009, Lazarus). }
-function GetControlText(Value: TWinControl): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+function GetControlText(Value: TWinControl): TString;
 
 { Returns the standard locale dependent format settings. }
 function GetFormatSettings: TFormatSettings;
@@ -532,6 +575,14 @@ function HexStrToInt(S: string; Digits: Byte; Signed: Boolean;
   a successful conversion or the position of first bad character. }
 function OctStrToInt(S: string; var Code: Integer): Int64;
 
+{ Calls SysUtils.Format. }
+function KFormat(const Format: string; const Args: array of const;
+  const AFormatSettings: TFormatSettings): string; overload;
+
+{ Calls SysUtils.WideFormat. }
+function KFormat(const Format: WideString; const Args: array of const;
+  const AFormatSettings: TFormatSettings): WideString; overload;
+
 { Returns a clipped ShortInt value so that it lies between Min and Max }
 function MinMax(Value, Min, Max: ShortInt): ShortInt; overload;
 { Returns a clipped SmallInt value so that it lies between Min and Max }
@@ -576,33 +627,33 @@ procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
 
 { Modifies the Text property of any TWinControl instance. The value is given as
   WideString (up to Delphi 2007) or string (Delphi 2009, Lazarus). }
-procedure SetControlText(Value: TWinControl; const Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure SetControlText(Value: TWinControl; const Text: TString);
 
 { Ensures the path given by APath has no slash at the end. }
 procedure StripLastPathSlash(var APath: string);
 
 { Returns next character index for given null terminated string and character index.
   Takes MBCS (UTF8 in Lazarus) into account. }
-function StrNextCharIndex(AText: {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF}; Index: Integer): Integer;
+function StrNextCharIndex(const AText: TString; Index: Integer): Integer;
 
 { Returns the index for given string where character at given index begins.
   Takes MBCS (UTF8 in Lazarus) into account. }
-function StringCharBegin(const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; Index: Integer): Integer;
+function StringCharBegin(const AText: TString; Index: Integer): Integer;
 
 { Returns the number of characters in a string. Under Delphi it equals Length,
   under Lazarus it equals UTF8Length. }
-function StringLength(const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}): Integer;
+function StringLength(const AText: TString): Integer;
 
 { Returns next character index for given string and character index.
   Takes MBCS (UTF8 in Lazarus) into account. }
-function StringNextCharIndex(const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; Index: Integer): Integer;
+function StringNextCharIndex(const AText: TString; Index: Integer): Integer;
 
 { Trims characters specified by ASet from the beginning and end of AText.
   New text length is returned by ALen. }
-procedure TrimWhiteSpaces(var AText: {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF}; var ALen: Integer; const ASet: TKSysCharSet); overload;
+procedure TrimWhiteSpaces(const AText: TString; var AStart, ALen: Integer; const ASet: TKSysCharSet); overload;
 
 { Trims characters specified by ASet from the beginning and end of AText. }
-procedure TrimWhiteSpaces(var AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; const ASet: TKSysCharSet); overload;
+procedure TrimWhiteSpaces(var AText: TString; const ASet: TKSysCharSet); overload;
 
 {$IFNDEF FPC}
 { Trims characters specified by ASet from the beginning and end of AText. }
@@ -796,6 +847,39 @@ begin
 {$ENDIF}
 end;
 {$ENDIF}
+
+procedure ConvertTabsToSpaces(var AText: TString; ASpacesForTab: Integer);
+var
+  TabCount: Integer;
+  S: TString;
+  I, J, K: Integer;
+begin
+  if ASpacesForTab >= 0 then
+  begin
+    TabCount := GetCharCount(AText, cTAB);
+    if TabCount > 0 then
+    begin
+      SetLength(S, Length(AText) + (ASpacesForTab - 1) * TabCount);
+      J := 1;
+      for I := 1 to Length(AText) do
+      begin
+        if AText[I] = cTAB then
+        begin
+          for K := 0 to ASpacesForTab - 1 do
+          begin
+            S[J] := cSPACE;
+            Inc(J);
+          end;
+        end else
+        begin
+          S[J] := AText[I];
+          Inc(J);
+        end;
+      end;
+      AText := S;
+    end;
+  end;
+end;
 
 function CreateMultipleDir(const Dir: string): Boolean;
 var
@@ -1096,7 +1180,7 @@ begin
   Result.Result := 0;
 end;
 
-function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TString;
 var
   Fmt: string;
   FS: TFormatSettings;
@@ -1109,15 +1193,11 @@ begin
     Fmt := '%.*f';
   FS.DecimalSeparator := AFormat.DecimalSep;
   case AFormat.CurrencyFormat of
-    0: Result := {$IFDEF STRING_IS_UNICODE}Format{$ELSE}WideFormat{$ENDIF}(
-      '%s' + Fmt, [AFormat.CurrencyString, AFormat.CurrencyDecimals, Value], FS);
-    1: Result := {$IFDEF STRING_IS_UNICODE}Format{$ELSE}WideFormat{$ENDIF}(
-      Fmt + '%s', [AFormat.CurrencyDecimals, Value, AFormat.CurrencyString], FS);
-    2: Result := {$IFDEF STRING_IS_UNICODE}Format{$ELSE}WideFormat{$ENDIF}(
-      '%s ' + Fmt, [AFormat.CurrencyString, AFormat.CurrencyDecimals, Value], FS);
+    0: Result := KFormat('%s' + Fmt, [AFormat.CurrencyString, AFormat.CurrencyDecimals, Value], FS);
+    1: Result := KFormat(Fmt + '%s', [AFormat.CurrencyDecimals, Value, AFormat.CurrencyString], FS);
+    2: Result := KFormat('%s ' + Fmt, [AFormat.CurrencyString, AFormat.CurrencyDecimals, Value], FS);
   else
-    Result := {$IFDEF STRING_IS_UNICODE}Format{$ELSE}WideFormat{$ENDIF}(
-      Fmt + ' %s', [AFormat.CurrencyDecimals, Value, AFormat.CurrencyString], FS);
+    Result := KFormat(Fmt + ' %s', [AFormat.CurrencyDecimals, Value, AFormat.CurrencyString], FS);
   end;
 end;
 
@@ -1155,7 +1235,17 @@ begin
 {$ENDIF}
 end;
 
-function GetControlText(Value: TWinControl): {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+function GetCharCount(const AText: TString; AChar: TKChar): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 1 to Length(AText) do
+    if AText[I] = AChar then
+      Inc(Result);
+end;
+
+function GetControlText(Value: TWinControl): TString;
 
   function GetTextBuffer(Value: TWinControl): string;
   begin
@@ -1515,6 +1605,16 @@ begin
   if Minus then Result := -Result;
 end;
 
+function KFormat(const Format: string; const Args: array of const; const AFormatSettings: TFormatSettings): string;
+begin
+  Result := SysUtils.Format(Format, Args, AFormatSettings);
+end;
+
+function KFormat(const Format: WideString; const Args: array of const; const AFormatSettings: TFormatSettings): WideString;
+begin
+  Result := SysUtils.WideFormat(Format, Args, AFormatSettings);
+end;
+
 function MinMax(Value, Min, Max: ShortInt): ShortInt;
 begin
   if Max < Min then
@@ -1747,7 +1847,7 @@ begin
   end;
 end;
 
-procedure SetControlText(Value: TWinControl; const Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure SetControlText(Value: TWinControl; const Text: TString);
 
   procedure SetTextBuffer(Value: TWinControl; const Text: string);
   begin
@@ -1775,7 +1875,7 @@ begin
     if CharInSetEx(APath[Length(APath)], ['\', '/']) then Delete(APath, Length(APath), 1);
 end;
 
-function StrNextCharIndex(AText: {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF}; Index: Integer): Integer;
+function StrNextCharIndex(const AText: TString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
   Result := Index + UTF8CharacterLength(@AText[Index]);
@@ -1784,7 +1884,7 @@ begin
 {$ENDIF}
 end;
 
-function StringCharBegin(const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; Index: Integer): Integer;
+function StringCharBegin(const AText: TString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
   Result := UTF8CharToByteIndex(PChar(AText), Length(AText), Index)
@@ -1793,7 +1893,7 @@ begin
 {$ENDIF}
 end;
 
-function StringLength(const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}): Integer;
+function StringLength(const AText: TString): Integer;
 begin
 {$IFDEF FPC}
   Result := UTF8Length(AText)
@@ -1802,7 +1902,7 @@ begin
 {$ENDIF}
 end;
 
-function StringNextCharIndex(const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; Index: Integer): Integer;
+function StringNextCharIndex(const AText: TString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
   Result := Index + UTF8CharacterLength(@AText[Index]);
@@ -1811,18 +1911,18 @@ begin
 {$ENDIF}
 end;
 
-procedure TrimWhiteSpaces(var AText: {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF}; var ALen: Integer; const ASet: TKSysCharSet);
+procedure TrimWhiteSpaces(const AText: TString; var AStart, ALen: Integer; const ASet: TKSysCharSet);
 begin
-  while (ALen > 0) and CharInSetEx(AText[0], ASet) do
+  while (ALen > 0) and CharInSetEx(AText[AStart], ASet) do
   begin
-    AText := @AText[1];
-    Dec(ALen)
+    Inc(AStart);
+    Dec(ALen);
   end;
-  while (ALen > 0) and CharInSetEx(AText[ALen - 1], ASet) do
+  while (ALen > 0) and CharInSetEx(AText[ALen], ASet) do
     Dec(ALen);
 end;
 
-procedure TrimWhiteSpaces(var AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF}; const ASet: TKSysCharSet);
+procedure TrimWhiteSpaces(var AText: TString; const ASet: TKSysCharSet);
 begin
   while (Length(AText) > 0) and CharInSetEx(AText[1], ASet) do
     Delete(AText, 1, 1);

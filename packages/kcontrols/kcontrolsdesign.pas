@@ -37,7 +37,7 @@ implementation
 
 uses
   Classes, Dialogs, SysUtils, Forms, 
-  KControls, KDialogs, KGrids, KHexEditor,
+  KControls, KDialogs, KGrids, KHexEditor, KMemo,
   KEdits, KLabels, KLog, KProgress, KRes
 {$IFDEF TKDBGRID_USE}
   , KDBGrids
@@ -54,6 +54,7 @@ begin
 {$IFDEF TKDBGRID_USE}
     TKDBGrid,
 {$ENDIF}
+    TKMemo,
     TKHexEditor, 
     TKNumberEdit,
     TKFileNameEdit,

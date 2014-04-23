@@ -38,6 +38,8 @@ const
 type
   { Declares possible values for the edit control commands. }
   TKEditCommand = (
+    { No command }
+    ecNone,
     { Move caret left one char }
     ecLeft,
     { Move caret right one char }
@@ -125,6 +127,8 @@ type
     ecInsertDigits,
     { Insert string (multiple characters) at current position, Data = ^string }
     ecInsertString,
+    { Insert new line }
+    ecInsertNewLine,
     { Delete last character (i.e. backspace key) }
     ecDeleteLastChar,
     { Delete character at caret (i.e. delete key) }
@@ -159,6 +163,16 @@ type
     ecLostFocus
   );
 
+  { Declares possible values for control's DisabledDrawStyle property. }
+  TKEditDisabledDrawStyle = (
+    { The lines will be painted with brighter colors when editor is disabled. }
+    eddBright,
+    { The lines will be painted with gray text and white background when editor is disabled. }
+    eddGrayed,
+    { The lines will be painted normally when editor is disabled. }
+    eddNormal
+  );
+
   { @abstract(Declares the keystroke information structure for the Key member
     of the @link(TKEditCommandAssignment) structure)
     <UL>
@@ -184,6 +198,8 @@ type
     Key: TKEditKey;
   end;
 
+  TKEditCommandMap = array of TKEditCommandAssignment;
+
   { @abstract(Declares OnDropFiles event handler)
     <UL>
     <LH>Parameters:</LH>
@@ -195,8 +211,25 @@ type
   TKEditDropFilesEvent = procedure(Sender: TObject; X, Y: integer;
     Files: TStrings) of object;
 
-  { Declares key mapping array for the KeyMapping property }
-  TKEditKeyMapping = array of TKEditCommandAssignment;
+  { Declares key mapping class for the KeyMapping property }
+  TKEditKeyMapping = class(TObject)
+  private
+    function GetAssignment(AIndex: Integer): TKEditCommandAssignment;
+    function GetKey(AIndex: TKEditCommand): TKEditKey;
+    procedure SetKey(AIndex: TKEditCommand; const AValue: TKEditKey);
+  protected
+    FMap: TKEditCommandMap;
+    procedure CreateMap; virtual;
+  public
+    constructor Create;
+    procedure Assign(Source: TKEditKeyMapping); virtual;
+    procedure AddKey(Command: TKEditCommand; Key: Word; Shift: TShiftState);
+    class function EmptyMap: TKEditCommandAssignment;
+    function FindCommand(AKey: Word; AShift: TShiftState): TKEditCommand;
+    property Assignment[Index: Integer]: TKEditCommandAssignment read GetAssignment;
+    property Key[AIndex: TKEditCommand]: TKEditKey read GetKey write SetKey;
+    property Map: TKEditCommandMap read FMap;
+  end;
 
   { Declares character mapping array for the edit control's CharMapping property }
   TKEditCharMapping = array of AnsiChar;
@@ -310,6 +343,11 @@ type
   { Pointer to @link(TKEditSearchData) }
   PKEditSearchData = ^TKEditSearchData;
 
+
+const
+  { Default value for the @link(TKCustomHexEditor.DisabledDrawStyle) property }
+  cDisabledDrawStyleDef = eddBright;
+
 { Returns default key mapping structure }
 function CreateDefaultKeyMapping: TKEditKeyMapping;
 
@@ -322,22 +360,53 @@ function DefaultSearchData: TKEditSearchData;
 implementation
 
 function CreateDefaultKeyMapping: TKEditKeyMapping;
+begin
+  Result := TKEditKeyMapping.Create;
+end;
 
-  procedure AddKey(Command: TKEditCommand; Key: Word; Shift: TShiftState);
-  var
-    I: Integer;
+function DefaultCharMapping: TKEditCharMapping;
+var
+  I: Integer;
+begin
+  SetLength(Result, cCharMappingSize);
+  for I := 0 to cCharMappingSize - 1 do
+    if (I < $20) or (I >= $80) then
+      Result[I] := '.'
+    else
+      Result[I] := AnsiChar(I);
+end;
+
+function DefaultSearchData: TKEditSearchData;
+begin
+  with Result do
   begin
-    I := Length(Result);
-    SetLength(Result, I + 1);
-    Result[I].Command := Command;
-    Result[I].Key.Key := Key;
-    Result[I].Key.Shift := Shift;
+    ErrorReason := eseOk;
+    Options := [esoAll, esoFirstSearch, esoPrompt, esoTreatAsDigits];
+    SelStart := 0;
+    SelEnd := 0;
+    TextToFind := '';
+    TextToReplace := '';
   end;
+end;
 
+{ TKEditKeyMapping }
+
+constructor TKEditKeyMapping.Create;
+begin
+  FMap := nil;
+  CreateMap;
+end;
+
+procedure TKEditKeyMapping.Assign(Source: TKEditKeyMapping);
+begin
+  FMap := Copy(Source.Map);
+end;
+
+procedure TKEditKeyMapping.CreateMap;
 begin
   AddKey(ecLeft, VK_LEFT, []);
   AddKey(ecRight, VK_RIGHT, []);
-  AddKey(ecRight, VK_RETURN, []);
+  AddKey(ecInsertNewLine, VK_RETURN, []);
   AddKey(ecUp, VK_UP, []);
   AddKey(ecDown, VK_DOWN, []);
   AddKey(ecLineStart, VK_HOME, []);
@@ -382,35 +451,81 @@ begin
   AddKey(ecDeleteLastChar, VK_BACK, []);
   AddKey(ecDeleteLastChar, VK_BACK, [ssShift]);
   AddKey(ecDeleteChar, VK_DELETE, []);
+  AddKey(ecDeleteBOL, ord('X'), [ssCtrl,ssShift]);
   AddKey(ecDeleteEOL, ord('Y'), [ssCtrl,ssShift]);
   AddKey(ecDeleteLine, ord('Y'), [ssCtrl]);
   AddKey(ecSelectAll, ord('A'), [ssCtrl]);
   AddKey(ecToggleMode, VK_INSERT, []);
 end;
 
-function DefaultCharMapping: TKEditCharMapping;
+class function TKEditKeyMapping.EmptyMap: TKEditCommandAssignment;
+begin
+  Result.Command := ecNone;
+  Result.Key.Key := 0;
+  Result.Key.Shift := [];
+end;
+
+procedure TKEditKeyMapping.AddKey(Command: TKEditCommand; Key: Word; Shift: TShiftState);
 var
   I: Integer;
 begin
-  SetLength(Result, cCharMappingSize);
-  for I := 0 to cCharMappingSize - 1 do
-    if (I < $20) or (I >= $80) then
-      Result[I] := '.'
-    else
-      Result[I] := AnsiChar(I);
+  I := Length(FMap);
+  SetLength(FMap, I + 1);
+  FMap[I].Command := Command;
+  FMap[I].Key.Key := Key;
+  FMap[I].Key.Shift := Shift;
 end;
 
-function DefaultSearchData: TKEditSearchData;
+function TKEditKeyMapping.FindCommand(AKey: Word; AShift: TShiftState): TKEditCommand;
+var
+  I: Integer;
+  Key: TKEditKey;
 begin
-  with Result do
+  Result := ecNone;
+  for I := 0 to Length(FMap) - 1 do
   begin
-    ErrorReason := eseOk;
-    Options := [esoAll, esoFirstSearch, esoPrompt, esoTreatAsDigits];
-    SelStart := 0;
-    SelEnd := 0;
-    TextToFind := '';
-    TextToReplace := '';
+    Key := FMap[I].Key;
+    if (Key.Key = AKey) and (Key.Shift = AShift) then
+    begin
+      Result := FMap[I].Command;
+      Exit;
+    end;
   end;
 end;
+
+function TKEditKeyMapping.GetKey(AIndex: TKEditCommand): TKEditKey;
+var
+  I: Integer;
+begin
+  Result.Key := 0;
+  Result.Shift := [];
+  for I := 0 to Length(FMap) - 1 do
+    if FMap[I].Command = AIndex then
+    begin
+      Result := FMap[I].Key;
+      Exit;
+    end;
+end;
+
+function TKEditKeyMapping.GetAssignment(AIndex: Integer): TKEditCommandAssignment;
+begin
+  if (AIndex >= 0) and (AIndex < Length(FMap)) then
+    Result := FMap[AIndex]
+  else
+    Result := EmptyMap;
+end;
+
+procedure TKEditKeyMapping.SetKey(AIndex: TKEditCommand; const AValue: TKEditKey);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(FMap) - 1 do
+    if FMap[I].Command = AIndex then
+    begin
+      FMap[I].Key := AValue;
+      Exit;
+    end;
+end;
+
 
 end.

@@ -100,8 +100,10 @@ type
     taEndEllipsis,
     { Given rectangle will be filled. }
     taFillRect,
-    { Only yhe text within given rectangle will be filled. }
+    { Only the text within given rectangle will be filled. }
     taFillText,
+    { Include padding created by aligns int @link(TKTextBox.PointToIndex) calculation. }
+    taIncludePadding,
     { Text will be drawn as multi-line text if it contains carriage returns and line feeds. }
     taLineBreak,
     { Text will be drawn with path ellipsis if it does not fit within given width. }
@@ -110,7 +112,7 @@ type
     taWordBreak,
     { Text line(s) will be broken if they don't fit within col width. }
     taWrapText, //JR:20091229
-    { No white spaces will be trimmed at the beginning or end of text lines. }
+    { White spaces will be trimmed at the beginning or end of text lines. }
     taTrimWhiteSpaces
   );
 
@@ -219,6 +221,9 @@ type
     { Fills the alpha channel according to given parameters. Currently it is used
       internally by @link(TKDragWindow). }
     procedure AlphaFill(Alpha: Byte; BlendColor: TColor; Gradient, Translucent: Boolean); overload;
+    { Modifies the alpha channel with Percent of its current value. If the optional IfEmpty parameter is True,
+      the alpha channel will be set to percent of full scale if it has zero value. }
+    procedure AlphaFillPercent(Percent: Integer; IfEmpty: Boolean);
     { Combines the pixel at given location with the given color. }
     procedure CombinePixel(X, Y: Integer; Color: TKColorRec);
     { Takes dimensions and pixels from ABitmap. }
@@ -263,6 +268,71 @@ type
     property PixelsChanged: Boolean read FPixelsChanged write FPixelsChanged;
     { Returns the pointer to a bitmap scan line. }
     property ScanLine[Index: Integer]: PKColorRecs read GetScanLine;
+  end;
+
+  { Declares possible values for the AFunction parameter in the @link(TKTextBox.Process) function. }
+  TKTextBoxFunction = (
+    { Measure text box contents. }
+    tbfMeasure,
+    { Get text index for coordinates stored in FPoint. }
+    tbfGetIndex,
+    { Get boundary rectangle for index stored in FIndex. }
+    tbfGetRect,
+    { Draw text box contents. }
+    tbfDraw
+  );
+
+  { Implements advanced text block rendering. Formerly implemented as @link(DrawAlignedText) function. }
+  TKTextBox = class(TObject)
+  private
+    FAttributes: TKTextAttributes;
+    FBackColor: TColor;
+    FHAlign: TKHAlign;
+    FHPadding: Integer;
+    FSelBkgnd: TColor;
+    FSelColor: TColor;
+    FSelEnd: Integer;
+    FSelStart: Integer;
+    FSpacesForTab: Integer;
+    FText: TString;
+    FVAlign: TKVAlign;
+    FVPadding: Integer;
+    procedure SetText( const AText: TString);
+  protected
+    FCanvas: TCanvas;
+    FClipRect: TRect;
+    FFontHeight: Integer;
+    FHasTabs: Boolean;
+    FIndex: Integer;
+    FCalcRect: TRect;
+    function GetHorzPos(ATextWidth: Integer): Integer;
+    function GetVertPos: Integer; virtual;
+    procedure Initialize(ACanvas: TCanvas; const ARect: TRect); virtual;
+    procedure Process(Y: Integer; AFunction: TKTextBoxFunction);
+    procedure TextTrim(const AText: WideString; var AStart, ALen: Integer); virtual;
+  public
+    constructor Create;
+    procedure Draw(ACanvas: TCanvas; const ARect: TRect); virtual;
+    function IndexToRect(ACanvas: TCanvas; const ARect: TRect; AIndex: Integer): TRect; virtual;
+    procedure Measure(ACanvas: TCanvas; const ARect: TRect; var AWidth, AHeight: Integer); virtual;
+    function PointToIndex(ACanvas: TCanvas; const ARect: TRect; APoint: TPoint): Integer; virtual;
+    class function TextExtent(ACanvas: TCanvas; const AText: TString;
+       AStart, ALen: Integer; AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2): TSize; static;
+    class procedure TextOutput(ACanvas: TCanvas; X, Y: Integer;
+      const AText: TString; AStart, ALen: Integer;
+      AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2); static;
+    property Attributes: TKTextAttributes read FAttributes write FAttributes;
+    property BackColor: TColor read FBackColor write FBackColor;
+    property HAlign: TKHAlign read FHAlign write FHAlign;
+    property HPadding: Integer read FHPadding write FHPadding;
+    property SelBkgnd: TColor read FSelBkgnd write FSelBkgnd;
+    property SelColor: TColor read FSelColor write FSelColor;
+    property SelEnd: Integer read FSelEnd write FSelEnd;
+    property SelStart: Integer read FSelStart write FSelStart;
+    property SpacesForTab: Integer read FSpacesForTab write FSpacesForTab;
+    property Text: TString read FText write SetText;
+    property VAlign: TKVAlign read FVAlign write FVAlign;
+    property VPadding: Integer read FVPadding write FVPadding;
   end;
 
 {$IFDEF USE_WINAPI}
@@ -334,8 +404,8 @@ type
     This class implements the textual hint window. The text is displayed . }
   TKTextHint = class(TKHintWindow)
   private
-    FText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
-    procedure SetText(const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+    FText: TString;
+    procedure SetText(const Value: TString);
   protected
     { Overriden method. Paints the hint. }
     procedure Paint; override;
@@ -343,7 +413,7 @@ type
     { Creates the instance. }
     constructor Create(AOwner: TComponent); override;
     { }
-    property Text: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF} read FText write SetText;
+    property Text: TString read FText write SetText;
   end;
 
   TKGraphicHint = class(TKHintWindow)
@@ -392,10 +462,14 @@ function ColorToGrayScale(Color: TColor): TColor;
 { Calls BitBlt. }
 procedure CopyBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcX, SrcY: Integer);
 
+{ Creates an empty rectangle. }
+function CreateEmptyRect: TRect;
+
 { Creates an empty rectangular region. }
 function CreateEmptyRgn: HRGN;
 
 { Draws Text to the Canvas at location given by ARect.
+  This function is here for backward compatibility.
   HAlign and VAlign specify horizontal resp. vertical alignment of the text
   within ARect. HPadding and VPadding specify horizontal (both on left and right side)
   and vertical (both on top and bottom side) padding of the Text from ARect.
@@ -403,7 +477,7 @@ function CreateEmptyRgn: HRGN;
   is defined in Canvas. Attributes specift various text output attributes. }
 procedure DrawAlignedText(Canvas: TCanvas; var ARect: TRect;
   HAlign: TKHAlign; VAlign: TKVAlign; HPadding, VPadding: Integer;
-  const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  const AText: TString;
   BackColor: TColor = clWhite; Attributes: TKTextAttributes = []);
 
 { Simulates WinAPI DrawEdge with customizable colors. }
@@ -677,6 +751,11 @@ begin
     SrcDC, 0, 0, SRCCOPY);
 end;
 
+function CreateEmptyRect: TRect;
+begin
+  Result := Rect(0,0,0,0);
+end;
+
 function CreateEmptyRgn: HRGN;
 begin
   Result := CreateRectRgn(0,0,0,0);
@@ -684,273 +763,30 @@ end;
 
 procedure DrawAlignedText(Canvas: TCanvas; var ARect: TRect;
   HAlign: TKHAlign; VAlign: TKVAlign; HPadding, VPadding: Integer;
-  const AText: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  const AText: TString;
   BackColor: TColor; Attributes: TKTextAttributes);
 var
-  DC: HDC;
-  FontHeight: Integer;
-  ClipRect: TRect;
-
-  function MeasureOrOutput(Y: Integer; Output: Boolean): TSize;
-  var
-    EndEllipsis, PathEllipsis: Boolean;
-    Width, EllipsisWidth: Integer;
-
-    function TextExtent(AText: {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF}; ALen: Integer; Trim: Boolean = False): TSize;
-    begin
-      if Trim then
-      begin
-        if taLineBreak in Attributes then
-          TrimWhiteSpaces(AText, ALen, cLineBreaks);
-        if taTrimWhiteSpaces in Attributes then
-          TrimWhiteSpaces(AText, ALen, cWordBreaks);
-      end;
-    {$IFDEF STRING_IS_UNICODE}
-     {$IFDEF FPC}
-      {$IFDEF USE_CANVAS_METHODS}
-      Result := Canvas.TextExtent(Copy(AText, 0, ALen)); // little slower but more secure in Lazarus
-      {$ELSE}
-      GetTextExtentPoint32(DC, AText, ALen, Result);
-      {$ENDIF}
-     {$ELSE}
-      GetTextExtentPoint32(DC, AText, ALen, Result);
-     {$ENDIF}
-    {$ELSE}
-      GetTextExtentPoint32W(DC, AText, ALen, Result);
-    {$ENDIF}
-    end;
-
-    procedure FmtTextOut(Y: Integer; AText: {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF}; ALen: Integer);
-    var
-      DrawEllipsis, DrawFileName: Boolean;
-      AWidth, Index, NewIndex,SlashPos, FileNameLen, EllipsisMaxX, X: Integer;
-      S: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
-    begin
-      DrawEllipsis := False;
-      DrawFileName := False;
-      SlashPos := 0;
-      FileNameLen := 0;
-      if taLineBreak in Attributes then
-        TrimWhiteSpaces(AText, ALen, cLineBreaks);
-      if taTrimWhiteSpaces in Attributes then
-        TrimWhiteSpaces(AText, ALen, cWordBreaks);
-      if (EndEllipsis or PathEllipsis) and (ALen > 1) then
-      begin
-        AWidth := TextExtent(AText, ALen).cx;
-        if AWidth > Width then
-        begin
-          AWidth := 0;
-          Index := 0;
-          if EndEllipsis then
-          begin
-            EllipsisMaxX := Width - EllipsisWidth;
-            while (Index < ALen) do
-            begin
-              NewIndex := StrNextCharIndex(AText, Index);
-              Inc(AWidth, TextExtent(@AText[Index], NewIndex - Index).cx);
-              if (AWidth > EllipsisMaxX) and (Index > 0) then
-                Break
-              else
-                Index := NewIndex;
-            end;
-            ALen := Index;
-            DrawEllipsis := True;
-          end
-          else if PathEllipsis then
-          begin
-            SlashPos := ALen;
-            while (SlashPos > 0) and not CharInSetEx(AText[SlashPos], ['/', '\']) do
-              Dec(SlashPos);
-            if SlashPos > 0 then
-            begin
-              DrawEllipsis := True;
-              DrawFileName := True;
-              FileNameLen := ALen - SlashPos;
-              EllipsisMaxX := Width - TextExtent(@AText[SlashPos], FileNameLen).cx - EllipsisWidth;
-              while (Index < SlashPos) do
-              begin
-                NewIndex := StrNextCharIndex(AText, Index);
-                Inc(AWidth, TextExtent(@AText[Index], NewIndex - Index).cx);
-                if AWidth > EllipsisMaxX then
-                  Break
-                else
-                  Index := NewIndex;
-              end;
-              ALen := Index;
-            end;
-          end;
-        end;
-      end;
-      if DrawEllipsis then
-      begin
-        if DrawFileName then
-        begin
-          S := Copy(AText, 0, ALen) + cEllipsis + Copy(AText, SlashPos + 1, FileNameLen);
-        end else
-          S := Copy(AText, 0, ALen) + cEllipsis;
-        AText := {$IFDEF STRING_IS_UNICODE}PChar{$ELSE}PWideChar{$ENDIF}(S);
-        ALen := Length(S);
-      end;
-      case HAlign of
-        halCenter:
-          X := Max(ClipRect.Left, (ClipRect.Left + ClipRect.Right - TextExtent(AText, ALen).cx) div 2);
-        halRight:
-          X := ClipRect.Right - TextExtent(AText, ALen).cx;
-      else
-        X := ClipRect.Left;
-      end;
-    {$IFDEF STRING_IS_UNICODE}
-     {$IFDEF FPC}
-      {$IFDEF USE_CANVAS_METHODS}
-      Canvas.TextOut(X, Y, Copy(AText, 0, ALen)); // little slower but more secure in Lazarus
-      {$ELSE}
-      TextOut(DC, X, Y, AText, ALen);
-      {$ENDIF}
-     {$ELSE}
-      TextOut(DC, X, Y, AText, ALen);
-     {$ENDIF}
-    {$ELSE}
-      TextOutW(DC, X, Y, AText, ALen);
-    {$ENDIF}
-    end;
-
-  var
-    I, Index, TextLen, LineBegin, LineBreaks, Vert: Integer;
-    CalcRect, WordBreak, LineBreak, WhiteSpace, PrevWhiteSpace, FirstWord,
-    WrapText: Boolean;
-    Size: TSize;
-  begin
-    Result.cx := 0;
-    Vert := Y;
-    if AText <> '' then
-    begin
-      LineBegin := 1;
-      LineBreaks := 0;
-      TextLen := Length(AText);
-      Width := ClipRect.Right - ClipRect.Left;
-      CalcRect := taCalcRect in Attributes;
-      WordBreak := taWordBreak in Attributes;
-      LineBreak := taLineBreak in Attributes;
-      WrapText := taWrapText in Attributes; //JR:20091229
-      if Output then
-      begin
-        EndEllipsis := taEndEllipsis in Attributes;
-        PathEllipsis := taPathEllipsis in Attributes;
-        EllipsisWidth := TextExtent(cEllipsis, Length(cEllipsis)).cx;
-      end;
-      if WordBreak or LineBreak then
-      begin
-        I := LineBegin;
-        Index := LineBegin;
-        WhiteSpace := True;
-        FirstWord := True;
-        while I <= TextLen + 1 do
-        begin
-          PrevWhiteSpace := WhiteSpace;
-          WhiteSpace := CharInSetEx(AText[I], cWordBreaks + cLineBreaks);
-          if (not PrevWhiteSpace and WhiteSpace and (I > LineBegin))
-            or (not PrevWhiteSpace and WrapText and (I > LineBegin)) then //JR:20091229
-          begin
-            if (WordBreak or WrapText) and (LineBreaks = 0) and not FirstWord then
-            begin
-              Size := TextExtent(@AText[LineBegin], I - LineBegin, True);
-              if Size.cx > Width then
-                Inc(LineBreaks);
-            end;
-            if LineBreaks > 0 then
-            begin
-              if Index > LineBegin then
-              begin
-                if Output and (Vert >= ClipRect.Top - FontHeight) and (Vert <= ClipRect.Bottom) then
-                  FmtTextOut(Vert, @AText[LineBegin], Index - LineBegin)
-                else if CalcRect then
-                  Result.cx := Max(Result.cx, TextExtent(@AText[LineBegin], Index - LineBegin, True).cx);
-                LineBegin := Index;
-              end;
-              Inc(Vert, FontHeight * LineBreaks);
-              LineBreaks := 0;
-            end;
-            Index := I;
-            FirstWord := False;
-          end;
-          if LineBreak and (AText[I] = cCR) then
-            Inc(LineBreaks);
-          Inc(I);
-        end;
-      end;
-      if LineBegin <= TextLen then
-      begin
-        if Output and (Vert >= ClipRect.Top - FontHeight) and (Vert <= ClipRect.Bottom) then
-          FmtTextOut(Vert, @AText[LineBegin], TextLen - LineBegin + 1)
-        else if CalcRect then
-          Result.cx := Max(Result.cx, TextExtent(@AText[LineBegin], TextLen - LineBegin + 1, True).cx);
-        Inc(Vert, FontHeight * (1 + LineBreaks));
-      end;
-    end;
-    Result.cy := Vert - Y;
-  end;
-
-  procedure Initialize;
-  begin
-    ClipRect := ARect;
-    InflateRect(ClipRect, -HPadding, -VPadding);
-    DC := Canvas.Handle;
-    FontHeight := GetFontHeight(DC);
-  end;
-
-var
-  Y: Integer;
-  TmpRect: TRect;
-  Extent: TSize;
-  PrevRgn: HRGN;
+  TextBox: TKTextBox;
+  Width, Height: Integer;
 begin
-  if taCalcRect in Attributes then
-  begin
-    Initialize;
-    Extent := MeasureOrOutput(0, False);
-    ARect.Right := ARect.Left + Extent.cx;
-    ARect.Bottom := ARect.Top + Extent.cy;
-  end
-  else if not IsRectEmpty(ARect) then
-  begin
-    if taFillRect in Attributes then
-      DrawFilledRectangle(Canvas, ARect, BackColor);
-    if AText <> '' then
+  TextBox := TKTextBox.Create;
+  try
+    TextBox.Attributes := Attributes;
+    TextBox.BackColor := BackColor;
+    TextBox.HAlign := HAlign;
+    TextBox.HPadding := HPadding;
+    TextBox.Text := AText;
+    TextBox.VAlign := VAlign;
+    TextBox.VPadding := VPadding;
+    if taCalcRect in Attributes then
     begin
-      Initialize;
-      if not IsRectEmpty(ClipRect) then
-      begin
-        case VAlign of
-          valCenter:
-            Y := Max(ClipRect.Top, (ClipRect.Bottom + ClipRect.Top - MeasureOrOutput(0, False).cy) div 2);
-          valBottom:
-            Y := ClipRect.Bottom - MeasureOrOutput(0, False).cy;
-        else
-          Y := ClipRect.Top;
-        end;
-        TmpRect := ClipRect;
-        if taClip in Attributes then
-        begin
-          TranslateRectToDevice(DC, TmpRect);
-          PrevRgn := RgnCreateAndGet(DC);
-          try
-            if ExtSelectClipRect(DC, TmpRect, RGN_AND, PrevRgn) then
-            begin
-              if not (taFillText in Attributes) then
-                SetBkMode(DC, TRANSPARENT);
-              MeasureOrOutput(Y, True);
-            end;
-          finally
-            RgnSelectAndDelete(DC, PrevRgn);
-          end;
-        end else
-        begin
-          if not (taFillText in Attributes) then
-            SetBkMode(DC, TRANSPARENT);
-          MeasureOrOutput(Y, True);
-        end;
-      end;
-    end;
+      TextBox.Measure(Canvas, ARect, Width, Height);
+      ARect.Right := ARect.Left + Width;
+      ARect.Bottom := ARect.Top + Height;
+    end else
+      TextBox.Draw(Canvas, ARect);
+  finally
+    TextBox.Free;
   end;
 end;
 
@@ -1370,6 +1206,17 @@ begin
   if not HasAlpha then
     for I := 0 to FWidth * FHeight - 1 do
       FPixels[I].A := Alpha;
+end;
+
+procedure TKAlphaBitmap.AlphaFillPercent(Percent: Integer; IfEmpty: Boolean);
+var
+  I: Integer;
+begin
+  for I := 0 to FWidth * FHeight - 1 do
+    if FPixels[I].A <> 0 then
+      FPixels[I].A := Percent * FPixels[I].A div 100
+    else if IfEmpty then
+      FPixels[I].A := Percent * 255 div 100;
 end;
 
 procedure TKAlphaBitmap.AlphaFill(Alpha: Byte; BlendColor: TColor; Gradient, Translucent: Boolean);
@@ -1806,6 +1653,529 @@ begin
 {$ENDIF}
 end;
 
+{ TKTextBox }
+
+constructor TKTextBox.Create;
+begin
+  inherited;
+  FAttributes := [];
+  FBackColor := clWhite;
+  FHAlign := halLeft;
+  FHasTabs := False;
+  FHPadding := 0;
+  FSelBkgnd := clHighlight;
+  FSelColor := clHighlightText;
+  FSelEnd := 0;
+  FSelStart := 0;
+  FSpacesForTab := 8;
+  FText := '';
+  FVAlign := valCenter;
+  FVPadding := 0;
+end;
+
+procedure TKTextBox.Draw(ACanvas: TCanvas; const ARect: TRect);
+var
+  Y: Integer;
+  TmpRect: TRect;
+  PrevRgn: HRGN;
+begin
+  if not IsRectEmpty(ARect) then
+  begin
+    if taFillRect in Attributes then
+      DrawFilledRectangle(ACanvas, ARect, BackColor);
+    if FText <> '' then
+    begin
+      Initialize(ACanvas, ARect);
+      if not IsRectEmpty(FClipRect) then
+      begin
+        Y := GetVertPos;
+        TmpRect := FClipRect;
+        if taClip in Attributes then
+        begin
+          TranslateRectToDevice(ACanvas.Handle, TmpRect);
+          PrevRgn := RgnCreateAndGet(ACanvas.Handle);
+          try
+            if ExtSelectClipRect(ACanvas.Handle, TmpRect, RGN_AND, PrevRgn) then
+            begin
+              if not (taFillText in Attributes) then
+                SetBkMode(ACanvas.Handle, TRANSPARENT);
+              Process(Y, tbfDraw);
+            end;
+          finally
+            RgnSelectAndDelete(ACanvas.Handle, PrevRgn);
+          end;
+        end else
+        begin
+          if not (taFillText in Attributes) then
+            SetBkMode(ACanvas.Handle, TRANSPARENT);
+          Process(Y, tbfDraw);
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TKTextBox.GetHorzPos(ATextWidth: Integer): Integer;
+begin
+  case HAlign of
+    halCenter:
+      Result := Max(FClipRect.Left, (FClipRect.Left + FClipRect.Right - ATextWidth) div 2);
+    halRight:
+      Result := FClipRect.Right - ATextWidth;
+  else
+    Result := FClipRect.Left;
+  end;
+end;
+
+function TKTextBox.GetVertPos: Integer;
+begin
+  case VAlign of
+    valCenter:
+    begin
+      Process(0, tbfMeasure);
+      Result := Max(FClipRect.Top, (FClipRect.Bottom + FClipRect.Top - FCalcRect.Top) div 2);
+    end;
+    valBottom:
+    begin
+      Process(0, tbfMeasure);
+      Result := FClipRect.Bottom - FCalcRect.Top;
+    end
+  else
+    Result := FClipRect.Top;
+  end;
+end;
+
+function TKTextBox.IndexToRect(ACanvas: TCanvas; const ARect: TRect; AIndex: Integer): TRect;
+var
+  Y: Integer;
+begin
+  Initialize(ACanvas, ARect);
+  Y := GetVertPos;
+  FIndex := AIndex;
+  Process(Y, tbfGetRect);
+  Result := FCalcRect;
+end;
+
+procedure TKTextBox.Initialize(ACanvas: TCanvas; const ARect: TRect);
+begin
+  FCanvas := ACanvas;
+  FClipRect := ARect;
+  InflateRect(FClipRect, -HPadding, -VPadding);
+  FFontHeight := GetFontHeight(FCanvas.Handle);
+end;
+
+procedure TKTextBox.Measure(ACanvas: TCanvas; const ARect: TRect; var AWidth, AHeight: Integer);
+begin
+  Initialize(ACanvas, ARect);
+  Process(0, tbfMeasure);
+  AWidth := FCalcRect.Left;
+  AHeight := FCalcRect.Top;
+end;
+
+procedure TKTextBox.Process(Y: Integer; AFunction: TKTextBoxFunction);
+var
+  EndEllipsis, PathEllipsis: Boolean;
+  Width, EllipsisWidth: Integer;
+  NormalColor, NormalBkgnd: TColor;
+
+  procedure Measure(AStart, ALen: Integer);
+  begin
+    FCalcRect.Left := Max(FCalcRect.Left, TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx);
+  end;
+
+  procedure GetIndex(Y: Integer; AStart, ALen: Integer);
+  var
+    Index, NewIndex, X, Width: Integer;
+  begin
+    if FIndex < 0 then
+    begin
+      if not (taIncludePadding in Attributes) and (Y <= FCalcRect.Top) and (FCalcRect.Top < Y + FFontHeight) or
+        (taIncludePadding in Attributes) and (
+          (AStart = 1) and (FClipRect.Top <= FCalcRect.Top) and (FCalcRect.Top < Y + FFontHeight) or
+          (AStart + ALen = Length(FText) + 1) and (Y <= FCalcRect.Top) and (FCalcRect.Top < FClipRect.Bottom)
+        ) then
+      begin
+        Width := TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
+        X := GetHorzPos(Width);
+        if not (taIncludePadding in Attributes) and (X <= FCalcRect.Left) and (FCalcRect.Left < X + Width) or
+          (taIncludePadding in Attributes) and (FClipRect.Left <= FCalcRect.Left) and (FCalcRect.Left < FClipRect.Right) then
+        begin
+          Index := AStart;
+          while (FIndex < 0) and (Index <= AStart + ALen - 1) do
+          begin
+            NewIndex := StrNextCharIndex(FText, Index);
+            Inc(X, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+            if FCalcRect.Left < X then
+              FIndex := Index;
+            Index := NewIndex;
+          end;
+          if (taIncludePadding in Attributes) and (FIndex < 0) and (FCalcRect.Left < FClipRect.Right) then
+            FIndex := Index;
+        end;
+      end;
+    end;
+  end;
+
+  procedure GetRect(Y: Integer; AStart, ALen: Integer);
+  var
+    Index, NewIndex, X, Width: Integer;
+  begin
+    if (FIndex >= AStart) and (FIndex <= ALen) then
+    begin
+      Index := AStart;
+      Width := TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
+      X := GetHorzPos(Width);
+      while Index < FIndex do
+      begin
+        NewIndex := StrNextCharIndex(FText, Index);
+        Inc(X, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+        Index := NewIndex;
+      end;
+      NewIndex := StrNextCharIndex(FText, Index);
+      FCalcRect := Rect(X, Y, X + TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx, Y + FFontHeight);
+    end
+  end;
+
+  procedure Draw(Y: Integer; AStart, ALen: Integer);
+  var
+    DrawEllipsis, DrawFileName, SetNormalColors, SetSelectionColors: Boolean;
+    AWidth, Index, NewIndex, SlashPos, FileNameLen, EllipsisMaxX, X: Integer;
+    S: TString;
+  begin
+    if (Y >= FClipRect.Top - FFontHeight) and (Y <= FClipRect.Bottom) then
+    begin
+      DrawEllipsis := False;
+      DrawFileName := False;
+      SlashPos := 0;
+      FileNameLen := 0;
+      if (EndEllipsis or PathEllipsis) and (ALen > 1) then
+      begin
+        AWidth := TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
+        if AWidth > Width then
+        begin
+          AWidth := 0;
+          Index := AStart;
+          if EndEllipsis then
+          begin
+            EllipsisMaxX := Width - EllipsisWidth;
+            while (Index <= AStart + ALen - 1) do
+            begin
+              NewIndex := StrNextCharIndex(FText, Index);
+              Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+              if (AWidth >= EllipsisMaxX) and (Index > AStart) then
+                Break
+              else
+                Index := NewIndex;
+            end;
+            ALen := Index - AStart + 1;
+            DrawEllipsis := True;
+          end
+          else if PathEllipsis then
+          begin
+            SlashPos := AStart + ALen - 1;
+            while (SlashPos > 0) and not CharInSetEx(FText[SlashPos], ['/', '\']) do
+              Dec(SlashPos);
+            Dec(SlashPos);
+            if SlashPos > 0 then
+            begin
+              DrawEllipsis := True;
+              DrawFileName := True;
+              FileNameLen := AStart + ALen - SlashPos;
+              EllipsisMaxX := Width - TextExtent(FCanvas, FText, SlashPos, FileNameLen, FHasTabs, FSpacesForTab).cx - EllipsisWidth;
+              while (Index <= SlashPos) do
+              begin
+                NewIndex := StrNextCharIndex(FText, Index);
+                Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+                if AWidth >= EllipsisMaxX then
+                  Break
+                else
+                  Index := NewIndex;
+              end;
+              ALen := Index - AStart + 1;
+            end;
+          end;
+        end;
+      end;
+      if DrawEllipsis then
+      begin
+        if DrawFileName then
+        begin
+          S := Copy(FText, AStart, ALen) + cEllipsis + Copy(FText, AStart + SlashPos, FileNameLen);
+        end else
+          S := Copy(FText, AStart, ALen) + cEllipsis;
+        AStart := 1;
+        ALen := Length(S);
+      end else
+        S := FText;
+      X := GetHorzPos(TextExtent(FCanvas, S, AStart, ALen, FHasTabs, FSpacesForTab).cx);
+      if DrawEllipsis or (SelStart = SelEnd) then
+        TextOutput(FCanvas, X, Y, S, AStart, ALen, FHasTabs, FSpacesForTab)
+      else
+      begin
+        AWidth := 0;
+        Index := AStart;
+        SlashPos := Index; // reuse
+        while (Index <= AStart + ALen) do
+        begin
+          DrawFileName := False;  // reuse
+          SetNormalColors := False;
+          SetSelectionColors := False;
+          if Index = SelStart then
+          begin
+            DrawFileName := True;
+            SetSelectionColors := True;
+          end
+          else if Index = SelEnd then
+          begin
+            DrawFileName := True;
+            SetNormalColors := True;
+          end
+          else if Index = AStart + ALen then
+          begin
+            DrawFileName := True;
+          end;
+          if DrawFileName then
+          begin
+            if Index > SlashPos then
+            begin
+              if SetNormalColors then
+                DrawFilledRectangle(FCanvas, Rect(X, Y, X + AWidth, Y + FFontHeight), FBackColor);
+              if not (taFillText in Attributes) then
+                SetBkMode(FCanvas.Handle, TRANSPARENT);
+              TextOutput(FCanvas, X, Y, S, SlashPos, Index - SlashPos, FHasTabs, FSpacesForTab);
+            end;
+            Inc(X, AWidth);
+            AWidth := 0;
+            SlashPos := Index;
+          end;
+          if Index <= AStart + ALen - 1 then
+          begin
+            NewIndex := StrNextCharIndex(FText, Index);
+            Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+            Index := NewIndex;
+          end else
+            Inc(Index);
+          if SetNormalColors then
+          begin
+            FCanvas.Font.Color := NormalColor;
+            FCanvas.Brush.Color := NormalBkgnd;
+          end
+          else if SetSelectionColors then
+          begin
+            FCanvas.Font.Color := SelColor;
+            FCanvas.Brush.Color := SelBkgnd;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+var
+  I, Index, TextLen, LineBegin, LineBreaks, Vert, TrimStart, TrimLen: Integer;
+  WordBreak, LineBreak, WhiteSpace, PrevWhiteSpace, FirstWord,
+  WrapText: Boolean;
+  Size: TSize;
+begin
+  case AFunction of
+    tbfMeasure: FCalcRect := CreateEmptyRect;
+    tbfGetIndex: FIndex := -1;
+    tbfGetRect: FCalcRect := CreateEmptyRect;
+    tbfDraw: ;
+  end;
+  Vert := Y;
+  if FText <> '' then
+  begin
+    LineBegin := 1;
+    LineBreaks := 0;
+    TextLen := Length(FText);
+    Width := FClipRect.Right - FClipRect.Left;
+    WordBreak := taWordBreak in Attributes;
+    LineBreak := taLineBreak in Attributes;
+    WrapText := taWrapText in Attributes; //JR:20091229
+    if AFunction = tbfDraw then
+    begin
+      EndEllipsis := taEndEllipsis in Attributes;
+      PathEllipsis := taPathEllipsis in Attributes;
+      EllipsisWidth := TextExtent(FCanvas, cEllipsis, 1, Length(cEllipsis)).cx;
+      NormalColor := FCanvas.Font.Color;
+      NormalBkgnd := FCanvas.Brush.Color;
+    end;
+    if WordBreak or LineBreak then
+    begin
+      I := LineBegin;
+      Index := LineBegin;
+      WhiteSpace := True;
+      FirstWord := True;
+      while I <= TextLen + 1 do
+      begin
+        PrevWhiteSpace := WhiteSpace;
+        WhiteSpace := CharInSetEx(FText[I], cWordBreaks + cLineBreaks);
+        if (not PrevWhiteSpace and WhiteSpace and (I > LineBegin))
+          or (not PrevWhiteSpace and WrapText and (I > LineBegin)) then //JR:20091229
+        begin
+          if (WordBreak or WrapText) and (LineBreaks = 0) and not FirstWord then
+          begin
+            TrimStart := LineBegin;
+            TrimLen := I - LineBegin;
+            TextTrim(FText, TrimStart, TrimLen);
+            Size := TextExtent(FCanvas, FText, TrimStart, TrimLen, FHasTabs, FSpacesForTab);
+            if Size.cx > Width then
+              Inc(LineBreaks);
+          end;
+          if LineBreaks > 0 then
+          begin
+            if Index > LineBegin then
+            begin
+              TrimStart := LineBegin;
+              TrimLen := Index - LineBegin;
+              TextTrim(FText, TrimStart, TrimLen);
+              case AFunction of
+                tbfMeasure: Measure(TrimStart, TrimLen);
+                tbfGetIndex: GetIndex(Vert, TrimStart, TrimLen);
+                tbfGetRect: GetRect(Vert, TrimStart, TrimLen);
+                tbfDraw: Draw(Vert, TrimStart, TrimLen);
+              end;
+              LineBegin := Index;
+            end;
+            Inc(Vert, FFontHeight * LineBreaks);
+            LineBreaks := 0;
+          end;
+          Index := I;
+          FirstWord := False;
+        end;
+        if LineBreak and (FText[I] = cCR) then
+          Inc(LineBreaks);
+        Inc(I);
+      end;
+    end;
+    if LineBegin <= TextLen then
+    begin
+      TrimStart := LineBegin;
+      TrimLen := TextLen - LineBegin + 1;
+      TextTrim(FText, TrimStart, TrimLen);
+      case AFunction of
+        tbfMeasure: Measure(TrimStart, TrimLen);
+        tbfGetIndex: GetIndex(Vert, TrimStart, TrimLen);
+        tbfGetRect: GetRect(Vert, TrimStart, TrimLen);
+        tbfDraw: Draw(Vert, TrimStart, TrimLen)
+      end;
+      Inc(Vert, FFontHeight * (1 + LineBreaks));
+    end;
+  end;
+  case AFunction of
+    tbfMeasure:
+    begin
+      if FText = '' then
+        FCalcRect.Top := FFontHeight
+      else
+        FCalcRect.Top := Vert - Y;
+    end;
+    tbfGetIndex: ;
+    tbfGetRect: if FText = '' then
+    begin
+      I := GetHorzPos(0);
+      FCalcRect := Rect(I, Y, I, Y + FFontHeight);
+    end;
+    tbfDraw: ;
+  end;
+end;
+
+procedure TKTextBox.SetText(const AText: TString);
+begin
+  if AText <> FText then
+  begin
+    FText := AText;
+    FHasTabs := Pos(cTAB, FText) > 0;
+  end;
+end;
+
+function TKTextBox.PointToIndex(ACanvas: TCanvas; const ARect: TRect; APoint: TPoint): Integer;
+var
+  Y: Integer;
+begin
+  Initialize(ACanvas, ARect);
+  Y := GetVertPos;
+  FCalcRect.TopLeft := APoint;
+  Process(Y, tbfGetIndex);
+  Result := FIndex;
+end;
+
+class function TKTextBox.TextExtent(ACanvas: TCanvas; const AText: TString;
+  AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer): TSize;
+var
+  S: string;
+  TextPtr: PKText;
+begin
+  S := '';
+  if AExpandTabs then
+  begin
+    S := Copy(AText, AStart, ALen);
+    ConvertTabsToSpaces(S, ASpacesForTab);
+    TextPtr := @S[1];
+    ALen := Length(S);
+  end else
+    TextPtr := @AText[AStart];
+{$IFDEF STRING_IS_UNICODE}
+ {$IFDEF FPC}
+  {$IFDEF USE_CANVAS_METHODS}
+  if not AExpandTabs then
+    S := Copy(AText, AStart, ALen);
+  Result := ACanvas.TextExtent(S); // little slower but more secure in Lazarus
+  {$ELSE}
+  GetTextExtentPoint32(ACanvas.Handle, TextPtr, ALen, Result);
+  {$ENDIF}
+ {$ELSE}
+  GetTextExtentPoint32(ACanvas.Handle, TextPtr, ALen, Result);
+ {$ENDIF}
+{$ELSE}
+  GetTextExtentPoint32W(ACanvas.Handle, TextPtr, ALen, Result);
+{$ENDIF}
+end;
+
+class procedure TKTextBox.TextOutput(ACanvas: TCanvas; X, Y: Integer;
+  const AText: TString; AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer);
+var
+  S: string;
+  TextPtr: PKText;
+begin
+  if AExpandTabs then
+  begin
+    S := Copy(AText, AStart, ALen);
+    ConvertTabsToSpaces(S, ASpacesForTab);
+    TextPtr := @S[1];
+    ALen := Length(S);
+  end else
+  begin
+    TextPtr := @AText[AStart];
+    S := AText;
+  end;
+{$IFDEF STRING_IS_UNICODE}
+ {$IFDEF FPC}
+  {$IFDEF USE_CANVAS_METHODS}
+  if not AExpandTabs then
+    S := Copy(S, AStart, ALen);
+  ACanvas.TextOut(X, Y, S); // little slower but more secure in Lazarus
+  {$ELSE}
+  TextOut(ACanvas.Handle, X, Y, TextPtr, ALen);
+  {$ENDIF}
+ {$ELSE}
+  TextOut(ACanvas.Handle, X, Y, TextPtr, ALen);
+ {$ENDIF}
+{$ELSE}
+  TextOutW(ACanvas.Handle, X, Y, TextPtr, ALen);
+{$ENDIF}
+end;
+
+procedure TKTextBox.TextTrim(const AText: WideString; var AStart, ALen: Integer);
+begin
+  if taLineBreak in Attributes then
+    TrimWhiteSpaces(AText, AStart, ALen, cLineBreaks);
+  if taTrimWhiteSpaces in Attributes then
+    TrimWhiteSpaces(AText, AStart, ALen, cWordBreaks);
+end;
+
+{ TKDragWindow }
+
 {$IFDEF USE_WINAPI}
 const
   cLayeredWndClass = 'KControls drag window';
@@ -2091,29 +2461,42 @@ end;
 
 procedure TKTextHint.Paint;
 var
-  R: TRect;
+  TextBox: TKTextBox;
 begin
   Canvas.Brush.Style := bsSolid;
   Canvas.Brush.Color := clInfoBk;
   Canvas.FillRect(ClientRect);
   Canvas.Brush.Style := bsClear;
-  R := Rect(0, 0, FExtent.X + 10, FExtent.Y + 10);
-  DrawAlignedText(Canvas, R, halLeft, valCenter,
-    5, 5, FText, clInfoBk, [taEndEllipsis, taWordBreak, taLineBreak])
+  TextBox := TKTextBox.Create;
+  try
+    TextBox.Attributes := [taEndEllipsis, taWordBreak, taLineBreak];
+    TextBox.BackColor := clInfoBk;
+    TextBox.HPadding := 5;
+    TextBox.VPadding := 5;
+    TextBox.Text := FText;
+    TextBox.Draw(Canvas, Rect(0, 0, FExtent.X + 10, FExtent.Y + 10));
+  finally
+     TextBox.Free;
+  end;
 end;
 
-procedure TKTextHint.SetText(const Value: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF});
+procedure TKTextHint.SetText(const Value: TString);
 var
   R: TRect;
+  TextBox: TKTextBox;
 begin
   if Value <> FText then
   begin
     FText := Value;
     R := Rect(0, 0, 300, 0);
-    DrawAlignedText(Canvas, R, halLeft, valCenter,
-      0, 0, FText, clInfoBk, [taCalcRect, taWordBreak, taLineBreak]);
-    FExtent.X := R.Right - R.Left;
-    FExtent.Y := R.Bottom - R.Top;
+    TextBox := TKTextBox.Create;
+    try
+      TextBox.Attributes := [taWordBreak, taLineBreak];
+      TextBox.Text := FText;
+      TextBox.Measure(Canvas, R, FExtent.X, FExtent.Y);
+    finally
+       TextBox.Free;
+    end;
   end;
 end;
 

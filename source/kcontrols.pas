@@ -234,6 +234,26 @@ type
   TKPrintPageSetup = class;
   TKPrintPreview = class;
 
+  TKRect = class(TPersistent)
+  private
+    FLeft, FTop, FRight, FBottom: Integer;
+    FOnChanged: TNotifyEvent;
+    procedure SetBottom(const Value: Integer);
+    procedure SetLeft(const Value: Integer);
+    procedure SetRight(const Value: Integer);
+    procedure SetTop(const Value: Integer);
+  protected
+    procedure Changed;
+  public
+    constructor Create;
+    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
+  published
+    property Left: Integer read FLeft write SetLeft default 0;
+    property Top: Integer read FTop write SetTop default 0;
+    property Right: Integer read FRight write SetRight default 0;
+    property Bottom: Integer read FBottom write SetBottom default 0;
+  end;
+
   { Base class for all visible controls in KControls. }
   TKCustomControl = class(TCustomControl)
   private
@@ -418,6 +438,104 @@ type
     property PageSetup: TKPrintPageSetup read GetPageSetup write SetPageSetup;
     {Returns True if page setup component is allocated for this control. }
     property PageSetupAllocated: Boolean read GetPageSetupAllocated;
+  end;
+
+  { Declares possible values for the @link(TKCustomColors.ColorScheme) property. }
+  TKColorScheme = (
+    { GetColor returns normal color currently defined for each item }
+    csNormal,
+    { GetColor returns gray for text and line colors and white for background colors }
+    csGrayed,
+    { GetColor returns brighter version of normal color }
+    csBright,
+    { GetColor returns grayscaled color versions }
+    csGrayScale
+  );
+
+  { Declares possible indexes e.g. for the @link(TKCustomColors.Color) property. }
+  TKColorIndex = Integer;
+
+  { @abstract(Declares the color description structure returned by @link(TKCustomColors.ColorData) property)
+    <UL>
+    <LH>Members:</LH>
+    <LI><I>Index</I> - color index</LI>
+    <LI><I>Color</I> - current color value</LI>
+    <LI><I>Default</I> - default color value</LI>
+    <LI><I>Name</I> - color name</LI>
+    </UL>
+  }
+  TKColorData = record
+    Index: TKColorIndex;
+    Color: TColor;
+    Default: TColor;
+    Name: string;
+  end;
+
+  { @abstract(Declares @link(TKCustomColors) color item description)
+    <UL>
+    <LH>Members:</LH>
+    <LI><I>Def</I> - default color value</LI>
+    <LI><I>Name</I> - color name (can be localized)</LI>
+    </UL>
+  }
+  TKColorSpec = record
+    Def: TColor;
+    Name: string;
+  end;
+
+  { @abstract(Container for all colors used by specific control)
+    This container allows to group many colors into one item in object inspector.
+    Colors are accessible via published properties or several public Color*
+    properties. }
+  TKCustomColors = class(TPersistent)
+  private
+    function GetColorData(Index: TKColorIndex): TKColorData;
+    function GetColorEx(Index: TKColorIndex): TColor;
+    function GetColorName(Index: TKColorIndex): string;
+    function GetDefaultColor(Index: TKColorIndex): TColor;
+    procedure SetColorEx(Index: TKColorIndex; Value: TColor);
+    procedure SetColors(const Value: TKColorArray);
+  protected
+    FControl: TKCustomControl;
+    FColorScheme: TKColorScheme;
+    FBrightColors: TKColorArray;
+    FColors: TKColorArray;
+    { Returns the specific color. Use for property assignments. }
+    function GetColor(Index: TKColorIndex): TColor;
+    { Returns color specification structure for given index. }
+    function GetColorSpec(Index: TKColorIndex): TKColorSpec; virtual;
+    { Returns maximum color index. }
+    function GetMaxIndex: Integer; virtual;
+    { Initializes the color array. }
+    procedure Initialize; virtual;
+    { Returns the specific color according to ColorScheme. }
+    function InternalGetColor(Index: TKColorIndex): TColor; virtual;
+    { Replaces the specific color. }
+    procedure InternalSetColor(Index: TKColorIndex; Value: TColor); virtual;
+    { Replaces the specific color. Use for property assignments. }
+    procedure SetColor(Index: TKColorIndex; Value: TColor);
+  public
+    { Creates the instance. You can create a custom instance and pass it
+      e.g. to a @link(TKCustomGrid.Colors) property. The AGrid parameter has no meaning
+      in this case and you may set it to nil. }
+    constructor Create(AControl: TKCustomControl); virtual;
+    { Copies the properties of another instance that inherits from
+      TPersistent into this TKGridColors instance. }
+    procedure Assign(Source: TPersistent); override;
+    { Clears cached brighter colors. }
+    procedure ClearBrightColors; virtual;
+    { Returns always normal color - regardless of the ColorScheme setting. }
+    property Color[Index: TKColorIndex]: TColor read GetColorEx write SetColorEx;
+    { Returns always a complete color description }
+    property ColorData[Index: TKColorIndex]: TKColorData read GetColorData;
+    { Returns (localizable) color name. }
+    property ColorName[Index: TKColorIndex]: string read GetColorName;
+    { Returns array of normal colors. }
+    property Colors: TKColorArray read FColors write SetColors;
+    { Specifies color scheme for reading of published properties - see GetColor in source code. }
+    property ColorScheme: TKColorScheme read FColorScheme write FColorScheme;
+    { Returns default color. }
+    property DefaultColor[Index: TKColorIndex]: TColor read GetDefaultColor;
   end;
 
   { @abstract(Class to specify the print job parameters) }
@@ -634,34 +752,12 @@ type
     This container allows to group many colors into one item in object inspector.
     Colors are accessible via published properties or several public Color*
     properties. }
-  TKPreviewColors = class(TPersistent)
-  private
-    FPreview: TKPrintPreview;
-    function GetColor(Index: TKPreviewColorIndex): TColor;
-    function GetColorEx(Index: TKPreviewColorIndex): TColor;
-    procedure SetColor(Index: TKPreviewColorIndex; Value: TColor);
-    procedure SetColorEx(Index: TKPreviewColorIndex; Value: TColor);
-    procedure SetColors(const Value: TKColorArray);
+  TKPreviewColors = class(TKCustomColors)
   protected
-    FColors: TKColorArray;
-    { Initializes the color array. }
-    procedure Initialize; virtual;
-    { Returns the specific color according to ColorScheme. }
-    function InternalGetColor(Index: TKPreviewColorIndex): TColor; virtual;
-    { Replaces the specific color. }
-    procedure InternalSetColor(Index: TKPreviewColorIndex; Value: TColor); virtual;
-  public
-    { Creates the instance. You can create a custom instance and pass it
-      e.g. to a @link(TKPrintPreview.Colors) property. The APreview parameter has no meaning
-      in this case and you may set it to nil. }
-    constructor Create(APreview: TKPrintPreview);
-    { Copies the properties of another instance that inherits from
-      TPersistent into this TKPreviewColors instance. }
-    procedure Assign(Source: TPersistent); override;
-    { Returns color for given index. }
-    property Color[Index: TKPreviewColorIndex]: TColor read GetColorEx write SetColorEx;
-    { Returns array of colors. }
-    property Colors: TKColorArray read FColors write SetColors;
+    { Returns color specification structure for given index. }
+    function GetColorSpec(Index: TKColorIndex): TKColorSpec; override;
+    { Returns maximum color index. }
+    function GetMaxIndex: Integer; override;
   published
     { Specifies the paper background color. }
     property Paper: TColor index ciPaper read GetColor write SetColor default cPaperDef;
@@ -910,6 +1006,60 @@ begin
   else
     Result := Value;
   end;
+end;
+
+{ TKRect }
+
+constructor TKRect.Create;
+begin
+  inherited Create;
+  FOnChanged := nil;
+  FLeft := 0;
+  FTop := 0;
+  FRight := 0;
+  FBottom := 0;
+end;
+
+procedure TKRect.SetBottom(const Value: Integer);
+begin
+  if FBottom <> Value then
+  begin
+    FBottom := Value;
+    Changed;
+  end;
+end;
+
+procedure TKRect.SetLeft(const Value: Integer);
+begin
+  if FLeft <> Value then
+  begin
+    FLeft := Value;
+    Changed;
+  end;
+end;
+
+procedure TKRect.SetRight(const Value: Integer);
+begin
+  if FRight <> Value then
+  begin
+    FRight := Value;
+    Changed;
+  end;
+end;
+
+procedure TKRect.SetTop(const Value: Integer);
+begin
+  if FTop <> Value then
+  begin
+    FTop := Value;
+    Changed;
+  end;
+end;
+
+procedure TKRect.Changed;
+begin
+  if Assigned(FOnChanged) then
+    FOnChanged(Self);
 end;
 
 { TKCustomControl }
@@ -1370,6 +1520,137 @@ begin
 end;
 {$ENDIF}
 {$ENDIF}
+
+{ TKCustomColors }
+
+constructor TKCustomColors.Create(AControl: TKCustomControl);
+begin
+  inherited Create;
+  FControl := AControl;
+  Initialize;
+  ClearBrightColors;
+end;
+
+procedure TKCustomColors.Assign(Source: TPersistent);
+begin
+  inherited;
+  if Source is TKCustomColors then
+  begin
+    Colors := TKCustomColors(Source).Colors;
+    FControl.Invalidate;
+  end
+end;
+
+procedure TKCustomColors.ClearBrightColors;
+var
+  I: TKColorIndex;
+begin
+  for I := 0 to Length(FBrightColors) - 1 do
+    FBrightColors[I] := clNone;
+end;
+
+function TKCustomColors.GetColor(Index: TKColorIndex): TColor;
+begin
+  Result := InternalGetColor(Index);
+end;
+
+function TKCustomColors.GetColorData(Index: TKColorIndex): TKColorData;
+var
+  ColorSpec: TKColorSpec;
+begin
+  Result.Index := Index;
+  Result.Color := FColors[Index];
+  ColorSpec := GetColorSpec(Index);
+  Result.Default := ColorSpec.Def;
+  Result.Name := ColorSpec.Name;
+end;
+
+function TKCustomColors.GetColorEx(Index: TKColorIndex): TColor;
+begin
+  Result := FColors[Index];
+end;
+
+function TKCustomColors.GetColorName(Index: TKColorIndex): string;
+begin
+  Result := GetColorSpec(Index).Name;
+end;
+
+function TKCustomColors.GetColorSpec(Index: TKColorIndex): TKColorSpec;
+begin
+  Result.Def := clNone;
+  Result.Name := '';
+end;
+
+function TKCustomColors.GetDefaultColor(Index: TKColorIndex): TColor;
+begin
+  Result := GetColorSpec(Index).Def;
+end;
+
+function TKCustomColors.GetMaxIndex: Integer;
+begin
+  Result := -1;
+end;
+
+procedure TKCustomColors.Initialize;
+var
+  I, MaxIndex: TKColorIndex;
+begin
+  MaxIndex := GetMaxIndex;
+  SetLength(FColors, MaxIndex + 1);
+  SetLength(FBrightColors, MaxIndex + 1);
+  for I := 0 to Length(FColors) - 1 do
+    FColors[I] := GetColorSpec(I).Def;
+end;
+
+function TKCustomColors.InternalGetColor(Index: TKColorIndex): TColor;
+begin
+  case FColorScheme of
+    csBright:
+    begin
+      if FBrightColors[Index] = clNone then
+        FBrightColors[Index] := BrightColor(FColors[Index], 0.5, bsOfTop);
+      Result := FBrightColors[Index];
+    end;
+    csGrayScale:
+      Result := ColorToGrayScale(FColors[Index]);
+  else
+    Result := FColors[Index];
+  end;
+end;
+
+procedure TKCustomColors.InternalSetColor(Index: TKColorIndex; Value: TColor);
+begin
+  if FColors[Index] <> Value then
+  begin
+    FColors[Index] := Value;
+    FBrightColors[Index] := clNone;
+    if not (csLoading in FControl.ComponentState) then
+      FControl.Invalidate;
+  end;
+end;
+
+procedure TKCustomColors.SetColor(Index: TKColorIndex; Value: TColor);
+begin
+  InternalSetColor(Index, Value);
+end;
+
+procedure TKCustomColors.SetColorEx(Index: TKColorIndex; Value: TColor);
+begin
+  if FColors[Index] <> Value then
+  begin
+    FColors[Index] := Value;
+    FBrightColors[Index] := clNone;
+  end;
+end;
+
+procedure TKCustomColors.SetColors(const Value: TKColorArray);
+var
+  I: Integer;
+begin
+  for I := 0 to Min(Length(FColors), Length(Value)) - 1 do
+    FColors[I] := Value[I];
+  ClearBrightColors;
+end;
 
 { TKPrintPageSetup }
 
@@ -2045,73 +2326,21 @@ end;
 
 { TKPreviewColors }
 
-constructor TKPreviewColors.Create(APreview: TKPrintPreview);
+function TKPreviewColors.GetColorSpec(Index: TKColorIndex): TKColorSpec;
 begin
-  inherited Create;
-  FPreview := APreview;
-  Initialize;
-end;
-
-procedure TKPreviewColors.Assign(Source: TPersistent);
-begin
-  inherited;
-  if Source is TKPreviewColors then
-  begin
-    Colors := TKPreviewColors(Source).Colors;
-    FPreview.Invalidate;
-  end
-end;
-
-function TKPreviewColors.GetColor(Index: TKPreviewColorIndex): TColor;
-begin
-  Result := InternalGetColor(Index);
-end;
-
-function TKPreviewColors.GetColorEx(Index: TKPreviewColorIndex): TColor;
-begin
-  Result := FColors[Index];
-end;
-
-procedure TKPreviewColors.Initialize;
-begin
-  SetLength(FColors, ciPreviewColorsMax + 1);
-  FColors[ciPaper] := cPaperDef;
-  FColors[ciBkGnd] := cBkGndDef;
-  FColors[ciBorder] := cBorderDef;
-  FColors[ciSelectedBorder] := cSelectedBorderDef;
-end;
-
-function TKPreviewColors.InternalGetColor(Index: TKPreviewColorIndex): TColor;
-begin
-  Result := FColors[Index];
-end;
-
-procedure TKPreviewColors.InternalSetColor(Index: TKPreviewColorIndex; Value: TColor);
-begin
-  if FColors[Index] <> Value then
-  begin
-    FColors[Index] := Value;
-    if not (csLoading in FPreview.ComponentState) then
-      FPreview.Invalidate;
+  case Index of
+    ciPaper: begin Result.Def := cPaperDef; Result.Name := ''; end;
+    ciBkGnd: begin Result.Def := cBkGndDef; Result.Name := ''; end;
+    ciBorder: begin Result.Def := cBorderDef; Result.Name := ''; end;
+    ciSelectedBorder: begin Result.Def := cSelectedBorderDef; Result.Name := ''; end;
+  else
+    Result := inherited;
   end;
 end;
 
-procedure TKPreviewColors.SetColor(Index: TKPreviewColorIndex; Value: TColor);
+function TKPreviewColors.GetMaxIndex: Integer;
 begin
-  InternalSetColor(Index, Value);
-end;
-
-procedure TKPreviewColors.SetColorEx(Index: TKPreviewColorIndex; Value: TColor);
-begin
-  FColors[Index] := Value;
-end;
-
-procedure TKPreviewColors.SetColors(const Value: TKColorArray);
-var
-  I: Integer;
-begin
-  for I := 0 to Min(Length(FColors), Length(Value)) - 1 do
-    FColors[I] := Value[I];
+  Result := ciPreviewColorsMax;
 end;
 
 { TKPrintPreview }
@@ -2822,4 +3051,5 @@ initialization
 {$ELSE}
   {$R kcontrols.res}
 {$ENDIF}
+
 end.

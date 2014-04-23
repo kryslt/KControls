@@ -9,7 +9,7 @@ interface
 uses
   KFunctions, KGraphics, KControls, KDialogs, KEditCommon, KGrids, KHexEditor, 
   KIcon, KPrintPreview, KPrintSetup, KWideWinProcs, kcontrolsdesign, KDBGrids, 
-  KEdits, KMessageBox, KLog, KProgress, KLabels, LazarusPackageIntf;
+  KEdits, KMessageBox, KLog, KProgress, KLabels, KMemo, LazarusPackageIntf;
 
 implementation
 
