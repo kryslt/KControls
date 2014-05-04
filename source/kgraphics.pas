@@ -1948,7 +1948,7 @@ var
             AWidth := 0;
             SlashPos := Index;
           end;
-          if Index <= AStart + ALen - 1 then
+          if Index < AStart + ALen then
           begin
             NewIndex := StrNextCharIndex(FText, Index);
             Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);

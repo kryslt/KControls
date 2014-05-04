@@ -9,7 +9,7 @@ uses
     Windows, Messages,
   {$ENDIF}
     SysUtils, Variants, Classes, Graphics, Controls, Forms,
-    Dialogs, KGrids, KMemo, KGraphics, KFunctions, ExtCtrls;
+    Dialogs, KGrids, KMemo, KGraphics, KFunctions, ExtCtrls, KEditCommon;
 
 type
 
@@ -38,59 +38,62 @@ var
   MS: TMemoryStream;
   S: AnsiString;
   W: TString;
+  I: Integer;
 begin
   Memo := TKMemo.Create(Self);
+  Memo.Options := Memo.Options + [eoShowFormatting];
   Memo.Colors.BkGnd := clInfoBk;
   Memo.Font.Size := 36;
   Memo.Blocks.LockUpdate;
   Memo.Blocks.Clear;
-  TB := Memo.Blocks.AddTextBlock('testtext1');
-  TB.NewLine := True;
-  TB := Memo.Blocks.AddTextBlock('testtext2');
-  TB.NewLine := True;
-  TB := Memo.Blocks.AddTextBlock('testtext3');
-  TB.NewLine := True;
-  TB := Memo.Blocks.AddTextBlock('testtext4');
-  TB.NewLine := True;
-  MS := TMemoryStream.Create;
-  try
-    MS.LoadFromFile('..\..\kgrid_readme.txt');
-    SetString(S, PAnsiChar(MS.Memory), MS.Size);
-    Memo.Blocks.Text := S;
-  finally
-    MS.Free;
-  end;
+  Memo.Blocks.AddTextBlock('testtext1');
+  Memo.Blocks.AddNewLineBlock;
+  Memo.Blocks.AddTextBlock('testtext2');
+  Memo.Blocks.AddNewLineBlock;
+  Memo.Blocks.AddTextBlock('testtext3');
+  Memo.Blocks.AddNewLineBlock;
+  Memo.Blocks.AddTextBlock('testtext4');
+  Memo.Blocks.AddNewLineBlock;
   TB := Memo.Blocks.AddTextBlock('This is big bold text.');
   TB.Font.Style := [fsBold];
   TB.Font.Size := 15;
   TB := Memo.Blocks.AddTextBlock(' This is small bold text.');
-  TB.NewLine := True;
   TB.Font.Style := [fsBold];
+  Memo.Blocks.AddNewLineBlock;
   TB := Memo.Blocks.AddTextBlock('This is text on gray.');
   TB.Brush.Color := clGray;
   TB.Font.Size := 15;
   TB := Memo.Blocks.AddTextBlock(' This is red text on gray.');
-  TB.NewLine := True;
   TB.Brush.Color := clGray;
   TB.Font.Size := 15;
   TB.Font.Color := clRed;
+  Memo.Blocks.AddNewLineBlock;
   Memo.Blocks.AddImageBlock('..\..\resource_src\kmessagebox_info.png');
-  IB := Memo.Blocks.AddImageBlock('..\..\resource_src\kmessagebox_stop.png');
-  IB.NewLine := True;
+  Memo.Blocks.AddImageBlock('..\..\resource_src\kmessagebox_stop.png');
+  Memo.Blocks.AddNewLineBlock;
   TB := Memo.Blocks.AddTextBlock('This is vertically aligned text.');
   TB.Font.Size := 12;
   TB.VAlign := valCenter;
   Memo.Blocks.AddImageBlock('..\..\resource_src\kmessagebox_warning.png');
-  TB := Memo.Blocks.AddTextBlock(' another text');
-  TB.NewLine := True;
+  Memo.Blocks.AddTextBlock(' another text');
+  Memo.Blocks.AddNewLineBlock;
   TB := Memo.Blocks.AddTextBlock('This is text on gray.');
   TB.Brush.Color := clGray;
   TB.Font.Size := 15;
   TB := Memo.Blocks.AddTextBlock(' This is red text on gray.');
-  TB.NewLine := True;
   TB.Brush.Color := clGray;
   TB.Font.Size := 15;
   TB.Font.Color := clRed;
+  Memo.Blocks.AddNewLineBlock;
+  MS := TMemoryStream.Create;
+  try
+    MS.LoadFromFile('..\..\kgrid_readme.txt');
+    SetString(S, PAnsiChar(MS.Memory), MS.Size);
+    for I := 0 to 0 do
+      Memo.Blocks.Text := S;
+  finally
+    MS.Free;
+  end;
   //Memo.BackgroundImage.LoadFromFile('..\..\resource_src\tkgrid.png');
   Memo.Blocks.UnlockUpdate;
   Memo.Align := alClient;

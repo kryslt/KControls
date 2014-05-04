@@ -246,7 +246,11 @@ type
     procedure Changed;
   public
     constructor Create;
+    constructor CreateFromRect(const ARect: TRect);
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
+    function ContainsPoint(const APoint: TPoint): Boolean;
+    function OffsetRect(ARect: TKRect): TRect; overload;
+    function OffsetRect(const ARect: TRect): TRect; overload;
   published
     property Left: Integer read FLeft write SetLeft default 0;
     property Top: Integer read FTop write SetTop default 0;
@@ -1014,10 +1018,40 @@ constructor TKRect.Create;
 begin
   inherited Create;
   FOnChanged := nil;
-  FLeft := 0;
-  FTop := 0;
-  FRight := 0;
   FBottom := 0;
+  FLeft := 0;
+  FRight := 0;
+  FTop := 0;
+end;
+
+constructor TKRect.CreateFromRect(const ARect: TRect);
+begin
+  inherited Create;
+  FOnChanged := nil;
+  FBottom := ARect.Bottom;
+  FLeft := ARect.Left;
+  FRight := ARect.Right;
+  FTop := ARect.Top;
+end;
+
+function TKRect.ContainsPoint(const APoint: TPoint): Boolean;
+begin
+  Result :=
+    (FLeft <= APoint.X) and (APoint.X < FRight) and
+    (FTop <= APoint.Y) and (APoint.Y < FBottom);
+end;
+
+function TKRect.OffsetRect(ARect: TKRect): TRect;
+begin
+  if ARect <> nil then
+    Result := Rect(ARect.Left + FLeft, ARect.Top + FTop, ARect.Right - FRight, ARect.Bottom - FBottom)
+  else
+    Result := CreateEmptyRect;
+end;
+
+function TKRect.OffsetRect(const ARect: TRect): TRect;
+begin
+  Result := Rect(ARect.Left + FLeft, ARect.Top + FTop, ARect.Right - FRight, ARect.Bottom - FBottom);
 end;
 
 procedure TKRect.SetBottom(const Value: Integer);

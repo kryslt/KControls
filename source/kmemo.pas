@@ -38,6 +38,13 @@ const
   { Default value for the @link(TKCustomMemo.UndoLimit) property. }
   cUndoLimitDef = 1000;
 
+  { Minimum for the @link(TKCustomMemo.ScrollPadding) property. }
+  cScrollPaddingMin = 0;
+  { Maximum for the @link(TKCustomMemo.ScrollPadding) property. }
+  cScrollPaddingMax = 1000;
+  { Default value for the @link(TKCustomMemo.ScrollPadding) property. }
+  cScrollPaddingDef = 30;
+
   { Minimum for the @link(TKCustomMemo.ScrollSpeed) property. }
   cScrollSpeedMin = 50;
   { Maximum for the @link(TKCustomMemo.ScrollSpeed) property. }
@@ -45,44 +52,44 @@ const
   { Default value for the @link(TKCustomMemo.ScrollSpeed) property. }
   cScrollSpeedDef = 100;
 
-  { Default value for the @link(TKMemoColors.BkGnd) color property }
+  { Default value for the @link(TKMemoColors.BkGnd) color property. }
   cBkGndDef = clWindow;
-  { Default value for the @link(TKMemoColors.InactiveCaretBkGnd) color property }
+  { Default value for the @link(TKMemoColors.InactiveCaretBkGnd) color property. }
   cInactiveCaretBkGndDef = clBlack;
-  { Default value for the @link(TKMemoColors.InactiveCaretSelBkGnd) color property }
+  { Default value for the @link(TKMemoColors.InactiveCaretSelBkGnd) color property. }
   cInactiveCaretSelBkGndDef = clBlack;
-  { Default value for the @link(TKMemoColors.InactiveCaretSelText) color property }
+  { Default value for the @link(TKMemoColors.InactiveCaretSelText) color property. }
   cInactiveCaretSelTextDef = clYellow;
-  { Default value for the @link(TKMemoColors.InactiveCaretText) color property }
+  { Default value for the @link(TKMemoColors.InactiveCaretText) color property. }
   cInactiveCaretTextDef = clYellow;
-  { Default value for the @link(TKMemoColors.SelBkGnd) color property }
+  { Default value for the @link(TKMemoColors.SelBkGnd) color property. }
   cSelBkGndDef = clGrayText;
-  { Default value for the @link(TKMemoColors.SelBkGndFocused) color property }
+  { Default value for the @link(TKMemoColors.SelBkGndFocused) color property. }
   cSelBkGndFocusedDef = clHighlight;
-  { Default value for the @link(TKMemoColors.SelText) color property }
+  { Default value for the @link(TKMemoColors.SelText) color property. }
   cSelTextDef = clHighlightText;
-  { Default value for the @link(TKMemoColors.SelTextFocused) color property }
+  { Default value for the @link(TKMemoColors.SelTextFocused) color property. }
   cSelTextFocusedDef = clHighlightText;
 
-  { Index for the @link(TKMemoColors.BkGnd) color property }
+  { Index for the @link(TKMemoColors.BkGnd) color property. }
   ciBkGnd = TKColorIndex(0);
-  { Index for the @link(TKMemoColors.InactiveCaretBkGnd) color property }
+  { Index for the @link(TKMemoColors.InactiveCaretBkGnd) color property. }
   ciInactiveCaretBkGnd = TKColorIndex(1);
-  { Index for the @link(TKMemoColors.InactiveCaretSelBkGnd) color property }
+  { Index for the @link(TKMemoColors.InactiveCaretSelBkGnd) color property. }
   ciInactiveCaretSelBkGnd = TKColorIndex(2);
-  { Index for the @link(TKMemoColors.InactiveCaretSelText) color property }
+  { Index for the @link(TKMemoColors.InactiveCaretSelText) color property. }
   ciInactiveCaretSelText = TKColorIndex(3);
-  { Index for the @link(TKMemoColors.InactiveCaretText) color property }
+  { Index for the @link(TKMemoColors.InactiveCaretText) color property. }
   ciInactiveCaretText = TKColorIndex(4);
-  { Index for the @link(TKMemoColors.SelBkGnd) color property }
+  { Index for the @link(TKMemoColors.SelBkGnd) color property. }
   ciSelBkGnd = TKColorIndex(5);
-  { Index for the @link(TKMemoColors.SelBkGndFocused) color property }
+  { Index for the @link(TKMemoColors.SelBkGndFocused) color property. }
   ciSelBkGndFocused = TKColorIndex(6);
-  { Index for the @link(TKMemoColors.SelText) color property }
+  { Index for the @link(TKMemoColors.SelText) color property. }
   ciSelText = TKColorIndex(7);
-  { Index for the @link(TKMemoColors.SelTextFocused) color property }
+  { Index for the @link(TKMemoColors.SelTextFocused) color property. }
   ciSelTextFocused = TKColorIndex(8);
-  { Maximum color array index }
+  { Maximum color array index. }
   ciMemoColorsMax = ciSelTextFocused;
 
   cHorzScrollStepDef = 4;
@@ -101,39 +108,40 @@ const
 type
   TKCustomMemo = class;
 
-  { Declares memo states - possible values for the @link(TKCustomHexEditor.States) property
-    (protected) }
+  { Declares memo states - possible values for the @link(TKCustomHexEditor.States) property (protected). }
   TKMemoState = (
-    { Caret is created }
+    { Caret is created. }
     elCaretCreated,
-    { Caret is visible }
+    { Caret is visible. }
     elCaretVisible,
-    { Caret is being updated }
+    { Caret is being updated. }
     elCaretUpdate,
-    { Ignore following WM_CHAR message }
+    { Ignore following WM_CHAR message. }
     elIgnoreNextChar,
-    { Buffer modified }
+    { Buffer modified. }
     elModified,
-    { Mouse captured }
+    { Mouse captured. }
     elMouseCapture,
-    { Overwrite mode active }
+    { Overwrite mode active. }
     elOverwrite,
-    { Read only editor }
+    { Read only editor. }
     elReadOnly
   );
 
-  { Hex editor states can be arbitrary combined }
+  { Hex editor states can be arbitrary combined. }
   TKMemoStates = set of TKMemoState;
 
   TKMemoUpdateReason = (
-    // attributes changed that do not affect extent and contents
+    { Attributes changed that do not affect extent and contents. }
     muAttributes,
-    // recalculate extents
+    { recalculate extents. }
     muExtent,
-    // recalculate line info and extents
+    { recalculate line info and extents. }
     muContents,
-    // selection changed
-    muSelection
+    { selection changed. }
+    muSelection,
+    { selection changed and scroll operation is required to reflect the change. }
+    muSelectionScroll
   );
 
   TKMemoUpdateReasons = set of TKMemoUpdateReason;
@@ -155,12 +163,10 @@ type
   TKMemoBlock = class(TObject)
   private
     FBounds: TRect;
-    FNewLine: Boolean;
     FParent: TKMemoBlocks;
     FSelEnd: Integer;
     FSelStart: Integer;
     procedure SetBounds(const Value: TRect);
-    procedure SetNewLine(const Value: Boolean);
     procedure SetParent(AParent: TKMemoBlocks);
   protected
     function ContentLength: Integer; virtual;
@@ -173,25 +179,25 @@ type
     procedure NotifyLineInfo(const ALineInfo: TKMemoLine); virtual;
     procedure ParentChanged; virtual;
     procedure SetOffset(ALeft, ATop: Integer); virtual;
-    procedure Select(ASelStart, ASelLength: Integer); virtual;
+    function Select(ASelStart, ASelLength: Integer): Boolean; virtual;
     function SelectableLength: Integer; virtual;
     procedure Update(AReasons: TKMemoUpdateReasons); virtual;
   public
     constructor Create(AParent: TKMemoBlocks); virtual;
     function AddText(const AText: TString; At: Integer = -1): Boolean; virtual;
     procedure Assign(AItem: TKMemoBlock); virtual;
+    procedure AssignAttributes(AItem: TKMemoBlock); virtual;
     procedure ClearSelection; virtual;
     function Concat(AItem: TKMemoBlock): Boolean; virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer): TRect; virtual;
     procedure MeasureExtent(ACanvas: TCanvas); virtual;
-    function NewLineSelected: Boolean; virtual;
     procedure NotifyFontChange(AFont: TFont); virtual;
     procedure PaintToCanvas(ACanvas: TCanvas); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint): Integer; virtual;
+    function ShowFormatting: Boolean; virtual;
     function Split(At: Integer): TKMemoBlock; virtual;
     property Bounds: TRect read FBounds write SetBounds;
     property CanAddText: Boolean read GetCanAddText;
-    property NewLine: Boolean read FNewLine write SetNewLine;
     property Parent: TKMemoBlocks read FParent write SetParent;
     property SelLength: Integer read GetSelLength;
     property SelStart: Integer read GetSelStart;
@@ -199,34 +205,42 @@ type
     property Text: TString read GetText;
   end;
 
-  { TKTextMemoBlock }
-
   TKTextMemoBlock = class(TKMemoBlock)
   private
     FBrush: TBrush;
     FFont: TFont;
     FHAlign: TKHAlign;
     FText: TString;
+    FTextAttributes: TKTextAttributes;
     FVAlign: TKVAlign;
-    procedure SetText(const Value: TString);
     procedure SetHAlign(const Value: TKHAlign);
     procedure SetVAlign(const Value: TKVAlign);
     procedure SplitText(At: Integer; out APart1, APart2: TString);
   protected
     FFontChanged: Boolean;
+    { Because of time optimization. }
+    FContentChanged: Boolean;
+    FHeight: Integer;
+    { Because of time optimization. }
+    FTextLength: Integer;
+    FWidth: Integer;
     function ContentLength: Integer; override;
     procedure FontChange(Sender: TObject); virtual;
     function GetCanAddText: Boolean; override;
     function GetSelText: TString; override;
     function GetText: TString; override;
-    class function IndexToTextIndex(var AText: TString; AIndex: Integer): Integer; virtual;
+    function IndexToTextIndex(var AText: TString; AIndex: Integer): Integer; virtual;
     procedure ParentChanged; override;
-    class function TextIndexToIndex(var AText: TString; ATextIndex: Integer): Integer; virtual;
+    procedure SetText(const Value: TString); virtual;
+    procedure SetTextAttributes(const Value: TKTextAttributes); virtual;
+    function TextIndexToIndex(var AText: TString; ATextIndex: Integer): Integer; virtual;
+    function TextLength: Integer; virtual;
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
     function AddText(const AText: TString; At: Integer): Boolean; override;
     procedure Assign(AItem: TKMemoBlock); override;
+    procedure AssignAttributes(AItem: TKMemoBlock); override;
     procedure ClearSelection; override;
     function Concat(AItem: TKMemoBlock): Boolean; override;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer): TRect; override;
@@ -239,6 +253,7 @@ type
     property Font: TFont read FFont;
     property HAlign: TKHAlign read FHAlign write SetHAlign;
     property Text: TString read FText write SetText;
+    property TextAttributes: TKTextAttributes read FTextAttributes write SetTextAttributes;
     property VAlign: TKVAlign read FVAlign write SetVAlign;
   end;
 
@@ -261,15 +276,37 @@ type
     property Path: TString write SetImagePath;
   end;
 
+  TKNewLineMemoBlock = class(TKTextMemoBlock)
+  private
+  protected
+    function GetCanAddText: Boolean; override;
+    procedure SetText(const Value: TString); override;
+    procedure SetTextAttributes(const Value: TKTextAttributes); override;
+    function SelectableLength: Integer; override;
+  public
+    constructor Create(AParent: TKMemoBlocks); override;
+    function AddText(const AText: TString; At: Integer): Boolean; override;
+    procedure ClearSelection; override;
+    function Concat(AItem: TKMemoBlock): Boolean; override;
+    function IndexToRect(ACanvas: TCanvas; AIndex: Integer): TRect; override;
+    procedure PaintToCanvas(ACanvas: TCanvas); override;
+    function Split(At: Integer): TKMemoBlock; override;
+  end;
+
   TKMemoBlocks = class(TObjectList)
   private
     FExtentX: Integer;
     FExtentY: Integer;
+    FLineCount: Integer;
     FMemo: TKCustomMemo;
+    FSelectableLength: Integer;
+    FSelEnd: Integer;
+    FSelStart: Integer;
+    function GetRealSelEnd: Integer;
+    function GetRealSelStart: Integer;
+    function GetSelLength: Integer;
   protected
     FLines: TKMemoLines;
-    FLineCount: Integer;
-    FSelectableLength: Integer;
     FUpdateLock: Integer;
     FUpdateReasons: TKMemoUpdateReasons;
     function AddLine: PKMemoLine;
@@ -288,7 +325,7 @@ type
     function GetText: TString; virtual;
     function LineToRect(ACanvas: TCanvas; AIndex, ALine: Integer; ACaret: Boolean): TRect; virtual;
     procedure Notify(Ptr: Pointer; Action: TListNotification); override;
-    procedure Select(ASelStart, ASelLength: Integer); virtual;
+    function Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean = True): Boolean; virtual;
     procedure SetLines(AIndex: Integer; const AValue: TString); virtual;
     procedure SetText(const AValue: TString);
     procedure Update(AReasons: TKMemoUpdateReasons); virtual;
@@ -298,6 +335,7 @@ type
     destructor Destroy; override;
     function AddAt(AObject: TKMemoBlock; At: Integer = -1): Integer;
     function AddImageBlock(APath: TString; At: Integer = -1): TKImageMemoBlock;
+    function AddNewLineBlock(At: Integer = -1): TKNewLineMemoBlock;
     function AddTextBlock(AText: TString; At: Integer = -1): TKTextMemoBlock;
     procedure ClearSelection; virtual;
     function IndexToBlock(AIndex: Integer; out ALocalIndex: Integer): Integer; virtual;
@@ -308,19 +346,20 @@ type
     function LineToIndex(ALineIndex: Integer): Integer; virtual;
     procedure LockUpdate;
     procedure MeasureExtent(ACanvas: TCanvas; ALeft, ATop: Integer); virtual;
+    function ModifiedLineStartIndex(AIndex: Integer; ACaret: Boolean): Integer; virtual;
+    function ModifiedLineEndIndex(AIndex: Integer; ACaret: Boolean): Integer; virtual;
     procedure NotifyFontChange(AFont: TFont); virtual;
-    function NextIndexByHorzExtent(ACanvas: TCanvas; AIndex, AWidth: Integer;
-      ACaret: Boolean): Integer; virtual;
-    function NextIndexByRowDelta(ACanvas: TCanvas; AIndex, ARowDelta, ALeftPos: Integer;
-      ACaret: Boolean): Integer; virtual;
-    function NextIndexByVertExtent(ACanvas: TCanvas; AIndex, AHeight, ALeftPos: Integer;
-      ACaret: Boolean): Integer; virtual;
+    function NextIndexByCharCount(AIndex, ACharCount: Integer; ACaret: Boolean): Integer;
+    function NextIndexByHorzExtent(ACanvas: TCanvas; AIndex, AWidth: Integer; ACaret: Boolean): Integer; virtual;
+    function NextIndexByRowDelta(ACanvas: TCanvas; AIndex, ARowDelta, ALeftPos: Integer; ACaret: Boolean): Integer; virtual;
+    function NextIndexByVertExtent(ACanvas: TCanvas; AIndex, AHeight, ALeftPos: Integer; ACaret: Boolean): Integer; virtual;
     function NextIndexByVertValue(ACanvas: TCanvas; AIndex, AValue, ALeftPos: Integer;
       ADirection, ACaret: Boolean): Integer; virtual;
     procedure PaintToCanvas(ACanvas: TCanvas; AWidth, AHeight: Integer); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ACaret: Boolean): Integer; virtual;
     function PointToLineIndex(ACanvas: TCanvas; ALine: Integer; const APoint: TPoint;
       AOutOfArea, ACaret: Boolean): Integer; virtual;
+    function ShowFormatting: Boolean; virtual;
     procedure UnlockUpdate;
     function UpdateUnlocked: Boolean;
     property DefaultFont: TFont read GetDefaultFont;
@@ -336,16 +375,20 @@ type
     property Lines[Index: Integer]: TString read GetLines write SetLines;
     property LineSize[Index: Integer]: Integer read GetLineSize;
     property LineStartIndex[Index: Integer]: Integer read GetLineStartIndex;
-    property Text: TString read GetText write SetText;
+    property RealSelEnd: Integer read GetRealSelEnd;
+    property RealSelStart: Integer read GetRealSelStart;
     property SelectableLength: Integer read FSelectableLength;
+    property SelEnd: Integer read FSelEnd;
+    property SelLength: Integer read GetSelLength;
+    property SelStart: Integer read FSelStart;
     property SelText: TString read GetSelText;
+    property Text: TString read GetText write SetText;
   end;
 
   { @abstract(Container for all colors used by @link(TKCustomMemo) class)
     This container allows to group many colors into one item in object inspector.
     Colors are accessible via published properties or several public Color*
-    properties.
-  }
+    properties. }
   TKMemoColors = class(TKCustomColors)
   private
   protected
@@ -356,23 +399,23 @@ type
     { Returns maximum color index. }
     function GetMaxIndex: Integer; override;
   published
-    { Hex editor client area background }
+    { Hex editor client area background. }
     property BkGnd: TColor index ciBkGnd read GetColor write SetColor default cBkGndDef;
-    { Inactive (memo without focus) caret background color - caret mark is not part of a selection }
+    { Inactive (memo without focus) caret background color - caret mark is not part of a selection. }
     property InactiveCaretBkGnd: TColor index ciInactiveCaretBkGnd read GetColor write SetColor default cInactiveCaretBkGndDef;
-    { Inactive (memo without focus) caret background color - caret mark is part of a selection }
+    { Inactive (memo without focus) caret background color - caret mark is part of a selection. }
     property InactiveCaretSelBkGnd: TColor index ciInactiveCaretSelBkGnd read GetColor write SetColor default cInactiveCaretSelBkGndDef;
-    { Inactive (memo without focus) caret text color - caret mark is part of a selection }
+    { Inactive (memo without focus) caret text color - caret mark is part of a selection. }
     property InactiveCaretSelText: TColor index ciInactiveCaretSelText read GetColor write SetColor default cInactiveCaretSelTextDef;
-    { Inactive (memo without focus) caret text color - caret mark is not part of a selection }
+    { Inactive (memo without focus) caret text color - caret mark is not part of a selection. }
     property InactiveCaretText: TColor index ciInactiveCaretText read GetColor write SetColor default cInactiveCaretTextDef;
-    { Selection background - inactive edit area }
+    { Selection background - inactive edit area. }
     property SelBkGnd: TColor index ciSelBkGnd read GetColor write SetColor default cSelBkGndDef;
-    { Selection background - active edit area }
+    { Selection background - active edit area. }
     property SelBkGndFocused: TColor index ciSelBkGndFocused read GetColor write SetColor default cSelBkGndFocusedDef;
-    { Selection text - inactive edit area }
+    { Selection text - inactive edit area. }
     property SelText: TColor index ciSelText read GetColor write SetColor default cSelTextDef;
-    { Selection text - active edit area }
+    { Selection text - active edit area. }
     property SelTextFocused: TColor index ciSelTextFocused read GetColor write SetColor default cSelTextFocusedDef;
   end;
 
@@ -450,7 +493,7 @@ type
       <LI><I>AEditor</I> - identifies the undo/redo list owner</LI>
       <LI><I>RedoList</I> - when this instance is used as undo list, specify
       a redo list to allow clear it at each valid AddChange call</LI>
-      </UL>}
+      </UL> }
     constructor Create(AEditor: TKCustomMemo; RedoList: TKMemoChangeList);
     { Inserts a undo/redo item
       <UL>
@@ -462,20 +505,20 @@ type
       <LI><I>Inserted</I> - for the urInsert* items, specifies whether the item
       was recorded with @link(TKCustomMemo.InsertMode) on (True) or
       off (False). See ItemKind for crCaretPos behavior.</LI>
-      </UL>}
+      </UL> }
     procedure AddChange(ItemKind: TKMemoChangeKind; Inserted: Boolean = True); virtual;
     { Tells the undo list a new undo/redo group is about to be created. Each
       BeginGroup call must have a corresponding EndGroup call (use try-finally).
       BeginGroup calls may be nested, however, only the first call will create an
       undo/redo group. Use the GroupKind parameter to specify the reason of this group. }
     procedure BeginGroup(GroupKind: TKMemoChangeKind); virtual;
-    { Informs whether there are any undo/redo items available - i.e. CanUndo/CanRedo}
+    { Informs whether there are any undo/redo items available - i.e. CanUndo/CanRedo. }
     function CanPeek: Boolean;
     { Clears the entire list - overriden to execute some adjustments. }
     procedure Clear; override;
     { Completes the undo/redo group. See @link(TKMemoChangeList.BeginGroup) for details. }
     procedure EndGroup; virtual;
-    { Returns the topmost item to handle or inspect it}
+    { Returns the topmost item to handle or inspect it. }
     function PeekItem: PKMemoChangeItem;
     { If there is no reason to handle an item returned by PeekItem, it has to be
     poked back with this function to become active for next undo/redo command. }
@@ -488,7 +531,7 @@ type
     { For undo list only - returns True if undo list contains some items with regard
       to the @link(eoUndoAfterSave) option. }
     property Modified: Boolean read GetModified write SetModified;
-    { Allows to call TKCustomMemo.@link(TKCustomMemo.OnChange) event}
+    { Allows to call TKCustomMemo.@link(TKCustomMemo.OnChange) event. }
     property OnChange: TKMemoUndoChangeEvent read FOnChange write FOnChange;
   end;
 
@@ -511,10 +554,9 @@ type
     FOptions: TKEditOptions;
     FRedoList: TKMemoChangeList;
     FScrollBars: TScrollStyle;
+    FScrollPadding: Integer;
     FScrollSpeed: Cardinal;
     FScrollTimer: TTimer;
-    FSelEnd: Integer;
-    FSelStart: Integer;
     FStates: TKMemoStates;
     FTopPos: Integer;
     FUndoList: TKMemoChangeList;
@@ -525,13 +567,18 @@ type
     FOnDropFiles: TKEditDropFilesEvent;
     FOnReplaceText: TKEditReplaceTextEvent;
     function GetCaretVisible: Boolean;
+    function GetContentHeight: Integer;
     function GetContentLeft: Integer;
+    function GetContentRect: TRect;
     function GetContentTop: Integer;
+    function GetContentWidth: Integer;
     function GetEmpty: Boolean;
     function GetInsertMode: Boolean;
     function GetModified: Boolean;
     function GetReadOnly: Boolean;
+    function GetSelEnd: Integer;
     function GetSelLength: Integer;
+    function GetSelStart: Integer;
     function GetSelText: TString;
     function GetText: TString;
     function GetUndoLimit: Integer;
@@ -544,6 +591,7 @@ type
     procedure SetOptions(const Value: TKEditOptions);
     procedure SetReadOnly(Value: Boolean);
     procedure SetScrollBars(Value: TScrollStyle);
+    procedure SetScrollPadding(Value: Integer);
     procedure SetScrollSpeed(Value: Cardinal);
     procedure SetSelEnd(Value: Integer);
     procedure SetSelLength(Value: Integer);
@@ -578,7 +626,7 @@ type
       text state</LI>
       <LI><I>AInserted</I> - for the urInsert* items, specifies the current
       @link(TKCustomMemo.InsertMode) status.</LI>
-      </UL>}
+      </UL> }
     procedure AddUndoChar(AItemKind: TKMemoChangeKind; AData: TKChar; AInserted: Boolean = True); virtual;
     { Inserts a string change into undo list.
       <UL>
@@ -589,7 +637,7 @@ type
       text state</LI>
       <LI><I>AInserted</I> - for the urInsert* items, specifies the current
       @link(TKCustomMemo.InsertMode) status.</LI>
-      </UL>}
+      </UL> }
     procedure AddUndoString(AItemKind: TKMemoChangeKind; const AData: TString; AInserted: Boolean = True); virtual;
     { Begins a new undo group. Use the GroupKind parameter to label it. }
     procedure BeginUndoGroup(AGroupKind: TKMemoChangeKind);
@@ -617,33 +665,36 @@ type
     procedure FontChange(Sender: TObject); virtual;
     { Returns the current key stroke mapping scheme. }
     function GetKeyMapping: TKEditKeyMapping;
+    { Returns "real" selection end - with always higher index value than selection start value. }
+    function GetRealSelEnd: Integer; virtual;
+    { Returns "real" selection start - with always lower index value than selection end value. }
+    function GetRealSelStart: Integer; virtual;
     { Hides the caret. }
     procedure HideEditorCaret; virtual;
     { Overriden method - processes virtual key strokes according to current @link(TKCustomMemo.KeyMapping). }
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
  {$IFDEF FPC}
-    { Overriden method - processes character key strokes - data editing }
+    { Overriden method - processes character key strokes - data editing. }
     procedure UTF8KeyPress(var Key: TUTF8Char); override;
  {$ELSE}
-    { Overriden method - processes character key strokes - data editing }
+    { Overriden method - processes character key strokes - data editing. }
     procedure KeyPress(var Key: Char); override;
  {$ENDIF}
-    procedure LimitSelection(var ASelStart, ASelEnd: Integer);
     { Overriden method - updates caret position/selection. }
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     { Overriden method - updates caret position/selection and initializes scrolling
       when needed. }
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
-    { Overriden method - releases mouse capture acquired by MouseDown }
+    { Overriden method - releases mouse capture acquired by MouseDown. }
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    { Overriden method - calls PaintLines to paint text lines into window client area }
+    { Overriden method - calls PaintLines to paint text lines into window client area. }
     procedure PaintToCanvas(ACanvas: TCanvas); override;
-    { Grants the input focus to the control when possible and the control has had none before }
+    { Grants the input focus to the control when possible and the control has had none before. }
     procedure SafeSetFocus;
     { Scrolls the text either horizontally by DeltaHorz scroll units or vertically
       by DeltaVert scroll units (lines) or in both directions. CodeHorz and CodeVert
       are the codes coming from WM_HSCROLL or WM_VSCROLL messages. }
-    procedure Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; CallScrollWindow: Boolean); virtual;
+    function Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; CallScrollWindow: Boolean): Boolean;
     { Scrolls the memo window horizontaly by DeltaHorz scroll units and/or
       vertically by DeltaVert scroll units (lines). }
     procedure ScrollBy(DeltaHorz, DeltaVert: Integer);
@@ -676,36 +727,36 @@ type
       <LI><I>Recreate</I> - set to True to recreate the caret after it has already
       been created and displayed</LI>
       </UL> }
-    procedure UpdateEditorCaret; virtual;
-    { Updates the scrolling range }
+    procedure UpdateEditorCaret(AShow: Boolean = True); virtual;
+    { Updates the scrolling range. }
     procedure UpdateScrollRange(CallInvalidate: Boolean); virtual;
     { Updates the grid size. }
     procedure UpdateSize; override;
-    { Redo list manager - made accessible for descendant classes }
+    { Redo list manager - made accessible for descendant classes. }
     property RedoList: TKMemoChangeList read FRedoList;
-    { States of this class - made accessible for descendant classes }
+    { States of this class - made accessible for descendant classes. }
     property States: TKMemoStates read FStates write FStates;
-    { Undo list manager - made accessible for descendant classes }
+    { Undo list manager - made accessible for descendant classes. }
     property UndoList: TKMemoChangeList read FUndoList;
   public
     { Performs necessary initializations - default values to properties, create
-      undo/redo list managers }
+      undo/redo list managers. }
     constructor Create(AOwner: TComponent); override;
     { Destroy instance, undo/redo list managers, dispose buffer... }
     destructor Destroy; override;
-    { Takes property values from another TKCustomMemo class }
+    { Takes property values from another TKCustomMemo class. }
     procedure Assign(Source: TPersistent); override;
     { Gives access to memo blocks - containers of texts, images etc.. }
     property Blocks: TKMemoBlocks read FBlocks;
-    { Determines whether the caret is visible }
+    { Determines whether the caret is visible. }
     function CaretInView: Boolean;
     { Forces the caret position to become visible. }
-    function ClampInView: Boolean;
+    function ClampInView(CallScrollWindow: Boolean): Boolean;
     { Clears all blocks. Unlike @link(ecClearAll) clears everything inclusive undo a redo lists. }
     procedure Clear;
     { Deletes blocks or parts of blocks corresponding to the active selection. }
     procedure ClearSelection; virtual;
-    { Clears undo (and redo) list }
+    { Clears undo (and redo) list. }
     procedure ClearUndo;
     { Determines whether given command can be executed at this time. Use this
       function in TAction.OnUpdate events.
@@ -736,12 +787,6 @@ type
     function GetMaxLeftPos: Integer; virtual;
     { Returns current maximum value for the @link(TKCustomMemo.TopPos) property. }
     function GetMaxTopPos: Integer; virtual;
-    { Returns "real" selection end - with always higher index value than selection
-      start value }
-    function GetRealSelEnd: Integer;
-    { Returns "real" selection start - with always lower index value than selection
-      end value }
-    function GetRealSelStart: Integer;
     { Converts a text buffer index into client area rectangle.
       <UL>
       <LH>Parameters:</LH>
@@ -790,52 +835,64 @@ type
     procedure Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean = True); virtual;
     { Background image. }
     property BackgroundImage: TPicture read FBackgroundImage;
-    { Returns current caret position = selection end }
-    property CaretPos: Integer read FSelEnd;
-    { Returns True if caret is visible }
+    { Returns current caret position = selection end. }
+    property CaretPos: Integer read GetSelEnd;
+    { Returns True if caret is visible. }
     property CaretVisible: Boolean read GetCaretVisible;
-    { Makes it possible to take all color properties from another TKCustomMemo class }
+    { Makes it possible to take all color properties from another TKCustomMemo class. }
     property Colors: TKMemoColors read FColors write SetColors;
     { Specifies the padding around the memo contents. }
     property ContentPadding: TKRect read FContentPadding;
+    { Returns height of the memo contents. }
+    property ContentHeight: Integer read GetContentHeight;
     { Returns the left position of the memo contents. }
     property ContentLeft: Integer read GetContentLeft;
+    { Returns the bounding rectangle of the memo contents. }
+    property ContentRect: TRect read GetContentRect;
     { Returns the top position of the memo contents. }
     property ContentTop: Integer read GetContentTop;
+    { Returns width of the memo contents. }
+    property ContentWidth: Integer read GetContentWidth;
     { Specifies the style how the outline is drawn when editor is disabled. }
     property DisabledDrawStyle: TKEditDisabledDrawStyle read FDisabledDrawStyle write SetDisabledDrawStyle default cDisabledDrawStyleDef;
     { Returns True if text buffer is empty. }
     property Empty: Boolean read GetEmpty;
-    { Returns True if insert mode is on }
+    { Returns True if insert mode is on. }
     property InsertMode: Boolean read GetInsertMode;
-    { Specifies the current key stroke mapping scheme }
+    { Specifies the current key stroke mapping scheme. }
     property KeyMapping: TKEditKeyMapping read FKeyMapping;
-    { Specifies the horizontal scroll position }
+    { Specifies the horizontal scroll position. }
     property LeftPos: Integer read FLeftPos write SetLeftPos;
     { Returns True if the buffer was modified - @link(eoUndoAfterSave) taken into
-      account }
+      account. }
     property Modified: Boolean read GetModified write SetModified;
-    { Specifies the editor options that do not affect painting }
+    { Specifies the editor options that do not affect painting. }
     property Options: TKEditOptions read FOptions write SetOptions stored IsOptionsStored;
-    { Specifies whether the editor has to be read only editor }
+    { Specifies whether the editor has to be read only editor. }
     property ReadOnly: Boolean read GetReadOnly write SetReadOnly default False;
-    { Defines visible scrollbars - horizontal, vertical or both }
+    { Returns "real" selection end - with always higher index value than selection start value. }
+    property RealSelEnd: Integer read GetRealSelEnd;
+    { Returns "real" selection start - with always lower index value than selection end value. }
+    property RealSelStart: Integer read GetRealSelStart;
+    { Defines visible scrollbars - horizontal, vertical or both. }
     property ScrollBars: TScrollStyle read FScrollBars write SetScrollBars default ssBoth;
-    { Specifies how fast the scrolling by timer should be }
+    { Specifies how fast the scrolling by timer should be. }
     property ScrollSpeed: Cardinal read FScrollSpeed write SetScrollSpeed default cScrollSpeedDef;
-    { Specifies the current selection end }
-    property SelEnd: Integer read FSelEnd write SetSelEnd;
+    { Specifies the padding in pixels to overscroll to show caret position or selection end. }
+    property ScrollPadding: Integer read FScrollPadding write SetScrollPadding default cScrollPaddingDef;
+    { Specifies the current selection end. }
+    property SelEnd: Integer read GetSelEnd write SetSelEnd;
     { Specifies the current selection length. SelStart remains unchanged, SelEnd will be
       updated accordingly. To mark a selection, either set both SelStart and SelEnd properties
-      or both SelStart and SelLength properties }
+      or both SelStart and SelLength properties. }
     property SelLength: Integer read GetSelLength write SetSelLength;
-    { Specifies the current selection start }
-    property SelStart: Integer read FSelStart write SetSelStart;
-    { Returns selected text }
+    { Specifies the current selection start. }
+    property SelStart: Integer read GetSelStart write SetSelStart;
+    { Returns selected text. }
     property SelText: TString read GetSelText;
     { If read, returns the textual part of the contents as a whole. If written, replace previous contents by a new one. }
     property Text: TString read GetText write SetText;
-    { Specifies the vertical scroll position }
+    { Specifies the vertical scroll position. }
     property TopPos: Integer read FTopPos write SetTopPos;
     { Specifies the maximum number of undo items. Please note this value
       affects the undo item limit, not undo group limit. }
@@ -844,129 +901,131 @@ type
       text buffer either by the user or programmatically by public functions. }
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     { When assigned, this event will be invoked when the user drops any files onto
-      the window }
+      the window. }
     property OnDropFiles: TKEditDropFilesEvent read FOnDropFiles write FOnDropFiles;
-    { When assigned, this event will be invoked at each prompt-forced search match }
+    { When assigned, this event will be invoked at each prompt-forced search match. }
     property OnReplaceText: TKEditReplaceTextEvent read FOnReplaceText write FOnReplaceText;
   end;
 
   { @abstract(Memo design-time component) }
   TKMemo = class(TKCustomMemo)
   published
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property Align;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property Anchors;
-    { See TKCustomControl.@link(TKCustomControl.BorderStyle) for details }
+    { See TKCustomControl.@link(TKCustomControl.BorderStyle) for details. }
     property BorderStyle;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property BorderWidth;
-    { See TKCustomMemo.@link(TKCustomMemo.Colors) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.Colors) for details. }
     property Colors;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property Constraints;
-    { See TKCustomMemo.@link(TKCustomMemo.ContentPadding) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.ContentPadding) for details. }
     property ContentPadding;
   {$IFNDEF FPC}
     { Inherited property - see Delphi help. }
     property Ctl3D;
   {$ENDIF}
-    { See TKCustomMemo.@link(TKCustomMemo.DisabledDrawStyle) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.DisabledDrawStyle) for details. }
     property DisabledDrawStyle;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property DragCursor;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property DragKind;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property DragMode;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property Enabled;
     { Inherited property - see Delphi help. Font pitch must always remain fpFixed
-      - specify fixed fonts only. Font.Size will also be trimmed if too small or big }
+      - specify fixed fonts only. Font.Size will also be trimmed if too small or big. }
     property Font;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property Height default cHeight;
-    { See TKCustomMemo.@link(TKCustomMemo.Options) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.Options) for details. }
     property Options;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property ParentShowHint;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property PopupMenu;
-    { See TKCustomMemo.@link(TKCustomMemo.ReadOnly) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.ReadOnly) for details. }
     property ReadOnly;
-    { See TKCustomMemo.@link(TKCustomMemo.ScrollBars) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.ScrollBars) for details. }
     property ScrollBars;
-    { See TKCustomMemo.@link(TKCustomMemo.ScrollSpeed) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.ScrollPadding) for details. }
+    property ScrollPadding;
+    { See TKCustomMemo.@link(TKCustomMemo.ScrollSpeed) for details. }
     property ScrollSpeed;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property ShowHint;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property TabOrder;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property TabStop default True;
-    { See TKCustomMemo.@link(TKCustomMemo.Text) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.Text) for details. }
     property Text;
-    { See TKCustomMemo.@link(TKCustomMemo.UndoLimit) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.UndoLimit) for details. }
     property UndoLimit;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property Visible;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property Width default cWidth;
-    { See TKCustomMemo.@link(TKCustomMemo.OnChange) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.OnChange) for details. }
     property OnChange;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnClick;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnContextPopup;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnDblClick;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnDockDrop;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnDockOver;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnDragDrop;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnDragOver;
-    { See TKCustomMemo.@link(TKCustomMemo.OnDropFiles) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.OnDropFiles) for details. }
     property OnDropFiles;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnEndDock;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnEndDrag;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnEnter;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnExit;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnGetSiteInfo;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnKeyDown;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnKeyPress;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnKeyUp;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnMouseDown;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnMouseMove;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnMouseUp;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnMouseWheel;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnMouseWheelDown;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnMouseWheelUp;
-    { See TKCustomMemo.@link(TKCustomMemo.OnReplaceText) for details }
+    { See TKCustomMemo.@link(TKCustomMemo.OnReplaceText) for details. }
     property OnReplaceText;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnResize;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnStartDock;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnStartDrag;
-    { Inherited property - see Delphi help }
+    { Inherited property - see Delphi help. }
     property OnUnDock;
   end;
 
@@ -1212,13 +1271,12 @@ begin
   FKeyMapping := TKEditKeyMapping.Create;
   FRedoList := TKMemoChangeList.Create(Self, nil);
   FScrollBars := ssBoth;
+  FScrollPadding := cScrollPaddingDef;
   FScrollSpeed := cScrollSpeedDef;
   FScrollTimer := TTimer.Create(Self);
   FScrollTimer.Enabled := False;
   FScrollTimer.Interval := FScrollSpeed;
   FScrollTimer.OnTimer := ScrollTimerHandler;
-  FSelStart := 0;
-  FSelEnd := 0;
   FStates := [];
   FTopPos := 0;
   FUndoList := TKMemoChangeList.Create(Self, FRedoList);
@@ -1236,8 +1294,10 @@ begin
   FOnChange := nil;
   FUndoList.Free;
   FRedoList.Free;
+  FKeyMapping.Free;
   FContentPadding.Free;
   FColors.Free;
+  FBlocks.LockUpdate;
   FBlocks.Free;
   FBackgroundImage.Free;
   inherited;
@@ -1323,14 +1383,18 @@ begin
   if HandleAllocated then
   begin
     if AReasons * [muContents, muExtent] <> [] then
+      UpdateScrollRange(True)
+    else
+      UpdateEditorCaret(False);
+    if muSelectionScroll in AReasons then
     begin
-      LimitSelection(FSelStart, FSelEnd);
-      UpdateScrollRange(True);
+      if not ClampInView(False) then
+      begin
+        UpdateEditorCaret;
+        Invalidate;
+      end;
     end else
-    begin
-      UpdateEditorCaret;
       Invalidate;
-    end;
   end;
 end;
 
@@ -1345,7 +1409,7 @@ begin
     ecScrollRight: Result := FLeftPos < FHorzExtent - 1;
     ecScrollCenter:
     begin
-      R := IndexToRect(FSelEnd, False);
+      R := IndexToRect(SelEnd, False);
       R.Left := R.Left - ClientWidth div 2;
       R.Top := R.Top - ClientHeight div 2;
       Result :=
@@ -1361,18 +1425,19 @@ end;
 
 function TKCustomMemo.CaretInView: Boolean;
 begin
-  Result := PtInRect(ClientRect, IndexToRect(FSelEnd, False).TopLeft);
+  Result := PtInRect(ClientRect, IndexToRect(SelEnd, False).TopLeft);
 end;
 
-function TKCustomMemo.ClampInView: Boolean;
+function TKCustomMemo.ClampInView(CallScrollWindow: Boolean): Boolean;
 var
   DeltaHorz, DeltaVert: Integer;
 begin
   Result := ScrollNeeded(DeltaHorz, DeltaVert);
   if Result then
   begin
-    Scroll(cScrollNoAction, cScrollNoAction, DeltaHorz, DeltaVert, True);
-    FScrollTimer.Enabled := True;
+    Result := Scroll(cScrollNoAction, cScrollNoAction, DeltaHorz, DeltaVert, CallScrollWindow);
+    if Result then
+      FScrollTimer.Enabled := True;
   end;
 end;
 
@@ -1380,7 +1445,7 @@ procedure TKCustomMemo.Clear;
 begin
   FBlocks.LockUpdate;
   try
-    Select(0, 0, False);
+    FBlocks.Select(0, 0);
     FBlocks.Clear;
     TextChanged;
   finally
@@ -1390,9 +1455,7 @@ end;
 
 procedure TKCustomMemo.ClearSelection;
 begin
-  AddUndoString(ckInsert, FBlocks.SelText);
   FBlocks.ClearSelection;
-  Select(GetRealSelStart, 0);
 end;
 
 procedure TKCustomMemo.ClearUndo;
@@ -1416,44 +1479,45 @@ end;
 
 function TKCustomMemo.CommandEnabled(Command: TKEditCommand): Boolean;
 var
-  SelLen: Integer;
+  TmpSelEnd, TmpSelLength: Integer;
 begin
   if Enabled and Visible and not (csDesigning in ComponentState) then
   begin
-    SelLen := SelLength;
+    TmpSelEnd := SelEnd;
+    TmpSelLength := SelLength;
     case Command of
       // movement commands
       ecLeft, ecSelLeft:
-        Result := FSelEnd > 0;
+        Result := TmpSelEnd > 0;
       ecRight:
-        Result := FSelEnd < FBlocks.SelectableLength - 1;
+        Result := TmpSelEnd < FBlocks.SelectableLength - 2;
       ecSelRight:
-        Result := FSelEnd < FBlocks.SelectableLength;
+        Result := TmpSelEnd < FBlocks.SelectableLength - 1;
       ecUp, ecSelUp, ecPageUp, ecSelPageUp:
-        Result := FSelEnd >= FBlocks.LineSize[0];
+        Result := TmpSelEnd >= FBlocks.LineSize[0];
       ecDown, ecPagedown:
-        Result := FSelEnd < FBlocks.SelectableLength - FBlocks.LineSize[FBlocks.LineCount - 1];
+        Result := TmpSelEnd < FBlocks.SelectableLength - FBlocks.LineSize[FBlocks.LineCount - 1] - 1;
       ecSelDown, ecSelPageDown:
-        Result := FSelEnd <= FBlocks.SelectableLength - FBlocks.LineSize[FBlocks.LineCount - 1];
+        Result := TmpSelEnd < FBlocks.SelectableLength - FBlocks.LineSize[FBlocks.LineCount - 1];
       ecLineStart, ecPageLeft:
-        Result := FSelEnd > FBlocks.LineStartIndex[FBlocks.IndexToLine(FSelEnd)];
+        Result := TmpSelEnd > FBlocks.ModifiedLineStartIndex(TmpSelEnd, True);
       ecSelLineStart, ecSelPageLeft:
-        Result := FSelEnd > FBlocks.LineStartIndex[FBlocks.IndexToLine(Max(FSelEnd - 1, 0))];
+        Result := TmpSelEnd > FBlocks.ModifiedLineStartIndex(TmpSelEnd, False);
       ecLineEnd, ecPageRight:
-        Result := FSelEnd < FBlocks.LineEndIndex[FBlocks.IndexToLine(FSelEnd)];
+        Result := TmpSelEnd < FBlocks.ModifiedLineEndIndex(TmpSelEnd, True);
       ecSelLineEnd, ecSelPageRight:
-        Result := FSelEnd <= FBlocks.LineEndIndex[FBlocks.IndexToLine(FSelEnd)];
+        Result := TmpSelEnd < FBlocks.ModifiedLineEndIndex(TmpSelEnd, False);
       ecPageTop, ecSelPageTop:
-        Result := FSelEnd <> FBlocks.NextIndexByVertValue(Canvas, FSelEnd, 0, FPreferredCaretPos, False, Command = ecPageTop);
+        Result := TmpSelEnd <> FBlocks.NextIndexByVertValue(Canvas, TmpSelEnd, 0, FPreferredCaretPos, False, Command = ecPageTop);
       ecPageBottom, ecSelPageBottom:
-        Result := FSelEnd <> FBlocks.NextIndexByVertValue(Canvas, FSelEnd, ClientHeight, FPreferredCaretPos, True,
+        Result := TmpSelEnd <> FBlocks.NextIndexByVertValue(Canvas, TmpSelEnd, ClientHeight, FPreferredCaretPos, True,
           Command = ecPageBottom);
       ecEditorTop, ecSelEditorTop:
-        Result := FSelEnd > 0;
+        Result := TmpSelEnd > 0;
       ecEditorBottom:
-        Result := FSelEnd < FBlocks.SelectableLength - 1;
+        Result := TmpSelEnd < FBlocks.SelectableLength - 2;
       ecSelEditorBottom:
-        Result := FSelEnd < FBlocks.SelectableLength;
+        Result := TmpSelEnd < FBlocks.SelectableLength - 1;
       ecGotoXY, ecSelGotoXY:
         Result := True;
       // scroll commands
@@ -1465,23 +1529,23 @@ begin
       ecRedo:
         Result := not ReadOnly and FRedoList.CanPeek;
       ecCopy, ecCut:
-        Result := not Empty and (not ReadOnly or (Command = ecCopy)) and (SelLen <> 0);
+        Result := not Empty and (not ReadOnly or (Command = ecCopy)) and (TmpSelLength <> 0);
       ecPaste:
         Result := not ReadOnly and (ClipBoard.FormatCount > 0);
       ecInsertChar, ecInsertString, ecInsertNewLine:
         Result := not ReadOnly;
       ecDeleteLastChar:
-        Result := not (Empty or ReadOnly) and ((SelLen > 0) or (FSelEnd > 0));
+        Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd > 0));
       ecDeleteChar:
-        Result := not (Empty or ReadOnly) and ((SelLen > 0) or (FSelEnd < FBlocks.SelectableLength - 1));
+        Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd < FBlocks.SelectableLength - 1));
       ecDeleteBOL:
-        Result := not (Empty or ReadOnly) and ((SelLen > 0) or (FSelEnd <> FBlocks.LineStartIndex[FBlocks.IndexToLine(FSelEnd)]));
+        Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd <> FBlocks.LineStartIndex[FBlocks.IndexToLine(TmpSelEnd)]));
       ecDeleteEOL:
-        Result := not (Empty or ReadOnly) and ((SelLen > 0) or (FSelEnd <> FBlocks.LineEndIndex[FBlocks.IndexToLine(FSelEnd)]));
+        Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd <> FBlocks.LineEndIndex[FBlocks.IndexToLine(TmpSelEnd)]));
       ecDeleteLine, ecSelectAll, ecClearAll, ecReplace:
         Result := not (Empty or ReadOnly);
       ecClearSelection:
-        Result := not (Empty or ReadOnly) and (SelLen > 0);
+        Result := not (Empty or ReadOnly) and (TmpSelLength > 0);
       ecSearch:
         Result := not Empty;
       ecInsertMode:
@@ -1526,24 +1590,29 @@ var
   LineStart: Integer;
 begin
   BeginUndoGroup(ckDelete);
+  FBlocks.LockUpdate;
   try
-    AddUndoCaretPos;
     LineStart := FBlocks.LineStartIndex[FBlocks.IndexToLine(At)];
-    Select(LineStart, At - LineStart);
-    ClearSelection;
+    FBlocks.Select(LineStart, At - LineStart);
+    FBlocks.ClearSelection;
   finally
+    FBlocks.UnlockUpdate;
     EndUndoGroup;
   end;
 end;
 
 procedure TKCustomMemo.DeleteChar(At: Integer);
+var
+  NextIndex: Integer;
 begin
   BeginUndoGroup(ckDelete);
+  FBlocks.LockUpdate;
   try
-    AddUndoCaretPos;
-    Select(At + 1, -1);
-    ClearSelection;
+    NextIndex := FBlocks.NextIndexByCharCount(At, 1, True);
+    FBlocks.Select(At, NextIndex - At);
+    FBlocks.ClearSelection;
   finally
+    FBlocks.UnlockUpdate;
     EndUndoGroup;
   end;
 end;
@@ -1553,24 +1622,29 @@ var
   LineEnd: Integer;
 begin
   BeginUndoGroup(ckDelete);
+  FBlocks.LockUpdate;
   try
-    AddUndoCaretPos;
     LineEnd := FBlocks.LineEndIndex[FBlocks.IndexToLine(At)];
-    Select(LineEnd, At - LineEnd);
-    ClearSelection;
+    FBlocks.Select(LineEnd, At - LineEnd);
+    FBlocks.ClearSelection;
   finally
+    FBlocks.UnlockUpdate;
     EndUndoGroup;
   end;
 end;
 
 procedure TKCustomMemo.DeleteLastChar(At: Integer);
+var
+  LastIndex: Integer;
 begin
   BeginUndoGroup(ckDelete);
+  FBlocks.LockUpdate;
   try
-    AddUndoCaretPos;
-    Select(At - 1, 1);
-    ClearSelection;
+    LastIndex := FBlocks.NextIndexByCharCount(At, -1, True);
+    FBlocks.Select(LastIndex, At - LastIndex);
+    FBlocks.ClearSelection;
   finally
+    FBlocks.UnlockUpdate;
     EndUndoGroup;
   end;
 end;
@@ -1580,6 +1654,7 @@ var
   Line, LineStart, LineEnd: Integer;
 begin
   BeginUndoGroup(ckDelete);
+  FBlocks.LockUpdate;
   try
     AddUndoCaretPos;
     Line := FBlocks.IndexToLine(At);
@@ -1588,9 +1663,10 @@ begin
       LineEnd := FBlocks.LineStartIndex[Line + 1]
     else
       LineEnd := FBlocks.LineEndIndex[Line];
-    Select(LineStart, LineEnd - LineStart);
-    ClearSelection;
+    FBlocks.Select(LineStart, LineEnd - LineStart);
+    FBlocks.ClearSelection;
   finally
+    FBlocks.UnlockUpdate;
     EndUndoGroup;
   end;
 end;
@@ -1698,7 +1774,7 @@ end;
 
 function TKCustomMemo.ExecuteCommand(Command: TKEditCommand; Data: Pointer): Boolean;
 var
-  I, J, K, M, N, O: Integer;
+{  I, J, K, M, N, O: Integer;
   CanInsert, MoreBytes, Found, PAbort, MatchCase: Boolean;
   C1, C2, C3: Char;
   S, S_FirstChar, S_LastChar, T: TString;
@@ -1707,72 +1783,71 @@ var
   L, OldSelStart, OldSelEnd, Sel1, Sel2: Integer;
   PChI, PChI_First, PChI_Next: PKMemoChangeItem;
   ReplaceAction: TKEditReplaceAction;
-  H: THandle;
+  H: THandle;}
+  TmpSelEnd, TmpSelLength, TmpSelStart: Integer;
 begin
   Result := False;
   if CommandEnabled(Command) then
   begin
     Result := True;
-    L := SelLength;
+    TmpSelEnd := SelEnd;
+    TmpSelStart := SelStart;
+    TmpSelLength := SelLength;
     case Command of
-      ecLeft..ecSelGotoXY, ecSelectAll:
-        AddUndoCaretPos(False);
-    end;
-    case Command of
-      ecLeft: SelectionInit(FSelEnd - 1);
-      ecSelLeft: SelectionExpand(FSelEnd - 1);
-      ecRight: SelectionInit(FSelEnd + 1);
-      ecSelRight: SelectionExpand(FSelEnd + 1);
-      ecUp: SelectionInit(FBlocks.NextIndexByRowDelta(Canvas, FSelEnd, -1, FPreferredCaretPos, True));
-      ecSelUp: SelectionExpand(FBlocks.NextIndexByRowDelta(Canvas, FSelEnd, -1, FPreferredCaretPos, False));
-      ecDown: SelectionInit(FBlocks.NextIndexByRowDelta(Canvas, FSelEnd, 1, FPreferredCaretPos, True));
-      ecSelDown: SelectionExpand(FBlocks.NextIndexByRowDelta(Canvas, FSelEnd, 1, FPreferredCaretPos, False));
-      ecLineStart: SelectionInit(FBlocks.LineStartIndex[FBlocks.IndexToLine(FSelEnd)]);
-      ecSelLineStart: SelectionExpand(FBlocks.LineStartIndex[FBlocks.IndexToLine(Max(FSelEnd - 1, 0))]);
-      ecLineEnd: SelectionInit(FBlocks.LineEndIndex[FBlocks.IndexToLine(FSelEnd)]);
-      ecSelLineEnd: SelectionExpand(FBlocks.LineEndIndex[FBlocks.IndexToLine(FSelEnd)] + 1);
-      ecPageUp: SelectionInit(FBlocks.NextIndexByVertExtent(Canvas, FSelEnd, -ClientHeight, FPreferredCaretPos, True));
-      ecSelPageUp: SelectionExpand(FBlocks.NextIndexByVertExtent(Canvas, FSelEnd, -ClientHeight, FPreferredCaretPos, False));
-      ecPageDown: SelectionInit(FBlocks.NextIndexByVertExtent(Canvas, FSelEnd, ClientHeight, FPreferredCaretPos, True));
-      ecSelPageDown: SelectionExpand(FBlocks.NextIndexByVertExtent(Canvas, FSelEnd, ClientHeight, FPreferredCaretPos, False));
-      ecPageLeft: SelectionInit(FBlocks.NextIndexByHorzExtent(Canvas, FSelEnd, -ClientWidth, True));
-      ecSelPageLeft: SelectionExpand(FBlocks.NextIndexByHorzExtent(Canvas, FSelEnd, -ClientWidth, False));
-      ecPageRight: SelectionInit(FBlocks.NextIndexByHorzExtent(Canvas, FSelEnd, ClientWidth, True));
-      ecSelPageRight: SelectionExpand(FBlocks.NextIndexByHorzExtent(Canvas, FSelEnd, ClientWidth, False));
-      ecPageTop: SelectionInit(FBlocks.NextIndexByVertValue(Canvas, FSelEnd, 0, FPreferredCaretPos, False, True));
-      ecSelPageTop: SelectionExpand(FBlocks.NextIndexByVertValue(Canvas, FSelEnd, 0, FPreferredCaretPos, False, False));
-      ecPageBottom: SelectionInit(FBlocks.NextIndexByVertValue(Canvas, FSelEnd, ClientHeight, FPreferredCaretPos, True, True));
-      ecSelPageBottom: SelectionExpand(FBlocks.NextIndexByVertValue(Canvas, FSelEnd, ClientHeight, FPreferredCaretPos, True, False));
+      ecLeft: SelectionInit(FBlocks.NextIndexByCharCount(TmpSelEnd, - 1, True));
+      ecSelLeft: SelectionExpand(FBlocks.NextIndexByCharCount(TmpSelEnd, - 1, False));
+      ecRight: SelectionInit(FBlocks.NextIndexByCharCount(TmpSelEnd, 1, True));
+      ecSelRight: SelectionExpand(FBlocks.NextIndexByCharCount(TmpSelEnd, 1, False));
+      ecUp: SelectionInit(FBlocks.NextIndexByRowDelta(Canvas, TmpSelEnd, -1, FPreferredCaretPos, True));
+      ecSelUp: SelectionExpand(FBlocks.NextIndexByRowDelta(Canvas, TmpSelEnd, -1, FPreferredCaretPos, False));
+      ecDown: SelectionInit(FBlocks.NextIndexByRowDelta(Canvas, TmpSelEnd, 1, FPreferredCaretPos, True));
+      ecSelDown: SelectionExpand(FBlocks.NextIndexByRowDelta(Canvas, TmpSelEnd, 1, FPreferredCaretPos, False));
+      ecLineStart: SelectionInit(FBlocks.ModifiedLineStartIndex(TmpSelEnd, True));
+      ecSelLineStart: SelectionExpand(FBlocks.ModifiedLineStartIndex(TmpSelEnd, False));
+      ecLineEnd: SelectionInit(FBlocks.ModifiedLineEndIndex(TmpSelEnd, True));
+      ecSelLineEnd: SelectionExpand(FBlocks.ModifiedLineEndIndex(TmpSelEnd, False));
+      ecPageUp: SelectionInit(FBlocks.NextIndexByVertExtent(Canvas, TmpSelEnd, -ClientHeight, FPreferredCaretPos, True));
+      ecSelPageUp: SelectionExpand(FBlocks.NextIndexByVertExtent(Canvas, TmpSelEnd, -ClientHeight, FPreferredCaretPos, False));
+      ecPageDown: SelectionInit(FBlocks.NextIndexByVertExtent(Canvas, TmpSelEnd, ClientHeight, FPreferredCaretPos, True));
+      ecSelPageDown: SelectionExpand(FBlocks.NextIndexByVertExtent(Canvas, TmpSelEnd, ClientHeight, FPreferredCaretPos, False));
+      ecPageLeft: SelectionInit(FBlocks.NextIndexByHorzExtent(Canvas, TmpSelEnd, -ClientWidth, True));
+      ecSelPageLeft: SelectionExpand(FBlocks.NextIndexByHorzExtent(Canvas, TmpSelEnd, -ClientWidth, False));
+      ecPageRight: SelectionInit(FBlocks.NextIndexByHorzExtent(Canvas, TmpSelEnd, ClientWidth, True));
+      ecSelPageRight: SelectionExpand(FBlocks.NextIndexByHorzExtent(Canvas, TmpSelEnd, ClientWidth, False));
+      ecPageTop: SelectionInit(FBlocks.NextIndexByVertValue(Canvas, TmpSelEnd, 0, FPreferredCaretPos, False, True));
+      ecSelPageTop: SelectionExpand(FBlocks.NextIndexByVertValue(Canvas, TmpSelEnd, 0, FPreferredCaretPos, False, False));
+      ecPageBottom: SelectionInit(FBlocks.NextIndexByVertValue(Canvas, TmpSelEnd, ClientHeight, FPreferredCaretPos, True, True));
+      ecSelPageBottom: SelectionExpand(FBlocks.NextIndexByVertValue(Canvas, TmpSelEnd, ClientHeight, FPreferredCaretPos, True, False));
       ecEditorTop: SelectionInit(0);
       ecSelEditorTop: SelectionExpand(0);
-      ecEditorBottom: SelectionInit(FBlocks.SelectableLength - 1);
-      ecSelEditorBottom: SelectionExpand(FBlocks.SelectableLength);
+      ecEditorBottom: SelectionInit(FBlocks.SelectableLength - 2);
+      ecSelEditorBottom: SelectionExpand(FBlocks.SelectableLength - 1);
       ecGotoXY: SelectionInit(FBlocks.PointToIndex(Canvas, PPoint(Data)^, True, True));
       ecSelGotoXY: SelectionExpand(FBlocks.PointToIndex(Canvas, PPoint(Data)^, True, False));
       // scroll commands
       ecScrollUp:
-      if not ClampInView then
+      if not ClampInView(True) then
       begin
         ScrollBy(0, -1);
-        while CommandEnabled(ecUp) and (FBlocks.LineBottom[FBlocks.IndexToLine(FSelEnd)] > ClientHeight) do
+        while CommandEnabled(ecUp) and (FBlocks.LineBottom[FBlocks.IndexToLine(TmpSelEnd)] > ClientHeight) do
           ExecuteCommand(ecUp);
       end;
       ecScrollDown:
-      if not ClampInView then
+      if not ClampInView(True) then
       begin
         ScrollBy(0, 1);
-        while CommandEnabled(ecDown) and (FBlocks.LineTop[FBlocks.IndexToLine(FSelEnd)] < 0) do
+        while CommandEnabled(ecDown) and (FBlocks.LineTop[FBlocks.IndexToLine(TmpSelEnd)] < 0) do
           ExecuteCommand(ecDown);
       end;
       ecScrollLeft:
-      if not ClampInView then
+      if not ClampInView(True) then
       begin
         ScrollBy(-1, 0);
         while CommandEnabled(ecLeft) and (FCaretRect.Left + FCaretRect.Right > ClientWidth) do
           ExecuteCommand(ecLeft);
       end;
       ecScrollRight:
-      if not ClampInView then
+      if not ClampInView(True) then
       begin
         ScrollBy(1, 0);
         while CommandEnabled(ecRight) and (FCaretRect.Left < 0) do
@@ -1797,14 +1872,14 @@ begin
                 InsertString(Sel1.Index, PChI.Data, I)
               else if FBuffer <> nil then
               begin
-                System.Move(PChI.Data[1], FBuffer[Sel1.Index], Min(I, FSize - FSelEnd.Index));
+                System.Move(PChI.Data[1], FBuffer[Sel1.Index], Min(I, FSize - TmpSelEnd.Index));
                 Invalidate;
               end;
             end;
             crDeleteChar, crDeleteDigits, crDeleteString:
               ClearString(Sel1.Index, I);
           end;
-          FSelEnd := PChI.SelEnd;
+          TmpSelEnd := PChI.SelEnd;
           FSelStart := PChI.SelStart;
           FEditArea := PChI.EditArea;
           EditAreaChanged;
@@ -1879,14 +1954,14 @@ begin
                 S := '';
                 if M >= cDigitCount then
                 begin
-                  Inc(FSelEnd.Index, M div cDigitCount)
+                  Inc(TmpSelEnd.Index, M div cDigitCount)
                 end else
                 begin
-                  Inc(FSelEnd.Digit, M);
-                  if FSelEnd.Digit >= cDigitCount then
+                  Inc(TmpSelEnd.Digit, M);
+                  if TmpSelEnd.Digit >= cDigitCount then
                   begin
-                    Inc(FSelEnd.Index);
-                    FSelEnd.Digit := FSelEnd.Digit mod cDigitCount;
+                    Inc(TmpSelEnd.Index);
+                    TmpSelEnd.Digit := TmpSelEnd.Digit mod cDigitCount;
                   end;
                 end;
                 SelectionChanged(True);
@@ -1913,8 +1988,8 @@ begin
           end;
           if S <> '' then
           begin
-            Inc(FSelEnd.Index, Length(S));
-            FSelEnd.Digit := 0;
+            Inc(TmpSelEnd.Index, Length(S));
+            TmpSelEnd.Digit := 0;
             SelectionChanged(True);
           end;
         end;
@@ -1922,52 +1997,52 @@ begin
       ecInsertChar:
       begin
         ClearSelection;
-        InsertChar(FSelEnd, PKChar(Data)^);
+        InsertChar(TmpSelEnd, PKChar(Data)^);
       end;
       ecInsertString:
       begin
         ClearSelection;
-        InsertString(FSelEnd, TString(Data));
+        InsertString(TmpSelEnd, TString(Data));
       end;
       ecInsertNewLine:
       begin
         ClearSelection;
-        InsertNewLine(FSelEnd);
+        InsertNewLine(TmpSelEnd);
       end;
       ecDeleteLastChar:
       begin
         if SelLength <> 0 then
           ClearSelection
         else
-          DeleteLastChar(FSelEnd);
+          DeleteLastChar(TmpSelEnd);
       end;
       ecDeleteChar:
       begin
         if SelLength <> 0 then
           ClearSelection
         else
-          DeleteChar(FSelEnd);
+          DeleteChar(TmpSelEnd);
       end;
       ecDeleteBOL:
       begin
         if SelLength <> 0 then
           ClearSelection
         else
-          DeleteBOL(FSelEnd);
+          DeleteBOL(TmpSelEnd);
       end;
       ecDeleteEOL:
       begin
         if SelLength <> 0 then
           ClearSelection
         else
-          DeleteEOL(FSelEnd);
+          DeleteEOL(TmpSelEnd);
       end;
       ecDeleteLine:
       begin
         if SelLength <> 0 then
           ClearSelection
         else
-          DeleteLine(FSelEnd);
+          DeleteLine(TmpSelEnd);
       end;
       ecSelectAll: Select(0, FBlocks.SelectableLength);
       ecClearAll:
@@ -2106,7 +2181,7 @@ begin
                     begin
                       Found := True;
                       FSelStart := MakeSelection(I, 0);
-                      FSelEnd := MakeSelection(I + N, 0);
+                      TmpSelEnd := MakeSelection(I + N, 0);
                       if Command = ecReplace then
                       begin
                         if (esoPrompt in PSD.Options) and Assigned(FOnReplaceText) then
@@ -2125,7 +2200,7 @@ begin
                               ExecuteCommand(ecClearIndexSelection)
                             else
                               ExecuteCommand(ecInsertString, Pointer(T));
-                            FSelEnd := MakeSelection(I + Length(T), 0);
+                            TmpSelEnd := MakeSelection(I + Length(T), 0);
                             AddUndoCaretPos;
                             if ReplaceAction  = eraAll then
                               Include(PSD.Options, esoAll);
@@ -2249,16 +2324,11 @@ begin
     case Command of
       ecLeft, ecRight, ecLineStart, ecLineEnd,  ecPageLeft, ecPageRight, ecGotoXY,
       ecSelLeft, ecSelRight, ecSelLineStart, ecSelLineEnd, ecSelPageLeft, ecSelPageRight, ecSelGotoXY,
+      ecEditorTop, ecSelEditorTop, ecEditorBottom, ecSelEditorBottom,
       ecInsertChar, ecInsertString, ecInsertNewLine, ecDeleteLastChar, ecDeleteChar, ecDeleteBOL, ecDeleteEOL,
       ecDeleteLine, ecSelectAll, ecClearAll, ecClearSelection:
         FPreferredCaretPos := FCaretRect.Left;
     end;
-{    if (OldSelStart.Index <> OldSelEnd.Index) or (FSelStart.Index <> FSelEnd.Index) or
-      (OldSelStart.Digit <> OldSelEnd.Digit) or (FSelStart.Digit <> FSelEnd.Digit) or
-      not (elCaretVisible in FStates) and (edInactiveCaret in FDrawStyles) and
-      ((FSelStart.Index <> OldSelStart.Index) or (FSelStart.Digit <> OldSelStart.Digit) or
-      (FSelEnd.Index <> OldSelEnd.Index) or (FSelEnd.Digit <> OldSelEnd.Digit)) then
-      Invalidate;}
   end;
 end;
 
@@ -2272,14 +2342,32 @@ begin
   Result := elCaretVisible in FStates;
 end;
 
+function TKCustomMemo.GetContentHeight: Integer;
+begin
+  Result := FVertExtent * FVertScrollStep;
+end;
+
 function TKCustomMemo.GetContentLeft: Integer;
 begin
   Result := -FLeftPos * FHorzScrollStep + FContentPadding.Left;
 end;
 
+function TKCustomMemo.GetContentRect: TRect;
+begin
+  Result.Left := ContentLeft;
+  Result.Top := ContentTop;
+  Result.Right := Result.Left + ContentWidth;
+  Result.Bottom := Result.Top + ContentHeight;
+end;
+
 function TKCustomMemo.GetContentTop: Integer;
 begin
   Result := -FTopPos * FVertScrollStep + FContentPadding.Top;
+end;
+
+function TKCustomMemo.GetContentWidth: Integer;
+begin
+  Result := FHorzExtent * FHorzScrollStep;
 end;
 
 function TKCustomMemo.GetEmpty: Boolean;
@@ -2319,26 +2407,27 @@ end;
 
 function TKCustomMemo.GetRealSelEnd: Integer;
 begin
-  if FSelStart <= FSelEnd then
-    Result := FSelEnd
-  else
-    Result := FSelStart;
+  Result := FBlocks.RealSelEnd;
 end;
 
 function TKCustomMemo.GetRealSelStart: Integer;
 begin
-  if FSelStart <= FSelEnd then
-    Result := FSelStart
-  else
-    Result := FSelEnd;
+  Result := FBlocks.RealSelStart;
+end;
+
+function TKCustomMemo.GetSelEnd: Integer;
+begin
+  Result := FBlocks.SelEnd;
 end;
 
 function TKCustomMemo.GetSelLength: Integer;
 begin
-  if FSelStart <= FSelEnd then
-    Result := FSelEnd - FSelStart
-  else
-    Result := FSelStart - FSelEnd;
+  Result := FBlocks.SelLength;
+end;
+
+function TKCustomMemo.GetSelStart: Integer;
+begin
+  Result := FBlocks.SelStart
 end;
 
 function TKCustomMemo.GetSelText: TString;
@@ -2379,10 +2468,7 @@ begin
     if elOverwrite in FStates then
       DeleteChar(At);
     if FBlocks.InsertString(At, AValue) then
-    begin
-      AddUndoChar(ckDelete, AValue, not (elOverwrite in FStates));
       ExecuteCommand(ecRight);
-    end;
   finally
     EndUndoGroup;
   end;
@@ -2394,10 +2480,7 @@ begin
   try
     // always insert (don't overwrite)
     if FBlocks.InsertNewLine(At) then
-    begin
-//      AddUndoChar(crDeleteChar, AValue, False);
       ExecuteCommand(ecRight);
-    end;
   finally
     EndUndoGroup;
   end;
@@ -2410,10 +2493,7 @@ begin
     BeginUndoGroup(ckInsert);
     try
       // always insert (don't overwrite)
-      if FBlocks.InsertString(At, AValue) then
-      begin
-        AddUndoString(ckDelete, AValue);
-      end;
+      FBlocks.InsertString(At, AValue);
     finally
       EndUndoGroup;
     end;
@@ -2461,15 +2541,6 @@ begin
     end else
       Exclude(FStates, elIgnoreNextChar);
   end;
-end;
-
-procedure TKCustomMemo.LimitSelection(var ASelStart, ASelEnd: Integer);
-var
-  SelectableLength: Integer;
-begin
-  SelectableLength := FBlocks.SelectableLength;
-  ASelStart := MinMax(ASelStart, 0, SelectableLength);
-  ASelEnd := MinMax(ASelEnd, 0, SelectableLength);
 end;
 
 procedure TKCustomMemo.MouseDown(Button: TMouseButton; Shift: TShiftState;
@@ -2562,7 +2633,7 @@ begin
   if not Focused and CanFocus and not (csDesigning in ComponentState) then SetFocus;
 end;
 
-procedure TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; CallScrollWindow: Boolean);
+function TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; CallScrollWindow: Boolean): Boolean;
 
   function Axis(Code: Cardinal; HasScrollBar: Boolean;
     ScrollCode: Cardinal; Delta, MaxScrollPos: Integer; var ScrollPos: Integer): Boolean;
@@ -2613,7 +2684,8 @@ begin
   OldTopPos := FTopPos;
   ScrollHorzAxis := Axis(SB_HORZ, FScrollBars in [ssHorizontal, ssBoth], CodeHorz, DeltaHorz, FHorzExtent, FLeftPos);
   ScrollVertAxis := Axis(SB_VERT, FScrollBars in [ssVertical, ssBoth], CodeVert, DeltaVert, FVertExtent, FTopPos);
-  if ScrollHorzAxis or ScrollVertAxis then
+  Result := ScrollHorzAxis or ScrollVertAxis;
+  if Result then
   begin
     FBlocks.MeasureExtent(Canvas, ContentLeft, ContentTop);
     if CallScrollWindow then
@@ -2623,6 +2695,7 @@ begin
       Invalidate;
     UpdateEditorCaret;
     Inc(FPreferredCaretPos, (OldLeftPos - FLeftPos) * FHorzScrollStep);
+
   end;
 end;
 
@@ -2635,22 +2708,27 @@ procedure TKCustomMemo.ScrollToClientAreaCenter;
 var
   R: TRect;
 begin
-  R := IndexToRect(FSelEnd, False);
+  R := IndexToRect(SelEnd, False);
   ScrollBy((R.Left - ClientWidth div 2) div FHorzScrollStep, (R.Top - ClientHeight div 2) div FVertScrollStep);
 end;
 
 function TKCustomMemo.ScrollNeeded(out DeltaCol, DeltaRow: Integer): Boolean;
+var
+  HScrollPadding, VScrollPadding: Integer;
 begin
-  if FCaretRect.Left < 0 then
-    DeltaCol := DivDown(FCaretRect.Left, FHorzScrollStep)
-  else if (FCaretRect.Left + FCaretRect.Right > ClientWidth) and (FCaretRect.Left > FHorzScrollStep) then
-    DeltaCol := DivUp(FCaretRect.Left + FCaretRect.Right - ClientWidth, FHorzScrollStep)
+  // for small window sizes, decrease scroll padding dynamically, formula taken taken from experience
+  HScrollPadding := Min(FScrollPadding, ClientWidth div 8);
+  VScrollPadding := Min(FScrollPadding, ClientHeight div 8);
+  if FCaretRect.Left < HScrollPadding then
+    DeltaCol := DivDown(FCaretRect.Left - HScrollPadding, FHorzScrollStep)
+  else if (FCaretRect.Left + FCaretRect.Right > ClientWidth - HScrollPadding){ and (FCaretRect.Left > FHorzScrollStep)} then
+    DeltaCol := DivUp(FCaretRect.Left + FCaretRect.Right - ClientWidth + HScrollPadding, FHorzScrollStep)
   else
     DeltaCol := 0;
-  if FCaretRect.Top < 0 then
-    DeltaRow := DivDown(FCaretRect.Top, FVertScrollStep)
-  else if (FCaretRect.Top + FCaretRect.Bottom > ClientHeight) and (FCaretRect.Top > FVertScrollStep) then
-    DeltaRow := DivUp(FCaretRect.Top + FCaretRect.Bottom - ClientHeight, FVertScrollStep)
+  if FCaretRect.Top < VScrollPadding then
+    DeltaRow := DivDown(FCaretRect.Top - VScrollPadding, FVertScrollStep)
+  else if (FCaretRect.Top + FCaretRect.Bottom > ClientHeight - VScrollPadding){ and (FCaretRect.Top > FVertScrollStep)} then
+    DeltaRow := DivUp(FCaretRect.Top + FCaretRect.Bottom - ClientHeight + VScrollPadding, FVertScrollStep)
   else
     DeltaRow := 0;
   Result := (DeltaCol <> 0) or (DeltaRow <> 0);
@@ -2677,26 +2755,13 @@ begin
 end;
 
 procedure TKCustomMemo.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean);
-var
-  NewSelEnd: Integer;
 begin
-  NewSelEnd := ASelStart + ASelLength;
-  LimitSelection(ASelStart, NewSelEnd);
-  if (ASelStart <> FSelStart) or (NewSelEnd <> FSelEnd) then
-  begin
-    FSelStart := ASelStart;
-    FSelEnd := NewSelEnd;
-    FBlocks.Select(GetRealSelStart, GetSelLength);
-    if ASelLength = 0 then
-      UpdateEditorCaret;
-    if ADoScroll then
-      ClampInView;
-  end;
+  FBlocks.Select(ASelStart, ASelLength, ADoScroll);
 end;
 
 procedure TKCustomMemo.SelectionExpand(ASelEnd: Integer; ADoScroll: Boolean);
 begin
-  Select(FSelStart, ASelEnd - FSelStart, ADoScroll);
+  Select(SelStart, ASelEnd - SelStart, ADoScroll);
 end;
 
 procedure TKCustomMemo.SelectionExpand(const APoint: TPoint; ADoScroll: Boolean);
@@ -2704,7 +2769,7 @@ var
   NewSelEnd: Integer;
 begin
   NewSelEnd := FBlocks.PointToIndex(Canvas, APoint, True, False);
-  Select(FSelStart, NewSelEnd - FSelStart, ADoScroll);
+  Select(SelStart, NewSelEnd - SelStart, ADoScroll);
 end;
 
 procedure TKCustomMemo.SelectionInit(ASelStart: Integer; ADoScroll: Boolean);
@@ -2764,9 +2829,14 @@ function TKCustomMemo.SetMouseCursor(X, Y: Integer): Boolean;
 var
   ACursor: TCursor;
   P: TPoint;
+  R: TRect;
 begin
   P := Point(X, Y);
-  ACursor := crDefault;
+  if PtInRect(ContentRect, P) then
+  begin
+    ACursor := crIBeam;
+  end else
+    ACursor := crDefault;
 {$IFDEF FPC}
   FCursor := ACursor;
   SetTempCursor(ACursor);
@@ -2814,6 +2884,11 @@ begin
   end;
 end;
 
+procedure TKCustomMemo.SetScrollPadding(Value: Integer);
+begin
+  FScrollPadding := MinMax(Integer(Value), cScrollPaddingMin, cScrollPaddingMax);
+end;
+
 procedure TKCustomMemo.SetScrollSpeed(Value: Cardinal);
 begin
   Value := MinMax(Integer(Value), cScrollSpeedMin, cScrollSpeedMax);
@@ -2827,26 +2902,17 @@ end;
 
 procedure TKCustomMemo.SetSelEnd(Value: Integer);
 begin
-  if Value <> FSelEnd then
-  begin
-    Select(FSelStart, Value - FSelStart);
-  end;
+  Select(SelStart, Value - SelStart);
 end;
 
 procedure TKCustomMemo.SetSelLength(Value: Integer);
 begin
-  if Value <> GetSelLength then
-  begin
-    Select(FSelStart, Value);
-  end;
+  Select(SelStart, Value);
 end;
 
 procedure TKCustomMemo.SetSelStart(Value: Integer);
 begin
-  if Value <> FSelStart then
-  begin
-    Select(Value, FSelEnd - Value);
-  end;
+  Select(Value, SelEnd - Value);
 end;
 
 procedure TKCustomMemo.SetText(const Value: TString);
@@ -2901,57 +2967,54 @@ begin
     DoChange;
 end;
 
-procedure TKCustomMemo.UpdateEditorCaret;
+procedure TKCustomMemo.UpdateEditorCaret(AShow: Boolean);
 var
   R: TRect;
 begin
-  Include(FStates, elCaretUpdate);
-  try
-    if Enabled and Focused and not (csDesigning in ComponentState) then
-    begin
+  if HandleAllocated then
+  begin
+    Include(FStates, elCaretUpdate);
+    try
       R := FCaretRect;
-      FCaretRect := FBlocks.IndexToRect(Canvas, FSelEnd, True);
+      FCaretRect := FBlocks.IndexToRect(Canvas, SelEnd, True);
       Dec(FCaretRect.Right, FCaretRect.Left); // Right is width
       Dec(FCaretRect.Bottom, FCaretRect.Top); // Bottom is height
-      if not (elOverwrite in FStates) then
-        FCaretRect.Right := MinMax(FCaretRect.Bottom div 10, 1, 3);
-      if HandleAllocated then
+
+      if AShow then
       begin
-        if (SelLength = 0) then
+        if Enabled and Focused and not (csDesigning in ComponentState) and (SelLength = 0) then
         begin
+          if not (elOverwrite in FStates) then
+            FCaretRect.Right := MinMax(FCaretRect.Bottom div 10, 1, 3);
           if not (elCaretCreated in FStates) or (R.Right <> FCaretRect.Right) or (R.Bottom <> FCaretRect.Bottom) then
           begin
             if CreateCaret(Handle, 0, FCaretRect.Right, FCaretRect.Bottom) then
             begin
               ShowEditorCaret;
-              FStates := FStates + [elCaretCreated, elCaretVisible];
+              Include(FStates, elCaretVisible);
+              Include(FStates, elCaretCreated);
             end;
           end
-          else if not (elCaretVisible in FStates) or (R.Left <> FCaretRect.Left) or (R.Top <> FCaretRect.Top) then
+          else if (R.Left <> FCaretRect.Left) or (R.Top <> FCaretRect.Top) then
           begin
             ShowEditorCaret;
             Include(FStates, elCaretVisible);
           end;
         end
-        else if elCaretVisible in FStates then
+        else if elCaretCreated in FStates then
         begin
           HideEditorCaret;
-          Exclude(FStates, elCaretVisible);
+        {$IFDEF FPC}
+          DestroyCaret(Handle);
+        {$ELSE}
+          DestroyCaret;
+        {$ENDIF}
+          FStates := FStates - [elCaretCreated, elCaretVisible];
         end;
       end;
-    end
-    else if HandleAllocated and (elCaretCreated in FStates) then
-    begin
-      HideEditorCaret;
-    {$IFDEF FPC}
-      DestroyCaret(Handle);
-    {$ELSE}
-      DestroyCaret;
-    {$ENDIF}
-      FStates := FStates - [elCaretCreated, elCaretVisible];
+    finally
+      Exclude(FStates, elCaretUpdate);
     end;
-  finally
-    Exclude(FStates, elCaretUpdate);
   end;
 end;
 
@@ -3082,7 +3145,6 @@ constructor TKMemoBlock.Create(AParent: TKMemoBlocks);
 begin
   inherited Create;
   FBounds := CreateEmptyRect;
-  FNewLine := False;
   FParent := nil;
   FSelEnd := -1;
   FSelStart := -1;
@@ -3096,23 +3158,19 @@ end;
 
 procedure TKMemoBlock.Assign(AItem: TKMemoBlock);
 begin
-  FBounds := AItem.Bounds;
-  FNewLine := AItem.NewLine;
-  FParent := AItem.Parent;
-  FSelEnd := AItem.SelStart + AItem.SelLength;
-  FSelStart := AItem.SelStart;
+  Bounds := AItem.Bounds;
+  Parent := AItem.Parent;
+  Select(AItem.SelStart, AItem.SelLength);
+  AssignAttributes(AItem);
+end;
+
+procedure TKMemoBlock.AssignAttributes(AItem: TKMemoBlock);
+begin
   Update([muContents]);
 end;
 
 procedure TKMemoBlock.ClearSelection;
 begin
-  if FNewLine and (FSelEnd = SelectableLength) then
-  begin
-    FNewLine := False;
-    Dec(FSelEnd);
-    FSelStart := Min(FSelStart, FSelEnd);
-    Update([muContents]);
-  end;
 end;
 
 function TKMemoBlock.Concat(AItem: TKMemoBlock): Boolean;
@@ -3168,11 +3226,6 @@ begin
   FBounds.BottomRight := FBounds.TopLeft;
 end;
 
-function TKMemoBlock.NewLineSelected: Boolean;
-begin
-  Result := FNewLine and (FSelEnd >= SelectableLength);
-end;
-
 procedure TKMemoBlock.NotifyFontChange(AFont: TFont);
 begin
 end;
@@ -3195,29 +3248,29 @@ begin
   Result := -1;
 end;
 
-procedure TKMemoBlock.Select(ASelStart, ASelLength: Integer);
+function TKMemoBlock.Select(ASelStart, ASelLength: Integer): Boolean;
 var
-  ASelEnd, MaxLen: Integer;
+  NewSelEnd, MaxLen: Integer;
 begin
-  if ASelLength < 0 then
-    Dec(ASelStart, ASelLength);
-  ASelEnd := ASelStart + ASelLength;
+  NewSelEnd := ASelStart + ASelLength;
+  if NewSelEnd < ASelStart then
+    Exchange(ASelStart, NewSelEnd);
   MaxLen := SelectableLength;
-  ASelEnd := MinMax(ASelEnd, -1, MaxLen);
+  NewSelEnd := MinMax(NewSelEnd, -1, MaxLen);
   ASelStart := MinMax(ASelStart, -1, MaxLen);
-  if (ASelStart <> FSelStart) or (ASelEnd <> FSelEnd) then
+  if (ASelStart <> FSelStart) or (NewSelEnd <> FSelEnd) then
   begin
-    FSelEnd := ASelEnd;
+    FSelEnd := NewSelEnd;
     FSelStart := ASelStart;
     Update([muSelection]);
-  end;
+    Result := True;
+  end else
+    Result := False;
 end;
 
 function TKMemoBlock.SelectableLength: Integer;
 begin
   Result := ContentLength;
-  if FNewLine then
-    Inc(Result);
 end;
 
 procedure TKMemoBlock.SetBounds(const Value: TRect);
@@ -3235,15 +3288,6 @@ begin
   FBounds.Top := ATop;
 end;
 
-procedure TKMemoBlock.SetNewLine(const Value: Boolean);
-begin
-  if FNewLine <> Value then
-  begin
-    FNewLine := Value;
-    Update([muContents]);
-  end;
-end;
-
 procedure TKMemoBlock.SetParent(AParent: TKMemoBlocks);
 begin
   if FParent <> AParent then
@@ -3251,6 +3295,14 @@ begin
     FParent := AParent;
     ParentChanged;
   end;
+end;
+
+function TKMemoBlock.ShowFormatting: Boolean;
+begin
+  if FParent <> nil then
+    Result := FParent.ShowFormatting
+  else
+    Result := False;
 end;
 
 function TKMemoBlock.Split(At: Integer): TKMemoBlock;
@@ -3275,9 +3327,13 @@ begin
   FFont.OnChange := FontChange;
   FFontChanged := False;
   inherited;
-  FText := '';
+  FContentChanged := True;
   FHAlign := halLeft;
+  FHeight := 0;
+  FText := '';
+  FTextLength := TextLength;
   FVAlign := valCenter;
+  FWidth := 0;
 end;
 
 destructor TKTextMemoBlock.Destroy;
@@ -3308,6 +3364,8 @@ begin
   if S <> FText then
   begin
     FText := S;
+    FTextLength := TextLength;
+    FContentChanged := True;
     Update([muContents]);
     Result := True;
   end;
@@ -3315,15 +3373,23 @@ end;
 
 procedure TKTextMemoBlock.Assign(AItem: TKMemoBlock);
 begin
-  inherited;
   if AItem is TKTextMemoBlock then
   begin
-    FBrush.Assign(TKTextMemoBlock(AItem).Brush);
-    FFont.Assign(TKTextMemoBlock(AItem).Font);
-    FHAlign := TKTextMemoBlock(AItem).HAlign;
-    FText := TKTextMemoBlock(AItem).Text;
-    FVAlign := TKTextMemoBlock(AItem).VAlign;
+    Text := TKTextMemoBlock(AItem).Text;
   end;
+  inherited;
+end;
+
+procedure TKTextMemoBlock.AssignAttributes(AItem: TKMemoBlock);
+begin
+  if AItem is TKTextMemoBlock then
+  begin
+    Brush.Assign(TKTextMemoBlock(AItem).Brush);
+    Font.Assign(TKTextMemoBlock(AItem).Font);
+    HAlign := TKTextMemoBlock(AItem).HAlign;
+    VAlign := TKTextMemoBlock(AItem).VAlign;
+  end;
+  inherited;
 end;
 
 procedure TKTextMemoBlock.ClearSelection;
@@ -3336,6 +3402,8 @@ begin
   {$ELSE}
     Delete(FText, FSelStart + 1, FSelEnd - FSelStart);
   {$ENDIF}
+    FTextLength := TextLength;
+    FContentChanged := True;
     FSelEnd := FSelStart;
     Update([muContents]);
   end;
@@ -3350,11 +3418,7 @@ end;
 
 function TKTextMemoBlock.ContentLength: Integer;
 begin
-{$IFDEF FPC}
-  Result := UTF8Length(FText);
-{$ELSE}
-  Result := Length(FText);
-{$ENDIF}
+  Result := FTextLength;
 end;
 
 function TKTextMemoBlock.GetCanAddText: Boolean;
@@ -3379,31 +3443,28 @@ end;
 function TKTextMemoBlock.IndexToRect(ACanvas: TCanvas; AIndex: Integer): TRect;
 var
   TextBox: TKTextBox;
-  S: TString;
 begin
-  if FNewLine then
-    S := FText + cNewLineChar
-  else
-    S := FText;
   ACanvas.Font.Assign(FFont);
   ACanvas.Brush.Assign(FBrush);
   TextBox := TKTextBox.Create;
   try
+    TextBox.Attributes := FTextAttributes;
     TextBox.HAlign := FHAlign;
     TextBox.VAlign := FVAlign;
-    TextBox.Text := S;
-    Result := TextBox.IndexToRect(ACanvas, FBounds, IndexToTextIndex(S, AIndex));
+    TextBox.Text := FText;
+    Result := TextBox.IndexToRect(ACanvas, FBounds, IndexToTextIndex(FText, AIndex));
   finally
     TextBox.Free;
   end;
 end;
 
-class function TKTextMemoBlock.IndexToTextIndex(var AText: TString; AIndex: Integer): Integer;
+function TKTextMemoBlock.IndexToTextIndex(var AText: TString; AIndex: Integer): Integer;
 {$IFDEF FPC}
 var
   I: Integer;
 {$ENDIF}
 begin
+  AIndex := MinMax(AIndex, 0, ContentLength);
 {$IFDEF FPC}
   Result := 1;
   for I := 0 to AIndex - 1 do
@@ -3417,25 +3478,25 @@ procedure TKTextMemoBlock.MeasureExtent(ACanvas: TCanvas);
 var
   TextBox: TKTextBox;
   Width, Height: Integer;
-  S: TString;
 begin
-  if FNewLine then
-    S := FText + cNewLineChar
-  else
-    S := FText;
-  ACanvas.Font.Assign(FFont);
-  ACanvas.Brush.Assign(FBrush);
-  TextBox := TKTextBox.Create;
-  try
-    TextBox.HAlign := FHAlign;
-    TextBox.VAlign := FVAlign;
-    TextBox.Text := S;
-    TextBox.Measure(ACanvas, FBounds, Width, Height);
-    FBounds.Right := FBounds.Left + Width;
-    FBounds.Bottom := FBounds.Top + Height;
-  finally
-    TextBox.Free;
+  if FContentChanged then
+  begin
+    ACanvas.Font.Assign(FFont);
+    ACanvas.Brush.Assign(FBrush);
+    TextBox := TKTextBox.Create;
+    try
+      TextBox.Attributes := FTextAttributes;
+      TextBox.HAlign := FHAlign;
+      TextBox.VAlign := FVAlign;
+      TextBox.Text := FText;
+      TextBox.Measure(ACanvas, FBounds, FWidth, FHeight);
+    finally
+      TextBox.Free;
+    end;
+    FContentChanged := False;
   end;
+  FBounds.Right := FBounds.Left + FWidth;
+  FBounds.Bottom := FBounds.Top + FHeight;
 end;
 
 procedure TKTextMemoBlock.NotifyFontChange(AFont: TFont);
@@ -3451,36 +3512,23 @@ procedure TKTextMemoBlock.PaintToCanvas(ACanvas: TCanvas);
 var
   TextBox: TKTextBox;
   Color, Bkgnd: TColor;
-  S: TString;
 begin
   inherited;
-  if FNewLine then
-    S := FText + cNewLineChar
-  else
-    S := FText;
   ACanvas.Font.Assign(FFont);
   ACanvas.Brush.Assign(FBrush);
   TextBox := TKTextBox.Create;
   try
-  {  ACanvas.Brush.Color := clLime;
-    ACanvas.FillRect(FBounds);
-    DEc(FBounds.Right, 59);
-    ACanvas.Brush.Color := clYellow;
-    ACanvas.FillRect(FBounds);
-    Attr := [taPathEllipsis];}
-  //  Dec(FBounds.Right, 600);
-  //  Inc(Fbounds.Bottom, 100);
-  //  Attr := [taWordBreak];
+    TextBox.Attributes := FTextAttributes;
     TextBox.HAlign := FHAlign;
     TextBox.VAlign := FVAlign;
-    TextBox.Text := S;
+    TextBox.Text := FText;
     if SelLength > 0 then
     begin
       GetSelColors(Color, BkGnd);
       TextBox.SelColor := Color;
       TextBox.SelBkgnd := BkGnd;
-      TextBox.SelStart := IndexToTextIndex(S, Min(FSelStart, SelectableLength));
-      TextBox.SelEnd := IndexToTextIndex(S, Min(FSelEnd, SelectableLength));
+      TextBox.SelStart := IndexToTextIndex(FText, FSelStart);
+      TextBox.SelEnd := IndexToTextIndex(FText, FSelEnd);
     end;
     if FBrush.Color <> clNone then
       TextBox.Attributes := TextBox.Attributes + [taFillRect];
@@ -3502,17 +3550,14 @@ var
   TextBox: TKTextBox;
   S: TString;
 begin
-  if FNewLine then
-    S := FText + cNewLineChar
-  else
-    S := FText;
   ACanvas.Font.Assign(FFont);
   ACanvas.Brush.Assign(FBrush);
   TextBox := TKTextBox.Create;
   try
+    TextBox.Attributes := FTextAttributes;
     TextBox.HAlign := FHAlign;
     TextBox.VAlign := FVAlign;
-    TextBox.Text := S;
+    TextBox.Text := FText;
     TextBox.Attributes := TextBox.Attributes + [taIncludePadding];
     Result := TextIndexToIndex(S, TextBox.PointToIndex(ACanvas, FBounds, APoint));
   finally
@@ -3525,6 +3570,7 @@ begin
   if FHAlign <> Value then
   begin
     FHAlign := Value;
+    FContentChanged := True;
     Update([muAttributes]);
   end;
 end;
@@ -3534,7 +3580,19 @@ begin
   if FText <> Value then
   begin
     FText := Value;
+    FTextLength := TextLength;
+    FContentChanged := True;
     Update([muContents]);
+  end;
+end;
+
+procedure TKTextMemoBlock.SetTextAttributes(const Value: TKTextAttributes);
+begin
+  if Value <> FTextAttributes then
+  begin
+    FTextAttributes := Value;
+    FContentChanged := True;
+    Update([muAttributes]);
   end;
 end;
 
@@ -3543,6 +3601,7 @@ begin
   if FVAlign <> Value then
   begin
     FVAlign := Value;
+    FContentChanged := True;
     Update([muAttributes]);
   end;
 end;
@@ -3552,12 +3611,14 @@ var
   Item: TKTextMemoBlock;
   Part1, Part2: TString;
 begin
-  if (At >= 0) and (At < SelectableLength) then
+  if (At > 0) and (At < ContentLength) then
   begin
     Item := TKTextMemoBlock.Create(FParent);
     Item.Assign(Self);
     SplitText(At + 1, Part1, Part2);
     FText := Part1;
+    FTextLength := TextLength;
+    FContentChanged := True;
     Item.Text := Part2;
     Result := Item;
     Update([muContents]);
@@ -3576,7 +3637,7 @@ begin
 {$ENDIF}
 end;
 
-class function TKTextMemoBlock.TextIndexToIndex(var AText: TString; ATextIndex: Integer): Integer;
+function TKTextMemoBlock.TextIndexToIndex(var AText: TString; ATextIndex: Integer): Integer;
 {$IFDEF FPC}
 var
   I: Integer;
@@ -3599,6 +3660,15 @@ begin
     Result := -1;
 end;
 
+function TKTextMemoBlock.TextLength: Integer;
+begin
+{$IFDEF FPC}
+  Result := UTF8Length(FText);
+{$ELSE}
+  Result := Length(FText);
+{$ENDIF}
+end;
+
 { TKImageMemoBlock }
 
 constructor TKImageMemoBlock.Create(AParent: TKMemoBlocks);
@@ -3615,11 +3685,11 @@ end;
 
 procedure TKImageMemoBlock.Assign(AItem: TKMemoBlock);
 begin
-  inherited;
   if AItem is TKImageMemoBlock then
   begin
     FImage.Assign(TKImageMemoBlock(AItem).Image);
   end;
+  inherited;
 end;
 
 function TKImageMemoBlock.ContentLength: Integer;
@@ -3629,13 +3699,7 @@ end;
 
 function TKImageMemoBlock.IndexToRect(ACanvas: TCanvas; AIndex: Integer): TRect;
 begin
-  if FNewLine and (AIndex >= ContentLength) then
-  begin
-    if FParent <> nil then
-      ACanvas.Font.Assign(FParent.DefaultFont);
-    Result := Rect(FBounds.Right, FBounds.Top, FBounds.Right + ACanvas.TextWidth(cNewLineChar), FBounds.Bottom);
-  end else
-    Result := FBounds;
+  Result := FBounds;
 end;
 
 procedure TKImageMemoBlock.MeasureExtent(ACanvas: TCanvas);
@@ -3688,6 +3752,91 @@ begin
   Update([muContents]);
 end;
 
+{ TKNewLineMemoBlock }
+
+constructor TKNewLineMemoBlock.Create(AParent: TKMemoBlocks);
+begin
+  inherited;
+  FText := cNewLineChar;
+  FTextLength := TextLength;
+end;
+
+function TKNewLineMemoBlock.AddText(const AText: TString; At: Integer): Boolean;
+begin
+  Result := False;
+end;
+
+procedure TKNewLineMemoBlock.ClearSelection;
+begin
+  // ignore
+end;
+
+function TKNewLineMemoBlock.Concat(AItem: TKMemoBlock): Boolean;
+begin
+  Result := False;
+end;
+
+function TKNewLineMemoBlock.GetCanAddText: Boolean;
+begin
+  Result := False;
+end;
+
+function TKNewLineMemoBlock.IndexToRect(ACanvas: TCanvas; AIndex: Integer): TRect;
+var
+  BeyondText: Boolean;
+  Width: Integer;
+begin
+  BeyondText := AIndex >= ContentLength;
+  if BeyondText then
+    Dec(AIndex);
+  Result := inherited IndexToRect(ACanvas, AIndex);
+  if BeyondText then
+  begin
+    Width := Result.Right - Result.Left;
+    Result.Left := Result.Right;
+    Inc(Result.Right, Width);
+  end;
+end;
+
+procedure TKNewLineMemoBlock.PaintToCanvas(ACanvas: TCanvas);
+var
+  Color, BkGnd: TColor;
+begin
+  if ShowFormatting then
+    inherited
+  else
+  begin
+    ACanvas.Brush.Assign(FBrush);
+    if (SelLength > 0) and (SelStart = 0) then
+    begin
+      GetSelColors(Color, BkGnd);
+      ACanvas.Brush.Color := BkGnd;
+    end;
+    if ACanvas.Brush.Color <> clNone then
+      ACanvas.FillRect(FBounds);
+  end
+end;
+
+function TKNewLineMemoBlock.SelectableLength: Integer;
+begin
+  Result := ContentLength + 1;
+end;
+
+procedure TKNewLineMemoBlock.SetText(const Value: TString);
+begin
+  // ignore
+end;
+
+procedure TKNewLineMemoBlock.SetTextAttributes(const Value: TKTextAttributes);
+begin
+  // ignore
+end;
+
+function TKNewLineMemoBlock.Split(At: Integer): TKMemoBlock;
+begin
+  Result := nil;
+end;
+
 { TKMemoBlocks }
 
 constructor TKMemoBlocks.Create(AMemo: TKCustomMemo);
@@ -3698,6 +3847,8 @@ begin
   FMemo := AMemo;
   FExtentX := 0;
   FExtentY := 0;
+  FSelEnd := 0;
+  FSelStart := 0;
   FUpdateLock := 0;
   Update([muContents]);
 end;
@@ -3749,6 +3900,19 @@ begin
   FillChar(Result^, SizeOf(TKMemoLine), 0);
 end;
 
+function TKMemoBlocks.AddNewLineBlock(At: Integer): TKNewLineMemoBlock;
+begin
+  LockUpdate;
+  try
+    Result := TKNewLineMemoBlock.Create(Self);
+    At := AddAt(Result, At);
+    if At > 0 then
+      Result.AssignAttributes(TKMemoBlock(Items[At - 1]));
+  finally
+    UnlockUpdate;
+  end;
+end;
+
 function TKMemoBlocks.AddTextBlock(AText: TString; At: Integer): TKTextMemoBlock;
 begin
   LockUpdate;
@@ -3765,7 +3929,7 @@ procedure TKMemoBlocks.ClearSelection;
 var
   I, First, Last: Integer;
   Item, AuxItem: TKMemoBlock;
-  SelectionComplete, NewLineSelected: Boolean;
+  SelectionComplete: Boolean;
 begin
   SelectionComplete := False;
   LockUpdate;
@@ -3773,12 +3937,14 @@ begin
     I := 0;
     First := -1;
     Last := -1;
-    while (I < Count) and not SelectionComplete do
+    while I < Count do
     begin
       Item := TKMemoBlock(Items[I]);
-      if (Item.SelStart >= 0) and (Item.SelLength > 0) then
+      if Item.ContentLength = 0 then
+        Delete(I)
+      else if (Item.SelStart >= 0) and (Item.SelLength > 0) then
       begin
-        if Item.SelLength = Item.SelectableLength then
+        if (Item.SelLength = Item.SelectableLength) or (Item is TKNewLineMemoBlock) then
         begin
           Delete(I);
           Dec(I);
@@ -3789,48 +3955,21 @@ begin
           else
             Last := I;
         end;
-      end else
-      begin
-        if First >= 0 then
-          SelectionComplete := True;
       end;
       Inc(I);
     end;
     if Last >= 0 then
+    begin
       TKMemoBlock(Items[Last]).ClearSelection;
+    end;
     if First >= 0 then
     begin
-      Item := TKMemoBlock(Items[First]);
-      if Item.NewLine then
-      begin
-        if (Item.SelStart = 0) and (Item.SelLength >= Item.ContentLength) then
-        begin
-          // entire block selected, delete
-          Delete(First);
-          if First > 0 then
-          begin
-            AuxItem := TKMemoBlock(Items[First - 1]);
-            if AuxItem.NewLine then
-            begin
-              // if we are at the beginning of a line, then we must preserve this line by inserting a new block
-              AuxItem := AuxItem.Split(AuxItem.ContentLength);
-              AddAt(AuxItem, First);
-            end;
-            AuxItem.NewLine := True
-          end
-        end
-        else if First < Count - 1 then
-        begin
-          AuxItem := TKMemoBlock(Items[First + 1]);
-          if AuxItem.ContentLength = 0 then
-            Delete(First + 1)
-          else
-            Item.ClearSelection;
-        end else
-          Item.ClearSelection;
-      end else
-        Item.ClearSelection;
+      TKMemoBlock(Items[First]).ClearSelection;
     end;
+    if FSelStart < FSelEnd then
+      FSelEnd := FSelStart
+    else
+      FSelStart := FSelEnd;
   finally
     UnlockUpdate;
   end;
@@ -3892,8 +4031,6 @@ begin
     begin
       Item := TKMemoBlock(Items[I]);
       Result := Result + Item.Text;
-      if Item.NewLine then
-        Result := Result + cCR + cLF;
     end;
   end;
 end;
@@ -3924,6 +4061,22 @@ begin
     Result := FLines[AIndex].Bounds.Top;
 end;
 
+function TKMemoBlocks.GetRealSelEnd: Integer;
+begin
+  if FSelStart <= FSelEnd then
+    Result := FSelEnd - FSelStart
+  else
+    Result := FSelStart - FSelEnd;
+end;
+
+function TKMemoBlocks.GetRealSelStart: Integer;
+begin
+  if FSelStart <= FSelEnd then
+    Result := FSelStart
+  else
+    Result := FSelEnd;
+end;
+
 procedure TKMemoBlocks.GetSelColors(var TextColor, Background: TColor);
 begin
   if FMemo <> nil then
@@ -3940,6 +4093,11 @@ begin
   end;
 end;
 
+function TKMemoBlocks.GetSelLength: Integer;
+begin
+  Result := FSelEnd - FSelStart;
+end;
+
 function TKMemoBlocks.GetSelText: TString;
 var
   I: Integer;
@@ -3951,9 +4109,10 @@ begin
     Item := TKMemoBlock(Items[I]);
     if Item.SelLength > 0 then
     begin
-      Result := Result + Item.SelText;
-      if Item.NewLine then
-        Result := Result + cCR + cLF;
+      if Item is TKNewLineMemoBlock then
+        Result := Result + cCR + cLF
+      else
+        Result := Result + Item.SelText;
     end;
   end;
 end;
@@ -3967,9 +4126,10 @@ begin
   for I := 0 to Count - 1 do
   begin
     Item := TKMemoBlock(Items[I]);
-    Result := Result + Item.Text;
-    if Item.NewLine then
-      Result := Result + cCR + cLF;
+    if Item is TKNewLineMemoBlock then
+      Result := Result + cCR + cLF
+    else
+      Result := Result + Item.Text;
   end;
 end;
 
@@ -3992,7 +4152,7 @@ begin
         begin
           LastIndex := CurIndex;
           Inc(CurIndex, TKMemoBlock(Items[J]).SelectableLength);
-          if (AIndex >= LastIndex) and (AIndex <= CurIndex) then
+          if (AIndex >= LastIndex) and (AIndex < CurIndex) then
           begin
             Result := J;
             ALocalIndex := AIndex - LastIndex;
@@ -4048,15 +4208,13 @@ begin
       NewItem := Item.Split(LocalIndex);
       if NewItem <> nil then
       begin
-        Item.NewLine := True;
-        AddAt(NewItem, Block + 1);
+        AddNewLineBlock(Block + 1);
+        AddAt(NewItem, Block + 2);
       end
-      else if Item.NewLine then
-      begin
-        NewItem := AddTextBlock('', Block + 1);
-        NewItem.NewLine := True;
-      end else
-        Item.NewLine := True;
+      else if LocalIndex = 0 then
+        AddNewLineBlock(Block)
+      else
+        AddNewLineBlock(Block + 1);
       Result := True;
     end;
   finally
@@ -4067,7 +4225,7 @@ end;
 function TKMemoBlocks.InsertString(AIndex: Integer; const AValue: TString): Boolean;
 var
   Block, LocalIndex: Integer;
-  Item: TKMemoBlock;
+  Item, NewItem: TKMemoBlock;
 begin
   Result := False;
   LockUpdate;
@@ -4076,6 +4234,7 @@ begin
     if Block >= 0 then
     begin
       Item := TKMemoBlock(Items[Block]);
+      NewItem := nil;
       if Item.CanAddText then
       begin
         // we already have suitable block at given location
@@ -4089,37 +4248,41 @@ begin
           // try the last block
           Dec(Block);
           Item := TKMemoBlock(Items[Block]);
-          if Item.CanAddText and not Item.NewLine then
+          if Item.CanAddText then
           begin
             // insert character at the end of this block
             Result := Item.AddText(AValue);
           end else
           begin
             // if still no text block, insert new one
-            Result := AddTextBlock(AValue, Block + 1) <> nil;
+            NewItem := AddTextBlock(AValue, Block + 1);
           end;
         end else
         begin
           // insert new text block
-          Result := AddTextBlock(AValue, Block) <> nil;
+          NewItem := AddTextBlock(AValue, Block);
         end;
       end
       else if LocalIndex = Item.ContentLength then
       begin
-        if Item.NewLine then
+        // insert new text block
+        NewItem := AddTextBlock(AValue, Block + 1);
+      end;
+      if NewItem <> nil then
+      begin
+        Block := IndexOf(NewItem);
+        Dec(Block);
+        while Block >= 0 do
         begin
-          // we are at the end of line
-          Item.NewLine := False;
-          // insert new text block and new line
-          Item := AddTextBlock(AValue, Block + 1);
-          if Item <> nil then
+          Item := TKMemoBlock(Items[Block]);
+          if Item is TKTextMemoBlock then
           begin
-            Item.NewLine := True;
-            Result := True;
+            NewItem.AssignAttributes(Item);
+            Block := 0;
           end;
-        end else
-          // insert new text block
-          Result := AddTextBlock(AValue, Block + 1) <> nil;
+          Dec(Block);
+        end;
+        Result := True;
       end;
     end;
   finally
@@ -4152,7 +4315,7 @@ begin
       Inc(CurIndex, Item.SelectableLength);
       if (AIndex >= LastIndex) and (AIndex < CurIndex) then
       begin
-        if ACaret and (AIndex = LastIndex) and (LastItem <> nil) and LastItem.CanAddText and not LastItem.NewLine then
+        if ACaret and (AIndex = LastIndex) and (LastItem <> nil) and LastItem.CanAddText then
         begin
           Result := LastItem.IndexToRect(ACanvas, LastItem.SelectableLength - 1);
           // return rectangle after the last character in a line
@@ -4164,12 +4327,6 @@ begin
         Break;
       end;
     end;
-  end
-  else if ALine = FLineCount then
-  begin
-    Result := FLines[FLineCount - 1].Bounds;
-    Result.Left := Result.Right + 1;
-    Result.Right := Result.Left;
   end;
 end;
 
@@ -4212,13 +4369,63 @@ begin
   Dec(FExtentX, ALeft);
 end;
 
+function TKMemoBlocks.ModifiedLineEndIndex(AIndex: Integer; ACaret: Boolean): Integer;
+var
+  Line: Integer;
+begin
+  Line := IndexToLine(AIndex);
+  if Line < FLineCount then
+  begin
+    Result := FLines[Line].EndIndex;
+    if ACaret then
+      Dec(Result);
+  end else
+    Result := 0;
+end;
+
+function TKMemoBlocks.ModifiedLineStartIndex(AIndex: Integer; ACaret: Boolean): Integer;
+var
+  Line: Integer;
+begin
+  Line := IndexToLine(AIndex);
+  if Line < FLineCount then
+  begin
+    Result := FLines[Line].StartIndex;
+  end else
+    Result := 0;
+end;
+
+function TKMemoBlocks.NextIndexByCharCount(AIndex, ACharCount: Integer; ACaret: Boolean): Integer;
+var
+  IndexCopy, Block, LocalIndex: Integer;
+  Item: TKMemoBlock;
+begin
+  IndexCopy := AIndex;
+  if not ACaret and (ACharCount > 0) then
+    Dec(IndexCopy);
+  Block := IndexToBlock(IndexCopy + ACharCount, LocalIndex);
+  if Block >= 0 then
+  begin
+    Item := TKMemoBlock(Items[Block]);
+    if Item is TKNewLineMemoBlock then
+    begin
+      if LocalIndex >= Item.ContentLength then
+        if ACharCount > 0 then
+          Inc(ACharCount)
+        else if ACharCount < 0 then
+          Dec(ACharCount)
+    end;
+  end;
+  Result := AIndex + ACharCount;
+end;
+
 function TKMemoBlocks.NextIndexByHorzExtent(ACanvas: TCanvas; AIndex, AWidth: Integer; ACaret: Boolean): Integer;
 var
   Line: Integer;
   R: TRect;
 begin
   Line := IndexToLine(AIndex);
-  R := LineToRect(ACanvas, AIndex, Line, False);
+  R := LineToRect(ACanvas, AIndex, Line, ACaret);
   Result := PointToLineIndex(ACanvas, Line, Point(R.Left + AWidth, LineTop[Line]), True, ACaret);
 end;
 
@@ -4226,12 +4433,8 @@ function TKMemoBlocks.NextIndexByRowDelta(ACanvas: TCanvas; AIndex, ARowDelta, A
 var
   Line, TopPos: Integer;
 begin
-  Line := IndexToLine(AIndex) + ARowDelta;
-  if Line >= FLineCount then
-    TopPos := LineBottom[Line - 1] + 1
-  else
-    TopPos := LineTop[Line];
-  Result := PointToIndex(ACanvas, Point(ALeftPos, TopPos), True, ACaret);
+  Line := MinMax(IndexToLine(AIndex) + ARowDelta, 0, FLineCount - 1);
+  Result := PointToIndex(ACanvas, Point(ALeftPos, LineTop[Line]), True, ACaret);
 end;
 
 function TKMemoBlocks.NextIndexByVertExtent(ACanvas: TCanvas; AIndex, AHeight, ALeftPos: Integer; ACaret: Boolean): Integer;
@@ -4335,8 +4538,8 @@ begin
     if (Result < 0) and AOutOfArea and (APoint.Y >= FLines[0].Bounds.Top + FExtentY) then
     begin
       Result := FSelectableLength;
-      if not ACaret then
-        Inc(Result);
+      if ACaret then
+        Dec(Result);
     end;
   end;
 end;
@@ -4374,60 +4577,78 @@ begin
       else if (APoint.X >= MaxExtent) then
       begin
         Result := FLines[ALine].EndIndex;
-        if not ACaret then
-          Inc(Result);
+        if ACaret then
+          Dec(Result);
       end;
     end;
   end;
 end;
 
-procedure TKMemoBlocks.Select(ASelStart, ASelLength: Integer);
+function TKMemoBlocks.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean): Boolean;
 var
-  I, LastIndex, CurIndex, ASelEnd: Integer;
+  I, LastIndex, CurIndex, NewSelEnd: Integer;
   Item: TKMemoBlock;
 begin
-  LockUpdate;
-  try
+  NewSelEnd := ASelStart + ASelLength;
+  NewSelEnd := MinMax(NewSelEnd, 0, FSelectableLength - 1);
+  ASelStart := MinMax(ASelStart, 0, FSelectableLength - 1);
+  if (ASelStart <> FSelStart) or (NewSelEnd <> FSelEnd) then
+  begin
+    FSelStart := ASelStart;
+    FSelEnd := NewSelEnd;
     CurIndex := 0;
-    ASelEnd := ASelStart + ASelLength;
-    for I := 0 to Count - 1 do
-    begin
-      Item := TKMemoBlock(Items[I]);
-      LastIndex := CurIndex;
-      Inc(CurIndex, Item.SelectableLength);
-      if (ASelStart >= LastIndex) and (ASelEnd < CurIndex) then
-        // selection within the same block
-        Item.Select(ASelStart - LastIndex, ASelEnd - ASelStart)
-      else if (ASelStart >= LastIndex) and ((ASelStart < CurIndex) or (CurIndex = LastIndex)) and (ASelEnd >= CurIndex) then
-        // selection starts in this block
-        Item.Select(ASelStart - LastIndex, CurIndex - ASelStart)
-      else if (ASelStart < LastIndex) and (ASelEnd >= LastIndex) and (ASelEnd < CurIndex) then
-        // selection ends in this block
-        Item.Select(0, ASelEnd - LastIndex)
-      else if (ASelStart < LastIndex) and (ASelEnd >= CurIndex) then
-        // selection goes through this block
-        Item.Select(0, CurIndex - LastIndex)
-      else
-        Item.Select(-1, 0);
+    LockUpdate;
+    try
+      // children have always FSelEnd >= FSelStart
+      if NewSelEnd < ASelStart then
+        KFunctions.Exchange(ASelStart, NewSelEnd);
+      for I := 0 to Count - 1 do
+      begin
+        Item := TKMemoBlock(Items[I]);
+        LastIndex := CurIndex;
+        Inc(CurIndex, Item.SelectableLength);
+        if (ASelStart >= LastIndex) and (NewSelEnd < CurIndex) then
+        begin
+          // selection within the same block
+          Item.Select(ASelStart - LastIndex, NewSelEnd - ASelStart)
+        end
+        else if (ASelStart >= LastIndex) and ((ASelStart < CurIndex) or (CurIndex = LastIndex)) and (NewSelEnd >= CurIndex) then
+          // selection starts in this block
+          Item.Select(ASelStart - LastIndex, CurIndex - ASelStart)
+        else if (ASelStart < LastIndex) and (NewSelEnd >= LastIndex) and (NewSelEnd < CurIndex) then
+          // selection ends in this block
+          Item.Select(0, NewSelEnd - LastIndex)
+        else if (ASelStart < LastIndex) and (NewSelEnd >= CurIndex) then
+          // selection goes through this block
+          Item.Select(0, CurIndex - LastIndex)
+        else
+          Item.Select(-1, 0);
+      end;
+      if ADoScroll then
+      begin
+        Exclude(FUpdateReasons, muSelection);
+        Include(FUpdateReasons, muSelectionScroll)
+      end else
+        Include(FUpdateReasons, muSelection);
+    finally
+      UnlockUpdate;
     end;
-  finally
-    UnlockUpdate;
-  end;
+    Result := True
+  end else
+    Result := False;
 end;
 
 procedure TKMemoBlocks.SetLines(AIndex: Integer; const AValue: TString);
 var
   I: Integer;
-  Item: TKMemoBlock;
 begin
   if (AIndex >= 0) and (AIndex < FLineCount) then
   begin
     LockUpdate;
     try
-      for I := FLines[AIndex].StartBlock to FLines[AIndex].EndBlock do
+      for I := FLines[AIndex].StartBlock to FLines[AIndex].EndBlock - 1 do
         Delete(FLines[AIndex].StartBlock);
-      Item := AddTextBlock(AValue, FLines[AIndex].StartBlock);
-      Item.NewLine := True;
+      AddTextBlock(AValue, FLines[AIndex].StartBlock);
     finally
       UnlockUpdate;
     end;
@@ -4438,7 +4659,7 @@ procedure TKMemoBlocks.SetText(const AValue: TString);
 var
   List: TStringList;
   I: Integer;
-  Item: TKMemoBlock;
+  S: TString;
 begin
   LockUpdate;
   try
@@ -4447,8 +4668,10 @@ begin
       List.Text := AValue;
       for I := 0 to List.Count - 1 do
       begin
-        Item := AddTextBlock(List[I]);
-        Item.NewLine := True;
+        S := List[I];
+        if S <> '' then
+          AddTextBlock(S);
+        AddNewLineBlock;
       end;
     finally
       List.Free;
@@ -4456,6 +4679,14 @@ begin
   finally
     UnlockUpdate;
   end;
+end;
+
+function TKMemoBlocks.ShowFormatting: Boolean;
+begin
+  if FMemo <> nil then
+    Result := eoShowFormatting in FMemo.Options
+  else
+    Result := False;
 end;
 
 procedure TKMemoBlocks.UnlockUpdate;
@@ -4469,8 +4700,6 @@ begin
 end;
 
 procedure TKMemoBlocks.Update(AReasons: TKMemoUpdateReasons);
-var
-  Item: TKMemoBlock;
 begin
   if UpdateUnlocked then
   begin
@@ -4479,12 +4708,9 @@ begin
       // avoid possible infinite loops
       Inc(FUpdateLock);
       try
-        // if list is empty always assure at least one text block
-        if Count = 0 then
-          AddTextBlock('');
-        // ensure last block has always new line
-        Item := TKMemoBlock(Items[Count - 1]);
-        Item.NewLine := True;
+        // if list is empty always assure at least one block
+        if (Count = 0) or not (Items[Count - 1] is TKNewLineMemoBlock) then
+          AddNewLineBlock;
         UpdateLineInfo;
       finally
         Dec(FUpdateLock);
@@ -4511,9 +4737,8 @@ begin
   while I < Count do
   begin
     Item := TKMemoBlock(Items[I]);
-    IsPara := Item.NewLine;
     Inc(CurIndex, Item.SelectableLength);
-    if IsPara then
+    if Item is TKNewLineMemoBlock then
     begin
       Line := AddLine;
       Line.StartBlock := LineIndex;

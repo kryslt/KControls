@@ -245,7 +245,9 @@ type
     eoGroupUndo,
     { The editor allows undo/redo operations after the edit control's Modified property
       has been set to False }
-    eoUndoAfterSave
+    eoUndoAfterSave,
+    { TKMemo only: show formatting markers. }
+    eoShowFormatting
   );
 
   { Options can be arbitrary combined }

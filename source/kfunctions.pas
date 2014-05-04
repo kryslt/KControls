@@ -140,7 +140,7 @@ const
   cLF = #13;
   { TAB character. }
   cTAB = #9;
-  { TAB character. }
+  { SPACE character. }
   cSPACE = #32;
   { String terminator. }
   cNULL = #0;
@@ -1249,8 +1249,8 @@ function GetControlText(Value: TWinControl): TString;
 
   function GetTextBuffer(Value: TWinControl): string;
   begin
-    SetLength(Result, Value.GetTextLen);
-    Value.GetTextBuf(PChar(Result), Length(Result) + 1);
+    SetLength(Result, Value.GetTextLen + 1);
+    Value.GetTextBuf(PChar(Result), Length(Result));
   end;
 
 begin
@@ -1262,8 +1262,8 @@ begin
  {$ELSE}
   if Value.HandleAllocated and (Win32Platform = VER_PLATFORM_WIN32_NT) then // unicode fully supported
   begin
-    SetLength(Result, GetWindowTextLengthW(Value.Handle));
-    GetWindowTextW(Value.Handle, PWideChar(Result), Length(Result) + 1);
+    SetLength(Result, GetWindowTextLengthW(Value.Handle) + 1);
+    GetWindowTextW(Value.Handle, PWideChar(Result), Length(Result));
   end else
     Result := GetTextBuffer(Value);
  {$ENDIF}
