@@ -916,8 +916,6 @@ type
     function GetClientHeightChars: Integer; virtual;
     { Returns number of characters that horizontally fit into client window }
     function GetClientWidthChars: Integer; virtual;
-    { Returns the current key stroke mapping scheme. }
-    function GetKeyMapping: TKEditKeyMapping;
     { Returns modified client rect - a window client rect aligned to character width and
       character height }
     function GetModifiedClientRect: TRect; virtual;
@@ -1043,6 +1041,8 @@ type
     property FirstVisibleIndex: Integer read GetFirstVisibleIndex;
     { Returns True if insert mode is on }
     property InsertMode: Boolean read GetInsertMode;
+    { Specifies the current key stroke mapping scheme. }
+    property KeyMapping: TKEditKeyMapping read FKeyMapping;
     { Returns the last visible index }
     property LastVisibleIndex: Integer read GetLastVisibleIndex;
     { Specifies the horizontal scroll position }
@@ -1727,7 +1727,7 @@ begin
   FLineSize := cLineSizeDef;
   FMouseWheelAccumulator := 0;
   FOptions := [eoGroupUndo];
-  FKeyMapping := CreateDefaultKeyMapping;
+  FKeyMapping := TKEditKeyMapping.Create;
   FRedoList := TKHexEditorChangeList.Create(Self, nil);
   FScrollBars := ssBoth;
   FScrollSpeed := cScrollSpeedDef;
@@ -1752,6 +1752,7 @@ begin
   inherited;
   FOnChange := nil;
   FColors.Free;
+  FKeyMapping.Free;
   FUndoList.Free;
   FRedoList.Free;
   FreeMem(FBuffer);
@@ -1840,6 +1841,7 @@ begin
     Self.ImeMode := ImeMode;
     Self.ImeName := ImeName;
   {$ENDIF}
+    Self.KeyMapping.Assign(KeyMapping);
     Self.LineHeightPercent := LineHeightPercent;
     Self.LineSize := LineSize;
     Self.Modified := False;
@@ -1856,7 +1858,6 @@ begin
     Self.SelEnd := SelEnd;
     Self.SelStart := SelStart;
     Self.SetCharMapping(GetCharMapping);
-    Self.SetKeyMapping(GetKeyMapping);
     Self.ShowHint := ShowHint;
     Self.TabOrder := TabOrder;
     Self.TabStop := TabStop;
@@ -3016,17 +3017,8 @@ begin
 end;
 
 function TKCustomHexEditor.GetCommandKey(Index: TKEditCommand): TKEditKey;
-var
-  I: Integer;
 begin
-  Result.Key := 0;
-  Result.Shift := [];
-  for I := 0 to Length(FKeyMapping) - 1 do
-    if FKeyMapping[I].Command = Index then
-    begin
-      Result := FKeyMapping[I].Key;
-      Exit;
-    end;
+  Result := FKeyMapping.Key[Index];
 end;
 
 function TKCustomHexEditor.GetData: TDataSize;
@@ -3048,11 +3040,6 @@ end;
 function TKCustomHexEditor.GetInsertMode: Boolean;
 begin
   Result := not (elOverwrite in FStates);
-end;
-
-function TKCustomHexEditor.GetKeyMapping: TKEditKeyMapping;
-begin
-  Result := FKeyMapping;
 end;
 
 function TKCustomHexEditor.GetLastVisibleIndex: Integer;
@@ -3271,22 +3258,18 @@ end;
 procedure TKCustomHexEditor.KeyDown(var Key: Word; Shift: TShiftState);
 var
   I: Integer;
-  HK: TKEditKey;
+  Cmd: TKEditCommand;
 begin
   inherited;
   Exclude(FStates, elIgnoreNextChar);
   if not (csDesigning in ComponentState) then
   begin
-    for I := 0 to Length(FKeyMapping) - 1 do
+    Cmd := FKeyMapping.FindCommand(Key, Shift);
+    if Cmd <> ecNone then
     begin
-      HK := FKeyMapping[I].Key;
-      if (HK.Key = Key) and (HK.Shift = Shift) then
-      begin
-        ExecuteCommand(FKeyMapping[I].Command);
-        Key := 0;
-        Include(FStates, elIgnoreNextChar);
-        Exit;
-      end;
+      ExecuteCommand(Cmd);
+      Key := 0;
+      Include(FStates, elIgnoreNextChar);
     end;
     if Key = VK_ESCAPE then
       Include(FStates, elIgnoreNextChar);
@@ -4427,15 +4410,8 @@ begin
 end;
 
 procedure TKCustomHexEditor.SetCommandKey(Index: TKEditCommand; Value: TKEditKey);
-var
-  I: Integer;
 begin
-  for I := 0 to Length(FKeyMapping) - 1 do
-    if FKeyMapping[I].Command = Index then
-    begin
-      FKeyMapping[I].Key := Value;
-      Exit;
-    end;
+  FKeyMapping.Key[Index] := Value;
 end;
 
 procedure TKCustomHexEditor.SetData(Value: TDataSize);
@@ -4496,8 +4472,7 @@ end;
 
 procedure TKCustomHexEditor.SetKeyMapping(const Value: TKEditKeyMapping);
 begin
-  SetLength(FKeyMapping, Length(Value));
-  Move(Value, FKeyMapping, Length(Value) * SizeOf(TKEditCommandAssignment));
+  FKeyMapping.Assign(Value);
 end;
 
 procedure TKCustomHexEditor.SetLineHeightPercent(Value: Integer);

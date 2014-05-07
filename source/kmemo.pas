@@ -132,12 +132,12 @@ type
   TKMemoStates = set of TKMemoState;
 
   TKMemoUpdateReason = (
-    { Attributes changed that do not affect extent and contents. }
+    { Attributes changed that do not affect extent and content. }
     muAttributes,
-    { recalculate extents. }
+    { recalculate extent. }
     muExtent,
-    { recalculate line info and extents. }
-    muContents,
+    { recalculate line info and extent. }
+    muContent,
     { selection changed. }
     muSelection,
     { selection changed and scroll operation is required to reflect the change. }
@@ -613,6 +613,7 @@ type
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
   protected
     FCaretRect: TRect;
+    FOldCaretRect: TRect;
     FPreferredCaretPos: Integer;
     { Inserts a single crCaretPos item into undo list. Unless Force is set to True,
       this change will be inserted only if previous undo item is not crCaretPos. }
@@ -663,8 +664,6 @@ type
     procedure EndUndoGroup;
     { Notify blocks about memo font change. }
     procedure FontChange(Sender: TObject); virtual;
-    { Returns the current key stroke mapping scheme. }
-    function GetKeyMapping: TKEditKeyMapping;
     { Returns "real" selection end - with always higher index value than selection start value. }
     function GetRealSelEnd: Integer; virtual;
     { Returns "real" selection start - with always lower index value than selection end value. }
@@ -1259,6 +1258,8 @@ begin
   Width := cWidth;
   FBackgroundImage := TPicture.Create;
   FBlocks := TKMemoBlocks.Create(Self);
+  FCaretRect := CreateEmptyRect;
+  FOldCaretRect := CreateEmptyRect;
   FColors := TKMemoColors.Create(Self);
   FContentPadding := TKRect.Create;
   FContentPadding.OnChanged := ContentPaddingChanged;
@@ -1347,6 +1348,7 @@ begin
       Self.ImeMode := ImeMode;
       Self.ImeName := ImeName;
     {$ENDIF}
+      Self.KeyMapping.Assign(KeyMapping);
       Self.Modified := False;
       Self.Options := Options;
       Self.ParentBiDiMode := ParentBiDiMode;
@@ -1360,7 +1362,6 @@ begin
       Self.ScrollBars := ScrollBars;
       Self.SelEnd := SelEnd;
       Self.SelStart := SelStart;
-      Self.KeyMapping.Assign(KeyMapping);
       Self.ShowHint := ShowHint;
       Self.TabOrder := TabOrder;
       Self.TabStop := TabStop;
@@ -1382,11 +1383,9 @@ procedure TKCustomMemo.BlocksChanged(AReasons: TKMemoUpdateReasons);
 begin
   if HandleAllocated then
   begin
-    if AReasons * [muContents, muExtent] <> [] then
+    if AReasons * [muContent, muExtent] <> [] then
       UpdateScrollRange(True)
-    else
-      UpdateEditorCaret(False);
-    if muSelectionScroll in AReasons then
+    else if muSelectionScroll in AReasons then
     begin
       if not ClampInView(False) then
       begin
@@ -1394,7 +1393,10 @@ begin
         Invalidate;
       end;
     end else
+    begin
+      UpdateEditorCaret;
       Invalidate;
+    end;
   end;
 end;
 
@@ -1432,6 +1434,7 @@ function TKCustomMemo.ClampInView(CallScrollWindow: Boolean): Boolean;
 var
   DeltaHorz, DeltaVert: Integer;
 begin
+  UpdateEditorCaret(False);
   Result := ScrollNeeded(DeltaHorz, DeltaVert);
   if Result then
   begin
@@ -1994,21 +1997,9 @@ begin
           end;
         end;
       end;}
-      ecInsertChar:
-      begin
-        ClearSelection;
-        InsertChar(TmpSelEnd, PKChar(Data)^);
-      end;
-      ecInsertString:
-      begin
-        ClearSelection;
-        InsertString(TmpSelEnd, TString(Data));
-      end;
-      ecInsertNewLine:
-      begin
-        ClearSelection;
-        InsertNewLine(TmpSelEnd);
-      end;
+      ecInsertChar: InsertChar(TmpSelEnd, PKChar(Data)^);
+      ecInsertString: InsertString(TmpSelEnd, TString(Data));
+      ecInsertNewLine: InsertNewLine(TmpSelEnd);
       ecDeleteLastChar:
       begin
         if SelLength <> 0 then
@@ -2380,11 +2371,6 @@ begin
   Result := not (elOverwrite in FStates);
 end;
 
-function TKCustomMemo.GetKeyMapping: TKEditKeyMapping;
-begin
-  Result := FKeyMapping;
-end;
-
 function TKCustomMemo.GetModified: Boolean;
 begin
   Result := (elModified in FStates) or FUndoList.Modified;
@@ -2465,6 +2451,11 @@ procedure TKCustomMemo.InsertChar(At: Integer; AValue: TKChar);
 begin
   BeginUndoGroup(ckInsert);
   try
+    if FBlocks.SelLength <> 0 then
+    begin
+      FBlocks.ClearSelection;
+      At := FBlocks.SelEnd;
+    end;
     if elOverwrite in FStates then
       DeleteChar(At);
     if FBlocks.InsertString(At, AValue) then
@@ -2478,6 +2469,11 @@ procedure TKCustomMemo.InsertNewLine(At: Integer);
 begin
   BeginUndoGroup(ckInsert);
   try
+    if FBlocks.SelLength > 0 then
+    begin
+      FBlocks.ClearSelection;
+      At := FBlocks.SelEnd;
+    end;
     // always insert (don't overwrite)
     if FBlocks.InsertNewLine(At) then
       ExecuteCommand(ecRight);
@@ -2492,6 +2488,11 @@ begin
   begin
     BeginUndoGroup(ckInsert);
     try
+      if FBlocks.SelLength > 0 then
+      begin
+        FBlocks.ClearSelection;
+        At := FBlocks.SelEnd;
+      end;
       // always insert (don't overwrite)
       FBlocks.InsertString(At, AValue);
     finally
@@ -2695,7 +2696,6 @@ begin
       Invalidate;
     UpdateEditorCaret;
     Inc(FPreferredCaretPos, (OldLeftPos - FLeftPos) * FHorzScrollStep);
-
   end;
 end;
 
@@ -2968,14 +2968,11 @@ begin
 end;
 
 procedure TKCustomMemo.UpdateEditorCaret(AShow: Boolean);
-var
-  R: TRect;
 begin
   if HandleAllocated then
   begin
     Include(FStates, elCaretUpdate);
     try
-      R := FCaretRect;
       FCaretRect := FBlocks.IndexToRect(Canvas, SelEnd, True);
       Dec(FCaretRect.Right, FCaretRect.Left); // Right is width
       Dec(FCaretRect.Bottom, FCaretRect.Top); // Bottom is height
@@ -2986,7 +2983,8 @@ begin
         begin
           if not (elOverwrite in FStates) then
             FCaretRect.Right := MinMax(FCaretRect.Bottom div 10, 1, 3);
-          if not (elCaretCreated in FStates) or (R.Right <> FCaretRect.Right) or (R.Bottom <> FCaretRect.Bottom) then
+          if not (elCaretCreated in FStates) or
+            (FOldCaretRect.Right <> FCaretRect.Right) or (FOldCaretRect.Bottom <> FCaretRect.Bottom) then
           begin
             if CreateCaret(Handle, 0, FCaretRect.Right, FCaretRect.Bottom) then
             begin
@@ -2995,11 +2993,12 @@ begin
               Include(FStates, elCaretCreated);
             end;
           end
-          else if (R.Left <> FCaretRect.Left) or (R.Top <> FCaretRect.Top) then
+          else if (FOldCaretRect.Left <> FCaretRect.Left) or (FOldCaretRect.Top <> FCaretRect.Top) then
           begin
             ShowEditorCaret;
             Include(FStates, elCaretVisible);
           end;
+          FOldCaretRect := FCaretRect;
         end
         else if elCaretCreated in FStates then
         begin
@@ -3059,10 +3058,11 @@ begin
       end else
         ShowScrollBar(Handle, SB_VERT, False);
     end;
-    UpdateEditorCaret;
     if CallInvalidate then
-      Invalidate
-    else
+    begin
+      UpdateEditorCaret;
+      Invalidate;
+    end else
       ScrollBy(-DeltaHorz, -DeltaVert);
     InvalidatePageSetup;
   end;
@@ -3166,7 +3166,7 @@ end;
 
 procedure TKMemoBlock.AssignAttributes(AItem: TKMemoBlock);
 begin
-  Update([muContents]);
+  Update([muContent]);
 end;
 
 procedure TKMemoBlock.ClearSelection;
@@ -3366,7 +3366,7 @@ begin
     FText := S;
     FTextLength := TextLength;
     FContentChanged := True;
-    Update([muContents]);
+    Update([muContent]);
     Result := True;
   end;
 end;
@@ -3405,7 +3405,7 @@ begin
     FTextLength := TextLength;
     FContentChanged := True;
     FSelEnd := FSelStart;
-    Update([muContents]);
+    Update([muContent]);
   end;
 end;
 
@@ -3548,7 +3548,6 @@ end;
 function TKTextMemoBlock.PointToIndex(ACanvas: TCanvas; const APoint: TPoint): Integer;
 var
   TextBox: TKTextBox;
-  S: TString;
 begin
   ACanvas.Font.Assign(FFont);
   ACanvas.Brush.Assign(FBrush);
@@ -3559,7 +3558,7 @@ begin
     TextBox.VAlign := FVAlign;
     TextBox.Text := FText;
     TextBox.Attributes := TextBox.Attributes + [taIncludePadding];
-    Result := TextIndexToIndex(S, TextBox.PointToIndex(ACanvas, FBounds, APoint));
+    Result := TextIndexToIndex(FText, TextBox.PointToIndex(ACanvas, FBounds, APoint));
   finally
     TextBox.Free;
   end;
@@ -3582,7 +3581,7 @@ begin
     FText := Value;
     FTextLength := TextLength;
     FContentChanged := True;
-    Update([muContents]);
+    Update([muContent]);
   end;
 end;
 
@@ -3621,7 +3620,7 @@ begin
     FContentChanged := True;
     Item.Text := Part2;
     Result := Item;
-    Update([muContents]);
+    Update([muContent]);
   end else
     Result := nil;
 end;
@@ -3743,13 +3742,13 @@ end;
 procedure TKImageMemoBlock.SetImage(const Value: TPicture);
 begin
   FImage.Assign(Value);
-  Update([muContents]);
+  Update([muContent]);
 end;
 
 procedure TKImageMemoBlock.SetImagePath(const Value: TString);
 begin
   FImage.LoadFromFile(Value);
-  Update([muContents]);
+  Update([muContent]);
 end;
 
 { TKNewLineMemoBlock }
@@ -3757,7 +3756,11 @@ end;
 constructor TKNewLineMemoBlock.Create(AParent: TKMemoBlocks);
 begin
   inherited;
+{$IFDEF FPC}
+  FText := UnicodeToUTF8(Cardinal(cNewLineChar));
+{$ELSE}
   FText := cNewLineChar;
+{$ENDIF}
   FTextLength := TextLength;
 end;
 
@@ -3850,7 +3853,7 @@ begin
   FSelEnd := 0;
   FSelStart := 0;
   FUpdateLock := 0;
-  Update([muContents]);
+  Update([muContent]);
 end;
 
 destructor TKMemoBlocks.Destroy;
@@ -4315,7 +4318,7 @@ begin
       Inc(CurIndex, Item.SelectableLength);
       if (AIndex >= LastIndex) and (AIndex < CurIndex) then
       begin
-        if ACaret and (AIndex = LastIndex) and (LastItem <> nil) and LastItem.CanAddText then
+        if ACaret and not (Item is TKNewLineMemoBlock) and (AIndex = LastIndex) and (LastItem <> nil) and LastItem.CanAddText then
         begin
           Result := LastItem.IndexToRect(ACanvas, LastItem.SelectableLength - 1);
           // return rectangle after the last character in a line
@@ -4491,7 +4494,7 @@ begin
       TKMemoBlock(Ptr).Free
     else
       TKMemoBlock(Ptr).Parent := Self;
-    Update([muContents]);
+    Update([muContent]);
   end else
     inherited;
 end;
@@ -4703,7 +4706,7 @@ procedure TKMemoBlocks.Update(AReasons: TKMemoUpdateReasons);
 begin
   if UpdateUnlocked then
   begin
-    if muContents in AReasons then
+    if muContent in AReasons then
     begin
       // avoid possible infinite loops
       Inc(FUpdateLock);
