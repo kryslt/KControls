@@ -37,7 +37,7 @@ var
   Index: Integer;
   MS: TMemoryStream;
   S: AnsiString;
-  W: TString;
+  W: TKString;
   I: Integer;
 begin
   Memo := TKMemo.Create(Self);

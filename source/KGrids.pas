@@ -1213,7 +1213,7 @@ type
     { Read method for the @link(TKGridAxisItem.Objects) property. Without implementation. }
     function GetObjects(Index: Integer): TObject; virtual; abstract;
     { Read method for the @link(TKGridAxisItem.Strings) property. Without implementation. }
-    function GetStrings(Index: Integer): TString; virtual; abstract;
+    function GetStrings(Index: Integer): TKString; virtual; abstract;
     { Read method for the @link(TKGridAxisItem.Visible) property. Without implementation. }
     function GetVisible: Boolean; virtual;
     { Write method for the @link(TKGridAxisItem.Extent) property. Without implementation. }
@@ -1225,7 +1225,7 @@ type
     { Write method for the @link(TKGridAxisItem.SortMode) property. Without implementation. }
     procedure SetSortMode(const Value: TKGridSortMode); virtual; abstract;
     { Write method for the @link(TKGridAxisItem.Strings) property. Without implementation. }
-    procedure SetStrings(Index: Integer; const Value: TString); virtual; abstract;
+    procedure SetStrings(Index: Integer; const Value: TKString); virtual; abstract;
     { Write method for the @link(TKGridAxisItem.Visible) property. Without implementation. }
     procedure SetVisible(Value: Boolean); virtual; abstract;
   public
@@ -1285,7 +1285,7 @@ type
     property SortMode: TKGridSortMode read FSortMode write SetSortMode;
     { Provides access to the obj cell instances corresponding to the column or
       row referred by this TKGridAxisItem instance. }
-    property Strings[Index: Integer]: TString read GetStrings write SetStrings; default;
+    property Strings[Index: Integer]: TKString read GetStrings write SetStrings; default;
     { Shareable property. Determines if the column or row is visible. }
     property Visible: Boolean read GetVisible write SetVisible;
     { Provides access to custom object for Row }
@@ -1312,7 +1312,7 @@ type
     { Read method for the @link(TKGridAxisItem.Objects) property. Implementation for columns. }
     function GetObjects(Index: Integer): TObject; override;
     { Read method for the @link(TKGridAxisItem.Strings) property. Implementation for columns. }
-    function GetStrings(Index: Integer): TString; override;
+    function GetStrings(Index: Integer): TKString; override;
     { Write method for the @link(TKGridAxisItem.Extent) property. Implementation for columns. }
     procedure SetExtent(const Value: Integer); override;
     { Write method for the @link(TKGridAxisItem.Objects) property. Implementation for columns. }
@@ -1322,7 +1322,7 @@ type
     { Write method for the @link(TKGridAxisItem.SortMode) property. Implementation for columns. }
     procedure SetSortMode(const Value: TKGridSortMode); override;
     { Write method for the @link(TKGridAxisItem.Strings) property. Implementation for columns. }
-    procedure SetStrings(Index: Integer; const Value: TString); override;
+    procedure SetStrings(Index: Integer; const Value: TKString); override;
     { Write method for the @link(TKGridAxisItem.Visible) property. Implementation for columns. }
     procedure SetVisible(Value: Boolean); override;
   public
@@ -1371,7 +1371,7 @@ type
     { Read method for the @link(TKGridAxisItem.Objects) property. Implementation for rows. }
     function GetObjects(Index: Integer): TObject; override;
     { Read method for the @link(TKGridAxisItem.Strings) property. Implementation for rows. }
-    function GetStrings(Index: Integer): TString; override;
+    function GetStrings(Index: Integer): TKString; override;
     { Write method for the @link(TKGridAxisItem.Extent) property. Implementation for rows. }
     procedure SetExtent(const Value: Integer); override;
     { Write method for the @link(TKGridAxisItem.Objects) property. Implementation for rows. }
@@ -1381,7 +1381,7 @@ type
     { Write method for the @link(TKGridAxisItem.SortMode) property. Implementation for rows. }
     procedure SetSortMode(const Value: TKGridSortMode); override;
     { Write method for the @link(TKGridAxisItem.Strings) property. Implementation for rows. }
-    procedure SetStrings(Index: Integer; const Value: TString); override;
+    procedure SetStrings(Index: Integer; const Value: TKString); override;
     { Write method for the @link(TKGridAxisItem.Visible) property. Implementation for rows. }
     procedure SetVisible(Value: Boolean); override;
   public
@@ -1518,13 +1518,13 @@ type
     FText: PWideChar; // WideString is slow as storage here
     function GetText: TKString;
   {$ENDIF}
-    procedure SetText(const Value: TString);
+    procedure SetText(const Value: TKString);
   protected
     { Assigns a new text string into this TKGridTextCell instance. The new
       string will be assigned by a grow on demand method, i.e. the memory
       allocated for the string can only grow within each assignment. It continues
       to grow until the TKGridTextCell instance is destroyed. }
-    procedure AssignText(const Value: TString); virtual;
+    procedure AssignText(const Value: TKString); virtual;
     { Cell class aware version of @link(TKCustomGrid.OnEditorCreate).
       Creates a TEdit inplace editor. }
     procedure EditorCreate(ACol, ARow: Integer; var AEditor: TWinControl); override;
@@ -1544,7 +1544,7 @@ type
       published as pointer for fast read operations like sorting. }
     property TextPtr: PKText read {$IFDEF STRING_IS_UNICODE}GetTextPtr{$ELSE}FText{$ENDIF};
     { Shareable property. This is the editable text that appears in the cell. }
-    property Text: TString read {$IFDEF STRING_IS_UNICODE}FText{$ELSE}GetText{$ENDIF} write SetText;
+    property Text: TKString read {$IFDEF STRING_IS_UNICODE}FText{$ELSE}GetText{$ENDIF} write SetText;
   end;
 
   { @abstract(Class for a textual cell with custom appearance)
@@ -1692,7 +1692,7 @@ type
     FSortArrowHAlign: TKHAlign;
     FSortArrowHPadding: Integer;
     FState: TKGridDrawState;
-    FText: TString;
+    FText: TKString;
     FValidClipping: Boolean;
     FVAlign: TKVAlign;
     FVPadding: Integer;
@@ -1899,7 +1899,7 @@ type
     { Specifies the draw state of the cell. }
     property State: TKGridDrawState read FState write FState;
     { Specifies the text that appears in the cell. }
-    property Text: TString read FText write FText;
+    property Text: TKString read FText write FText;
     { This is the default vertical alignment that will be used to place the text
       within the cell rectangle. }
     property VAlign: TKVAlign read FVAlign write FVAlign;
@@ -2072,7 +2072,7 @@ type
     function GetAllRowsSelected: Boolean;
     function GetAllColsSelected: Boolean;
     function GetCell(ACol, ARow: Integer): TKGridCell;
-    function GetCells(ACol, ARow: Integer): TString;
+    function GetCells(ACol, ARow: Integer): TKString;
     function GetCellSpan(ACol, ARow: Integer): TKGridCellSpan;
     function GetCols(Index: Integer): TKGridCol;
     function GetColWidths(Index: Integer): Integer;
@@ -2111,7 +2111,7 @@ type
   {$ENDIF}
     procedure SetCell(ACol, ARow: Integer; Value: TKGridCell);
     procedure SetCellPainterClass(Value: TKGridCellPainterClass);
-    procedure SetCells(ACol, ARow: Integer; const Text: TString);
+    procedure SetCells(ACol, ARow: Integer; const Text: TKString);
     procedure SetCellSpan(ACol, ARow: Integer; Value: TKGridCellSpan);
     procedure SetCol(Value: Integer);
     procedure SetColCount(Value: Integer);
@@ -2454,7 +2454,7 @@ type
     { Used internally to assign new cell value. }
     procedure InternalSetCell(ACol, ARow: Integer; Value: TKGridCell); virtual;
     { Used internally to assign new text to a cell. }
-    procedure InternalSetCells(ACol, ARow: Integer; const Text: TString); virtual;
+    procedure InternalSetCells(ACol, ARow: Integer; const Text: TKString); virtual;
     { Sets the cell span paramters according to given parameters. Automatically
       splits any existing overlapping areas. Returns a grid rectangle that can
       be used to update all affected cells. }
@@ -3026,7 +3026,7 @@ type
       cell instance. If the cell instance at the position specified by ACol and ARow
       does not inherit from a textual cell class @link(TKGridTextCell), it will be
       created for this cell regardless of the current CellClass assignment. }
-    property Cells[ACol, ARow: Integer]: TString read GetCells write SetCells;
+    property Cells[ACol, ARow: Integer]: TKString read GetCells write SetCells;
     { Specifies the column span and row span for given cell. Always specify positive
       values. Reading this property may return zero or negative values, which
       are used internally to find base cell of the respective merged area. }
@@ -3737,7 +3737,7 @@ function CompareAxisItems(AxisItems1, AxisItems2: TKGridAxisItems): Boolean;
   Call TKCustomGrid.CellPainter.@link(TKGridCellPainter.DefaultDraw) instead. }
 procedure DefaultDrawCell(AGrid: TKCustomGrid; ACol, ARow: Integer; ARect: TRect;
   AState: TKGridDrawState; HAlign: TKHAlign; VAlign: TKVAlign;
-  HPadding, VPadding: Integer; const AText: TString);
+  HPadding, VPadding: Integer; const AText: TKString);
 
 { Obsolete function. Call TKCustomGrid.@link(TKCustomGrid.DefaultEditorKeyPreview) instead. }
 procedure DefaultKeyPreview(AGrid: TKCustomGrid; AEditor: TWinControl;
@@ -3848,7 +3848,7 @@ end;
 
 procedure DefaultDrawCell(AGrid: TKCustomGrid; ACol, ARow: Integer; ARect: TRect;
   AState: TKGridDrawState; HAlign: TKHAlign; VAlign: TKVAlign;
-  HPadding, VPadding: Integer; const AText: TString);
+  HPadding, VPadding: Integer; const AText: KFunctions.TKString);
 begin
   with AGrid do
   begin
@@ -4162,7 +4162,7 @@ begin
   end;
 end;
 
-function TKGridCol.GetStrings(Index: Integer): TString;
+function TKGridCol.GetStrings(Index: Integer): KFunctions.TKString;
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4232,7 +4232,7 @@ begin
   end;
 end;
 
-procedure TKGridCol.SetStrings(Index: Integer; const Value: TString);
+procedure TKGridCol.SetStrings(Index: Integer; const Value: KFunctions.TKString);
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4351,7 +4351,7 @@ begin
   end;
 end;
 
-function TKGridRow.GetStrings(Index: Integer): TString;
+function TKGridRow.GetStrings(Index: Integer): KFunctions.TKString;
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4421,7 +4421,7 @@ begin
   end;
 end;
 
-procedure TKGridRow.SetStrings(Index: Integer; const Value: TString);
+procedure TKGridRow.SetStrings(Index: Integer; const Value: KFunctions.TKString);
 var
   I: Integer;
   Cell: TKGridCell;
@@ -4675,7 +4675,7 @@ begin
     SetText(TKGridTextCell(Source).TextPtr);
 end;
 
-procedure TKGridTextCell.AssignText(const Value: TString);
+procedure TKGridTextCell.AssignText(const Value: KFunctions.TKString);
 {$IFNDEF STRING_IS_UNICODE}
 var
   Len: Integer;
@@ -4721,7 +4721,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TKGridTextCell.SetText(const Value: TString);
+procedure TKGridTextCell.SetText(const Value: KFunctions.TKString);
 begin
 {$IFDEF STRING_IS_UNICODE}
   if Value <> FText then
@@ -6857,7 +6857,7 @@ procedure TKCustomGrid.DefaultMouseCellHint(ACol, ARow: Integer;
 var
   R: TRect;
   Extent: TPoint;
-  AText: TString;
+  AText: KFunctions.TKString;
 begin
   if ColValid(ACol) and Cols[ACol].CellHint then
   begin
@@ -7510,7 +7510,7 @@ begin
     Result := nil;
 end;
 
-function TKCustomGrid.GetCells(ACol, ARow: Integer): TString;
+function TKCustomGrid.GetCells(ACol, ARow: Integer): KFunctions.TKString;
 var
   Data: TKGridCell;
 begin
@@ -8834,7 +8834,7 @@ begin
   InvalidateCell(ACol, ARow);
 end;
 
-procedure TKCustomGrid.InternalSetCells(ACol, ARow: Integer; const Text: TString);
+procedure TKCustomGrid.InternalSetCells(ACol, ARow: Integer; const Text: KFunctions.TKString);
 var
   Cell, Tmp: TKGridCell;
 begin
@@ -11444,7 +11444,7 @@ begin
   end;
 end;
 
-procedure TKCustomGrid.SetCells(ACol, ARow: Integer; const Text: TString);
+procedure TKCustomGrid.SetCells(ACol, ARow: Integer; const Text: KFunctions.TKString);
 begin
   if Assigned(FCells) and ColValid(ACol) and RowValid(ARow) then
     InternalSetCells(ACol, ARow, Text);

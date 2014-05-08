@@ -312,8 +312,8 @@ type
   TDynAnsiChars = array of AnsiChar;
 
 {$IFDEF FPC}
-  { TString is UTF8 string in Lazarus. }
-  TString = string;
+  { TKString is UTF8 string in Lazarus. }
+  TKString = string;
   { TKChar is UTF8 character in Lazarus. }
   TKChar = TUTF8Char;
   { PKChar is pointer to UTF8 character in Lazarus. }
@@ -322,8 +322,8 @@ type
   PKText = PChar;
 {$ELSE}
  {$IFDEF STRING_IS_UNICODE}
-  { TString is UnicodeString in unicode aware Delphi. }
-  TString = string;
+  { TKString is UnicodeString in unicode aware Delphi. }
+  TKString = string;
   { TKChar is Char in unicode aware Delphi. }
   TKChar = Char;
   { PKChar is pointer to Char in unicode aware Delphi. }
@@ -331,8 +331,8 @@ type
   { PKText is PChar in unicode aware Delphi. }
   PKText = PChar;
  {$ELSE}
-  { TString is WideString in old non-unicode Delphi versions. }
-  TString = WideString;
+  { TKString is WideString in old non-unicode Delphi versions. }
+  TKString = WideString;
   { TKChar is WideChar in old non-unicode Delphi versions. }
   TKChar = WideChar;
   { PKChar is pointer to WideChar in old non-unicode Delphi versions. }
@@ -357,7 +357,7 @@ type
   TKCurrencyFormat = record
     CurrencyFormat,
     CurrencyDecimals: Byte;
-    CurrencyString: TString;
+    CurrencyString: TKString;
     DecimalSep: Char;
     ThousandSep: Char;
     UseThousandSep: Boolean;
@@ -427,7 +427,7 @@ function CompareStrings(S1, S2: string{$IFDEF USE_WIDEWINPROCS}; Locale: Cardina
 {$ENDIF}
 
 { Converts tab characters in a string to space characters. }
-procedure ConvertTabsToSpaces(var AText: TString; ASpacesForTab: Integer);
+procedure ConvertTabsToSpaces(var AText: TKString; ASpacesForTab: Integer);
 
 { Creates given directory, even if more folders have to be created. }
 function CreateMultipleDir(const Dir: string): Boolean;
@@ -514,17 +514,17 @@ procedure Exchange(var Value1, Value2: Char); overload;
 function FillMessage(Msg: Cardinal; WParam: WPARAM; LParam: LPARAM): TLMessage;
 
 { Formats the given currency value with to specified parameters. Not thread safe. }
-function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TString;
+function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKString;
 
 { Returns the module version for given module. Works under WinX only. }
 function GetAppVersion(const ALibName: string; var MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 
 { Returns number of a specific character in a string. }
-function GetCharCount(const AText: TString; AChar: TKChar): Integer;
+function GetCharCount(const AText: TKString; AChar: TKChar): Integer;
 
 { Returns the Text property of any TWinControl instance as WideString (up to Delphi 2007)
   or string (Delphi 2009, Lazarus). }
-function GetControlText(Value: TWinControl): TString;
+function GetControlText(Value: TWinControl): TKString;
 
 { Returns the standard locale dependent format settings. }
 function GetFormatSettings: TFormatSettings;
@@ -627,33 +627,33 @@ procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
 
 { Modifies the Text property of any TWinControl instance. The value is given as
   WideString (up to Delphi 2007) or string (Delphi 2009, Lazarus). }
-procedure SetControlText(Value: TWinControl; const Text: TString);
+procedure SetControlText(Value: TWinControl; const Text: TKString);
 
 { Ensures the path given by APath has no slash at the end. }
 procedure StripLastPathSlash(var APath: string);
 
 { Returns next character index for given null terminated string and character index.
   Takes MBCS (UTF8 in Lazarus) into account. }
-function StrNextCharIndex(const AText: TString; Index: Integer): Integer;
+function StrNextCharIndex(const AText: TKString; Index: Integer): Integer;
 
 { Returns the index for given string where character at given index begins.
   Takes MBCS (UTF8 in Lazarus) into account. }
-function StringCharBegin(const AText: TString; Index: Integer): Integer;
+function StringCharBegin(const AText: TKString; Index: Integer): Integer;
 
 { Returns the number of characters in a string. Under Delphi it equals Length,
   under Lazarus it equals UTF8Length. }
-function StringLength(const AText: TString): Integer;
+function StringLength(const AText: TKString): Integer;
 
 { Returns next character index for given string and character index.
   Takes MBCS (UTF8 in Lazarus) into account. }
-function StringNextCharIndex(const AText: TString; Index: Integer): Integer;
+function StringNextCharIndex(const AText: TKString; Index: Integer): Integer;
 
 { Trims characters specified by ASet from the beginning and end of AText.
   New text length is returned by ALen. }
-procedure TrimWhiteSpaces(const AText: TString; var AStart, ALen: Integer; const ASet: TKSysCharSet); overload;
+procedure TrimWhiteSpaces(const AText: TKString; var AStart, ALen: Integer; const ASet: TKSysCharSet); overload;
 
 { Trims characters specified by ASet from the beginning and end of AText. }
-procedure TrimWhiteSpaces(var AText: TString; const ASet: TKSysCharSet); overload;
+procedure TrimWhiteSpaces(var AText: TKString; const ASet: TKSysCharSet); overload;
 
 {$IFNDEF FPC}
 { Trims characters specified by ASet from the beginning and end of AText. }
@@ -848,10 +848,10 @@ begin
 end;
 {$ENDIF}
 
-procedure ConvertTabsToSpaces(var AText: TString; ASpacesForTab: Integer);
+procedure ConvertTabsToSpaces(var AText: TKString; ASpacesForTab: Integer);
 var
   TabCount: Integer;
-  S: TString;
+  S: TKString;
   I, J, K: Integer;
 begin
   if ASpacesForTab >= 0 then
@@ -1180,7 +1180,7 @@ begin
   Result.Result := 0;
 end;
 
-function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TString;
+function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKString;
 var
   Fmt: string;
   FS: TFormatSettings;
@@ -1235,7 +1235,7 @@ begin
 {$ENDIF}
 end;
 
-function GetCharCount(const AText: TString; AChar: TKChar): Integer;
+function GetCharCount(const AText: TKString; AChar: TKChar): Integer;
 var
   I: Integer;
 begin
@@ -1245,7 +1245,7 @@ begin
       Inc(Result);
 end;
 
-function GetControlText(Value: TWinControl): TString;
+function GetControlText(Value: TWinControl): TKString;
 
   function GetTextBuffer(Value: TWinControl): string;
   begin
@@ -1847,7 +1847,7 @@ begin
   end;
 end;
 
-procedure SetControlText(Value: TWinControl; const Text: TString);
+procedure SetControlText(Value: TWinControl; const Text: TKString);
 
   procedure SetTextBuffer(Value: TWinControl; const Text: string);
   begin
@@ -1875,7 +1875,7 @@ begin
     if CharInSetEx(APath[Length(APath)], ['\', '/']) then Delete(APath, Length(APath), 1);
 end;
 
-function StrNextCharIndex(const AText: TString; Index: Integer): Integer;
+function StrNextCharIndex(const AText: TKString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
   Result := Index + UTF8CharacterLength(@AText[Index]);
@@ -1884,7 +1884,7 @@ begin
 {$ENDIF}
 end;
 
-function StringCharBegin(const AText: TString; Index: Integer): Integer;
+function StringCharBegin(const AText: TKString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
   Result := UTF8CharToByteIndex(PChar(AText), Length(AText), Index)
@@ -1893,7 +1893,7 @@ begin
 {$ENDIF}
 end;
 
-function StringLength(const AText: TString): Integer;
+function StringLength(const AText: TKString): Integer;
 begin
 {$IFDEF FPC}
   Result := UTF8Length(AText)
@@ -1902,7 +1902,7 @@ begin
 {$ENDIF}
 end;
 
-function StringNextCharIndex(const AText: TString; Index: Integer): Integer;
+function StringNextCharIndex(const AText: TKString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
   Result := Index + UTF8CharacterLength(@AText[Index]);
@@ -1911,7 +1911,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TrimWhiteSpaces(const AText: TString; var AStart, ALen: Integer; const ASet: TKSysCharSet);
+procedure TrimWhiteSpaces(const AText: TKString; var AStart, ALen: Integer; const ASet: TKSysCharSet);
 begin
   while (ALen > 0) and CharInSetEx(AText[AStart], ASet) do
   begin
@@ -1922,7 +1922,7 @@ begin
     Dec(ALen);
 end;
 
-procedure TrimWhiteSpaces(var AText: TString; const ASet: TKSysCharSet);
+procedure TrimWhiteSpaces(var AText: TKString; const ASet: TKSysCharSet);
 begin
   while (Length(AText) > 0) and CharInSetEx(AText[1], ASet) do
     Delete(AText, 1, 1);

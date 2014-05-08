@@ -294,10 +294,10 @@ type
     FSelEnd: Integer;
     FSelStart: Integer;
     FSpacesForTab: Integer;
-    FText: TString;
+    FText: TKString;
     FVAlign: TKVAlign;
     FVPadding: Integer;
-    procedure SetText( const AText: TString);
+    procedure SetText(const AText: TKString);
   protected
     FCanvas: TCanvas;
     FClipRect: TRect;
@@ -316,10 +316,10 @@ type
     function IndexToRect(ACanvas: TCanvas; const ARect: TRect; AIndex: Integer): TRect; virtual;
     procedure Measure(ACanvas: TCanvas; const ARect: TRect; var AWidth, AHeight: Integer); virtual;
     function PointToIndex(ACanvas: TCanvas; const ARect: TRect; APoint: TPoint): Integer; virtual;
-    class function TextExtent(ACanvas: TCanvas; const AText: TString;
+    class function TextExtent(ACanvas: TCanvas; const AText: TKString;
        AStart, ALen: Integer; AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2): TSize; static;
     class procedure TextOutput(ACanvas: TCanvas; X, Y: Integer;
-      const AText: TString; AStart, ALen: Integer;
+      const AText: TKString; AStart, ALen: Integer;
       AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2); static;
     property Attributes: TKTextAttributes read FAttributes write FAttributes;
     property BackColor: TColor read FBackColor write FBackColor;
@@ -330,7 +330,7 @@ type
     property SelEnd: Integer read FSelEnd write FSelEnd;
     property SelStart: Integer read FSelStart write FSelStart;
     property SpacesForTab: Integer read FSpacesForTab write FSpacesForTab;
-    property Text: TString read FText write SetText;
+    property Text: TKString read FText write SetText;
     property VAlign: TKVAlign read FVAlign write FVAlign;
     property VPadding: Integer read FVPadding write FVPadding;
   end;
@@ -404,8 +404,8 @@ type
     This class implements the textual hint window. The text is displayed . }
   TKTextHint = class(TKHintWindow)
   private
-    FText: TString;
-    procedure SetText(const Value: TString);
+    FText: TKString;
+    procedure SetText(const Value: TKString);
   protected
     { Overriden method. Paints the hint. }
     procedure Paint; override;
@@ -413,7 +413,7 @@ type
     { Creates the instance. }
     constructor Create(AOwner: TComponent); override;
     { }
-    property Text: TString read FText write SetText;
+    property Text: TKString read FText write SetText;
   end;
 
   TKGraphicHint = class(TKHintWindow)
@@ -477,7 +477,7 @@ function CreateEmptyRgn: HRGN;
   is defined in Canvas. Attributes specift various text output attributes. }
 procedure DrawAlignedText(Canvas: TCanvas; var ARect: TRect;
   HAlign: TKHAlign; VAlign: TKVAlign; HPadding, VPadding: Integer;
-  const AText: TString;
+  const AText: TKString;
   BackColor: TColor = clWhite; Attributes: TKTextAttributes = []);
 
 { Simulates WinAPI DrawEdge with customizable colors. }
@@ -763,7 +763,7 @@ end;
 
 procedure DrawAlignedText(Canvas: TCanvas; var ARect: TRect;
   HAlign: TKHAlign; VAlign: TKVAlign; HPadding, VPadding: Integer;
-  const AText: TString;
+  const AText: TKString;
   BackColor: TColor; Attributes: TKTextAttributes);
 var
   TextBox: TKTextBox;
@@ -1840,7 +1840,7 @@ var
   var
     DrawEllipsis, DrawFileName, SetNormalColors, SetSelectionColors: Boolean;
     AWidth, Index, NewIndex, SlashPos, FileNameLen, EllipsisMaxX, X: Integer;
-    S: TString;
+    S: TKString;
   begin
     if (Y >= FClipRect.Top - FFontHeight) and (Y <= FClipRect.Bottom) then
     begin
@@ -2080,7 +2080,7 @@ begin
   end;
 end;
 
-procedure TKTextBox.SetText(const AText: TString);
+procedure TKTextBox.SetText(const AText: TKString);
 begin
   if AText <> FText then
   begin
@@ -2100,7 +2100,7 @@ begin
   Result := FIndex;
 end;
 
-class function TKTextBox.TextExtent(ACanvas: TCanvas; const AText: TString;
+class function TKTextBox.TextExtent(ACanvas: TCanvas; const AText: TKString;
   AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer): TSize;
 var
   S: string;
@@ -2133,7 +2133,7 @@ begin
 end;
 
 class procedure TKTextBox.TextOutput(ACanvas: TCanvas; X, Y: Integer;
-  const AText: TString; AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer);
+  const AText: TKString; AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer);
 var
   S: string;
   TextPtr: PKText;
@@ -2480,7 +2480,7 @@ begin
   end;
 end;
 
-procedure TKTextHint.SetText(const Value: TString);
+procedure TKTextHint.SetText(const Value: TKString);
 var
   R: TRect;
   TextBox: TKTextBox;

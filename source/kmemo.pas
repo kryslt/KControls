@@ -174,8 +174,8 @@ type
     procedure GetSelColors(var TextColor, Background: TColor); virtual;
     function GetSelLength: Integer; virtual;
     function GetSelStart: Integer; virtual;
-    function GetSelText: TString; virtual;
-    function GetText: TString; virtual;
+    function GetSelText: TKString; virtual;
+    function GetText: TKString; virtual;
     procedure NotifyLineInfo(const ALineInfo: TKMemoLine); virtual;
     procedure ParentChanged; virtual;
     procedure SetOffset(ALeft, ATop: Integer); virtual;
@@ -184,7 +184,7 @@ type
     procedure Update(AReasons: TKMemoUpdateReasons); virtual;
   public
     constructor Create(AParent: TKMemoBlocks); virtual;
-    function AddText(const AText: TString; At: Integer = -1): Boolean; virtual;
+    function AddText(const AText: TKString; At: Integer = -1): Boolean; virtual;
     procedure Assign(AItem: TKMemoBlock); virtual;
     procedure AssignAttributes(AItem: TKMemoBlock); virtual;
     procedure ClearSelection; virtual;
@@ -201,8 +201,8 @@ type
     property Parent: TKMemoBlocks read FParent write SetParent;
     property SelLength: Integer read GetSelLength;
     property SelStart: Integer read GetSelStart;
-    property SelText: TString read GetSelText;
-    property Text: TString read GetText;
+    property SelText: TKString read GetSelText;
+    property Text: TKString read GetText;
   end;
 
   TKTextMemoBlock = class(TKMemoBlock)
@@ -210,12 +210,12 @@ type
     FBrush: TBrush;
     FFont: TFont;
     FHAlign: TKHAlign;
-    FText: TString;
+    FText: TKString;
     FTextAttributes: TKTextAttributes;
     FVAlign: TKVAlign;
     procedure SetHAlign(const Value: TKHAlign);
     procedure SetVAlign(const Value: TKVAlign);
-    procedure SplitText(At: Integer; out APart1, APart2: TString);
+    procedure SplitText(At: Integer; out APart1, APart2: TKString);
   protected
     FFontChanged: Boolean;
     { Because of time optimization. }
@@ -227,18 +227,18 @@ type
     function ContentLength: Integer; override;
     procedure FontChange(Sender: TObject); virtual;
     function GetCanAddText: Boolean; override;
-    function GetSelText: TString; override;
-    function GetText: TString; override;
-    function IndexToTextIndex(var AText: TString; AIndex: Integer): Integer; virtual;
+    function GetSelText: TKString; override;
+    function GetText: TKString; override;
+    function IndexToTextIndex(var AText: TKString; AIndex: Integer): Integer; virtual;
     procedure ParentChanged; override;
-    procedure SetText(const Value: TString); virtual;
+    procedure SetText(const Value: TKString); virtual;
     procedure SetTextAttributes(const Value: TKTextAttributes); virtual;
-    function TextIndexToIndex(var AText: TString; ATextIndex: Integer): Integer; virtual;
+    function TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer; virtual;
     function TextLength: Integer; virtual;
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
-    function AddText(const AText: TString; At: Integer): Boolean; override;
+    function AddText(const AText: TKString; At: Integer): Boolean; override;
     procedure Assign(AItem: TKMemoBlock); override;
     procedure AssignAttributes(AItem: TKMemoBlock); override;
     procedure ClearSelection; override;
@@ -252,7 +252,7 @@ type
     property Brush: TBrush read FBrush;
     property Font: TFont read FFont;
     property HAlign: TKHAlign read FHAlign write SetHAlign;
-    property Text: TString read FText write SetText;
+    property Text: TKString read FText write SetText;
     property TextAttributes: TKTextAttributes read FTextAttributes write SetTextAttributes;
     property VAlign: TKVAlign read FVAlign write SetVAlign;
   end;
@@ -261,7 +261,7 @@ type
   private
     FImage: TPicture;
     procedure SetImage(const Value: TPicture);
-    procedure SetImagePath(const Value: TString);
+    procedure SetImagePath(const Value: TKString);
   protected
     function ContentLength: Integer; override;
   public
@@ -273,19 +273,19 @@ type
     procedure PaintToCanvas(ACanvas: TCanvas); override;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint): Integer; override;
     property Image: TPicture read FImage write SetImage;
-    property Path: TString write SetImagePath;
+    property Path: TKString write SetImagePath;
   end;
 
   TKNewLineMemoBlock = class(TKTextMemoBlock)
   private
   protected
     function GetCanAddText: Boolean; override;
-    procedure SetText(const Value: TString); override;
+    procedure SetText(const Value: TKString); override;
     procedure SetTextAttributes(const Value: TKTextAttributes); override;
     function SelectableLength: Integer; override;
   public
     constructor Create(AParent: TKMemoBlocks); override;
-    function AddText(const AText: TString; At: Integer): Boolean; override;
+    function AddText(const AText: TKString; At: Integer): Boolean; override;
     procedure ClearSelection; override;
     function Concat(AItem: TKMemoBlock): Boolean; override;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer): TRect; override;
@@ -316,33 +316,33 @@ type
     function GetLineInfo(AIndex: Integer): PKMemoLine;
     function GetLineLeft(AIndex: Integer): Integer; virtual;
     function GetLineRight(AIndex: Integer): Integer; virtual;
-    function GetLines(AIndex: Integer): TString; virtual;
+    function GetLines(AIndex: Integer): TKString; virtual;
     function GetLineSize(AIndex: Integer): Integer; virtual;
     function GetLineStartIndex(AIndex: Integer): Integer; virtual;
     function GetLineTop(AIndex: Integer): Integer; virtual;
     procedure GetSelColors(var TextColor, Background: TColor); virtual;
-    function GetSelText: TString; virtual;
-    function GetText: TString; virtual;
+    function GetSelText: TKString; virtual;
+    function GetText: TKString; virtual;
     function LineToRect(ACanvas: TCanvas; AIndex, ALine: Integer; ACaret: Boolean): TRect; virtual;
     procedure Notify(Ptr: Pointer; Action: TListNotification); override;
     function Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean = True): Boolean; virtual;
-    procedure SetLines(AIndex: Integer; const AValue: TString); virtual;
-    procedure SetText(const AValue: TString);
+    procedure SetLines(AIndex: Integer; const AValue: TKString); virtual;
+    procedure SetText(const AValue: TKString);
     procedure Update(AReasons: TKMemoUpdateReasons); virtual;
     procedure UpdateLineInfo; virtual;
   public
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
     function AddAt(AObject: TKMemoBlock; At: Integer = -1): Integer;
-    function AddImageBlock(APath: TString; At: Integer = -1): TKImageMemoBlock;
+    function AddImageBlock(APath: TKString; At: Integer = -1): TKImageMemoBlock;
     function AddNewLineBlock(At: Integer = -1): TKNewLineMemoBlock;
-    function AddTextBlock(AText: TString; At: Integer = -1): TKTextMemoBlock;
+    function AddTextBlock(AText: TKString; At: Integer = -1): TKTextMemoBlock;
     procedure ClearSelection; virtual;
     function IndexToBlock(AIndex: Integer; out ALocalIndex: Integer): Integer; virtual;
     function IndexToLine(AIndex: Integer): Integer; virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer; ACaret: Boolean): TRect; virtual;
     function InsertNewLine(AIndex: Integer): Boolean; virtual;
-    function InsertString(AIndex: Integer; const AValue: TString): Boolean; virtual;
+    function InsertString(AIndex: Integer; const AValue: TKString): Boolean; virtual;
     function LineToIndex(ALineIndex: Integer): Integer; virtual;
     procedure LockUpdate;
     procedure MeasureExtent(ACanvas: TCanvas; ALeft, ATop: Integer); virtual;
@@ -372,7 +372,7 @@ type
     property LineLeft[Index: Integer]: Integer read GetLineLeft;
     property LineRight[Index: Integer]: Integer read GetLineRight;
     property LineTop[Index: Integer]: Integer read GetLineTop;
-    property Lines[Index: Integer]: TString read GetLines write SetLines;
+    property Lines[Index: Integer]: TKString read GetLines write SetLines;
     property LineSize[Index: Integer]: Integer read GetLineSize;
     property LineStartIndex[Index: Integer]: Integer read GetLineStartIndex;
     property RealSelEnd: Integer read GetRealSelEnd;
@@ -381,8 +381,8 @@ type
     property SelEnd: Integer read FSelEnd;
     property SelLength: Integer read GetSelLength;
     property SelStart: Integer read FSelStart;
-    property SelText: TString read GetSelText;
-    property Text: TString read GetText write SetText;
+    property SelText: TKString read GetSelText;
+    property Text: TKString read GetText write SetText;
   end;
 
   { @abstract(Container for all colors used by @link(TKCustomMemo) class)
@@ -579,8 +579,8 @@ type
     function GetSelEnd: Integer;
     function GetSelLength: Integer;
     function GetSelStart: Integer;
-    function GetSelText: TString;
-    function GetText: TString;
+    function GetSelText: TKString;
+    function GetText: TKString;
     function GetUndoLimit: Integer;
     function IsOptionsStored: Boolean;
     procedure ScrollTimerHandler(Sender: TObject);
@@ -596,7 +596,7 @@ type
     procedure SetSelEnd(Value: Integer);
     procedure SetSelLength(Value: Integer);
     procedure SetSelStart(Value: Integer);
-    procedure SetText(const Value: TString);
+    procedure SetText(const Value: TKString);
     procedure SetTopPos(Value: Integer);
     procedure SetUndoLimit(Value: Integer);
     procedure CMEnabledChanged(var Msg: TLMessage); message CM_ENABLEDCHANGED;
@@ -639,7 +639,7 @@ type
       <LI><I>AInserted</I> - for the urInsert* items, specifies the current
       @link(TKCustomMemo.InsertMode) status.</LI>
       </UL> }
-    procedure AddUndoString(AItemKind: TKMemoChangeKind; const AData: TString; AInserted: Boolean = True); virtual;
+    procedure AddUndoString(AItemKind: TKMemoChangeKind; const AData: TKString; AInserted: Boolean = True); virtual;
     { Begins a new undo group. Use the GroupKind parameter to label it. }
     procedure BeginUndoGroup(AGroupKind: TKMemoChangeKind);
     { Called to reflect block changes. }
@@ -818,7 +818,7 @@ type
       <LI><I>At</I> - position where the string should be inserted.</LI>
       <LI><I>AValue</I> - inserted string</LI>
       </UL> }
-    procedure InsertString(At: Integer; const AValue: TString); virtual;
+    procedure InsertString(At: Integer; const AValue: TKString); virtual;
     { Converts client area coordinates into a text buffer index.
       <UL>
       <LH>Parameters:</LH>
@@ -888,9 +888,9 @@ type
     { Specifies the current selection start. }
     property SelStart: Integer read GetSelStart write SetSelStart;
     { Returns selected text. }
-    property SelText: TString read GetSelText;
+    property SelText: TKString read GetSelText;
     { If read, returns the textual part of the contents as a whole. If written, replace previous contents by a new one. }
-    property Text: TString read GetText write SetText;
+    property Text: TKString read GetText write SetText;
     { Specifies the vertical scroll position. }
     property TopPos: Integer read FTopPos write SetTopPos;
     { Specifies the maximum number of undo items. Please note this value
@@ -1314,7 +1314,7 @@ begin
   FUndoList.AddChange(AItemKind, AInserted);
 end;
 
-procedure TKCustomMemo.AddUndoString(AItemKind: TKMemoChangeKind; const AData: TString; AInserted: Boolean = True);
+procedure TKCustomMemo.AddUndoString(AItemKind: TKMemoChangeKind; const AData: TKString; AInserted: Boolean = True);
 begin
   if AData <> '' then
     FUndoList.AddChange(AItemKind, AInserted);
@@ -1780,7 +1780,7 @@ var
 {  I, J, K, M, N, O: Integer;
   CanInsert, MoreBytes, Found, PAbort, MatchCase: Boolean;
   C1, C2, C3: Char;
-  S, S_FirstChar, S_LastChar, T: TString;
+  S, S_FirstChar, S_LastChar, T: TKString;
   BA: PByteArray;
   P: TPoint;
   L, OldSelStart, OldSelEnd, Sel1, Sel2: Integer;
@@ -1998,7 +1998,7 @@ begin
         end;
       end;}
       ecInsertChar: InsertChar(TmpSelEnd, PKChar(Data)^);
-      ecInsertString: InsertString(TmpSelEnd, TString(Data));
+      ecInsertString: InsertString(TmpSelEnd, TKString(Data));
       ecInsertNewLine: InsertNewLine(TmpSelEnd);
       ecDeleteLastChar:
       begin
@@ -2416,12 +2416,12 @@ begin
   Result := FBlocks.SelStart
 end;
 
-function TKCustomMemo.GetSelText: TString;
+function TKCustomMemo.GetSelText: TKString;
 begin
   Result := FBlocks.SelText;
 end;
 
-function TKCustomMemo.GetText: TString;
+function TKCustomMemo.GetText: TKString;
 begin
   Result := FBlocks.Text;
 end;
@@ -2482,7 +2482,7 @@ begin
   end;
 end;
 
-procedure TKCustomMemo.InsertString(At: Integer; const AValue: TString);
+procedure TKCustomMemo.InsertString(At: Integer; const AValue: TKString);
 begin
   if AValue <> '' then
   begin
@@ -2915,7 +2915,7 @@ begin
   Select(Value, SelEnd - Value);
 end;
 
-procedure TKCustomMemo.SetText(const Value: TString);
+procedure TKCustomMemo.SetText(const Value: TKString);
 begin
   Clear;
   FBlocks.Text := Value;
@@ -3151,7 +3151,7 @@ begin
   Parent := AParent; // to update default block properties!
 end;
 
-function TKMemoBlock.AddText(const AText: TString; At: Integer): Boolean;
+function TKMemoBlock.AddText(const AText: TKString; At: Integer): Boolean;
 begin
   Result := False;
 end;
@@ -3206,12 +3206,12 @@ begin
   Result := FSelStart;
 end;
 
-function TKMemoBlock.GetSelText: TString;
+function TKMemoBlock.GetSelText: TKString;
 begin
   Result := '';
 end;
 
-function TKMemoBlock.GetText: TString;
+function TKMemoBlock.GetText: TKString;
 begin
   Result := '';
 end;
@@ -3348,9 +3348,9 @@ begin
   FFontChanged := True;
 end;
 
-function TKTextMemoBlock.AddText(const AText: TString; At: Integer): Boolean;
+function TKTextMemoBlock.AddText(const AText: TKString; At: Integer): Boolean;
 var
-  S, Part1, Part2: TString;
+  S, Part1, Part2: TKString;
 begin
   Result := False;
   Inc(At); // At is zero based
@@ -3426,7 +3426,7 @@ begin
   Result := True;
 end;
 
-function TKTextMemoBlock.GetSelText: TString;
+function TKTextMemoBlock.GetSelText: TKString;
 begin
 {$IFDEF FPC}
   Result := UTF8Copy(FText, FSelStart + 1, FSelEnd - FSelStart);
@@ -3435,7 +3435,7 @@ begin
 {$ENDIF}
 end;
 
-function TKTextMemoBlock.GetText: TString;
+function TKTextMemoBlock.GetText: TKString;
 begin
   Result := FText;
 end;
@@ -3458,7 +3458,7 @@ begin
   end;
 end;
 
-function TKTextMemoBlock.IndexToTextIndex(var AText: TString; AIndex: Integer): Integer;
+function TKTextMemoBlock.IndexToTextIndex(var AText: TKString; AIndex: Integer): Integer;
 {$IFDEF FPC}
 var
   I: Integer;
@@ -3574,7 +3574,7 @@ begin
   end;
 end;
 
-procedure TKTextMemoBlock.SetText(const Value: TString);
+procedure TKTextMemoBlock.SetText(const Value: TKString);
 begin
   if FText <> Value then
   begin
@@ -3608,7 +3608,7 @@ end;
 function TKTextMemoBlock.Split(At: Integer): TKMemoBlock;
 var
   Item: TKTextMemoBlock;
-  Part1, Part2: TString;
+  Part1, Part2: TKString;
 begin
   if (At > 0) and (At < ContentLength) then
   begin
@@ -3625,7 +3625,7 @@ begin
     Result := nil;
 end;
 
-procedure TKTextMemoBlock.SplitText(At: Integer; out APart1, APart2: TString);
+procedure TKTextMemoBlock.SplitText(At: Integer; out APart1, APart2: TKString);
 begin
 {$IFDEF FPC}
   APart1 := UTF8Copy(FText, 1, At - 1);
@@ -3636,7 +3636,7 @@ begin
 {$ENDIF}
 end;
 
-function TKTextMemoBlock.TextIndexToIndex(var AText: TString; ATextIndex: Integer): Integer;
+function TKTextMemoBlock.TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer;
 {$IFDEF FPC}
 var
   I: Integer;
@@ -3745,7 +3745,7 @@ begin
   Update([muContent]);
 end;
 
-procedure TKImageMemoBlock.SetImagePath(const Value: TString);
+procedure TKImageMemoBlock.SetImagePath(const Value: TKString);
 begin
   FImage.LoadFromFile(Value);
   Update([muContent]);
@@ -3764,7 +3764,7 @@ begin
   FTextLength := TextLength;
 end;
 
-function TKNewLineMemoBlock.AddText(const AText: TString; At: Integer): Boolean;
+function TKNewLineMemoBlock.AddText(const AText: TKString; At: Integer): Boolean;
 begin
   Result := False;
 end;
@@ -3825,7 +3825,7 @@ begin
   Result := ContentLength + 1;
 end;
 
-procedure TKNewLineMemoBlock.SetText(const Value: TString);
+procedure TKNewLineMemoBlock.SetText(const Value: TKString);
 begin
   // ignore
 end;
@@ -3877,7 +3877,7 @@ begin
     Result := -1;
 end;
 
-function TKMemoBlocks.AddImageBlock(APath: TString; At: Integer): TKImageMemoBlock;
+function TKMemoBlocks.AddImageBlock(APath: TKString; At: Integer): TKImageMemoBlock;
 begin
   LockUpdate;
   try
@@ -3916,7 +3916,7 @@ begin
   end;
 end;
 
-function TKMemoBlocks.AddTextBlock(AText: TString; At: Integer): TKTextMemoBlock;
+function TKMemoBlocks.AddTextBlock(AText: TKString; At: Integer): TKTextMemoBlock;
 begin
   LockUpdate;
   try
@@ -4022,7 +4022,7 @@ begin
     Result := FLines[AIndex].Bounds.Right;
 end;
 
-function TKMemoBlocks.GetLines(AIndex: Integer): TString;
+function TKMemoBlocks.GetLines(AIndex: Integer): TKString;
 var
   I: Integer;
   Item: TKMemoBlock;
@@ -4101,7 +4101,7 @@ begin
   Result := FSelEnd - FSelStart;
 end;
 
-function TKMemoBlocks.GetSelText: TString;
+function TKMemoBlocks.GetSelText: TKString;
 var
   I: Integer;
   Item: TKMemoBlock;
@@ -4120,7 +4120,7 @@ begin
   end;
 end;
 
-function TKMemoBlocks.GetText: TString;
+function TKMemoBlocks.GetText: TKString;
 var
   I: Integer;
   Item: TKMemoBlock;
@@ -4225,7 +4225,7 @@ begin
   end;
 end;
 
-function TKMemoBlocks.InsertString(AIndex: Integer; const AValue: TString): Boolean;
+function TKMemoBlocks.InsertString(AIndex: Integer; const AValue: TKString): Boolean;
 var
   Block, LocalIndex: Integer;
   Item, NewItem: TKMemoBlock;
@@ -4641,7 +4641,7 @@ begin
     Result := False;
 end;
 
-procedure TKMemoBlocks.SetLines(AIndex: Integer; const AValue: TString);
+procedure TKMemoBlocks.SetLines(AIndex: Integer; const AValue: TKString);
 var
   I: Integer;
 begin
@@ -4658,11 +4658,11 @@ begin
   end;
 end;
 
-procedure TKMemoBlocks.SetText(const AValue: TString);
+procedure TKMemoBlocks.SetText(const AValue: TKString);
 var
   List: TStringList;
   I: Integer;
-  S: TString;
+  S: TKString;
 begin
   LockUpdate;
   try
