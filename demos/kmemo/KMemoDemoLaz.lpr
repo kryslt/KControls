@@ -1,15 +1,15 @@
-program kdbgriddemolaz;
-
-{$include kcontrols.inc}
+program KMemoDemoLaz;
 
 uses
-  Forms, Interfaces,
-  Main in 'Main.pas';
+  Interfaces,
+  Forms,
+  Main;
 
 {$R *.res} 
 
 begin
   Application.Initialize;
+  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

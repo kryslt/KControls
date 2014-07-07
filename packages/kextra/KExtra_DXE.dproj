@@ -57,6 +57,7 @@
 			</DelphiCompile>
 			<DCCReference Include="dclstd.dcp"/>
 			<DCCReference Include="KExtra_RXE.dcp"/>
+			<DCCReference Include="KControls_RXE.dcp"/>
 			<DCCReference Include="kextradesign.pas"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>

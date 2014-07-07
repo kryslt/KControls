@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 944
+  Left = 473
   Height = 603
-  Top = 239
+  Top = 327
   Width = 838
   ActiveControl = PCMain
   Caption = 'KGridDemo'
@@ -12,7 +12,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
-  LCLVersion = '1.0.14.0'
+  LCLVersion = '1.2.2.0'
   object PCMain: TPageControl
     Left = 0
     Height = 603
@@ -336,17 +336,6 @@ object Form1: TForm1
           OnClick = CBClippedCellsClick
           TabOrder = 1
         end
-        object CBDoubleBufferedCells: TCheckBox
-          Left = 141
-          Height = 19
-          Top = 27
-          Width = 121
-          Caption = 'Double buffered cells'
-          Checked = True
-          OnClick = CBDoubleBufferedCellsClick
-          State = cbChecked
-          TabOrder = 3
-        end
       end
       object KGrid1: TKGrid
         Left = 0
@@ -437,7 +426,7 @@ object Form1: TForm1
     end
     object TabSheet2: TTabSheet
       Caption = 'Merged header cells demo'
-      ClientHeight = 577
+      ClientHeight = 567
       ClientWidth = 830
       ImageIndex = 1
       object KGrid2: TKGrid
@@ -494,7 +483,7 @@ object Form1: TForm1
     end
     object TabSheet3: TTabSheet
       Caption = 'Virtual grid demo'
-      ClientHeight = 577
+      ClientHeight = 567
       ClientWidth = 830
       ImageIndex = 2
       object KGrid3: TKGrid

@@ -1,9 +1,10 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="KControlsLaz"/>
     <AddToProjectUsesSection Value="True"/>
+    <Author Value="TK (tk@tkweb.eu)"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
@@ -17,15 +18,27 @@
           <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>
+      <Linking>
+        <Debugging>
+          <DebugInfoType Value="dsDwarf2"/>
+        </Debugging>
+      </Linking>
       <Other>
         <Verbosity>
           <ShowHints Value="False"/>
         </Verbosity>
-        <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
-    <Version Major="1" Minor="2"/>
-    <Files Count="27">
+    <Description Value="KControls is a freeware distribution. It contains all of my published components for Delphi and Lazarus. All controls have been written with the aim to become both cross-IDE compatible (Delphi/C++Builder VCL and Lazarus LCL) and cross-platform compatible in Lazarus. There are some exceptions to this scheme, see tkweb.eu."/>
+    <License Value="This code is distributed as a freeware. You are free to use it as part
+of your application for any purpose including freeware, commercial and
+shareware applications. The origin of this source code must not be
+misrepresented; you must not claim your authorship. All redistributions
+of the original or modified source code must retain the original copyright
+notice. The Author accepts no liability for any damage that may result
+from using this code."/>
+    <Version Major="1" Minor="5"/>
+    <Files Count="29">
       <Item1>
         <Filename Value="..\..\source\kfunctions.pas"/>
         <UnitName Value="KFunctions"/>
@@ -120,21 +133,29 @@
         <UnitName Value="KMessageBox"/>
       </Item23>
       <Item24>
-        <Filename Value="..\..\source\klog.pas"/>
-        <UnitName Value="KLog"/>
+        <Filename Value="..\..\source\kmessagebox.lrs"/>
+        <Type Value="LRS"/>
       </Item24>
       <Item25>
-        <Filename Value="..\..\source\kprogress.pas"/>
-        <UnitName Value="KProgress"/>
+        <Filename Value="..\..\source\klog.pas"/>
+        <UnitName Value="KLog"/>
       </Item25>
       <Item26>
-        <Filename Value="..\..\source\klabels.pas"/>
-        <UnitName Value="KLabels"/>
+        <Filename Value="..\..\source\kprogress.pas"/>
+        <UnitName Value="KProgress"/>
       </Item26>
       <Item27>
+        <Filename Value="..\..\source\klabels.pas"/>
+        <UnitName Value="KLabels"/>
+      </Item27>
+      <Item28>
         <Filename Value="..\..\source\kmemo.pas"/>
         <UnitName Value="KMemo"/>
-      </Item27>
+      </Item28>
+      <Item29>
+        <Filename Value="..\..\source\kbuttons.pas"/>
+        <UnitName Value="KButtons"/>
+      </Item29>
     </Files>
     <Type Value="RunAndDesignTime"/>
     <RequiredPkgs Count="3">
@@ -150,7 +171,7 @@
       </Item3>
     </RequiredPkgs>
     <UsageOptions>
-      <UnitPath Value="$(PkgOutDir)\"/>
+      <UnitPath Value="$(PkgOutDir)"/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
@@ -160,4 +181,4 @@
       <_ExternHelp Items="Count"/>
     </CustomOptions>
   </Package>
-</CONFIG>
+</CONFIG>

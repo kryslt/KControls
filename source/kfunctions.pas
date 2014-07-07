@@ -1,9 +1,9 @@
 { @abstract(This unit contains miscellaneous supporting functions)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(20 Oct 2001)
-  @lastmod(20 Jun 2010)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2001 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -28,11 +28,12 @@ uses
   Windows,
  {$ENDIF}
  // use the LCL interface support whenever possible
-  LCLType, LCLIntf, LMessages, LCLProc, LCLVersion,
+  LCLType, LCLIntf, LMessages, LCLProc, LCLVersion, Interfaces, InterfaceBase,
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  Classes, Controls, ComCtrls, Graphics, SysUtils;
+  Classes, Controls, ComCtrls, Graphics, SysUtils,
+  Forms;
 
 const
 {$IFNDEF FPC}
@@ -260,14 +261,19 @@ type
   { Dynamic array for LongWord. }
   TDynLongWords = array of LongWord;
 
-{$IFDEF COMPILER10_UP}
+{$IF DEFINED(COMPILER10_UP) OR DEFINED(FPC)}
+ {$IFDEF FPC}
+  PUInt64 = ^UInt64;
+ {$ELSE}
+  //PUInt64 = ^UInt64; defined by System.pas
+ {$ENDIF}
   { Static array for UInt64. }
   TUInt64s = array[0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
   { Pointer for TUInt64s. }
   PUInt64s = ^TUInt64s;
   { Dynamic array for UInt64. }
   TDynUInt64s = array of UInt64;
-{$ENDIF}
+{$IFEND}
 
   //PSingle = ^Single; defined by System.pas
   { Static array for Single. }
@@ -362,6 +368,22 @@ type
     ThousandSep: Char;
     UseThousandSep: Boolean;
   end;
+
+  { Record for LCL context switching (e.g. between app and shared library). }
+  TKAppContext = record
+    Application: TApplication;
+    Screen: TScreen;
+    GlobalNameSpace: IReadWriteSync;
+    MainThreadID: TThreadID;
+    IntConstList: TThreadList;
+  {$IFDEF FPC}
+    WidgetSet: TWidgetSet;
+    DragManager: TDragManager;
+  {$ENDIF}
+  end;
+
+  { Pointer to TKAppContext }
+  PKAppContext = ^TKAppContext;
 
 { Replaces possible decimal separators in S with DecimalSeparator variable.}
 function AdjustDecimalSeparator(const S: string): string;
@@ -516,6 +538,9 @@ function FillMessage(Msg: Cardinal; WParam: WPARAM; LParam: LPARAM): TLMessage;
 { Formats the given currency value with to specified parameters. Not thread safe. }
 function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKString;
 
+{ Backups application context, e.g. when calling a shared library. }
+function GetAppContext(var Ctx: TKAppContext): Boolean;
+
 { Returns the module version for given module. Works under WinX only. }
 function GetAppVersion(const ALibName: string; var MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 
@@ -621,6 +646,9 @@ procedure QuickSortNR(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareP
 procedure QuickSort(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareProc;
   AExchangeProc: TQsExchangeProc; ASortedDown: Boolean);
 
+{ Restores application context, e.g. when calling a shared library. }
+function SetAppContext(const Ctx: TKAppContext): Boolean;
+
 { Under Windows this function calls the WinAPI SetWindowRgn. Under other OSes
   the implementation is still missing. }
 procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
@@ -673,9 +701,11 @@ function RunExecutable(const AFileName: string; AWaitForIt: Boolean): DWORD;
 implementation
 
 uses
-  Forms, Math, TypInfo
+  Math, TypInfo
 {$IFDEF USE_WINAPI}
   , ShlObj
+{$ELSE}
+  , versionresource
 {$ENDIF}
 {$IFDEF USE_WIDEWINPROCS}
   , KWideWinProcs
@@ -1052,7 +1082,7 @@ end;
 procedure EnsureLastPathSlash(var APath: string);
 begin
   if APath <> '' then
-    if not CharInSetEx(APath[Length(APath)], ['\', '/']) then APath := APath + '\';
+    if not CharInSetEx(APath[Length(APath)], ['\', '/']) then APath := APath + '/';
 end;
 
 procedure Exchange(var Value1, Value2: ShortInt);
@@ -1201,13 +1231,32 @@ begin
   end;
 end;
 
+function GetAppContext(var Ctx: TKAppContext): Boolean;
+begin
+  Ctx.Application := Forms.Application;
+  Ctx.Screen := Forms.Screen;
+  Ctx.GlobalNameSpace := Classes.GlobalNameSpace;
+//  Ctx.IntConstList := Classes.IntConstList;
+{$IFDEF FPC}
+  Ctx.MainThreadID := Classes.MainThreadID;
+  Ctx.DragManager := Controls.DragManager;
+  Ctx.WidgetSet := InterfaceBase.WidgetSet;
+{$ENDIF}
+  Result := True;
+end;
+
 function GetAppVersion(const ALibName: string; var MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
-{$IFDEF USE_WINAPI}
 var
+{$IFDEF USE_WINAPI}
  dwHandle, dwLen: DWORD;
  BufLen: Cardinal;
  lpData: LPTSTR;
  pFileInfo: ^VS_FIXEDFILEINFO;
+{$ELSE}
+ Info: TVersionResource;
+ Stream: TResourceStream;
+ ResID: Integer;
+ Res: TFPResourceHandle;
 {$ENDIF}
 begin
   Result := False;
@@ -1231,6 +1280,30 @@ begin
     finally
       FreeMem(lpData);
     end;
+  end;
+{$ELSE}
+  Info := TVersionResource.Create;
+  try
+    ResID := 1;
+    // Defensive code to prevent failure if no resource available...
+    Res := FindResource(HInstance, PChar(PtrInt(ResID)), PChar(RT_VERSION));
+    If Res = 0 Then
+      Exit;
+
+    Stream := TResourceStream.CreateFromID(HInstance, ResID, PChar(RT_VERSION));
+    Try
+      Info.SetCustomRawDataStream(Stream);
+      MajorVersion := Info.FixedInfo.FileVersion[0];
+      MinorVersion := Info.FixedInfo.FileVersion[1];
+      BuildNumber := Info.FixedInfo.FileVersion[2];
+      RevisionNumber := Info.FixedInfo.FileVersion[3];
+      Info.SetCustomRawDataStream(nil);
+    Finally
+      Stream.Free;
+    End;
+    Result := True;
+  finally
+    Info.Free;
   end;
 {$ENDIF}
 end;
@@ -1835,6 +1908,20 @@ begin
     Sort(0, ACount - 1);
 end;
 
+function SetAppContext(const Ctx: TKAppContext): Boolean;
+begin
+  Forms.Application := Ctx.Application;
+  Forms.Screen := Ctx.Screen;
+  Classes.GlobalNameSpace := Ctx.GlobalNameSpace;
+{$IFDEF FPC}
+//  Classes.IntConstList := Ctx.IntConstList;
+  Classes.MainThreadID := Ctx.MainThreadID;
+  Controls.DragManager := Ctx.DragManager;
+  InterfaceBase.WidgetSet := Ctx.WidgetSet;
+{$ENDIF}
+  Result := True;
+end;
+
 procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
 begin
   if AControl.HandleAllocated then
@@ -1918,7 +2005,7 @@ begin
     Inc(AStart);
     Dec(ALen);
   end;
-  while (ALen > 0) and CharInSetEx(AText[ALen], ASet) do
+  while (ALen > 0) and CharInSetEx(AText[AStart + ALen - 1], ASet) do
     Dec(ALen);
 end;
 

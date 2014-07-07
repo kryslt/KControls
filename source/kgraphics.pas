@@ -1,9 +1,9 @@
 { @abstract(This unit contains advanced graphic functions used by KControls suite.)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(5 May 2004)
-  @lastmod(20 Jun 2010)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2004 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -18,7 +18,9 @@
 unit KGraphics;
 
 {$include kcontrols.inc}
-{$WEAKPACKAGEUNIT ON}
+{$IFNDEF REGISTER_PICTURE_FORMATS}
+ {$WEAKPACKAGEUNIT ON}
+{$ENDIF}
 
 interface
 
@@ -35,7 +37,14 @@ uses
   PngImage,
  {$ENDIF}
 {$ENDIF}
-  Classes, Forms, Graphics, Controls, KFunctions;
+  Classes, Forms, Graphics, Controls, Types, KFunctions
+{$IFDEF USE_THEMES}
+  , Themes
+ {$IFNDEF FPC}
+  , UxTheme
+ {$ENDIF}
+{$ENDIF}
+  ;
 
 const
   { PNG Support }
@@ -157,10 +166,45 @@ type
   { For backward compatibility. }
   TKTextVAlign = TKVAlign;
 
+  { Declares possible values for the AStates parameter in the @link(DrawButtonFrame) function. }
+  TKButtonDrawState = (
+    { Use OS themes/styles to draw button. }
+    bsUseThemes,
+    { Draw disabled button. }
+    bsDisabled,
+    { Draw pressed button. }
+    bsPressed,
+    { Draw normal focused button. }
+    bsFocused,
+    { Draw normal hot button. }
+    bsHot
+  );
+
+  { Set of TKButtonState values. }
+  TKButtonDrawStates = set of TKButtonDrawState;
+
+  { Contains common properties for all KCOntrols TGraphic descendants. }
+  TKGraphic = class(TGraphic)
+  protected
+    FDescription: string;
+    FFileFilter: string;
+  public
+    { Creates the instance. }
+    constructor Create; override;
+    { Gives description for design time loader. }
+    property Description: string read FDescription;
+    { Gives file filter for design time loader. }
+    property FileFilter: string read FFileFilter;
+  end;
+
   { A simple platform independent encapsulation for a 32bpp bitmap with
     alpha channel with the ability to modify it's pixels directly. }
-  TKAlphaBitmap = class(TGraphic)
+
+  { TKAlphaBitmap }
+
+  TKAlphaBitmap = class(TKGraphic)
   private
+    FAutoMirror: Boolean;
     FCanvas: TCanvas;
     FDirectCopy: Boolean;
     FHandle: HBITMAP;
@@ -172,12 +216,15 @@ type
     FOldBitmap: HBITMAP;
     FPixels: PKColorRecs;
     FPixelsChanged: Boolean;
+    FUpdateLock: Integer;
     FWidth: Integer;
     function GetScanLine(Index: Integer): PKColorRecs;
     function GetHandle: HBITMAP;
     function GetPixel(X, Y: Integer): TKColorRec;
     procedure SetPixel(X, Y: Integer; Value: TKColorRec);
   protected
+    { Calls OnChanged event. }
+    procedure Changed(Sender: TObject); override;
     { Paints itself to ACanvas at location ARect. }
     procedure Draw(ACanvas: TCanvas; const ARect: TRect); override;
     { Returns True if bitmap is empty. }
@@ -195,10 +242,6 @@ type
     procedure SetWidth(Value: Integer); override;
     { Does nothing. Bitmap is never transparent. }
     procedure SetTransparent(Value: Boolean); override;
-    { Updates the bitmap handle from bitmap pixels. }
-    procedure UpdateHandle; dynamic;
-    { Updates the pixels from bitmap handle. }
-    procedure UpdatePixels; dynamic;
   public
     { Creates the instance. }
     constructor Create; override;
@@ -221,26 +264,46 @@ type
     { Fills the alpha channel according to given parameters. Currently it is used
       internally by @link(TKDragWindow). }
     procedure AlphaFill(Alpha: Byte; BlendColor: TColor; Gradient, Translucent: Boolean); overload;
+    { Fills the alpha channel with AAlpha for pixels with AColor. }
+    procedure AlphaFillOnColorMatch(AColor: TColor; AAlpha: Byte);
     { Modifies the alpha channel with Percent of its current value. If the optional IfEmpty parameter is True,
       the alpha channel will be set to percent of full scale if it has zero value. }
     procedure AlphaFillPercent(Percent: Integer; IfEmpty: Boolean);
+    { Copies shareable properties of another instance into this instance of TKAlphaBitmap. }
+    procedure Assign(Source: TPersistent); override;
+    { Copies shareable properties of this instance into another instance of TKAlphaBitmap. }
+    procedure AssignTo(Dest: TPersistent); override;
+    { Clears the image. }
+    procedure Clear; {$IFDEF FPC}override;{$ENDIF}
     { Combines the pixel at given location with the given color. }
     procedure CombinePixel(X, Y: Integer; Color: TKColorRec);
     { Takes dimensions and pixels from ABitmap. }
     procedure CopyFrom(ABitmap: TKAlphaBitmap);
     { Takes 90°-rotated dimensions and pixels from ABitmap. }
     procedure CopyFromRotated(ABitmap: TKAlphaBitmap);
+    { Takes portion from ABitmap at position X and Y. }
+    procedure CopyFromXY(X, Y: Integer; ABitmap: TKAlphaBitmap);
     { Copies a location specified by ARect from ACanvas to bitmap. }
-    procedure DrawFrom(ACanvas: TCanvas; const ARect: TRect);
+    procedure DrawFrom(ACanvas: TCanvas; const ARect: TRect); overload;
+    { Copies a portion of AGraphic to bitmap at position X and Y. }
+    procedure DrawFrom(AGraphic: TGraphic; X, Y: Integer); overload;
     { Calls @link(TKAlphaBitmap.Draw). }
     procedure DrawTo(ACanvas: TCanvas; const ARect: TRect);
+    { Convert to grayscale. }
+    procedure GrayScale;
   {$IFNDEF FPC}
     { Does nothing. }
     procedure LoadFromClipboardFormat(AFormat: Word; AData: THandle;
       APalette: HPALETTE); override;
   {$ENDIF}
+    { Loads the bitmap from a file. Overriden to support PNG as well. }
+    procedure LoadFromFile(const Filename: string); override;
+    { Loads the bitmap from another TGraphic instance. }
+    procedure LoadFromGraphic(Image: TGraphic); virtual;
     { Loads the bitmap from a stream. }
     procedure LoadFromStream(Stream: TStream); override;
+    { Locks calls to @link(TKAlphaBitmap.Changed). }
+    procedure LockUpdate; virtual;
     { Mirrors the bitmap pixels horizontally. }
     procedure MirrorHorz;
     { Mirrors the bitmap pixels vertically. }
@@ -254,6 +317,14 @@ type
     procedure SaveToStream(Stream: TStream); override;
     { Specifies the bitmap size. }
     procedure SetSize(AWidth, AHeight: Integer); {$IFNDEF FPC} reintroduce;{$ENDIF}
+    { Unlocks calls to @link(TKAlphaBitmap.Changed). }
+    procedure UnlockUpdate; virtual;
+    { Updates the bitmap handle from bitmap pixels. }
+    procedure UpdateHandle; dynamic;
+    { Updates the pixels from bitmap handle. }
+    procedure UpdatePixels; dynamic;
+    { Automatically mirrors the bitmap vertically for Linux hosts, when reading/writing from/to a stream. }
+    property AutoMirror: Boolean read FAutoMirror write FAutoMirror default True;
     { Returns the bitmap memory canvas. }
     property Canvas: TCanvas read FCanvas;
     { Temporary flag. Use when copying data directly from another TGraphic to TKAlphaBitmap. }
@@ -317,10 +388,10 @@ type
     procedure Measure(ACanvas: TCanvas; const ARect: TRect; var AWidth, AHeight: Integer); virtual;
     function PointToIndex(ACanvas: TCanvas; const ARect: TRect; APoint: TPoint): Integer; virtual;
     class function TextExtent(ACanvas: TCanvas; const AText: TKString;
-       AStart, ALen: Integer; AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2): TSize; static;
+       AStart, ALen: Integer; AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2): TSize;
     class procedure TextOutput(ACanvas: TCanvas; X, Y: Integer;
       const AText: TKString; AStart, ALen: Integer;
-      AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2); static;
+      AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2);
     property Attributes: TKTextAttributes read FAttributes write FAttributes;
     property BackColor: TColor read FBackColor write FBackColor;
     property HAlign: TKHAlign read FHAlign write FHAlign;
@@ -456,6 +527,12 @@ procedure CanvasSetScale(ACanvas: TCanvas; MulX, MulY, DivX, DivY: Integer);
 { Selects the wiewport offset to given canvas for both axes. }
 procedure CanvasSetOffset(ACanvas: TCanvas; OfsX, OfsY: Integer);
 
+{ Converts TKColorRec to TColor. }
+function ColorRecToColor(Color: TKColorRec): TColor;
+
+{ Converts TColor to TKColorRec. }
+function ColorToColorRec(Color: TColor): TKColorRec;
+
 { Makes a grayscale representation of the given color. }
 function ColorToGrayScale(Color: TColor): TColor;
 
@@ -479,6 +556,10 @@ procedure DrawAlignedText(Canvas: TCanvas; var ARect: TRect;
   HAlign: TKHAlign; VAlign: TKVAlign; HPadding, VPadding: Integer;
   const AText: TKString;
   BackColor: TColor = clWhite; Attributes: TKTextAttributes = []);
+
+{ Draws standard button frame }
+procedure DrawButtonFrame(ACanvas: TCanvas; const ARect: TRect;
+  AStates: TKButtonDrawStates);
 
 { Simulates WinAPI DrawEdge with customizable colors. }
 procedure DrawEdges(Canvas: TCanvas; const R: TRect; HighlightColor,
@@ -523,6 +604,9 @@ function GetFontHeight(DC: HDC): Integer;
 { Raises an exception if GDI resource has not been created. }
 function GDICheck(Value: Integer): Integer;
 
+{ Returns horizontal position of shape within ABoundary according to AAlignment. Shape has size defined by AShapeSize. }
+function HorizontalShapePosition(AAlignment: TKHAlign; const ABoundary: TRect; const AShapeSize: TPoint): Integer;
+
 { Creates a TGraphic instance according to the image file header.
   Currently supported images are BMP, PNG, MNG, JPG, ICO. }
 function ImageByType(const Header: TKImageHeaderString): TGraphic;
@@ -535,6 +619,9 @@ function IsBrightColor(Color: TColor): Boolean;
 
 { Loads a custom mouse cursor. }
 procedure LoadCustomCursor(Cursor: TCursor; const ResName: string);
+
+{ Loads graphic from resource. }
+procedure LoadGraphicFromResource(Graphic: TGraphic; const ResName: string; ResType: PChar);
 
 { Builds a TKColorRec structure. }
 function MakeColorRec(R, G, B, A: Byte): TKColorRec;
@@ -567,10 +654,13 @@ function SwitchRGBToBGR(Value: TColor): TColor;
 { Subtracts the current device context offset to ARect. }
 procedure TranslateRectToDevice(DC: HDC; var ARect: TRect);
 
+{ Returns vertical position of shape within ABoundary according to AAlignment. Shape has size defined by AShapeSize. }
+function VerticalShapePosition(AAlignment: TKVAlign; const ABoundary: TRect; const AShapeSize: TPoint): Integer;
+
 implementation
 
 uses
-  Math, SysUtils, Types, KControls, KRes
+  Math, SysUtils, KControls, KRes
 {$IFDEF FPC}
   , FPImage
 {$ELSE}
@@ -603,7 +693,7 @@ function CalcLightness(Color: TColor): Single;
 var
   X: TKColorRec;
 begin
-  X.Value := ColorToRGB(Color);
+  X := ColorToColorRec(Color);
   Result := (X.R + X.G + X.B) / (3 * 256);
 end;
 
@@ -634,7 +724,7 @@ var
   R, G, B, Cmax, Cmin: Single;
   X: TKColorRec;
 begin
-  X.Value := ColorToRGB(Color);
+  X := ColorToColorRec(Color);
   R := X.R / 255;
   G := X.G / 255;
   B := X.B / 255;
@@ -736,12 +826,22 @@ var
   GreyValue: Integer;
   X: TKColorRec;
 begin
-  X.Value := ColorToRGB(Color);
-  GreyValue := (X.R + X.G + X.B) div 3;
+  X := ColorToColorRec(Color);
+  GreyValue := (Integer(21) * X.R + Integer(72) * X.G + Integer(7) * X.B) div 100;
   X.R := GreyValue;
   X.G := GreyValue;
   X.B := GreyValue;
   Result := X.Value;
+end;
+
+function ColorRecToColor(Color: TKColorRec): TColor;
+begin
+  Result := Color.Value and $FFFFFF;
+end;
+
+function ColorToColorRec(Color: TColor): TKColorRec;
+begin
+  Result.Value := ColorToRGB(Color);
 end;
 
 procedure CopyBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcX, SrcY: Integer);
@@ -787,6 +887,69 @@ begin
       TextBox.Draw(Canvas, ARect);
   finally
     TextBox.Free;
+  end;
+end;
+
+procedure DrawButtonFrame(ACanvas: TCanvas; const ARect: TRect;
+  AStates: TKButtonDrawStates);
+var
+  BM: TBitmap;
+  TmpCanvas: TCanvas;
+  TmpRect: TRect;
+  ButtonState: Integer;
+{$IFDEF USE_THEMES}
+  ButtonTheme: TThemedButton;
+{$ENDIF}
+begin
+  // a LOT of tweaking here...
+{$IF DEFINED(USE_WINAPI) OR DEFINED(LCLQT) } // GTK2 cannot strech and paint on bitmap canvas, grrr..
+  if CanvasScaled(ACanvas) {$IFDEF USE_WINAPI}and (bsUseThemes in AStates){$ENDIF} then
+  begin
+    BM := TBitmap.Create;
+    BM.Width := ARect.Right - ARect.Left;
+    BM.Height := ARect.Bottom - ARect.Top;
+    BM.Canvas.Brush.Assign(ACanvas.Brush);
+    TmpRect := Rect(0, 0, BM.Width, BM.Height);
+    BM.Canvas.FillRect(TmpRect);
+    TmpCanvas := BM.Canvas;
+  end else
+{$IFEND}
+  begin
+    BM := nil;
+    TmpRect := ARect;
+    TmpCanvas := ACanvas;
+  end;
+  try
+  {$IFDEF USE_THEMES}
+    if bsUseThemes in AStates then
+    begin
+      if bsDisabled in AStates then
+        ButtonTheme := tbPushButtonDisabled
+      else if bsPressed in AStates then
+        ButtonTheme := tbPushButtonPressed
+      else if bsHot in AStates then
+        ButtonTheme := tbPushButtonHot
+      else if bsFocused in AStates then
+        ButtonTheme := tbPushButtonDefaulted
+      else
+        ButtonTheme := tbPushButtonNormal;
+      ThemeServices.DrawElement(TmpCanvas.Handle, ThemeServices.GetElementDetails(ButtonTheme), TmpRect);
+    end else
+  {$ENDIF}
+    begin
+      ButtonState := DFCS_BUTTONPUSH;
+      if bsDisabled in AStates then
+        ButtonState := ButtonState or DFCS_INACTIVE
+      else if bsPressed in AStates then
+        ButtonState := ButtonState or DFCS_PUSHED
+      else if bsHot in AStates then
+        ButtonState := ButtonState or DFCS_HOT;
+      DrawFrameControl(TmpCanvas.Handle, TmpRect, DFC_BUTTON, ButtonState);
+    end;
+    if BM <> nil then
+      ACanvas.Draw(ARect.Left, ARect.Top, BM);
+  finally
+    BM.Free;
   end;
 end;
 
@@ -939,6 +1102,16 @@ begin
   Result := Value;
 end;
 
+function HorizontalShapePosition(AAlignment: TKHAlign; const ABoundary: TRect; const AShapeSize: TPoint): Integer;
+begin
+  case AAlignment of
+    halCenter: Result := ABoundary.Left + (ABoundary.Right - ABoundary.Left - AShapeSize.X) div 2;
+    halRight: Result := ABoundary.Right - AShapeSize.X;
+  else
+    Result := ABoundary.Left;
+  end;
+end;
+
 function ImageByType(const Header: TKImageHeaderString): TGraphic;
 begin
   if Pos('BM', {$IFDEF COMPILER12_UP}string{$ENDIF}(Header)) = 1 then
@@ -983,6 +1156,28 @@ begin
   {$ELSE}
     LoadCursor(HInstance, PChar(ResName));
   {$ENDIF}
+end;
+
+procedure LoadGraphicFromResource(Graphic: TGraphic; const ResName: string; ResType: PChar);
+{$IFNDEF FPC}
+var
+  Stream: TResourceStream;
+{$ENDIF}
+begin
+  if Graphic <> nil then
+  try
+  {$IFDEF FPC}
+    Graphic.LoadFromLazarusResource(ResName);
+  {$ELSE}
+    Stream := TResourceStream.Create(HInstance, ResName, ResType);
+    try
+      Graphic.LoadFromStream(Stream);
+    finally
+      Stream.Free;
+    end;
+  {$ENDIF}
+  except
+  end;
 end;
 
 function PixelFormatFromBpp(Bpp: Cardinal): TPixelFormat;
@@ -1132,6 +1327,25 @@ begin
     OffsetRect(ARect, -P.X, -P.Y);
 end;
 
+function VerticalShapePosition(AAlignment: TKVAlign; const ABoundary: TRect; const AShapeSize: TPoint): Integer;
+begin
+  case AAlignment of
+    valCenter: Result := ABoundary.Top + (ABoundary.Bottom - ABoundary.Top - AShapeSize.Y) div 2;
+    valBottom: Result := ABoundary.Bottom - AShapeSize.Y;
+  else
+    Result := ABoundary.Top;
+  end;
+end;
+
+{ TKGraphic }
+
+constructor TKGraphic.Create;
+begin
+  inherited;
+  FDescription := '';
+  FFileFilter := '';
+end;
+
 { TKAlphaBitmap }
 
 constructor TKAlphaBitmap.Create;
@@ -1139,7 +1353,11 @@ begin
   inherited;
   FCanvas := TCanvas.Create;
   FCanvas.Handle := CreateCompatibleDC(0);
+  FUpdateLock := 0;
+  FAutoMirror := True;
+  FDescription := 'KControls alpha bitmap';
   FDirectCopy := False;
+  FFileFilter := '*.bma;*.bmp;*.png;*.jpg';
   FHandle := 0;
 {$IFNDEF USE_WINAPI}
   FImage := TLazIntfImage.Create(0, 0);
@@ -1147,6 +1365,7 @@ begin
   FHeight := 0;
   FOldBitmap := 0;
   FPixels := nil;
+  FPixelsChanged := False;
   FWidth := 0;
 end;
 
@@ -1167,14 +1386,14 @@ begin
       Stream.Free;
     end;
   except
-  end;  
+  end;
 end;
 
 destructor TKAlphaBitmap.Destroy;
 var
   DC: HDC;
 begin
-  inherited;
+  LockUpdate;
   SetSize(0, 0);
 {$IFNDEF USE_WINAPI}
   FImage.Free;
@@ -1183,6 +1402,7 @@ begin
   FCanvas.Handle := 0;
   DeleteDC(DC);
   FCanvas.Free;
+  inherited;
 end;
 
 procedure TKAlphaBitmap.AlphaDrawTo(ACanvas: TCanvas; X, Y: Integer);
@@ -1204,19 +1424,48 @@ begin
         Break;
       end;
   if not HasAlpha then
+  begin
+    LockUpdate;
+    try
+      for I := 0 to FWidth * FHeight - 1 do
+        FPixels[I].A := Alpha;
+    finally
+      UnlockUpdate;
+    end;
+  end;
+end;
+
+procedure TKAlphaBitmap.AlphaFillOnColorMatch(AColor: TColor; AAlpha: Byte);
+var
+  I: Integer;
+  CS: TKColorRec;
+begin
+  LockUpdate;
+  try
+    CS := ColorToColorRec(AColor);
+    SwapBR(CS);
     for I := 0 to FWidth * FHeight - 1 do
-      FPixels[I].A := Alpha;
+      if (FPixels[I].R = CS.R) and (FPixels[I].G = CS.G) and (FPixels[I].B = CS.B) then
+        FPixels[I].A := AAlpha;
+  finally
+    UnlockUpdate;
+  end;
 end;
 
 procedure TKAlphaBitmap.AlphaFillPercent(Percent: Integer; IfEmpty: Boolean);
 var
   I: Integer;
 begin
-  for I := 0 to FWidth * FHeight - 1 do
-    if FPixels[I].A <> 0 then
-      FPixels[I].A := Percent * FPixels[I].A div 100
-    else if IfEmpty then
-      FPixels[I].A := Percent * 255 div 100;
+  LockUpdate;
+  try
+    for I := 0 to FWidth * FHeight - 1 do
+      if FPixels[I].A <> 0 then
+        FPixels[I].A := Percent * FPixels[I].A div 100
+      else if IfEmpty then
+        FPixels[I].A := Percent * 255 div 100;
+  finally
+    UnlockUpdate;
+  end;
 end;
 
 procedure TKAlphaBitmap.AlphaFill(Alpha: Byte; BlendColor: TColor; Gradient, Translucent: Boolean);
@@ -1226,72 +1475,76 @@ var
   Scan: PKColorRecs;
   CS: TKColorRec;
 begin
-  VSum := 0; VStep := 0;
-  HSum := 0; HStep := 0;
-  if Gradient then
-  begin
-    VStep := Alpha / FHeight;
-    VSum := Alpha;
-  end;
-  CS.Value := ColorToRGB(BlendColor);
-{$IFNDEF USE_WINAPI}
-  for I := 0 to FHeight - 1 do
-{$ELSE}
-  for I := FHeight - 1 downto 0 do
-{$ENDIF}
-  begin
-    Scan := ScanLine[I];
-    HAlpha := Alpha;
+  LockUpdate;
+  try
+    VSum := 0; VStep := 0;
+    HSum := 0; HStep := 0;
     if Gradient then
     begin
-      HStep := HAlpha / FWidth;
-      HSum := HAlpha;
+      VStep := Alpha / FHeight;
+      VSum := Alpha;
     end;
-    for J := 0 to FWidth - 1 do with Scan[J] do
+    CS := ColorToColorRec(BlendColor);
+  {$IFNDEF USE_WINAPI}
+    for I := 0 to FHeight - 1 do
+  {$ELSE}
+    for I := FHeight - 1 downto 0 do
+  {$ENDIF}
     begin
-      A1 := HAlpha;
-      A2 := 255 - HAlpha;
-      AR := R * A1 + CS.R * A2;
-      AG := G * A1 + CS.G * A2;
-      AB := B * A1 + CS.B * A2;
-      R := AR shr 8;
-      G := AG shr 8;
-      B := AB shr 8;
-      if Translucent then
-        A := HAlpha
-      else
-        A := 255;
+      Scan := ScanLine[I];
+      HAlpha := Alpha;
       if Gradient then
       begin
-        HAlpha := Round(HSum);
-        HSum := HSum - HStep;
+        HStep := HAlpha / FWidth;
+        HSum := HAlpha;
+      end;
+      for J := 0 to FWidth - 1 do with Scan[J] do
+      begin
+        A1 := HAlpha;
+        A2 := 255 - HAlpha;
+        AR := R * A1 + CS.R * A2;
+        AG := G * A1 + CS.G * A2;
+        AB := B * A1 + CS.B * A2;
+        R := AR shr 8;
+        G := AG shr 8;
+        B := AB shr 8;
+        if Translucent then
+          A := HAlpha
+        else
+          A := 255;
+        if Gradient then
+        begin
+          HAlpha := Round(HSum);
+          HSum := HSum - HStep;
+        end;
+      end;
+      if Gradient then
+      begin
+        Alpha := Round(VSum);
+        VSum := VSum - VStep;
       end;
     end;
-    if Gradient then
-    begin
-      Alpha := Round(VSum);
-      VSum := VSum - VStep;
-    end;
+  finally
+    UnlockUpdate;
   end;
-  FPixelsChanged := True;
 end;
 
 procedure TKAlphaBitmap.AlphaStretchDrawTo(ACanvas: TCanvas;
   const ARect: TRect);
-{$IFDEF USE_WINAPI}
+{$IFnDEF LCLQT}
 var
   I: Integer;
   Tmp: TKAlphaBitmap;
   Ps, Pd: PKColorRecs;
 {$ENDIF}
 begin
-{$IFNDEF USE_WINAPI}
+{$IFDEF LCLQT}
   DrawTo(ACanvas, ARect);
 {$ELSE}
   Tmp := TKAlphaBitmap.Create;
   try
     Tmp.SetSize(FWidth, FHeight);
-    Tmp.DrawFrom(ACanvas, ARect);
+    Tmp.DrawFrom(ACanvas, ARect); // QT does not support
     for I := 0 to FHeight - 1 do
     begin
       Ps := ScanLine[I];
@@ -1306,33 +1559,78 @@ begin
 {$ENDIF}
 end;
 
+procedure TKAlphaBitmap.Assign(Source: TPersistent);
+begin
+  if Source = nil then
+    SetSize(0, 0)
+  else if Source is TKAlphaBitmap then
+    TKAlphaBitmap(Source).AssignTo(Self)
+  else if Source is TGraphic then
+    LoadFromGraphic(TGraphic(Source))
+  else
+    inherited;
+end;
+
+procedure TKAlphaBitmap.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TKAlphaBitmap then with TKAlphaBitmap(Dest) do
+  begin
+    AutoMirror := Self.AutoMirror;
+    DirectCopy := Self.DirectCopy;
+    CopyFrom(Self);
+  end
+end;
+
+procedure TKAlphaBitmap.Clear;
+var
+  I: Integer;
+begin
+  LockUpdate;
+  try
+    for I := 0 to FWidth * FHeight - 1 do
+      FPixels[I].Value := 0;
+  finally
+    UnlockUpdate;
+  end;
+end;
+
+procedure TKAlphaBitmap.Changed(Sender: TObject);
+begin
+  inherited;
+  FPixelsChanged := True;
+end;
+
 procedure TKAlphaBitmap.CombinePixel(X, Y: Integer; Color: TKColorRec);
 var
   Index, A1, A2, AR, AG, AB: Integer;
 begin
   if (X >= 0) and (X < FWidth) and (Y >= 0) and (Y < FHeight) then
   begin
-    SwapBR(Color);
-  {$IFDEF USE_WINAPI}
-    Index := (FHeight - Y - 1) * FWidth + X;
-  {$ELSE}
-    Index := Y * FWidth + X;
-  {$ENDIF}
-    A2 := Color.A;
-    if A2 = 255 then
-      FPixels[Index] := Color
-    else if A2 <> 0 then
-    begin
-      A1 := 255 - Color.A;
-      AR := FPixels[Index].R * A1 + Color.R * A2;
-      AG := FPixels[Index].G * A1 + Color.G * A2;
-      AB := FPixels[Index].B * A1 + Color.B * A2;
-      FPixels[Index].R := AR shr 8;
-      FPixels[Index].G := AG shr 8;
-      FPixels[Index].B := AB shr 8;
-      FPixels[Index].A := 255;
+    LockUpdate;
+    try
+      SwapBR(Color);
+    {$IFDEF USE_WINAPI}
+      Index := (FHeight - Y - 1) * FWidth + X;
+    {$ELSE}
+      Index := Y * FWidth + X;
+    {$ENDIF}
+      A2 := Color.A;
+      if A2 = 255 then
+        FPixels[Index] := Color
+      else if A2 <> 0 then
+      begin
+        A1 := 255 - Color.A;
+        AR := FPixels[Index].R * A1 + Color.R * A2;
+        AG := FPixels[Index].G * A1 + Color.G * A2;
+        AB := FPixels[Index].B * A1 + Color.B * A2;
+        FPixels[Index].R := AR shr 8;
+        FPixels[Index].G := AG shr 8;
+        FPixels[Index].B := AB shr 8;
+        FPixels[Index].A := 255;
+      end;
+    finally
+      UnlockUpdate;
     end;
-    FPixelsChanged := True;
   end;
 end;
 
@@ -1340,11 +1638,15 @@ procedure TKAlphaBitmap.CopyFrom(ABitmap: TKAlphaBitmap);
 var
   I, Size: Integer;
 begin
-  SetSize(ABitmap.Width, ABitmap.Height);
-  Size := FWidth * SizeOf(TKColorRec);
-  for I := 0 to FHeight - 1 do
-    Move(ABitmap.ScanLine[I]^, ScanLine[I]^, Size);
-  FPixelsChanged := True;
+  LockUpdate;
+  try
+    SetSize(ABitmap.Width, ABitmap.Height);
+    Size := FWidth * SizeOf(TKColorRec);
+    for I := 0 to FHeight - 1 do
+      Move(ABitmap.ScanLine[I]^, ScanLine[I]^, Size);
+  finally
+    UnlockUpdate;
+  end;
 end;
 
 procedure TKAlphaBitmap.CopyFromRotated(ABitmap: TKAlphaBitmap);
@@ -1352,17 +1654,36 @@ var
   I, J: Integer;
   SrcScan, DstScan: PKColorRecs;
 begin
-  SetSize(ABitmap.Height, ABitmap.Width);
-  for J := 0 to ABitmap.Height - 1 do
-  begin
-    SrcScan := ABitmap.ScanLine[J];
-    for I := 0 to ABitmap.Width - 1 do
+  LockUpdate;
+  try
+    SetSize(ABitmap.Height, ABitmap.Width);
+    for J := 0 to ABitmap.Height - 1 do
     begin
-      DstScan := ScanLine[ABitmap.Width - I - 1];
-      DstScan[J] := SrcScan[I];
+      SrcScan := ABitmap.ScanLine[J];
+      for I := 0 to ABitmap.Width - 1 do
+      begin
+        DstScan := ScanLine[ABitmap.Width - I - 1];
+        DstScan[J] := SrcScan[I];
+      end;
     end;
+  finally
+    UnlockUpdate;
   end;
-  FPixelsChanged := True;
+end;
+
+procedure TKAlphaBitmap.CopyFromXY(X, Y: Integer; ABitmap: TKAlphaBitmap);
+var
+  I, J: Integer;
+begin
+  LockUpdate;
+  try
+    for I := X to X + ABitmap.Width - 1 do
+      for J := Y to Y + ABitmap.Height - 1 do
+        if (I >= 0) and (I < FWidth) and (J >= 0) and (J < FHeight) then
+          Pixels[J * FWidth + I] := ABitmap.Pixels[(J - Y) * ABitmap.Width + (I - X)];
+  finally
+    UnlockUpdate;
+  end;
 end;
 
 procedure TKAlphaBitmap.Draw(ACanvas: TCanvas; const ARect: TRect);
@@ -1385,6 +1706,16 @@ begin
       DrawFilledRectangle(FCanvas, Rect(0, 0, FWidth, FHeight),
         {$IFDEF USE_WINAPI}GetBkColor(ACanvas.Handle){$ELSE}clWindow{$ENDIF});
     end;
+    UpdatePixels;
+  end;
+end;
+
+procedure TKAlphaBitmap.DrawFrom(AGraphic: TGraphic; X, Y: Integer);
+begin
+  if not Empty then
+  begin
+    UpdateHandle;
+    FCanvas.Draw(X, Y, AGraphic);
     UpdatePixels;
   end;
 end;
@@ -1443,6 +1774,25 @@ begin
   Result := FWidth;
 end;
 
+procedure TKAlphaBitmap.GrayScale;
+var
+  I, Average: Integer;
+begin
+  LockUpdate;
+  try
+    for I := 0 to FWidth * FHeight - 1 do
+    begin
+      // R and B are swapped
+      Average := (Integer(7) * FPixels[I].R + Integer(72) * FPixels[I].G + Integer(21) * FPixels[I].B) div 100;
+      FPixels[I].R := Average;
+      FPixels[I].G := Average;
+      FPixels[I].B := Average;
+    end;
+  finally
+    UnlockUpdate;
+  end;
+end;
+
 {$IFNDEF FPC}
 procedure TKAlphaBitmap.LoadFromClipboardFormat(AFormat: Word; AData: THandle;
   APalette: HPALETTE);
@@ -1451,22 +1801,68 @@ begin
 end;
 {$ENDIF}
 
+procedure TKAlphaBitmap.LoadFromFile(const Filename: string);
+var
+  IM: TPicture;
+begin
+  IM := TPicture.Create;
+  try
+    IM.LoadFromFile(FileName);
+    LoadFromGraphic(IM.Graphic);
+  finally
+    IM.Free;
+  end;
+end;
+
+procedure TKAlphaBitmap.LoadFromGraphic(Image: TGraphic);
+begin
+  LockUpdate;
+  try
+    SetSize(Image.Width, Image.Height);
+  {$IFDEF USE_WINAPI}
+    Canvas.Draw(0, 0, Image);
+  {$ELSE}
+    if Image is TRasterImage then
+      FImage.Assign(TRasterImage(Image).CreateIntfImage);
+  {$ENDIF}
+    // if bitmap has no alpha channel, create full opacity
+    AlphaFill($FF, True);
+  finally
+    UnlockUpdate;
+  end;
+end;
+
 procedure TKAlphaBitmap.LoadFromStream(Stream: TStream);
 var
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
 begin
-  SetSize(0, 0);
   Stream.Read(BF, SizeOf(TBitmapFileHeader));
-  Stream.Read(BI, SizeOf(TBitmapInfoHeader));
-  if BI.biBitCount = 32 then
+  if BF.bfType = $4D42 then
   begin
-    SetSize(BI.biWidth, BI.biHeight);
-    Stream.Read(FPixels^, BI.biSizeImage);
-    // if bitmap has no alpha channel, create full opacity
-    AlphaFill($FF, True);
+    Stream.Read(BI, SizeOf(TBitmapInfoHeader));
+    if BI.biBitCount = 32 then
+    begin
+      LockUpdate;
+      try
+        SetSize(BI.biWidth, BI.biHeight);
+        Stream.Read(FPixels^, BI.biSizeImage);
+        // if bitmap has no alpha channel, create full opacity
+        AlphaFill($FF, True);
+      {$IFnDEF USE_WINAPI}
+        if FAutoMirror then
+          MirrorVert;
+      {$ENDIF}
+      finally
+        UnlockUpdate;
+      end;
+    end;
   end;
-  FPixelsChanged := True;
+end;
+
+procedure TKAlphaBitmap.LockUpdate;
+begin
+  Inc(FUpdateLock);
 end;
 
 procedure TKAlphaBitmap.MirrorHorz;
@@ -1475,19 +1871,23 @@ var
   SrcScan: PKColorRecs;
   Buf: TKColorRec;
 begin
-  for I := 0 to FHeight - 1 do
-  begin
-    SrcScan := ScanLine[I];
-    Index := FWidth - 1;
-    for J := 0 to (FWidth shr 1) - 1 do
+  LockUpdate;
+  try
+    for I := 0 to FHeight - 1 do
     begin
-      Buf := SrcScan[Index];
-      SrcScan[Index] := SrcScan[J];
-      SrcScan[J] := Buf;
-      Dec(Index);
+      SrcScan := ScanLine[I];
+      Index := FWidth - 1;
+      for J := 0 to (FWidth shr 1) - 1 do
+      begin
+        Buf := SrcScan[Index];
+        SrcScan[Index] := SrcScan[J];
+        SrcScan[J] := Buf;
+        Dec(Index);
+      end;
     end;
+  finally
+    UnlockUpdate;
   end;
-  FPixelsChanged := True;
 end;
 
 procedure TKAlphaBitmap.MirrorVert;
@@ -1496,23 +1896,27 @@ var
   SrcScan, DstScan: PKColorRecs;
   Buf: PKColorRec;
 begin
-  Size:= FWidth * SizeOf(TKColorRec);
-  Index := FHeight - 1;
-  GetMem(Buf, Size);
+  LockUpdate;
   try
-    for I := 0 to (FHeight shr 1) - 1 do
-    begin
-      SrcScan := ScanLine[I];
-      DstScan := ScanLine[Index];
-      Move(SrcScan^, Buf^, Size);
-      Move(DstScan^, SrcScan^, Size);
-      Move(Buf^, DstScan^, Size);
-      Dec(Index);
+    Size:= FWidth * SizeOf(TKColorRec);
+    Index := FHeight - 1;
+    GetMem(Buf, Size);
+    try
+      for I := 0 to (FHeight shr 1) - 1 do
+      begin
+        SrcScan := ScanLine[I];
+        DstScan := ScanLine[Index];
+        Move(SrcScan^, Buf^, Size);
+        Move(DstScan^, SrcScan^, Size);
+        Move(Buf^, DstScan^, Size);
+        Dec(Index);
+      end;
+    finally
+      FreeMem(Buf);
     end;
   finally
-    FreeMem(Buf);
+    UnlockUpdate;
   end;
-  FPixelsChanged := True;
 end;
 
 {$IFNDEF FPC}
@@ -1529,6 +1933,10 @@ var
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
 begin
+{$IFnDEF USE_WINAPI}
+  if FAutoMirror then
+    MirrorVert;
+{$ENDIF}
   Size := FWidth * FHeight * 4;
   FillChar(BF, SizeOf(TBitmapFileHeader), 0);
   BF.bfType := $4D42;
@@ -1545,6 +1953,10 @@ begin
   BI.biSizeImage := Size;
   Stream.Write(BI, SizeOf(TBitmapInfoHeader));
   Stream.Write(FPixels^, Size);
+{$IFnDEF USE_WINAPI}
+  if FAutoMirror then
+    MirrorVert;
+{$ENDIF}
 end;
 
 procedure TKAlphaBitmap.SetHeight(Value: Integer);
@@ -1556,13 +1968,17 @@ procedure TKAlphaBitmap.SetPixel(X, Y: Integer; Value: TKColorRec);
 begin
   if (X >= 0) and (X < FWidth) and (Y >= 0) and (Y < FHeight) then
   begin
-    SwapBR(Value);
-  {$IFDEF USE_WINAPI}
-    FPixels[(FHeight - Y - 1) * FWidth + X] := Value;
-  {$ELSE}
-    FPixels[Y * FWidth + X] := Value;
-  {$ENDIF}
-    FPixelsChanged := True;
+    LockUpdate;
+    try
+      SwapBR(Value);
+    {$IFDEF USE_WINAPI}
+      FPixels[(FHeight - Y - 1) * FWidth + X] := Value;
+    {$ELSE}
+      FPixels[Y * FWidth + X] := Value;
+    {$ENDIF}
+    finally
+      UnlockUpdate;
+    end;
   end;
 end;
 
@@ -1578,40 +1994,45 @@ begin
   AHeight := Max(AHeight, 0);
   if (AWidth <> FWidth) or (AHeight <> FHeight) then
   begin
-    FWidth := AWidth;
-    FHeight := AHeight;
-    if FHandle <> 0 then
-    begin
-      SelectObject(FCanvas.Handle, FOldBitmap);
-      DeleteObject(FHandle);
-      FHandle := 0;
+    LockUpdate;
+    try
+      FWidth := AWidth;
+      FHeight := AHeight;
+      if FHandle <> 0 then
+      begin
+        SelectObject(FCanvas.Handle, FOldBitmap);
+        DeleteObject(FHandle);
+        FHandle := 0;
+      {$IFNDEF USE_WINAPI}
+        DeleteObject(FMaskHandle);
+        FMaskHandle := 0;
+      {$ENDIF}
+      end;
     {$IFNDEF USE_WINAPI}
-      DeleteObject(FMaskHandle);
-      FMaskHandle := 0;
+      FImage.SetSize(0, 0);
     {$ENDIF}
-    end;
-  {$IFNDEF USE_WINAPI}
-    FImage.SetSize(0, 0);
-  {$ENDIF}
-    FPixels := nil;
-    if (FWidth <> 0) and (FHeight <> 0) then
-    begin
-    {$IFNDEF USE_WINAPI}
-      ImgFormatDescription.Init_BPP32_B8G8R8A8_BIO_TTB(FWidth,FHeight);
-      FImage.DataDescription := ImgFormatDescription;
-      FPixelsChanged := True;
-      UpdateHandle;
-    {$ELSE}
-      FillChar(BI, SizeOf(TBitmapInfoHeader), 0);
-      BI.biSize := SizeOf(TBitmapInfoHeader);
-      BI.biWidth := FWidth;
-      BI.biHeight := FHeight;
-      BI.biPlanes := 1;
-      BI.biBitCount := 32;
-      BI.biCompression := BI_RGB;
-      FHandle := GDICheck(CreateDIBSection(FCanvas.Handle, PBitmapInfo(@BI)^, DIB_RGB_COLORS, Pointer(FPixels), 0, 0));
-      FOldBitmap := SelectObject(FCanvas.Handle, FHandle);
-    {$ENDIF}
+      FPixels := nil;
+      if (FWidth <> 0) and (FHeight <> 0) then
+      begin
+      {$IFNDEF USE_WINAPI}
+        ImgFormatDescription.Init_BPP32_B8G8R8A8_BIO_TTB(FWidth,FHeight);
+        FImage.DataDescription := ImgFormatDescription;
+        FPixelsChanged := True;
+        UpdateHandle;
+      {$ELSE}
+        FillChar(BI, SizeOf(TBitmapInfoHeader), 0);
+        BI.biSize := SizeOf(TBitmapInfoHeader);
+        BI.biWidth := FWidth;
+        BI.biHeight := FHeight;
+        BI.biPlanes := 1;
+        BI.biBitCount := 32;
+        BI.biCompression := BI_RGB;
+        FHandle := GDICheck(CreateDIBSection(FCanvas.Handle, PBitmapInfo(@BI)^, DIB_RGB_COLORS, Pointer(FPixels), 0, 0));
+        FOldBitmap := SelectObject(FCanvas.Handle, FHandle);
+      {$ENDIF}
+      end;
+    finally
+      UnlockUpdate;
     end;
   end;
 end;
@@ -1624,6 +2045,16 @@ end;
 procedure TKAlphaBitmap.SetTransparent(Value: Boolean);
 begin
   // does nothing
+end;
+
+procedure TKAlphaBitmap.UnlockUpdate;
+begin
+  if FUpdateLock > 0 then
+  begin
+    Dec(FUpdateLock);
+    if FUpdateLock = 0 then
+      Changed(Self);
+  end;
 end;
 
 procedure TKAlphaBitmap.UpdateHandle;
@@ -2103,7 +2534,7 @@ end;
 class function TKTextBox.TextExtent(ACanvas: TCanvas; const AText: TKString;
   AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer): TSize;
 var
-  S: string;
+  S: TKString;
   TextPtr: PKText;
 begin
   S := '';
@@ -2135,7 +2566,7 @@ end;
 class procedure TKTextBox.TextOutput(ACanvas: TCanvas; X, Y: Integer;
   const AText: TKString; AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer);
 var
-  S: string;
+  S: TKString;
   TextPtr: PKText;
 begin
   if AExpandTabs then
@@ -2531,4 +2962,21 @@ begin
   end;
 end;
 
+procedure RegisterAlphaBitmap;
+begin
+  TPicture.RegisterFileFormat('BMA', sGrAlphaBitmap, TKAlphaBitmap);
+end;
+
+procedure UnregisterAlphaBitmap;
+begin
+  TPicture.UnregisterGraphicClass(TKAlphaBitmap);
+end;
+
+{$IFDEF REGISTER_PICTURE_FORMATS}
+initialization
+  RegisterAlphaBitmap;
+finalization
+  //not necessary, but...
+  UnregisterAlphaBitmap;
+{$ENDIF}
 end.

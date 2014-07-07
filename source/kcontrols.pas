@@ -1,12 +1,12 @@
 { @abstract(This unit contains the base class for all visible controls.)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(18 Sep 2009)
-  @lastmod(20 Jun 2010)
+  @lastmod(6 Jul 2014)
 
   This unit implements the base class TKCustomControl for all visible controls
   from the KControls Development Suite.<BR><BR>
 
-  Copyright © 2009 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -31,7 +31,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, KFunctions
+  SysUtils, Classes, Graphics, Controls, Printers, Forms, KFunctions
 {$IFDEF USE_THEMES}
   , Themes
  {$IFNDEF FPC}
@@ -44,7 +44,7 @@ type
   { This array serves as storage place for all colors. }
   TKColorArray = array of TColor;
 
-  { Declares possible indexes e.g. for the @link(TKPreviewColors.Color) property. }
+  { Declares possible indexes for colors available in @link(TKPreviewColors). }
   TKPreviewColorIndex = Integer;
 
   { Declares print options - possible values for the @link(TKPrintPageSetup.Options) property. }
@@ -261,6 +261,9 @@ type
   { Base class for all visible controls in KControls. }
   TKCustomControl = class(TCustomControl)
   private
+  {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
+    FParentDoubleBuffered: Boolean;
+  {$IFEND}
   {$IFNDEF FPC}
     FBorderStyle: TBorderStyle;
   {$ENDIF}
@@ -442,6 +445,10 @@ type
     property PageSetup: TKPrintPageSetup read GetPageSetup write SetPageSetup;
     {Returns True if page setup component is allocated for this control. }
     property PageSetupAllocated: Boolean read GetPageSetupAllocated;
+    { Just to be compatible with Delphi. }
+  {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
+    property ParentDoubleBuffered: Boolean read FParentDoubleBuffered write FParentDoubleBuffered default True;
+  {$IFEND}
   end;
 
   { Declares possible values for the @link(TKCustomColors.ColorScheme) property. }
@@ -543,6 +550,9 @@ type
   end;
 
   { @abstract(Class to specify the print job parameters) }
+
+  { TKPrintPageSetup }
+
   TKPrintPageSetup = class(TPersistent)
   private
     FActive: Boolean;
@@ -564,6 +574,7 @@ type
     FMarginRight: Double;
     FMarginTop: Double;
     FOptions: TKPrintOptions;
+    FOrientation: TPrinterOrientation;
     FOutlineHeight: Integer;
     FOutlineWidth: Integer;
     FPageCount: Integer;
@@ -602,6 +613,7 @@ type
     procedure SetMarginRight(Value: Double);
     procedure SetMarginTop(Value: Double);
     procedure SetOptions(Value: TKPrintOptions);
+    procedure SetOrientation(AValue: TPrinterOrientation);
     procedure SetPrinterName(const Value: string);
     procedure SetPrintingMapped(Value: Boolean);
     procedure SetRange(Value: TKPrintRange);
@@ -690,6 +702,8 @@ type
     property MarginTop: Double read FMarginTop write SetMarginTop;
     { Specifies the printing options. }
     property Options: TKPrintOptions read FOptions write SetOptions;
+    { Specifies the paper orientation. }
+    property Orientation: TPrinterOrientation read FOrientation write SetOrientation;
     { Returns the printed shape height (maximum of all pages)
       in units depending on PrintingMapped.. }
     property OutlineHeight: Integer read FOutlineHeight;
@@ -983,7 +997,7 @@ function ValueToInches(Units: TKPrintUnits; Value: Double): Double;
 implementation
 
 uses
-  Math, Printers, Types, KGraphics;
+  Math, Types, KGraphics;
 
 const
   cPreviewHorzBorder = 30;
@@ -1109,6 +1123,9 @@ begin
   FMouseInClient := False;
 {$ENDIF}
   FPageSetup := nil;
+{$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
+  FParentDoubleBuffered := True;
+{$IFEND}
   FPreviewList := TList.Create;
   FUpdateLock := 0;
   FOnPrintNotify := nil;
@@ -1710,6 +1727,7 @@ begin
   FMarginRight := cMarginRightDef;
   FMarginTop := cMarginTopDef;
   FOptions := cOptionsDef;
+  FOrientation := poPortrait;
   FOutlineHeight := 0;
   FOutlineWidth := 0;
   FPageCount := 0;
@@ -1815,7 +1833,7 @@ begin
   Inc(FUpdateLock);
 end;
 
-procedure TKPrintPageSetup.PaintPageToPreview;
+procedure TKPrintPageSetup.PaintPageToPreview(APreview: TKPrintPreview);
 var
   PaperWidth, PaperHeight, SaveIndex: Integer;
   R, PageRect: TRect;
@@ -2142,6 +2160,15 @@ begin
   end;
 end;
 
+procedure TKPrintPageSetup.SetOrientation(AValue: TPrinterOrientation);
+begin
+  if AValue <> FOrientation then
+  begin
+    FOrientation:=AValue;
+    UpdateSettings;
+  end;
+end;
+
 procedure TKPrintPageSetup.SetPrinterName(const Value: string);
 begin
   if FActive then Exit;
@@ -2223,7 +2250,7 @@ begin
   begin
     FValidating := True;
     try
-      Printer.Refresh;
+//      Printer.Refresh;
       I := Printer.Printers.IndexOf(FPrinterName);
       if I >= 0 then
         Printer.PrinterIndex := I;
@@ -2368,7 +2395,7 @@ begin
     ciBorder: begin Result.Def := cBorderDef; Result.Name := ''; end;
     ciSelectedBorder: begin Result.Def := cSelectedBorderDef; Result.Name := ''; end;
   else
-    Result := inherited;
+    Result := inherited GetColorSpec(Index);
   end;
 end;
 
@@ -3086,4 +3113,4 @@ initialization
   {$R kcontrols.res}
 {$ENDIF}
 
-end.
+end.

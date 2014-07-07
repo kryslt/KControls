@@ -1,9 +1,9 @@
 { @abstract(This unit contains page setup dialog.)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(18 Sep 2009)
-  @lastmod(15 Oct 2009)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2009 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -261,11 +261,14 @@ procedure TKPrintSetupForm.BUConfigureClick(Sender: TObject);
 begin
   FormToPageSetup;
   try
+    Printer.Orientation := FPageSetup.Orientation;
+    Printer.Copies := FPageSetup.Copies;
     if PSDMain.Execute then
     begin
       FPageSetup.LockUpdate;
       try
-        FPageSetup.PrinterName := '';
+        FPageSetup.Orientation := Printer.Orientation;
+        FPageSetup.Copies := Printer.Copies;
       finally
         FPageSetup.UnlockUpdate;
       end;
@@ -359,4 +362,4 @@ initialization
 {$ELSE}
   {$R *.dfm}
 {$ENDIF}
-end.
+end.

@@ -1,9 +1,9 @@
 { @abstract(This unit contains some useful label controls)
   @author(Tomas Krysl (tk@@tkweb.eu))
   @created(20 Oct 2001)
-  @lastmod(12 Feb 2014)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2001-2014 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -16,7 +16,7 @@
 
 unit KLabels;
 
-{$include KControls.inc}
+{$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}
 
 interface
@@ -98,7 +98,7 @@ type
 implementation
 
 uses
-  Math, KGraphics
+  Math, SysUtils, KGraphics
   {$IFDEF USE_WINAPI}
   , ShellApi
   {$ENDIF}
@@ -331,7 +331,7 @@ begin
 {$IFDEF USE_WINAPI}
   ShellExecute(Application.MainForm.Handle, 'open', PChar(FURL), nil, nil, SW_SHOWNORMAL);
 {$ELSE}
-  SysUtils.ExecuteProcess(UTF8ToSys(FURL), '', []);
+  OpenURL(FURL);
 {$ENDIF}
 end;
 
@@ -380,4 +380,4 @@ begin
   Invalidate;
 end;
 
-end.
+end.

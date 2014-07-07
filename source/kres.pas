@@ -28,6 +28,9 @@ interface
 
 { Standard resourcestrings localized to english by default }
 resourcestring
+  // KGraphics texts
+  sGrAlphaBitmap = 'KControls alpha bitmap';
+
   // KDialogs texts
   sBrowseDirectory = 'Choose directory:';
 
@@ -115,6 +118,9 @@ resourcestring
   sPSErrPrintSetup = 'Print setup error';
   sPSErrNoPrinterInstalled = 'No printer is installed on this computer.';
 
+  // KControlsDesign texts
+  SInvalidGraphicFormat = 'Invalid graphic format.';
+
 { Localize given resourcestring directly.
   Usage: ResMod(@sYourResourceString, 'New text');
   Note: Text passed to NewValue must persist through the entire
@@ -144,7 +150,9 @@ type
 function ResModIterator(Name, Value: AnsiString; Hash: Longint; arg:pointer): AnsiString;
 begin
   if Value = PResModRec(arg).DefStr then
-    Result := PResModRec(arg).NewStr;
+    Result := PResModRec(arg).NewStr
+  else
+    Result := '';
 end;
 
 procedure ResMod(Res: PResStringRec; const NewValue: string);
@@ -178,6 +186,9 @@ end;
 
 procedure LocalizeToCzech;
 begin
+  // KGraphics texts
+  ResMod(@sGrAlphaBitmap, 'Alpha bitmap KControls');
+
   // KDialogs texts
   ResMod(@sBrowseDirectory, 'Vyberte složku:');
 
@@ -264,6 +275,9 @@ begin
   ResMod(@sPSAllPages, 'Všechny stránky (%d)');
   ResMod(@sPSErrPrintSetup, 'Chybné nastavení tisku');
   ResMod(@sPSErrNoPrinterInstalled, 'Na poèítaèi není instalována žádná tiskárna.');
+
+  // KControlsDesign texts
+  ResMod(@sInvalidGraphicFormat, 'Neplatný grafický formát.');
 end;
 
 end.

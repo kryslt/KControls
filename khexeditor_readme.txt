@@ -2,6 +2,10 @@ Software: KhexEditor component for Delphi and Lazarus
 Original authorship: Tomas Krysl (tk@tkweb.eu)
 -------------------
 
+NOTE:
+-------------------
+This readme is no longer maintained and is included due to historic reasons.
+
 
 LICENSE:
 -------------------

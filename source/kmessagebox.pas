@@ -1,9 +1,9 @@
 { @abstract(This unit contains an advanced message box management)
   @author(Tomas Krysl (tk@@tkweb.eu))
   @created(20 Oct 2001)
-  @lastmod(12 Feb 2014)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2001-2014 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -16,7 +16,7 @@
 
 unit KMessageBox;
 
-{$include KControls.inc}
+{$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}
 
 interface
@@ -159,6 +159,7 @@ var
   F: TMsgBoxForm;
   B: TButton;
   La: TLabel;
+  TB: TKTextBox;
   I, L, L1, L2, W, H, H1: integer;
   ICancel, INo: integer;
   IsCancel, IsFirstBtn: boolean;
@@ -176,8 +177,19 @@ begin
     F.Position := poScreenCenter;
     F.Caption := Caption;
     La := TLabel.Create(F);
-    La.Parent := F;
+    TB := TKTextBox.Create;
+    try
+      TB.Text := Text;
+      TB.Attributes := [taLineBreak];
+      TB.Measure(F.Canvas, CreateEmptyRect, W, H);
+    finally
+      TB.Free;
+    end;
     La.Caption := Text;
+    La.AutoSize := False;
+    La.Width := W;
+    La.Height := H;
+    La.Parent := F;
     L := 20;
     H1 := 0;
   {$IFDEF USE_PNG_SUPPORT}
@@ -217,7 +229,7 @@ begin
     for I := Low(Btns) to High(Btns) do
       Inc(L1, Max(F.Canvas.TextWidth(Btns[I]) + 30, 90));
     Dec(L1, 10);
-    L2 := L + La.Width;
+    L2 := L + LA.Width;
     H1 := 30 + Max(La.Height, H1);
     H := H1;
     if L2 > L1 then
@@ -443,4 +455,4 @@ initialization
 {$ELSE}
   {$R kmessagebox.res}
 {$ENDIF}
-end.
+end.

@@ -1,6 +1,2 @@
 kpreview_cursor_hand_free.cur
 kpreview_cursor_hand_grip.cur
-kmessagebox_info.png
-kmessagebox_question.png
-kmessagebox_stop.png
-kmessagebox_warning.png

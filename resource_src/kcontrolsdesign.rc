@@ -11,4 +11,7 @@ tkbrowsefolderdialog BITMAP "tkbrowsefolderdialog.bmp"
 tklinklabel BITMAP "tklinklabel.bmp"
 tkgradientlabel BITMAP "tkgradientlabel.bmp"
 tkpercentprogressbar BITMAP "tkpercentprogressbar.bmp"
+tkmemo BITMAP "tkmemo.bmp"
+tkbitbtn BITMAP "tkbitbtn.bmp"
+tkcolorbutton BITMAP "tkcolorbutton.bmp"
 

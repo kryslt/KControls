@@ -9,14 +9,13 @@ uses
     Windows, Messages,
   {$ENDIF}
     SysUtils, Variants, Classes, Graphics, Controls, Forms,
-    Dialogs, KGrids, KMemo, KGraphics, KFunctions, ExtCtrls, KEditCommon;
+    Dialogs, KGrids, KMemo, KGraphics, KFunctions, ExtCtrls, Grids, KEditCommon;
 
 type
 
-  { TForm2 }
+  { TMainForm }
 
-  TForm2 = class(TForm)
-    procedure Button1Click(Sender: TObject);
+  TMainForm = class(TForm)
     procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
@@ -26,11 +25,11 @@ type
   end;
 
 var
-  Form2: TForm2;
+  MainForm: TMainForm;
 
 implementation
 
-procedure TForm2.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 var
   TB: TKTextMemoBlock;
   IB: TKImageMemoBlock;
@@ -42,7 +41,7 @@ var
 begin
   Memo := TKMemo.Create(Self);
   Memo.Options := Memo.Options + [eoShowFormatting];
-  Memo.Colors.BkGnd := clInfoBk;
+  Memo.Colors.BkGnd := clWhite;
   Memo.Font.Size := 36;
   Memo.Blocks.LockUpdate;
   Memo.Blocks.Clear;
@@ -68,13 +67,13 @@ begin
   TB.Font.Size := 15;
   TB.Font.Color := clRed;
   Memo.Blocks.AddNewLineBlock;
-  Memo.Blocks.AddImageBlock('..\..\resource_src\kmessagebox_info.png');
-  Memo.Blocks.AddImageBlock('..\..\resource_src\kmessagebox_stop.png');
+  Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_info.png');
+  Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_stop.png');
   Memo.Blocks.AddNewLineBlock;
   TB := Memo.Blocks.AddTextBlock('This is vertically aligned text.');
   TB.Font.Size := 12;
   TB.VAlign := valCenter;
-  Memo.Blocks.AddImageBlock('..\..\resource_src\kmessagebox_warning.png');
+  Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_warning.png');
   Memo.Blocks.AddTextBlock(' another text');
   Memo.Blocks.AddNewLineBlock;
   TB := Memo.Blocks.AddTextBlock('This is text on gray.');
@@ -87,26 +86,22 @@ begin
   Memo.Blocks.AddNewLineBlock;
   MS := TMemoryStream.Create;
   try
-    MS.LoadFromFile('..\..\kgrid_readme.txt');
+    MS.LoadFromFile('../../kgrid_readme.txt');
     SetString(S, PAnsiChar(MS.Memory), MS.Size);
     for I := 0 to 0 do
       Memo.Blocks.Text := S;
   finally
     MS.Free;
   end;
-  //Memo.BackgroundImage.LoadFromFile('..\..\resource_src\tkgrid.png');
+  Memo.BackgroundImage.LoadFromFile('../../resource_src/clouds.jpg');
   Memo.Blocks.UnlockUpdate;
   Memo.Align := alClient;
   Memo.ContentPadding.Left := 50;
   Memo.ContentPadding.Top := 30;
   Memo.ContentPadding.Right := 60;
-  Memo.Parent := Self;
   Memo.Blocks.Lines[2] := 'This is replacement.';
   Memo.Select(0, 5);
-end;
-
-procedure TForm2.Button1Click(Sender: TObject);
-begin
+  Memo.Parent := Self;
 end;
 
 {$IFDEF FPC}

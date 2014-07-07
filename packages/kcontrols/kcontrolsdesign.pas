@@ -6,10 +6,11 @@ interface
 
 uses
 {$IFDEF FPC}
-  ComponentEditors, PropEdits
+  ComponentEditors, PropEdits,
 {$ELSE}
-  DesignIntf, DesignEditors
+  DesignIntf, DesignEditors,
 {$ENDIF}
+  KPictureEditor
   ;
 
 type
@@ -27,6 +28,13 @@ type
     procedure Edit; override;
   end;
 
+  { TKGraphicEditor }
+
+  TKGraphicEditor = class(TClassProperty)
+    function GetAttributes: TPropertyAttributes; override;
+    procedure Edit; override;
+  end;
+
 procedure Register;
 
 implementation
@@ -36,9 +44,9 @@ implementation
 {$ENDIF}
 
 uses
-  Classes, Dialogs, SysUtils, Forms, 
-  KControls, KDialogs, KGrids, KHexEditor, KMemo,
-  KEdits, KLabels, KLog, KProgress, KRes
+  Classes, Dialogs, Controls, SysUtils, Forms, Graphics,
+  KGraphics, KControls, KButtons, KDialogs, KGrids, KHexEditor,
+  KEdits, KLabels, KLog, KMemo, KProgress, KRes
 {$IFDEF TKDBGRID_USE}
   , KDBGrids
 {$ENDIF}
@@ -50,12 +58,14 @@ uses
 procedure Register;
 begin
   RegisterComponents('TK', [
-    TKGrid, 
+    TKGrid,
 {$IFDEF TKDBGRID_USE}
     TKDBGrid,
 {$ENDIF}
     TKMemo,
-    TKHexEditor, 
+    TKHexEditor,
+    TKBitBtn,
+    TKColorButton,
     TKNumberEdit,
     TKFileNameEdit,
     TKLog,
@@ -72,6 +82,10 @@ begin
   RegisterPropertyEditor(TypeInfo(TKFileNameEditDlgProperties), nil, '', TKOpenDialogEditor);
   RegisterPropertyEditor(TypeInfo(TFileName), nil, 'FileName', TKFileNameEditor);
   RegisterPropertyEditor(TypeInfo(TFolder), nil, '', TKFolderEditor);
+  RegisterPropertyEditor(TypeInfo(TKAlphaBitmap), nil, '', TKGraphicEditor);
+
+  // images
+  TPicture.RegisterFileFormat('BMA', 'KControls alpha bitmap', TKAlphaBitmap);
 end;
 
 { TKOpenDialogEditor }
@@ -150,8 +164,48 @@ begin
   end;
 end;
 
+{ TKGraphicEditor }
+
+function TKGraphicEditor.GetAttributes: TPropertyAttributes;
+begin
+  Result := [paRevertable, paDialog];
+end;
+
+procedure TKGraphicEditor.Edit;
+var
+  PictureEditor: TKPictureEditForm;
+  P: TObject;
+  Graphic: TKGraphic;
+begin
+{$IFDEF FPC}
+  P := GetObjectValue(TGraphic);
+{$ELSE}
+  P := TObject(GetOrdValue);
+{$ENDIF}
+  if P is TKGraphic then
+  begin
+    Graphic := TKGraphic(P);
+    PictureEditor := TKPictureEditForm.Create(nil);
+    try
+      PictureEditor.IMMain.Picture.Graphic := Graphic;
+      PictureEditor.ODMain.Filter := Format('%s (%s)|%1:s', [Graphic.Description, Graphic.FileFilter]);
+      PictureEditor.SDMain.Filter := PictureEditor.ODMain.Filter;
+      if PictureEditor.ShowModal = mrOk then
+      {$IFDEF FPC}
+        SetPtrValue(PictureEditor.IMMain.Picture.Graphic);
+      {$ELSE}
+        SetOrdValue(Integer(PictureEditor.IMMain.Picture.Graphic));
+      {$ENDIF}
+    finally
+      PictureEditor.Free;
+    end;
+  end else
+    raise Exception.CreateRes(@SInvalidGraphicFormat);
+end;
+
 {$IFDEF FPC}
 initialization
   {$i kcontrolsdesign.lrs}
 {$ENDIF}
-end.
+
+end.

@@ -1,7 +1,7 @@
 object KPrintSetupForm: TKPrintSetupForm
-  Left = 838
+  Left = 798
   Height = 357
-  Top = 417
+  Top = 397
   Width = 464
   ActiveControl = EDTitle
   BorderStyle = bsDialog
@@ -15,19 +15,19 @@ object KPrintSetupForm: TKPrintSetupForm
   OnDestroy = FormDestroy
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
+  LCLVersion = '1.3'
   object GBFileToPrint: TGroupBox
     Left = 8
     Height = 45
     Top = 8
     Width = 449
     Caption = 'Title of printed document:'
-    ClientHeight = 27
+    ClientHeight = 15
     ClientWidth = 445
     TabOrder = 0
     object EDTitle: TEdit
       Left = 8
-      Height = 21
+      Height = 20
       Top = 2
       Width = 432
       TabOrder = 0
@@ -40,48 +40,48 @@ object KPrintSetupForm: TKPrintSetupForm
     Top = 109
     Width = 249
     Caption = 'Print options:'
-    ClientHeight = 87
+    ClientHeight = 75
     ClientWidth = 245
     TabOrder = 1
     object Label1: TLabel
       Left = 162
       Height = 14
       Top = 4
-      Width = 30
+      Width = 35
       Caption = 'Scale:'
       FocusControl = EDPrintScale
       ParentColor = False
     end
     object CBFitToPage: TCheckBox
       Left = 8
-      Height = 17
+      Height = 26
       Top = 2
-      Width = 70
+      Width = 89
       Caption = '&Fit to page'
       OnClick = EDTopExit
       TabOrder = 0
     end
     object CBPageNumbers: TCheckBox
       Left = 8
-      Height = 17
+      Height = 26
       Top = 21
-      Width = 86
+      Width = 108
       Caption = 'Pa&ge numbers'
       OnClick = CBPageNumbersClick
       TabOrder = 1
     end
     object CBUseColor: TCheckBox
       Left = 8
-      Height = 17
+      Height = 26
       Top = 40
-      Width = 62
+      Width = 81
       Caption = '&Use color'
       OnClick = CBPageNumbersClick
       TabOrder = 2
     end
     object EDPrintScale: TEdit
       Left = 162
-      Height = 21
+      Height = 20
       Top = 20
       Width = 48
       OnExit = EDTopExit
@@ -89,18 +89,18 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object CBPaintSelection: TCheckBox
       Left = 8
-      Height = 17
+      Height = 26
       Top = 59
-      Width = 87
+      Width = 113
       Caption = 'Pa&int selection'
       OnClick = CBPageNumbersClick
       TabOrder = 4
     end
     object CBPrintTitle: TCheckBox
       Left = 134
-      Height = 17
+      Height = 26
       Top = 59
-      Width = 61
+      Width = 84
       Caption = 'Print tit&le'
       OnClick = CBPageNumbersClick
       TabOrder = 5
@@ -131,14 +131,14 @@ object KPrintSetupForm: TKPrintSetupForm
     Top = 109
     Width = 193
     Caption = 'Margins:'
-    ClientHeight = 193
+    ClientHeight = 181
     ClientWidth = 189
     TabOrder = 3
     object LBMarginUnits: TLabel
       Left = 8
       Height = 14
       Top = 6
-      Width = 63
+      Width = 74
       Caption = 'Margin u&nits:'
       FocusControl = CoBMarginUnits
       ParentColor = False
@@ -147,7 +147,7 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 8
       Height = 14
       Top = 67
-      Width = 24
+      Width = 25
       Caption = 'Left:'
       FocusControl = EDLeft
       ParentColor = False
@@ -156,7 +156,7 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 102
       Height = 14
       Top = 67
-      Width = 30
+      Width = 32
       Caption = 'Right:'
       FocusControl = EDRight
       ParentColor = False
@@ -174,7 +174,7 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 102
       Height = 14
       Top = 112
-      Width = 39
+      Width = 45
       Caption = 'Bottom:'
       FocusControl = EDBottom
       ParentColor = False
@@ -183,7 +183,7 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 58
       Height = 14
       Top = 86
-      Width = 8
+      Width = 7
       Caption = 'A'
       ParentColor = False
     end
@@ -191,7 +191,7 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 58
       Height = 14
       Top = 131
-      Width = 8
+      Width = 7
       Caption = 'A'
       ParentColor = False
     end
@@ -199,7 +199,7 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 152
       Height = 14
       Top = 86
-      Width = 8
+      Width = 7
       Caption = 'A'
       ParentColor = False
     end
@@ -207,16 +207,16 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 152
       Height = 14
       Top = 131
-      Width = 8
+      Width = 7
       Caption = 'A'
       ParentColor = False
     end
     object CoBMarginUnits: TComboBox
       Left = 8
-      Height = 21
+      Height = 27
       Top = 22
       Width = 176
-      ItemHeight = 13
+      ItemHeight = 0
       Items.Strings = (
         'milimeters'
         'centimeters'
@@ -229,16 +229,16 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object CBMirrorMargins: TCheckBox
       Left = 8
-      Height = 17
+      Height = 26
       Top = 162
-      Width = 86
+      Width = 112
       Caption = '&Mirror margins'
       OnClick = CBPageNumbersClick
       TabOrder = 5
     end
     object EDLeft: TEdit
       Left = 8
-      Height = 21
+      Height = 20
       Top = 83
       Width = 48
       OnExit = EDTopExit
@@ -246,7 +246,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object EDRight: TEdit
       Left = 102
-      Height = 21
+      Height = 20
       Top = 83
       Width = 48
       OnExit = EDTopExit
@@ -254,7 +254,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object EDTop: TEdit
       Left = 8
-      Height = 21
+      Height = 20
       Top = 128
       Width = 48
       OnExit = EDTopExit
@@ -262,7 +262,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object EDBottom: TEdit
       Left = 102
-      Height = 21
+      Height = 20
       Top = 128
       Width = 48
       OnExit = EDTopExit
@@ -275,7 +275,7 @@ object KPrintSetupForm: TKPrintSetupForm
     Top = 215
     Width = 249
     Caption = 'Page selection:'
-    ClientHeight = 87
+    ClientHeight = 75
     ClientWidth = 245
     TabOrder = 2
     object LBRangeTo: TLabel
@@ -290,45 +290,43 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 8
       Height = 14
       Top = 59
-      Width = 88
+      Width = 105
       Caption = 'Number of &copies:'
       FocusControl = EDCopies
       ParentColor = False
     end
     object RBAll: TRadioButton
       Left = 8
-      Height = 17
+      Height = 26
       Top = 3
-      Width = 61
+      Width = 80
       Caption = '&All pages'
       Checked = True
       OnClick = RBAllClick
-      State = cbChecked
       TabOrder = 0
+      TabStop = True
     end
     object RBRange: TRadioButton
       Left = 8
-      Height = 17
+      Height = 26
       Top = 29
-      Width = 78
+      Width = 98
       Caption = '&Range from:'
       OnClick = RBAllClick
       TabOrder = 1
-      TabStop = False
     end
     object RBSelectedOnly: TRadioButton
       Left = 128
-      Height = 17
+      Height = 26
       Top = 3
-      Width = 82
+      Width = 104
       Caption = 'Selected &only'
       OnClick = RBAllClick
       TabOrder = 2
-      TabStop = False
     end
     object EDRangeFrom: TEdit
       Left = 108
-      Height = 21
+      Height = 20
       Top = 27
       Width = 48
       OnExit = EDTopExit
@@ -336,7 +334,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object EDRangeTo: TEdit
       Left = 193
-      Height = 21
+      Height = 20
       Top = 27
       Width = 48
       OnExit = EDTopExit
@@ -344,16 +342,16 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object EDCopies: TEdit
       Left = 126
-      Height = 21
+      Height = 20
       Top = 54
       Width = 48
       TabOrder = 5
     end
     object CBCollate: TCheckBox
       Left = 179
-      Height = 17
+      Height = 26
       Top = 56
-      Width = 51
+      Width = 68
       Caption = 'Collate'
       OnClick = CBPageNumbersClick
       TabOrder = 6
@@ -384,24 +382,24 @@ object KPrintSetupForm: TKPrintSetupForm
     Top = 56
     Width = 449
     Caption = 'Printer settings'
-    ClientHeight = 32
+    ClientHeight = 20
     ClientWidth = 445
     TabOrder = 8
     object LBPrinterName: TLabel
       Left = 8
       Height = 14
       Top = 6
-      Width = 66
+      Width = 78
       Caption = 'Printer name:'
       FocusControl = EDCopies
       ParentColor = False
     end
     object CoBPrinterName: TComboBox
       Left = 112
-      Height = 21
+      Height = 20
       Top = 2
       Width = 206
-      ItemHeight = 13
+      ItemHeight = 0
       OnChange = EDTopExit
       TabOrder = 0
       Text = 'CoBPrinterName'

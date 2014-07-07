@@ -2,7 +2,7 @@ program hexeditorlaz;
 
 uses
   Interfaces,
-  Forms, LResources, Printer4Lazarus,
+  Forms, Printer4Lazarus,
   Res in 'Res.pas',
   Basic in 'Basic.pas',
   About in 'About.pas' {AboutForm},
@@ -13,10 +13,9 @@ uses
   Main in 'Main.pas' {MainForm},
   PrintStatus in 'PrintStatus.pas';
 
-{$IFDEF WINDOWS}{$R hexeditorlaz.rc}{$ENDIF}
+{$R *.res}
 
 begin
-  {$I hexeditorlaz.lrs}
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TSearchForm, SearchForm);

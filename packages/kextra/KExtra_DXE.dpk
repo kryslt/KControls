@@ -28,7 +28,8 @@ package KExtra_DXE;
 
 requires
   dclstd,
-  KExtra_RXE;
+  KExtra_RXE,
+  KControls_RXE;
 
 contains
   kextradesign in 'kextradesign.pas';

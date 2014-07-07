@@ -22,7 +22,7 @@ implementation
 
 uses
   Classes, Dialogs, SysUtils, Forms, 
-  KButtons, KMisc, KVentilator
+  KButtons, KMisc, KVentilator, KChart
 {$IFDEF FPC}
   , LResources
 {$ENDIF}
@@ -31,12 +31,12 @@ uses
 procedure Register;
 begin
   RegisterComponents('TK addons', [
-    TKColorButton,
     TKPaintPanel, 
     TKHintWindowWrapper,
     TKSplitter,
     TKBevel,
-    TKVentilator
+    TKVentilator,
+    TKChart
   ]);
 end;
 

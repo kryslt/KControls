@@ -2,9 +2,9 @@
     i.e. replacement for the Graphics.TIcon component)
   @author(Tomas Krysl (tomkrysl@tkweb.eu))
   @created(9 Jan 2005)
-  @lastmod(20 Jun 2010)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2005 Tomas Krysl (tomkrysl@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tomkrysl@@tkweb.eu)<BR><BR>
 
   The purpose of the TKIcon component is to replace and expand the standard
   TIcon component provided by VCL. The TKIcon component is not based on Windows
@@ -35,7 +35,7 @@
 unit KIcon;
 
 {$include kcontrols.inc}
-{$IFNDEF TKICON_REGISTER}
+{$IFNDEF REGISTER_PICTURE_FORMATS}
   {$WEAKPACKAGEUNIT ON}
 {$ENDIF}
 
@@ -274,7 +274,7 @@ type
   );
 
   { KIcon main class. }
-  TKIcon = class(TGraphic)
+  TKIcon = class(TKGraphic)
   private
     FAlignStyle: TKIconAlignStyle;
     FBpp: Integer;
@@ -928,7 +928,9 @@ begin
   end;
   FAlignStyle := asCenter;
   FCursor := False;
+  FDescription := sIconIcons;
   FDisplayAll := False;
+  FFileFilter := '*.ico';
   FIconDrawStyle := idsNormal;
   FInHandleBpp := 0;
   FInHandleFullAlpha := True;
@@ -2636,7 +2638,7 @@ begin
   TPicture.RegisterFileFormat('ico', sIconIcons, Graphics.TIcon);
 end;
 
-{$IFDEF TKICON_REGISTER}
+{$IFDEF REGISTER_PICTURE_FORMATS}
 initialization
   RegisterKIcon;
 finalization

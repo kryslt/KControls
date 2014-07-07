@@ -50,8 +50,10 @@ contains
   kprintpreview in '..\..\source\kprintpreview.pas',
   kprintsetup in '..\..\source\kprintsetup.pas',
   kwidewinprocs in '..\..\source\kwidewinprocs.pas',
+  kbuttons in '..\..\source\kbuttons.pas',
   kedits in '..\..\source\kedits.pas',
   klabels in '..\..\source\klabels.pas',
+  kmemo in '..\..\source\kmemo.pas',
   kmessagebox in '..\..\source\kmessagebox.pas',
   klog in '..\..\source\klog.pas',
   kprogress in '..\..\source\kprogress.pas',
@@ -60,4 +62,6 @@ contains
   , kdbgrids in '..\..\source\kdbgrids.pas'
 {$ENDIF}
   ;
+
 end.
+

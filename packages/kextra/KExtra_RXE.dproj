@@ -63,15 +63,17 @@
 			<DCCReference Include="vclx.dcp"/>
 			<DCCReference Include="vclimg.dcp"/>
 			<DCCReference Include="KControls_RXE.dcp"/>
+			<DCCReference Include="Tee.dcp"/>
 			<DCCReference Include="..\..\source\extra\KExtras.pas"/>
 			<DCCReference Include="..\..\source\extra\KButtons.pas"/>
 			<DCCReference Include="..\..\source\extra\KFunctionsW.pas"/>
 			<DCCReference Include="..\..\source\extra\KHelp.pas"/>
-			<DCCReference Include="..\..\source\extra\KCharts.pas"/>
 			<DCCReference Include="..\..\source\extra\KIniFiles.pas"/>
 			<DCCReference Include="..\..\source\extra\KMessages.pas"/>
 			<DCCReference Include="..\..\source\extra\KMisc.pas"/>
 			<DCCReference Include="..\..\source\extra\KVentilator.pas"/>
+			<DCCReference Include="..\..\source\extra\KCharts.pas"/>
+			<DCCReference Include="..\..\source\extra\KChart.pas"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>
 				<CfgParent>Base</CfgParent>

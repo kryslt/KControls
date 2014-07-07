@@ -1,9 +1,9 @@
 { @abstract(This unit contains some useful edit controls)
   @author(Tomas Krysl (tk@@tkweb.eu))
   @created(20 Oct 2001)
-  @lastmod(12 Feb 2014)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2001-2014 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -16,7 +16,7 @@
 
 unit KEdits;
 
-{$include KControls.inc}
+{$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}
 
 interface
@@ -2136,4 +2136,4 @@ initialization
 {$ELSE}
   {$R kedits.res}
 {$ENDIF}
-end.
+end.

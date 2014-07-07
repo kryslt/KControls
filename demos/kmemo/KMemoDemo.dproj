@@ -1,16 +1,14 @@
 ﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
-			<ProjectGuid>{bece75f1-34cd-4c4d-8df0-88c9ffb39f1f}</ProjectGuid>
-			<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
-			<DCC_DependencyCheckOutputName>KMemoDemo.exe</DCC_DependencyCheckOutputName>
+			<ProjectGuid>{0B65B936-3CC2-449E-AD05-CFF98FA86AD2}</ProjectGuid>
 			<MainSource>KMemoDemo.dpr</MainSource>
-			<ProjectVersion>12.3</ProjectVersion>
 			<Base>True</Base>
 			<Config Condition="'$(Config)'==''">Debug</Config>
 			<Platform>Win32</Platform>
 			<AppType>Application</AppType>
 			<FrameworkType>VCL</FrameworkType>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+			<ProjectVersion>12.3</ProjectVersion>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
 			<Base>true</Base>
@@ -26,35 +24,54 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
+			<DCC_E>false</DCC_E>
+			<DCC_ImageBase>00400000</DCC_ImageBase>
+			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;WinTypes=Windows;WinProcs=Windows;$(DCC_UnitAlias)</DCC_UnitAlias>
+			<DCC_F>false</DCC_F>
+			<DCC_S>false</DCC_S>
+			<DCC_N>false</DCC_N>
+			<DCC_K>false</DCC_K>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
-			<Version>7.0</Version>
-			<DCC_DebugInformation>False</DCC_DebugInformation>
-			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
-			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
 			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
-			<BCC_SourceDebuggingOn>true</BCC_SourceDebuggingOn>
-			<ILINK_FullDebugInfo>true</ILINK_FullDebugInfo>
-			<BCC_DebugLineNumbers>true</BCC_DebugLineNumbers>
-			<DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
-			<DCC_Optimize>false</DCC_Optimize>
-			<Version>7.0</Version>
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
-			<DCC_MapFile>3</DCC_MapFile>
-			<DCC_UnitSearchPath>d:\Data\Delphi\KComponents\Source;d:\Data\Delphi\_3rd_party\jcl\source\windows;d:\Data\Delphi\_3rd_party\jcl\source;d:\Data\Delphi\_3rd_party\jcl\source\common;d:\Data\Delphi\_3rd_party\jcl\source\vcl;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-			<DCC_ResourcePath>d:\Data\Delphi\KComponents\Source;d:\Data\Delphi\_3rd_party\jcl\source\windows;d:\Data\Delphi\_3rd_party\jcl\source;d:\Data\Delphi\_3rd_party\jcl\source\common;d:\Data\Delphi\_3rd_party\jcl\source\vcl;$(DCC_ResourcePath)</DCC_ResourcePath>
-			<DCC_ObjPath>d:\Data\Delphi\KComponents\Source;d:\Data\Delphi\_3rd_party\jcl\source\windows;d:\Data\Delphi\_3rd_party\jcl\source;d:\Data\Delphi\_3rd_party\jcl\source\common;d:\Data\Delphi\_3rd_party\jcl\source\vcl;$(DCC_ObjPath)</DCC_ObjPath>
-			<DCC_IncludePath>d:\Data\Delphi\KComponents\Source;d:\Data\Delphi\_3rd_party\jcl\source\windows;d:\Data\Delphi\_3rd_party\jcl\source;d:\Data\Delphi\_3rd_party\jcl\source\common;d:\Data\Delphi\_3rd_party\jcl\source\vcl;$(DCC_IncludePath)</DCC_IncludePath>
+			<DCC_Optimize>false</DCC_Optimize>
+			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="KMemoDemo.dpr">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="Main.pas">
+				<Form>MainForm</Form>
+			</DCCReference>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+		<Import Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')" Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj"/>
 		<ProjectExtensions>
 			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
-			<Borland.ProjectType/>
+			<Borland.ProjectType>VCLApplication</Borland.ProjectType>
 			<BorlandProject>
 				<Delphi.Personality>
-					<Parameters/>
+					<Source>
+						<Source Name="MainSource">KMemoDemo.dpr</Source>
+					</Source>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
@@ -82,17 +99,6 @@
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
-					<Excluded_Packages>
-						<Excluded_Packages Name="C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclBaseExpert110.bpl">File C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclBaseExpert110.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclDebugExpert110.bpl">File C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclDebugExpert110.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclProjectAnalysisExpert110.bpl">File C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclProjectAnalysisExpert110.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclFavoriteFoldersExpert110.bpl">File C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclFavoriteFoldersExpert110.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclRepositoryExpert110.bpl">File C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclRepositoryExpert110.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclSIMDViewExpert110.bpl">File C:\Documents and Settings\All Users\Dokumenty\RAD Studio\5.0\Bpl\JclSIMDViewExpert110.bpl not found</Excluded_Packages>
-					</Excluded_Packages>
-					<Source>
-						<Source Name="MainSource">KMemoDemo.dpr</Source>
-					</Source>
 				</Delphi.Personality>
 				<Platforms>
 					<Platform value="Win32">True</Platform>
@@ -100,26 +106,4 @@
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>
 		</ProjectExtensions>
-		<ItemGroup>
-			<DelphiCompile Include="KMemoDemo.dpr">
-				<MainSource>MainSource</MainSource>
-			</DelphiCompile>
-			<DCCReference Include="Main.pas">
-				<Form>Form2</Form>
-			</DCCReference>
-			<None Include="Profiling\AQtimeModule1.aqt"/>
-			<BuildConfiguration Include="Debug">
-				<Key>Cfg_2</Key>
-				<CfgParent>Base</CfgParent>
-			</BuildConfiguration>
-			<BuildConfiguration Include="Base">
-				<Key>Base</Key>
-			</BuildConfiguration>
-			<BuildConfiguration Include="Release">
-				<Key>Cfg_1</Key>
-				<CfgParent>Base</CfgParent>
-			</BuildConfiguration>
-		</ItemGroup>
-		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
-		<Import Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')" Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj"/>
 	</Project>

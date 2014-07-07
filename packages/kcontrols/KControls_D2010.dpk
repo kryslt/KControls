@@ -38,6 +38,7 @@ requires
   ;
 
 contains
-  kcontrolsdesign in 'kcontrolsdesign.pas';
+  kcontrolsdesign in 'kcontrolsdesign.pas',
+  kpictureeditor in 'kpictureeditor.pas' {KPictureEditForm};
 
 end.

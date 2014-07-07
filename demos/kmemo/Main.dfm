@@ -1,7 +1,7 @@
-object Form2: TForm2
+object MainForm: TMainForm
   Left = 566
   Top = 256
-  Caption = 'Form2'
+  Caption = 'KMemoDemo'
   ClientHeight = 406
   ClientWidth = 554
   Color = clBtnFace

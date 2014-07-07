@@ -5,7 +5,7 @@ uses
   Forms,
   Main in 'Main.pas' {MainForm}, LResources;
 
-{$IFDEF WINDOWS}{$R DemoLaz.rc}{$ENDIF}
+{$R *.res} 
 
 begin
   {$I DemoLaz.lrs}

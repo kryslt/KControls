@@ -289,6 +289,9 @@
 { Prefers usage of TCanvas methods instead of WinAPI mainly to avoid Lazarus bugs. }
 {$DEFINE USE_CANVAS_METHODS}
 
+{ Register new image formats into TPicture. }
+{.$DEFINE REGISTER_PICTURE_FORMATS}
+
 { Allows to use WinAPI functions in Lazarus and Delphi }
 {$IF NOT DEFINED(FPC) OR DEFINED(LCLWin32)}
   {$DEFINE USE_WINAPI}
@@ -298,6 +301,19 @@
 {$IFDEF USE_WINAPI}
   {.$DEFINE USE_WIDEWINPROCS}
 {$ENDIF}
+
+{ Support Alphacontrols integration in Delphi and Lazarus,
+  AlphaControlsLaz package needed for Lazarus. }
+{.$DEFINE SUPPORT_ALPHASKINS}
+
+{ Allow Alphacontrols integration to be used in Delphi }
+{$IFnDEF FPC}
+  {.$DEFINE USE_ALPHASKINS}
+{$ENDIF}
+
+{$IF DEFINED(SUPPORT_ALPHASKINS) AND DEFINED(USE_ALPHASKINS)}
+  {$DEFINE SUPPORT_AND_USE_ALPHASKINS}
+{$IFEND}
 
 {$DEFINE LAZARUS_HAS_DC_MAPPING}
 
@@ -321,10 +337,6 @@
 
 // we want TKDBGridCell to be a descendant of TKGridAttrTextCell
 {.$DEFINE TKDBGRIDCELL_IS_TKGRIDATTRTEXTCELL}
-
-{ Conditional defines for unit KIcon: }
-// register TKICON within TPicture automatically
-{.$DEFINE TKICON_REGISTER}
 
 // PngImage can be used
 {$IF DEFINED(FPC) OR DEFINED(COMPILER12_UP)}

@@ -30,7 +30,7 @@ package KControls_D6;
 
 requires
   dclstd,
-  KControls_R6,
+  KControls_R6
 {$IFDEF TKDBGRID_USE}  
   , dbrtl
   , vcldb
@@ -38,6 +38,7 @@ requires
   ;
 
 contains
-  KControlsDesign in 'kcontrolsdesign.pas';
+  kcontrolsdesign in 'kcontrolsdesign.pas',
+  kpictureeditor in 'kpictureeditor.pas' {KPictureEditForm};
 
 end.

@@ -4,7 +4,7 @@ program KMemoDemo;
 
 uses
   Forms,
-  Main in 'Main.pas' {Form2};
+  Main in 'Main.pas' {MainForm};
 
 {$R *.res}
 
@@ -14,6 +14,6 @@ begin
 {$ENDIF}
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TForm2, Form2);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

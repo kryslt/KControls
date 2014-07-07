@@ -12,8 +12,8 @@ If there is none, the code is public domain.
 SYSTEM REQUIREMENTS:
 -------------------
 - platforms: Win32(98(SE)+), Win64, GTK, GTK2, QT, Carbon(untested), WinCE(partially tested)
-- works under Delphi 7 and higher (tested on Delphi 7, Delphi2007 till Delphi 2010) 
-  and Lazarus 0.9.29(SVN#21827) and higher
+- works under Delphi 7 and higher (tested on Delphi 7, DelphiXE till Delphi XE5) 
+  and Lazarus 1.2.2 and higher
 - should work under Delphi 6
 - some more problems might be experienced for older Lazarus versions
 - see other readme files for additional informations about individual components
@@ -26,10 +26,6 @@ INSTALLATION:
    or JCL sources (if JCL is configured via kcontrols.inc).
 
 
-PLANNED:
--------------------
-- TKMemo - native Unicode enabled controls with rich text editing capabilities
-
 
 TECHNICAL SUPPORT:
 -------------------
@@ -39,6 +35,11 @@ the author or discuss on http://www.tkweb.eu.
 
 VERSION HISTORY:
 -------------------
+Version 1.5 (July 2014):
+  Added:
+    -new components TKBitBtn, TKColorButton, TKMemo (early alpha state!)
+    -2 modes of mouse wheel scrolling in TKCustomGrid
+
 Version 1.4 (February 2014): 
   Added:
     -new components TKNumberEdit, TKFileNameEdit, TKLog, TKBrowseFolderDialog,

@@ -1,9 +1,9 @@
   { @abstract(This unit contains the TKGrid component and all supporting classes)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(15 Oct 2006)
-  @lastmod(07 Dec 2010)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2006 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   This unit provides an enhanced replacement for components contained
   in Grids.pas. Major features:
@@ -212,7 +212,7 @@ type
     Row: Integer;
   end;
 
-  { Declares possible indexes e.g. for the @link(TKGridColors.Color) property. }
+  { Declares possible indexes for colors available in @link(TKGridColors). }
   TKGridColorIndex = Integer;
 
   { Method type for the Compare parameter e.g. in the
@@ -2523,7 +2523,7 @@ type
     { Returns the amount of columns in current page, minimum is 1. }
     function PageWidth: Integer; virtual;
     { Paints a range of cells. }
-    function PaintCells(ACanvas: TCanvas; CellBitmap: TBitmap;
+    function PaintCells(ACanvas: TCanvas; CellBitmap: TKAlphaBitmap;
       MainClipRgn: HRGN; FirstCol, LastCol, FirstRow, LastRow, X, Y, MaxX,
       MaxY: Integer; Printing, PaintSelection: Boolean; const ABlockRect: TRect): TPoint;
     { Paints the suggestion for drop target when dragging a column or row. }
@@ -4961,7 +4961,8 @@ end;
 destructor TKGridCellPainter.Destroy;
 begin
   FSortArrow.Free;
-  DeleteObject(FRgn);
+  if FRgn <> 0 then
+    DeleteObject(FRgn);
   inherited;
 end;
 
@@ -5228,65 +5229,20 @@ end;
 
 procedure TKGridCellPainter.DrawButtonFrame(const ARect: TRect);
 var
-  BM: TBitmap;
-  TmpCanvas: TCanvas;
-  TmpRect: TRect;
-  ButtonState: Integer;
-  IsHot: Boolean;
+  States: TKButtonDrawStates;
   MousePt: TPoint;
-{$IFDEF USE_THEMES}
-  ButtonTheme: TThemedButton;
-{$ENDIF}
 begin
-  // a LOT of tweaking here...
-{$IF DEFINED(USE_WINAPI) OR DEFINED(LCLQT) } // GTK2 cannot strech and paint on bitmap canvas, grrr..
-  if CanvasScaled(FCanvas) {$IFDEF USE_WINAPI}and FGrid.ThemedCells{$ENDIF} then
-  begin
-    BM := TBitmap.Create;
-    BM.Width := ARect.Right - ARect.Left;
-    BM.Height := ARect.Bottom - ARect.Top;
-    BM.Canvas.Brush.Assign(FCanvas.Brush);
-    TmpRect := Rect(0, 0, BM.Width, BM.Height);
-    BM.Canvas.FillRect(TmpRect);
-    TmpCanvas := BM.Canvas;
-  end else
-{$IFEND}
-  begin
-    BM := nil;
-    TmpRect := ARect;
-    TmpCanvas := FCanvas;
-  end;
-  try
-    MousePt := FGrid.ScreenToClient(Mouse.CursorPos);
-    IsHot := (gdMouseOver in FState) and
-      (not FHotFrameOnly or PtInRect(ARect, MousePt));
-  {$IFDEF USE_THEMES}
-    if FGrid.ThemedCells then
-    begin
-      if FGrid.Enabled then
-        if FButtonPressed then
-          ButtonTheme := tbPushButtonPressed
-        else
-          if IsHot then
-            ButtonTheme := tbPushButtonHot
-          else
-            ButtonTheme := tbPushButtonNormal
-      else
-        ButtonTheme := tbPushButtonDisabled;
-      ThemeServices.DrawElement(TmpCanvas.Handle, ThemeServices.GetElementDetails(ButtonTheme), TmpRect);
-    end else
-  {$ENDIF}
-    begin
-      ButtonState := DFCS_BUTTONPUSH;
-      if FButtonPressed then ButtonState := ButtonState or DFCS_PUSHED;
-      if not FGrid.Enabled then ButtonState := ButtonState or DFCS_INACTIVE;
-      DrawFrameControl(TmpCanvas.Handle, TmpRect, DFC_BUTTON, ButtonState);
-    end;
-    if BM <> nil then
-      FCanvas.Draw(ARect.Left, ARect.Top, BM);
-  finally
-    BM.Free;
-  end;
+  MousePt := FGrid.ScreenToClient(Mouse.CursorPos);
+  States := [];
+  if FGrid.ThemedCells then
+    Include(States, bsUseThemes);
+  if not FGrid.Enabled then
+    Include(States, bsDisabled);
+  if FButtonPressed then
+    Include(States, bsPressed);
+  if (gdMouseOver in FState) and (not FHotFrameOnly or PtInRect(ARect, MousePt)) then
+    Include(States, bsHot);
+  KGraphics.DrawButtonFrame(FCanvas, ARect, States);
 end;
 
 procedure TKGridCellPainter.DrawCellButton(const Bounds: TRect);
@@ -5657,6 +5613,7 @@ begin
     if FClipLock = 0 then
     begin
       RgnSelectAndDelete(Handle, FRgn);
+      FRgn := 0;
       FValidClipping := False;
     end;
   end;
@@ -5788,7 +5745,7 @@ begin
     // aki:
     ciSelectedFixedCellBkGnd: begin Result.Def := cSelectedFixedCellBkGndDef; Result.Name := ''; end;
   else
-    Result := inherited;
+    Result := inherited GetColorSpec(Index);
   end;
 end;
 
@@ -9898,7 +9855,7 @@ end;
 procedure TKCustomGrid.PaintCell(ACanvas: TCanvas; ACol, ARow: Integer; AX, AY: Integer; APrinting: Boolean; ABlockRect: PRect);
 var
   R, ClipRect, TmpRect, TmpBlockRect: TRect;
-  CellBitmap: TBitmap;
+  CellBitmap: TKAlphaBitmap;
   TmpCanvas: TCanvas;
   ClipCells: Boolean;
   Info: TKGridAxisInfoBoth;
@@ -9907,15 +9864,17 @@ begin
     if CellRect(ACol, ARow, R, True) then
     begin
       if not APrinting and ((goDoubleBufferedCells in FOptions) or DoubleBuffered) then
-        CellBitmap := TBitmap.Create
+        CellBitmap := TKAlphaBitmap.Create
       else
         CellBitmap := nil;
       try
         if CellBitmap <> nil then
         begin
           TmpRect := Rect(0, 0, R.Right - R.Left, R.Bottom - R.Top);
-          CellBitmap.Width := TmpRect.Right; // SetSize not supported prior Delphi 2006
-          CellBitmap.Height := TmpRect.Bottom;
+          CellBitmap.SetSize(TmpRect.Right, TmpRect.Bottom);
+          CellBitmap.Clear;
+          CellBitmap.AlphaFill(255, False);
+          CellBitmap.UpdateHandle;
           TmpCanvas := CellBitmap.Canvas;
           SelectClipRect(TmpCanvas.Handle, TmpRect);
           ClipCells := False;
@@ -9955,12 +9914,7 @@ begin
         InternalPaintCell(ACol, ARow, GetDrawState(ACol, ARow, HasFocus), TmpRect, TmpBlockRect, TmpCanvas, ClipCells, False);
         if CellBitmap <> nil then
         begin
-          Canvas.Lock;
-          try
-            Canvas.Draw(R.Left, R.Top, CellBitmap);
-          finally
-            Canvas.Unlock;
-          end;
+          CellBitmap.DrawTo(Canvas, R);
         end;
       finally
         CellBitmap.Free;
@@ -9968,7 +9922,7 @@ begin
     end;
 end;
 
-function TKCustomGrid.PaintCells(ACanvas: TCanvas; CellBitmap: TBitmap; MainClipRgn: HRGN;
+function TKCustomGrid.PaintCells(ACanvas: TCanvas; CellBitmap: TKAlphaBitmap; MainClipRgn: HRGN;
   FirstCol, LastCol, FirstRow, LastRow, X, Y, MaxX, MaxY: Integer; Printing, PaintSelection: Boolean;
   const ABlockRect: TRect): TPoint;
 var
@@ -10099,8 +10053,10 @@ begin
             if CellBitmap <> nil then
             begin
               TmpRect := Rect(0, 0, CellRect.Right - CellRect.Left, CellRect.Bottom - CellRect.Top);
-              CellBitmap.Width := TmpRect.Right; // SetSize not supported prior Delphi 2006
-              CellBitmap.Height := TmpRect.Bottom;
+              CellBitmap.SetSize(TmpRect.Right, TmpRect.Bottom);
+              CellBitmap.Clear;
+              CellBitmap.AlphaFill(255, False);
+              CellBitmap.UpdateHandle;
               TmpCanvas := CellBitmap.Canvas;
               SelectClipRect(TmpCanvas.Handle, TmpRect);
               ClipCells := False;
@@ -10113,7 +10069,7 @@ begin
             end;
             InternalPaintCell(J, I, CellState, TmpRect, TmpBlockRect, TmpCanvas, ClipCells, Printing);
             if CellBitmap <> nil then
-              ACanvas.Draw(CellRect.Left, CellRect.Top, CellBitmap);
+              CellBitmap.DrawTo(ACanvas, CellRect);
           end
           else if goIndicateHiddenCells in FOptions then
           begin
@@ -10429,11 +10385,10 @@ var
   TmpRect: TRect;
   CurClipRgn, MainClipRgn: HRGN;
   DC: HDC;
-  CellBitmap: TBitmap;
+  CellBitmap: TKAlphaBitmap;
   Info: TKGridAxisInfoBoth;
   TmpBlockRect: TRect;
 begin
-//  ACanvas.Lock;
   DC := ACanvas.Handle;
   SaveIndex := SaveDC(DC); // don't delete
   try
@@ -10449,7 +10404,7 @@ begin
     GridW := 0; GridH := 0;
     TmpExtent := Point(0, 0);
     if (goDoubleBufferedCells in FOptions) and not DoubleBuffered then
-      CellBitmap := TBitmap.Create
+      CellBitmap := TKAlphaBitmap.Create
     else
       CellBitmap := nil;
     MainClipRgn := CreateEmptyRgn;
@@ -10562,7 +10517,6 @@ begin
     if FGridState in [gsColSizing, gsRowSizing] then PaintSizingSuggestion(ACanvas);
   finally
     RestoreDC(DC, SaveIndex);
-//    Canvas.Unlock;
   end;
 end;
 
@@ -12859,4 +12813,4 @@ initialization
 {$ELSE}
   {$R kgrids.res}
 {$ENDIF}
-end.
+end.

@@ -329,17 +329,6 @@ object Form1: TForm1
           TabOrder = 1
           OnClick = CBClippedCellsClick
         end
-        object CBDoubleBufferedCells: TCheckBox
-          Left = 131
-          Top = 36
-          Width = 119
-          Height = 30
-          Caption = 'Double buffered cells'
-          Checked = True
-          State = cbChecked
-          TabOrder = 3
-          OnClick = CBDoubleBufferedCellsClick
-        end
       end
       object KGrid1: TKGrid
         Left = 0

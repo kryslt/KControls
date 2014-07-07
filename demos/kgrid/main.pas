@@ -65,7 +65,6 @@ type
     CBThemedCells: TCheckBox;
     CBMouseOverCells: TCheckBox;
     CBClippedCells: TCheckBox;
-    CBDoubleBufferedCells: TCheckBox;
     KGrid1: TKGrid;
     KGrid2: TKGrid;
     KGrid3: TKGrid;
@@ -251,13 +250,7 @@ begin
 {$IFNDEF MSWINDOWS}
   KGrid1.DefaultRowHeight := 34;
 {$ENDIF}
-    { goDoubleBufferedCells is less memory intensive than DoubleBuffered.
-    But DoubleBuffered is faster, so especially suitable for big grids.
-    goDoubleBufferedCells is slower and doesn't include the focus rectangle
-    in goRowSelect and goRangeSelect mode - it is suitable for smaller grids.
-    But you can freely decide what is the best for a particular grid in your app. }
-//  KGrid1.DoubleBuffered := True;
-  KGrid1.Options := KGrid1.Options + [goDoubleBufferedCells];
+  KGrid1.DoubleBuffered := True;
   // In Windows Vista and 7 this is much more nicer
 {$IFDEF USE_WINAPI}
   if Win32MajorVersion >= 6 then

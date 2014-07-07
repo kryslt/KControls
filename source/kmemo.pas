@@ -1,9 +1,9 @@
-﻿{ @abstract(This unit contains native replacement for TMemo/TRichEdit component)
+{ @abstract(This unit contains native replacement for TMemo/TRichEdit component)
   @author(Tomas Krysl (tk@tkweb.eu))
-  @created(28 Apr 2008)
-  @lastmod(10 May 2008)
+  @created(28 Apr 2009)
+  @lastmod(6 Jul 2014)
 
-  Copyright © 2008 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright � Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -17,7 +17,8 @@
 
 unit KMemo;
 
-{$include KControls.inc}
+{$include kcontrols.inc}
+{$WEAKPACKAGEUNIT ON}
 
 interface
 
@@ -535,10 +536,7 @@ type
     property OnChange: TKMemoUndoChangeEvent read FOnChange write FOnChange;
   end;
 
- { @abstract(Multi line text editor base component). }
-
-  { TKCustomMemo }
-
+  { @abstract(Multi line text editor base component). }
   TKCustomMemo = class(TKCustomControl)
   private
     FBackgroundImage: TPicture;
@@ -1031,7 +1029,10 @@ type
 implementation
 
 uses
-  ShellApi, ClipBrd, Printers,
+{$IFDEF USE_WINAPI}
+  ShellApi,
+{$ENDIF}
+  ClipBrd, Printers,
 {$IFDEF USE_THEMES}
   Themes,
 {$ENDIF}
@@ -1062,7 +1063,7 @@ begin
     ciSelText: begin Result.Def := cSelTextDef; Result.Name := ''; end;
     ciSelTextFocused: begin Result.Def := cSelTextFocusedDef; Result.Name := ''; end;
   else
-    Result := inherited;
+    Result := inherited GetColorSpec(Index);
   end;
 end;
 
@@ -1287,6 +1288,7 @@ begin
   FOnChange := nil;
   FOnReplaceText := nil;
   Clear;
+  Text := 'This is early alpha state control.'+#10+'You may try the demo but do not use it in your programs yet.';
   UpdateEditorCaret;
 end;
 
@@ -1584,8 +1586,10 @@ end;
 procedure TKCustomMemo.CreateWnd;
 begin
   inherited;
+{$IFDEF USE_WINAPI}
   if (eoDropFiles in FOptions) and not (csDesigning in ComponentState) then
     DragAcceptFiles(Handle, TRUE);
+{$ENDIF}
 end;
 
 procedure TKCustomMemo.DeleteBOL(At: Integer);
@@ -1676,8 +1680,10 @@ end;
 
 procedure TKCustomMemo.DestroyWnd;
 begin
+{$IFDEF USE_WINAPI}
   if (eoDropFiles in FOptions) and not (csDesigning in ComponentState) then
     DragAcceptFiles(Handle, FALSE);
+{$ENDIF}
   inherited;
 end;
 
@@ -2847,16 +2853,22 @@ begin
 end;
 
 procedure TKCustomMemo.SetOptions(const Value: TKEditOptions);
+{$IFDEF USE_WINAPI}
 var
   UpdateDropFiles: Boolean;
+{$ENDIF}
 begin
   if Value <> FOptions then
   begin
+  {$IFDEF USE_WINAPI}
     UpdateDropFiles := (eoDropFiles in Value) <> (eoDropFiles in FOptions);
     FOptions := Value;
     // (un)register HWND as drop target
     if UpdateDropFiles and not (csDesigning in ComponentState) and HandleAllocated then
       DragAcceptFiles(Handle, (eoDropFiles in fOptions));
+  {$ELSE}
+    FOptions := Value;
+  {$ENDIF}
   end;
 end;
 
@@ -2917,8 +2929,15 @@ end;
 
 procedure TKCustomMemo.SetText(const Value: TKString);
 begin
-  Clear;
-  FBlocks.Text := Value;
+  FBlocks.LockUpdate;
+  try
+    FBlocks.Select(0, 0);
+    FBlocks.Clear;
+    FBlocks.Text := Value;
+    TextChanged;
+  finally
+    FBlocks.UnlockUpdate;
+  end;
 end;
 
 procedure TKCustomMemo.SetTopPos(Value: Integer);
@@ -3711,18 +3730,28 @@ procedure TKImageMemoBlock.PaintToCanvas(ACanvas: TCanvas);
 var
   Bitmap: TKAlphaBitmap;
   Color, Bkgnd: TColor;
+  IsPng: Boolean;
 begin
   inherited;
   if SelLength > 0 then
   begin
     GetSelColors(Color, BkGnd);
+    ACanvas.Brush.Color := BkGnd;
+    ACanvas.FillRect(FBounds);
     Bitmap := TKAlphaBitmap.Create;
     try
       Bitmap.SetSize(FImage.Width, FImage.Height);
+      Bitmap.UpdateHandle;
+      Bitmap.Canvas.Brush.Color := BkGnd;
+      Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
       Bitmap.Canvas.Draw(0, 0, FImage.Graphic);
-      Bitmap.AlphaFillPercent(50, not (FImage.Graphic is TKPngImage));
-      ACanvas.Brush.Color := BkGnd;
-      ACanvas.FillRect(FBounds);
+      Bitmap.UpdatePixels;
+   {$IFDEF USE_PNG_SUPPORT}
+      IsPng := (FImage.Graphic is TKPngImage);
+   {$ElSE}
+      IsPng := False;
+   {$ENDIF}
+      Bitmap.AlphaFillPercent(50, True);
       Bitmap.AlphaDrawTo(ACanvas, FBounds.Left, FBounds.Top);
     finally
       Bitmap.Free;
@@ -4770,4 +4799,4 @@ begin
 end;
 
 end.
-
+

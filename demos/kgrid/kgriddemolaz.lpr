@@ -6,7 +6,7 @@ uses
   Main in 'main.pas',
   Input in 'input.pas';
 
-{$IFDEF WINDOWS}{$R kgriddemolaz.rc}{$ENDIF}
+{$R *.res}
 
 begin
   Application.Initialize;

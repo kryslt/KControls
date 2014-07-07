@@ -24,6 +24,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_Define>USE_ALPHASKINS;SUPPORT_ALPHASKINS;$(DCC_Define)</DCC_Define>
 			<RuntimeOnlyPackage>true</RuntimeOnlyPackage>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_WriteableConstants>true</DCC_WriteableConstants>
@@ -58,6 +59,9 @@
 			<DCCReference Include="vcl.dcp"/>
 			<DCCReference Include="vclx.dcp"/>
 			<DCCReference Include="vclimg.dcp"/>
+			<DCCReference Include="vcldb.dcp"/>
+			<DCCReference Include="dbrtl.dcp"/>
+			<DCCReference Include="acntDelphiXE_R.dcp"/>
 			<DCCReference Include="..\..\source\kcontrols.pas"/>
 			<DCCReference Include="..\..\source\kdialogs.pas"/>
 			<DCCReference Include="..\..\source\keditcommon.pas"/>
@@ -69,14 +73,14 @@
 			<DCCReference Include="..\..\source\kprintpreview.pas"/>
 			<DCCReference Include="..\..\source\kprintsetup.pas"/>
 			<DCCReference Include="..\..\source\kwidewinprocs.pas"/>
+			<DCCReference Include="..\..\source\kbuttons.pas"/>
 			<DCCReference Include="..\..\source\kedits.pas"/>
 			<DCCReference Include="..\..\source\klabels.pas"/>
 			<DCCReference Include="..\..\source\kmessagebox.pas"/>
 			<DCCReference Include="..\..\source\klog.pas"/>
 			<DCCReference Include="..\..\source\kprogress.pas"/>
-			<DCCReference Include="..\..\source\kres.pas">
-				<Form>$ENDIF</Form>
-			</DCCReference>
+			<DCCReference Include="..\..\source\kres.pas"/>
+			<DCCReference Include="..\..\source\kdbgrids.pas"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>
 				<CfgParent>Base</CfgParent>
@@ -100,7 +104,7 @@
 						<Source Name="MainSource">KControls_RXE.dpk</Source>
 					</Source>
 					<VersionInfo>
-						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
 						<VersionInfo Name="MajorVer">1</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>

@@ -1,7 +1,9 @@
 { @abstract(This unit contains the TKHexEditor component and all supporting classes)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(12 Oct 2005)
-  @lastmod(20 Jun 2010)
+  @lastmod(6 Jul 2014)
+
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   This unit provides a powerfull hexadecimal editor component @link(TKHexEditor)
   with following major features:
@@ -14,8 +16,6 @@
   <LI><I>fast search/replace function</I></LI>
   <LI><I>print/preview function</I></LI>
   </UL>
-
-  Copyright © 2006 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -1492,7 +1492,7 @@ begin
     ciTextBkGnd: begin Result.Def := cTextBkgndDef; Result.Name := sHETextBkGnd; end;
     ciVertLines: begin Result.Def := cVertLinesDef; Result.Name := sHEVertLines; end;
   else
-    Result := inherited;
+    Result := inherited GetColorSpec(Index);
   end;
 end;
 
@@ -3257,7 +3257,6 @@ end;
 
 procedure TKCustomHexEditor.KeyDown(var Key: Word; Shift: TShiftState);
 var
-  I: Integer;
   Cmd: TKEditCommand;
 begin
   inherited;

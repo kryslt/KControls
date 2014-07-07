@@ -1,11 +1,11 @@
 { @abstract(This unit contains the common declarations for all edit controls.)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(18 Sep 2009)
-  @lastmod(20 Jun 2010)
+  @lastmod(6 Jul 2014)
 
   This unit defines common types and functions for all edit controls. <BR><BR>
 
-  Copyright © 2009 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -194,8 +194,8 @@ type
     </UL>
   }
   TKEditCommandAssignment = record
-    Command: TKEditCommand;
     Key: TKEditKey;
+    Command: TKEditCommand;
   end;
 
   TKEditCommandMap = array of TKEditCommandAssignment;
