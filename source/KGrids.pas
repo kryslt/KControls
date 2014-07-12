@@ -7541,7 +7541,7 @@ begin
         W := 5;
         H := Info.Vert.GridBoundary;
       end;
-      Dec(P.X, (W - ES) shr 1);
+      Dec(P.X, (W - ES) div 2);
       DragRect := Rect(P.X, 0, P.X + W, H);
       Result := True;
     end;
@@ -7571,7 +7571,7 @@ begin
         W := Info.Horz.GridBoundary;
         H := 5;
       end;
-      Dec(P.Y, (H - ES) shr 1);
+      Dec(P.Y, (H - ES) div 2);
       DragRect := Rect(0, P.Y, W, P.Y + H);
       Result := True;
     end;
@@ -10151,7 +10151,7 @@ begin
               ArrowCopy.MirrorVert;
               ArrowCopy.AlphaDrawTo(ACanvas, R.Left, R.Bottom - ArrowCopy.Height);
               if Len > 6 then
-                DragSuggLine(R.Left + ArrowCopy.Width shr 1 - 1,
+                DragSuggLine(R.Left + ArrowCopy.Width div 2 - 1,
                   R.Top + ArrowCopy.Height + 1, 3, Len - 2);
             end;
           end else
@@ -10165,7 +10165,7 @@ begin
               ArrowCopy.AlphaDrawTo(ACanvas, R.Right - ArrowCopy.Width, R.Top);
               if Len > 6 then
                 DragSuggLine(R.Left + ArrowCopy.Width + 1,
-                  R.Top + ArrowCopy.Height shr 1 - 1, Len - 2, 3);
+                  R.Top + ArrowCopy.Height div 2 - 1, Len - 2, 3);
             end;
           end;
         finally
