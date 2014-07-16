@@ -458,6 +458,9 @@ type
   { @abstract(Base class for KControls hints)
     This class extends the standard THintWindow class. It adds functionality
     common to all hints used in KControls. }
+
+  { TKHintWindow }
+
   TKHintWindow = class(THintWindow)
   private
     FExtent: TPoint;
@@ -467,6 +470,8 @@ type
     constructor Create(AOwner: TComponent); override;
     { Shows the hint at given position. This is an IDE independent implementation. }
     procedure ShowAt(const Origin: TPoint);
+    { Hides the hint. }
+    procedure Hide;
     { Returns the extent of the hint. }
     property Extent: TPoint read FExtent;
   end;
@@ -2875,6 +2880,15 @@ end;
 procedure TKHintWindow.ShowAt(const Origin: TPoint);
 begin
   ActivateHint(Rect(Origin.X, Origin.Y, Origin.X + FExtent.X + 10, Origin.Y + FExtent.Y + 10), '');
+end;
+
+procedure TKHintWindow.Hide;
+begin
+{$IFDEF FPC}
+  inherited Hide;
+{$ELSE}
+   Self.DestroyHandle;
+{$ENDIF}
 end;
 
 procedure TKHintWindow.WMEraseBkGnd(var Msg: TLMessage);

@@ -328,6 +328,7 @@ begin
   begin
     F.Caption := Caption;
     F.BorderStyle := bsDialog;
+    F.Position := poScreenCenter;
     L := TLabel.Create(F);
     L.Parent := F;
     E := TEdit.Create(F);
