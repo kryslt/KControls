@@ -404,13 +404,13 @@ type
       properties at one time. Every LockUpdate call must have
       a corresponding @link(TKCustomControl.UnlockUpdate) call, please use a
       try-finally section. }
-    procedure LockUpdate;
+    procedure LockUpdate; virtual;
     { Prints the control. }
     procedure PrintOut;
     { Unlocks back to normal control updating and calls InternalUnlockUpdate
       to reflect (possible) multiple changes made. Each @link(LockUpdate) call must
       be always followed by the UnlockUpdate call. }
-    procedure UnlockUpdate;
+    procedure UnlockUpdate; virtual;
     { Returns True if control updating is not locked, i.e. there is no open
       LockUpdate and UnlockUpdate pair. }
     function UpdateUnlocked: Boolean;

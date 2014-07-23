@@ -1322,8 +1322,8 @@ function GetControlText(Value: TWinControl): TKString;
 
   function GetTextBuffer(Value: TWinControl): string;
   begin
-    SetLength(Result, Value.GetTextLen + 1);
-    Value.GetTextBuf(PChar(Result), Length(Result));
+    SetLength(Result, Value.GetTextLen);
+    Value.GetTextBuf(PChar(Result), Length(Result) + 1);
   end;
 
 begin
@@ -1335,8 +1335,8 @@ begin
  {$ELSE}
   if Value.HandleAllocated and (Win32Platform = VER_PLATFORM_WIN32_NT) then // unicode fully supported
   begin
-    SetLength(Result, GetWindowTextLengthW(Value.Handle) + 1);
-    GetWindowTextW(Value.Handle, PWideChar(Result), Length(Result));
+    SetLength(Result, GetWindowTextLengthW(Value.Handle));
+    GetWindowTextW(Value.Handle, PWideChar(Result), Length(Result) + 1);
   end else
     Result := GetTextBuffer(Value);
  {$ENDIF}

@@ -21,7 +21,7 @@ object Form1: TForm1
     Top = 0
     Width = 810
     Height = 619
-    ActivePage = TabSheet1
+    ActivePage = TabSheet2
     Align = alClient
     TabOrder = 0
     object TabSheet1: TTabSheet
@@ -433,7 +433,7 @@ object Form1: TForm1
         Align = alClient
         ColCount = 12
         FixedRows = 3
-        Options = [goAlwaysShowEditor, goClippedCells, goColSizing, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeaderAlignment, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRangeSelect, goRowMoving, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
+        Options = [goAlwaysShowEditor, goClippedCells, goColSizing, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRangeSelect, goRowMoving, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
         RowCount = 20
         TabOrder = 0
         OnDrawCell = KGrid2DrawCell

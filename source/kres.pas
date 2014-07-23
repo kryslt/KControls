@@ -119,7 +119,10 @@ resourcestring
   sPSErrNoPrinterInstalled = 'No printer is installed on this computer.';
 
   // KControlsDesign texts
-  SInvalidGraphicFormat = 'Invalid graphic format.';
+  sInvalidGraphicFormat = 'Invalid graphic format.';
+
+  // KDBGrids texts
+  sDataSetUnidirectional = 'Cannot use KDBGrid with a unidirectional dataset.';
 
 { Localize given resourcestring directly.
   Usage: ResMod(@sYourResourceString, 'New text');
@@ -278,6 +281,10 @@ begin
 
   // KControlsDesign texts
   ResMod(@sInvalidGraphicFormat, 'Neplatný grafický formát.');
+
+  // KDBGrids texts
+  ResMod(@sDataSetUnidirectional, 'Nelze použít KDBGrid s jednosmìrným datasetem.');
+
 end;
 
 end.

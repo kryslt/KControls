@@ -3741,16 +3741,20 @@ begin
     Bitmap := TKAlphaBitmap.Create;
     try
       Bitmap.SetSize(FImage.Width, FImage.Height);
+    {$IFDEF FPC}
       Bitmap.UpdateHandle;
+    {$ENDIF}
       Bitmap.Canvas.Brush.Color := BkGnd;
       Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
       Bitmap.Canvas.Draw(0, 0, FImage.Graphic);
+    {$IFDEF FPC}
       Bitmap.UpdatePixels;
-   {$IFDEF USE_PNG_SUPPORT}
+    {$ENDIF}
+    {$IFDEF USE_PNG_SUPPORT}
       IsPng := (FImage.Graphic is TKPngImage);
-   {$ElSE}
+    {$ElSE}
       IsPng := False;
-   {$ENDIF}
+    {$ENDIF}
       Bitmap.AlphaFillPercent(50, True);
       Bitmap.AlphaDrawTo(ACanvas, FBounds.Left, FBounds.Top);
     finally
