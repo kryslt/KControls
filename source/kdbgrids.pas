@@ -180,15 +180,27 @@ type
     FCurrencyFormat: TKCurrencyFormat;
     FDataType: TFieldType;
     FFieldName: TKString;
+    FFont: TFont;
+    FBrush: TBrush;
+    FHorzAlign: TKHAlign;
     FTitle: TKString;
+    FTitleFont: TFont;
+    FVertAlign: TKVAlign;
     function IsFieldNameStored: Boolean;
     function IsTitleStored: Boolean;
+    procedure SetBrush(const Value: TBrush);
+    procedure SetFont(const Value: TFont);
     procedure SetFieldName(const Value: TKString);
+    procedure SetHorzAlign(const Value: TKHAlign);
     procedure SetTitle(const Value: TKString);
+    procedure SetTitleFont(const Value: TFont);
+    procedure SetVertAlign(const Value: TKVAlign);
   public
     { Creates the instance. Do not create custom instances. All necessary
       TKDBGridCol instances are created automatically by TKCustomDBGrid. }
     constructor Create(ACollection: TCollection); override;
+    { Destroys the instance. }
+    destructor Destroy; override;
     { Copies all properties of another TKGridAxisItem instances into this
       TKDBGridCol instance. }
     procedure Assign(Source: TPersistent); override;
@@ -201,10 +213,20 @@ type
       by the TKDGGrid's data source. }
     property DataType: TFieldType read FDataType;
   published
+    { Specifies the brush for this column. }
+    property Brush: TBrush read FBrush write SetBrush;
+    { Specifies the brush for this column. }
+    property Font: TFont read FFont write SetFont;
+    { Specifies vertical alignment of the contents for this column. }
+    property HorzAlign: TKHAlign read FHorzAlign write SetHorzAlign default halLeft;
+    { Specifies vertical alignment of the contents for this column. }
+    property VertAlign: TKVAlign read FVertAlign write SetVertAlign default valCenter;
     { Specifies the database column name. }
     property FieldName: TKString read FFieldName write SetFieldName stored IsFieldNameStored;
     { Specifies the column title. }
     property Title: TKString read FTitle write SetTitle stored IsTitleStored;
+    { Specifies the font for the title of this column. }
+    property TitleFont: TFont read FTitleFont write SetTitleFont;
   end;
 
   { @abstract(Metaclass for @link(TKDBGridCol)). }
@@ -846,6 +868,8 @@ var
   FS: TFormatSettings;
 begin
   inherited;
+  FFont := TFont.Create;
+  FBrush := TBrush.Create;
   FS := GetFormatSettings;
   FCurrencyFormat.CurrencyFormat := FS.CurrencyFormat;
   FCurrencyFormat.CurrencyDecimals := FS.CurrencyDecimals;
@@ -854,8 +878,19 @@ begin
   FCurrencyFormat.ThousandSep := FS.ThousandSeparator;
   FCurrencyFormat.UseThousandSep := True;
   FDataType := ftUnknown;
+  FHorzAlign := halLeft;
   FFieldName := '';
   FTitle := '';
+  FTitleFont := TFont.Create;
+  FVertAlign := valCenter;
+end;
+
+destructor TKDBGridCol.Destroy;
+begin
+  FTitleFont.Free;
+  FFont.Free;
+  FBrush.Free;
+  inherited;
 end;
 
 procedure TKDBGridCol.Assign(Source: TPersistent);
@@ -872,8 +907,13 @@ begin
   inherited;
   if Source is TKDBGridCol then
   begin
-    FFieldName := TKDBGridCol(Source).FFieldName;
-    FTitle := TKDBGridCol(Source).FTitle;
+    FBrush.Assign(TKDBGridCol(Source).Brush);
+    FFieldName := TKDBGridCol(Source).FieldName;
+    FFont.Assign(TKDBGridCol(Source).Font);
+    FHorzAlign := TKDBGridCol(Source).HorzAlign;
+    FTitle := TKDBGridCol(Source).Title;
+    FTitleFont.Assign(TKDBGridCol(Source).TitleFont);
+    FVertAlign := TKDBGridCol(Source).VertAlign;
   end;
 end;
 
@@ -887,6 +927,13 @@ begin
   Result := FTitle <> '';
 end;
 
+procedure TKDBGridCol.SetBrush(const Value: TBrush);
+begin
+  FBrush.Assign(Value);
+  if Grid is TKDBGrid then
+    TKDBGrid(Grid).Invalidate;
+end;
+
 procedure TKDBGridCol.SetFieldName(const Value: TKString);
 begin
   if Value <> FFieldName then
@@ -897,6 +944,23 @@ begin
   end;
 end;
 
+procedure TKDBGridCol.SetFont(const Value: TFont);
+begin
+  FFont.Assign(Value);
+  if Grid is TKDBGrid then
+    TKDBGrid(Grid).Invalidate;
+end;
+
+procedure TKDBGridCol.SetHorzAlign(const Value: TKHAlign);
+begin
+  if Value <> FHorzAlign then
+  begin
+    FHorzAlign := Value;
+    if Grid is TKDBGrid then
+      TKDBGrid(Grid).Invalidate;
+  end;
+end;
+
 procedure TKDBGridCol.SetTitle(const Value: TKString);
 begin
   if Value <> FTitle then
@@ -904,6 +968,21 @@ begin
     FTitle := Value;
     if Grid is TKDBGrid then
       TKDBGrid(Grid).ColTitleChanged(Self);
+  end;
+end;
+
+procedure TKDBGridCol.SetTitleFont(const Value: TFont);
+begin
+  FTitleFont := Value;
+end;
+
+procedure TKDBGridCol.SetVertAlign(const Value: TKVAlign);
+begin
+  if Value <> FVertAlign then
+  begin
+    FVertAlign := Value;
+    if Grid is TKDBGrid then
+      TKDBGrid(Grid).Invalidate;
   end;
 end;
 
@@ -954,6 +1033,34 @@ begin
   inherited;
   if Assigned(TKCustomDBGrid(Grid).FDataLink) then
   begin
+    if Grid.Cols[Col] is TKDBGridCol then
+    begin
+      if gdFixed in State then
+      begin
+        Canvas.Font.Assign(TKDBGridCol(Grid.Cols[Col]).TitleFont);
+      end else
+      begin
+        HAlign := TKDBGridCol(Grid.Cols[Col]).HorzAlign;
+        VAlign := TKDBGridCol(Grid.Cols[Col]).VertAlign;
+        Canvas.Font.Assign(TKDBGridCol(Grid.Cols[Col]).Font);
+        Canvas.Brush.Assign(TKDBGridCol(Grid.Cols[Col]).Brush);
+        case TKDBGridCol(Grid.Cols[Col]).DataType of
+          ftMemo
+        {$IF DEFINED(FPC) OR DEFINED(COMPILER10_UP)}
+          , ftWideMemo
+        {$IFEND}
+            :
+            Attributes := Attributes + [taLineBreak];
+          ftCurrency, ftBCD, ftFmtBCD:
+            HAlign := halRight;
+          ftBoolean:
+          begin
+            CheckBox := True;
+            CheckBoxChecked := LowerCase(Grid.Cells[Col, Row]) = 'true';
+          end;
+        end;
+      end;
+    end;
     if (dboIndicateActiveRecord in TKCustomDBGrid(Grid).DBOptions) and
       Assigned(TKCustomDBGrid(Grid).FDataLink.DataSet) and
       (TKCustomDBGrid(Grid).FDataLink.ActiveRecord = Row - Grid.FixedRows) and
@@ -961,22 +1068,6 @@ begin
       Canvas.Brush.Color := TKDBGridColors(TKCustomDBGrid(Grid).Colors).ActiveRecord;
     if (dboIndexFixedCol in TKCustomDBGrid(Grid).DBOptions) and (Col = 0) and (Grid.FixedCols > 0) then
       HAlign := halRight;
-    if not (gdFixed in State) and (Grid.Cols[Col] is TKDBGridCol) then
-      case TKDBGridCol(Grid.Cols[Col]).DataType of
-        ftMemo
-      {$IF DEFINED(FPC) OR DEFINED(COMPILER10_UP)}
-        , ftWideMemo
-      {$IFEND}
-          :
-          Attributes := Attributes + [taLineBreak];
-        ftCurrency, ftBCD, ftFmtBCD:
-          HAlign := halRight;
-        ftBoolean:
-        begin
-          CheckBox := True;
-          CheckBoxChecked := LowerCase(Grid.Cells[Col, Row]) = 'true';
-        end;
-      end;
   end;
 end;
 

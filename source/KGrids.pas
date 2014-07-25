@@ -1708,6 +1708,7 @@ type
     function GetCheckBoxChecked: Boolean;
     procedure SetCheckBox(AValue: Boolean);
     procedure SetCheckBoxChecked(const Value: Boolean);
+    function GetSortArrowHeight: Integer;
   protected
     { Returns True if the grid is being printed out. }
     FPrinting: Boolean;
@@ -1897,6 +1898,10 @@ type
     property Printing: Boolean read FPrinting;
     { Specifies the row index of the cell. }
     property Row: Integer read FRow write FRow;
+    { Returns the height of the sorting arrow glyph. This value can be either zero
+      if no sorting arrow should be drawn for the cell (most cases), or a height
+      of the glyph for column/row sorting. }
+    property SortArrowHeight: Integer read GetSortArrowHeight;
     { Returns the width of the sorting arrow glyph. This value can be either zero
       if no sorting arrow should be drawn for the cell (most cases), or a width
       of the glyph for column/row sorting. }
@@ -5030,7 +5035,7 @@ begin
   ArrowWidth := SortArrowWidth;
   if (ArrowWidth > 0) and not IsRectEmpty(BaseRect) then
   begin
-    ExcludeShapeFromBaseRect(BaseRect, ArrowWidth, BaseRect.Bottom - BaseRect.Top, FSortArrowHAlign,
+    ExcludeShapeFromBaseRect(BaseRect, ArrowWidth, SortArrowHeight, FSortArrowHAlign,
       valCenter, FSortArrowHPadding, 0, stmNone, Bounds, Interior);
     Result := True;
   end else
@@ -5641,6 +5646,20 @@ end;
 function TKGridCellPainter.GetCheckBoxChecked: Boolean;
 begin
   Result := FCheckBoxState = cbChecked;
+end;
+
+function TKGridCellPainter.GetSortArrowHeight: Integer;
+begin
+  if FSortArrow <> nil then
+  begin
+    if FState * [gdColsSortedDown, gdColsSortedUp] <> [] then
+      Result := FSortArrow.Width
+    else if FState * [gdRowsSortedDown, gdRowsSortedUp] <> [] then
+      Result := FSortArrow.Height
+    else
+      Result := 0;
+  end else
+    Result := 0;
 end;
 
 function TKGridCellPainter.GetSortArrowWidth: Integer;

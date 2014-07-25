@@ -8,11 +8,11 @@ uses
 {$IFDEF FPC}
   LCLIntf, LCLType, LMessages, LResources, SQLdb, odbcconn,
 {$ELSE}
-  Windows, Messages, ADODB, Mask,
+  Windows, Messages, Mask, ADODB, DBClient, Provider,
 {$ENDIF}
   SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, DB, DBCtrls, KGrids, KDBGrids,
-  ExtCtrls, KFunctions, KGraphics, ActnList, KControls, KIcon, 
+  ExtCtrls, KFunctions, KGraphics, ActnList, KControls, KIcon,
   KDialogs, Grids, DBGrids;
 
 type
@@ -59,6 +59,9 @@ type
     procedure BUAutoSizeClick(Sender: TObject);
   private
     { Private declarations }
+    procedure DoOpen;
+    procedure DoClose;
+    function IsOpen: Boolean;
   public
   {$IFDEF FPC}
     CN: TODBCConnection;
@@ -76,6 +79,7 @@ type
 
 var
   MainForm: TMainForm;
+  Col: TKDBGridCol;
 
 implementation
 
@@ -96,19 +100,15 @@ begin
   Table.UpdateMode := upWhereChanged;
   Table.AfterPost := MyAfterPost;
 {$ELSE}
-  CN := TAdoConnection.Create(Self);
+  CN := TADOConnection.Create(Self);
   CN.LoginPrompt := False;
   Table := TADOTable.Create(Self);
   Table.Connection := CN;
   Table.Active := False;
 {$ENDIF}
   DSMain.DataSet := Table;
-
+  DBGrid.ColCount := 6; // As long as no columns property is used you may still use ColCount and do everything manually
   DBGrid.DoubleBuffered := True; // TKGrid is pretty flicker free but this is still better
-  DBGrid.ColWidths[0] := 40;
-  if DBGrid.Cols[2] <> nil then
-    DBGrid.Cols[2].CellHint := True; //turn on cell hints for the 3rd column
-
   Randomize;
 end;
 
@@ -120,12 +120,12 @@ end;
 
 procedure TMainForm.ACCloseExecute(Sender: TObject);
 begin
-  Table.Close;
+  DoClose;
 end;
 
 procedure TMainForm.ACCloseUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := Table.Active;
+  TAction(Sender).Enabled := IsOpen;
 end;
 
 procedure TMainForm.ACModifyExecute(Sender: TObject);
@@ -157,6 +157,15 @@ end;
 procedure TMainForm.ACOpenExecute(Sender: TObject);
 begin
   try
+  {$IFDEF TK_TEST}
+    EDTable.Text := 'images';
+   {$IFDEF FPC}
+    EDConnectionString.Text := 'Localhost MySQL';
+   {$ELSE}
+    EDConnectionString.Text :=
+      'DRIVER={MySQL ODBC 5.3 ANSI Driver}; SERVER=localhost; PORT=3306; DATABASE=tkweb; UID=root; PASSWORD=root;OPTION=3;';
+   {$ENDIF}
+  {$ENDIF}
   {$IFDEF FPC}
     if CN.DatabaseName <> EDConnectionString.Text then
     begin
@@ -164,11 +173,6 @@ begin
       CN.DatabaseName := EDConnectionString.Text;
       CN.Connected := True;
     end;
-    Query := 'SET NAMES ''utf8''';
-    Table.SQL.Clear;
-    Table.SQL.Add(Query);
-    Table.Open;
-    Table.Close;
     Query := 'SELECT * FROM ' + EDTable.Text;
     Table.SQL.Clear;
     Table.SQL.Add(Query);
@@ -181,7 +185,7 @@ begin
     end;
     Table.TableName := EDTable.Text;
   {$ENDIF}
-    Table.Open;
+    DoOpen;
     DBGrid.PageSetup.Title := 'Table: ' + EDTable.Text;
     EDFirstCol.DataField := Table.FieldDefs[0].Name;
   except
@@ -191,7 +195,7 @@ end;
 
 procedure TMainForm.ACOpenUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := not Table.Active;
+  TAction(Sender).Enabled := not IsOpen;
 end;
 
 procedure TMainForm.ACPrintExecute(Sender: TObject);
@@ -201,7 +205,7 @@ end;
 
 procedure TMainForm.ACPrintUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := DBGrid.CanPrint and Table.Active;
+  TAction(Sender).Enabled := DBGrid.CanPrint and IsOpen;
 end;
 
 procedure TMainForm.BUAutoSizeClick(Sender: TObject);
@@ -219,18 +223,17 @@ begin
     [ftString, ftWideString, ftInteger, ftSmallInt, ftWord, ftLargeInt, ftFloat,
      ftDate, ftTime, ftDateTime, ftBCD, ftFmtBCD, ftCurrency, ftBoolean] then
   begin
-    ColumnName := TKDBGridCol(TKCustomGrid(Sender).Cols[ByIndex]).Name; // get column name
+    ColumnName := TKDBGridCol(TKCustomGrid(Sender).Cols[ByIndex]).FieldName; // get column name
     case SortMode of
       smNone: Sort := '';
-      smDown: Sort := '[' + ColumnName +'] ASC';
-      smUp: Sort := '[' + ColumnName +'] DESC';
+      smDown: Sort := ColumnName + ' ASC';
+      smUp: Sort := ColumnName + ' DESC';
     end;
   {$IFDEF FPC}
     if Sort <> '' then Sort := ' ORDER BY ' + Sort;
-    Table.Close;
     Table.SQL.Clear;
     Table.SQL.Add(Query + Sort);
-    Table.Open;
+    DoOpen;
   {$ELSE}
     Table.Sort := Sort;
   {$ENDIF}
@@ -253,6 +256,22 @@ procedure TMainForm.DBGridMouseClickCell(Sender: TObject; ACol, ARow: Integer);
 begin
   // show hint immediately when cell is clicked
 //  DBGrid.ShowCellHint;
+end;
+
+procedure TMainForm.DoClose;
+begin
+  Table.Close;
+end;
+
+procedure TMainForm.DoOpen;
+begin
+  Table.Close;
+  Table.Open;
+end;
+
+function TMainForm.IsOpen: Boolean;
+begin
+  Result := Table.Active;
 end;
 
 procedure TMainForm.DBGridDrawCell(Sender: TObject; ACol, ARow: Integer;

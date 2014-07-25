@@ -22,9 +22,9 @@ object MainForm: TMainForm
   object Label1: TLabel
     Left = 8
     Top = 8
-    Width = 113
+    Width = 88
     Height = 13
-    Caption = 'ADO Connection string:'
+    Caption = 'Connection string:'
   end
   object Label2: TLabel
     Left = 8
@@ -55,10 +55,6 @@ object MainForm: TMainForm
     Height = 21
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 1
-    Text = 
-      'Provider=SQLOLEDB.1;Password=npm;Persist Security Info=True;User' +
-      ' ID=npm_login;Initial Catalog=data;Data Source=TK-PC\SQLSERVER'
-    ExplicitWidth = 627
   end
   object EDTable: TEdit
     Left = 8
@@ -66,7 +62,6 @@ object MainForm: TMainForm
     Width = 156
     Height = 21
     TabOrder = 2
-    Text = '[Table]'
   end
   object EDFirstCol: TDBEdit
     Left = 184
@@ -124,27 +119,83 @@ object MainForm: TMainForm
     Height = 379
     Align = alBottom
     Anchors = [akLeft, akTop, akRight, akBottom]
-    DBOptions = [dboAutoMoveRecord, dboAutoSizeBooleanCells, dboColNamesToHeader, dboImageHint, dboIndexFixedCol, dboIndicateActiveRecord]
-    ColCount = 7
+    DBOptions = [dboAutoMoveRecord, dboAutoSizeBooleanCells, dboImageHint, dboIndexFixedCol, dboIndicateActiveRecord]
+    ColCount = 2
+    Columns = <
+      item
+        Brush.Color = clAqua
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clRed
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        HorzAlign = halRight
+        FieldName = 'thumb_width'
+        Title = 'Width'
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+      item
+        Brush.Color = clAqua
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clRed
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        HorzAlign = halRight
+        FieldName = 'thumb_height'
+        Title = 'Height'
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        FieldName = 'thumb_data'
+        Title = 'Data'
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+      item
+        CellHint = True
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        FieldName = 'image_text'
+        Title = 'Description'
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end>
     DataSource = DSMain
-    Options = [goAlwaysShowEditor, goClippedCells, goColMoving, goColSizing, goColSorting, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRowSizing, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
-    RowCount = 2
+    Options = [goAlwaysShowEditor, goClippedCells, goColMoving, goColSizing, goColSorting, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRowSelect, goRowSizing, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
+    RowCount = 3
     TabOrder = 9
     OnCustomSortRows = DBGridCustomSortRows
     OnDrawCell = DBGridDrawCell
     OnEditorCreate = DBGridEditorCreate
     OnMouseClickCell = DBGridMouseClickCell
-    ExplicitWidth = 643
-    ExplicitHeight = 372
     ColWidths = (
       64
-      64
-      64
-      64
-      64
-      56
-      110)
+      64)
     RowHeights = (
+      21
       21
       21)
   end
@@ -173,13 +224,13 @@ object MainForm: TMainForm
     end
   end
   object DSMain: TDataSource
-    Left = 448
-    Top = 96
+    Left = 480
+    Top = 56
   end
   object PSDMain: TKPrintSetupDialog
     Control = DBGrid
     SelAvail = False
-    Left = 448
-    Top = 56
+    Left = 416
+    Top = 96
   end
 end
