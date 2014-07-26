@@ -929,17 +929,21 @@ begin
     Cell1 := TMyTextCell(KGrid1.ArrayOfCells[Row1, Col1]);
     if KGrid1.InitialRow(Row1) = 1 then
       S1 := IntToStr(KGrid1.Cols[Col1].InitialPos)
+    else if Cell1 <> nil then
+      S1 := Cell1.Text
     else
-      S1 := Cell1.Text;
+      S1 := '';
   end;
   // get string beeing displayed in Cell2 (except a number displayed beneath text)
   Cell2 := TMyTextCell(KGrid1.ArrayOfCells[Row2, Col2]);
   if KGrid1.InitialRow(Row2) = 1 then
     S2 := IntToStr(KGrid1.Cols[Col1].InitialPos)
+  else if Cell2 <> nil then
+    S2 := Cell2.TextPtr
   else
-    S2 := Cell2.TextPtr;
+    S2 := '';
   Result := CompareStrings(S1, S2);
-  if (Result = 0) and (Cell1 <> nil) then
+  if (Result = 0) and (Cell1 <> nil) and (Cell2 <> nil) then
     // try to compare numbers if strings are equal
     Result := CompareIntegers(Cell1.Number, Cell2.Number);
 {$ELSE}
@@ -959,8 +963,10 @@ begin
         very fast but, generally, we have to convert Integer to PWideChar. }
       W1 := AnsiStringToWideChar(IntToStr(KGrid1.Cols[Col1].InitialPos));
       DelW1 := True;
-    end else
-      W1 := Cell1.TextPtr;
+    end else if Cell1 <> nil then
+      W1 := Cell1.TextPtr
+    else
+      W1 := '';
   end;
   DelW2 := False;
   // get string beeing displayed in Cell2 (except a number displayed beneath text)
@@ -971,8 +977,10 @@ begin
       very fast but we have to convert Integer to PWideChar somehow. }
     W2 := AnsiStringToWideChar(IntToStr(KGrid1.Cols[Col2].InitialPos));
     DelW2 := True;
-  end else
-    W2 := Cell2.TextPtr;
+  end else if Cell2 <> nil then
+    W2 := Cell2.TextPtr
+  else
+    W2 := '';
   try
     Result := CompareWideChars(W1, W2);
     if (Result = 0) and (Cell1 <> nil) then
