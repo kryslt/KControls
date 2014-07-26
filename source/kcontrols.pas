@@ -17,7 +17,7 @@
   think your changes might be useful for other users. You may distribute only
   the original package. The author accepts no liability for any damage
   that may result from using this code. }
-
+       
 unit KControls;
 
 {$include kcontrols.inc}

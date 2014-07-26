@@ -4250,8 +4250,6 @@ begin
 end;
 
 procedure TKGridAxisItems.Update(Item: TCollectionItem);
-var
-  I: Integer;
 begin
   inherited;
   if (FGrid <> nil) and not FGrid.Flag(cGF_GridUpdates) then
@@ -6572,7 +6570,7 @@ procedure TKCustomGrid.ChangeDataSize(ColInsert: Boolean; ColAt, ColCnt: Integer
         if ItemCount <> Data.Count then
         begin
           if Data.Count = 0 then
-            Item := Data.AddOnly;
+            Data.AddOnly;
           Cnt := Abs(Data.Count - ItemCount);
           ItemCount := Data.Count;
           FixedCount := Min(FixedCount, ItemCount - 1);

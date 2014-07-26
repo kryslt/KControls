@@ -402,7 +402,7 @@ type
     property Color;
     { See TKCustomGrid.@link(TKCustomGrid.Colors) for details. }
     property Colors;
-    { See TKDBCustomGrid.@link(TKDBCustomGrid.Columns) for details. }
+    { See TKCustomGrid.@link(TKCustomGrid.Columns) for details. }
     property Columns;
     { Inherited property - see Delphi help. }
     property Constraints;
@@ -1656,10 +1656,10 @@ begin
         for I := FixedCols to ColCount - 1 do
         begin
           Index := Cols[I].InitialPos;
-          FieldIndex := GetFieldIndex(I);
+          FieldIndex := GetFieldIndex(Index);
           if FieldIndex >= 0 then
           begin
-            Cell := InternalGetCell(I, ARow);
+            Cell := InternalGetCell(Index, ARow);
             if Cell is TKDBGridCell then
               TKDBGridCell(Cell).FieldToCell(FDataLink.DataSet.Fields[FieldIndex]);
           end;
@@ -1721,10 +1721,10 @@ begin
       for I := FixedCols to ColCount - 1 do
       begin
         Index := Cols[I].InitialPos;
-        FieldIndex := GetFieldIndex(I);
+        FieldIndex := GetFieldIndex(Index);
         if FieldIndex >= 0 then
         begin
-          Cell := InternalGetCell(I, ARow);
+          Cell := InternalGetCell(Index, ARow);
           if Cell is TKDBGridCell then
             TKDBGridCell(Cell).FieldFromCell(FDataLink.DataSet.Fields[FieldIndex]);
         end;

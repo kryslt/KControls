@@ -1,9 +1,9 @@
 object MainForm: TMainForm
-  Left = 520
-  Top = 214
+  Left = 613
+  Top = 261
+  Width = 712
+  Height = 595
   Caption = 'KDBGrid demo'
-  ClientHeight = 523
-  ClientWidth = 646
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,8 +15,8 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDeactivate = FormDeactivate
   DesignSize = (
-    646
-    523)
+    696
+    559)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -27,6 +27,7 @@ object MainForm: TMainForm
     Caption = 'Connection string:'
     Color = clBtnFace
     ParentColor = False
+    Transparent = False
   end
   object Label2: TLabel
     Left = 8
@@ -36,6 +37,7 @@ object MainForm: TMainForm
     Caption = 'Table:'
     Color = clBtnFace
     ParentColor = False
+    Transparent = False
   end
   object Label3: TLabel
     Left = 184
@@ -45,6 +47,7 @@ object MainForm: TMainForm
     Caption = 'First column value:'
     Color = clBtnFace
     ParentColor = False
+    Transparent = False
   end
   object EDConnectionString: TEdit
     Left = 8
@@ -113,8 +116,8 @@ object MainForm: TMainForm
   object DBGrid: TKDBGrid
     Left = 0
     Top = 144
-    Width = 646
-    Height = 379
+    Width = 696
+    Height = 415
     Align = alBottom
     Anchors = [akLeft, akTop, akRight, akBottom]
     DBOptions = [dboAutoMoveRecord, dboAutoSizeBooleanCells, dboDontClearFixedCells, dboImageHint, dboIndexFixedCol, dboIndicateActiveRecord]
@@ -151,21 +154,6 @@ object MainForm: TMainForm
       end
       item
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        FieldName = 'thumb_data'
-        Title = 'Image'
-        TitleFont.Charset = DEFAULT_CHARSET
-        TitleFont.Color = clWindowText
-        TitleFont.Height = -11
-        TitleFont.Name = 'Tahoma'
-        TitleFont.Style = []
-      end
-      item
-        Extent = 61
-        Font.Charset = DEFAULT_CHARSET
         Font.Color = clRed
         Font.Height = -11
         Font.Name = 'Tahoma'
@@ -174,6 +162,20 @@ object MainForm: TMainForm
         HorzPadding = 5
         FieldName = 'thumb_height'
         Title = 'Height'
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        FieldName = 'thumb_data'
+        Title = 'Image'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
         TitleFont.Height = -11
@@ -208,7 +210,7 @@ object MainForm: TMainForm
       64
       64
       64
-      61
+      64
       200)
     RowHeights = (
       21

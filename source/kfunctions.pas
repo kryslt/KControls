@@ -374,7 +374,7 @@ type
     Application: TApplication;
     Screen: TScreen;
     GlobalNameSpace: IReadWriteSync;
-    MainThreadID: TThreadID;
+    MainThreadID: LongWord;
     IntConstList: TThreadList;
   {$IFDEF FPC}
     WidgetSet: TWidgetSet;

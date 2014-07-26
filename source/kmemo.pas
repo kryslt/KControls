@@ -1452,7 +1452,6 @@ begin
   try
     FBlocks.Select(0, 0);
     FBlocks.Clear;
-    TextChanged;
   finally
     FBlocks.UnlockUpdate;
   end;
