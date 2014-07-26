@@ -7,7 +7,7 @@
 
   This unit provides a data aware control for TKGrid.
   Note: I am still a newbie to Delphi/Lazarus database solutions. If anything
-  is totally wrong here please feel free to send a patch or hint to me.
+  is totally wrong here please feel free to send a patch to me.
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part

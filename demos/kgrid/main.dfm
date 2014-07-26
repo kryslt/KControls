@@ -26,6 +26,10 @@ object Form1: TForm1
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Main demo'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       DesignSize = (
         802
         591)
@@ -425,6 +429,10 @@ object Form1: TForm1
     object TabSheet2: TTabSheet
       Caption = 'Merged header cells demo'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object KGrid2: TKGrid
         Left = 0
         Top = 0
@@ -477,6 +485,10 @@ object Form1: TForm1
     object TabSheet3: TTabSheet
       Caption = 'Virtual grid demo'
       ImageIndex = 2
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object KGrid3: TKGrid
         Left = 0
         Top = 0

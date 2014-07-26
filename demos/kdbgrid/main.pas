@@ -11,8 +11,8 @@ uses
   Windows, Messages, Mask, ADODB, DBClient, Provider,
 {$ENDIF}
   SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, DB, DBCtrls, KGrids, KDBGrids,
-  ExtCtrls, KFunctions, KGraphics, ActnList, KControls, KIcon,
+  Dialogs, StdCtrls, DB, DBCtrls, KGrids, KDBGrids, ActnList,
+  ExtCtrls, KFunctions, KGraphics, KControls, KIcon,
   KDialogs, Grids, DBGrids;
 
 type
@@ -59,9 +59,9 @@ type
     procedure BUAutoSizeClick(Sender: TObject);
   private
     { Private declarations }
-    procedure DoOpen;
-    procedure DoClose;
-    function IsOpen: Boolean;
+    procedure DoTableOpen;
+    procedure DoTableClose;
+    function IsTableOpen: Boolean;
   public
   {$IFDEF FPC}
     CN: TODBCConnection;
@@ -83,6 +83,7 @@ var
 
 implementation
 
+{$R *.dfm}
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
@@ -120,12 +121,12 @@ end;
 
 procedure TMainForm.ACCloseExecute(Sender: TObject);
 begin
-  DoClose;
+  DoTableClose;
 end;
 
 procedure TMainForm.ACCloseUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := IsOpen;
+  TAction(Sender).Enabled := IsTableOpen;
 end;
 
 procedure TMainForm.ACModifyExecute(Sender: TObject);
@@ -158,9 +159,10 @@ procedure TMainForm.ACOpenExecute(Sender: TObject);
 begin
   try
   {$IFDEF TK_TEST}
+  // this is here just to test the grid with my local db :-)
     EDTable.Text := 'images';
    {$IFDEF FPC}
-    EDConnectionString.Text := 'Localhost MySQL';
+    EDConnectionString.Text := 'Localhost-MySQL-tkweb';
    {$ELSE}
     EDConnectionString.Text :=
       'DRIVER={MySQL ODBC 5.3 ANSI Driver}; SERVER=localhost; PORT=3306; DATABASE=tkweb; UID=root; PASSWORD=root;OPTION=3;';
@@ -185,7 +187,7 @@ begin
     end;
     Table.TableName := EDTable.Text;
   {$ENDIF}
-    DoOpen;
+    DoTableOpen;
     DBGrid.PageSetup.Title := 'Table: ' + EDTable.Text;
     EDFirstCol.DataField := Table.FieldDefs[0].Name;
   except
@@ -195,7 +197,7 @@ end;
 
 procedure TMainForm.ACOpenUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := not IsOpen;
+  TAction(Sender).Enabled := not IsTableOpen;
 end;
 
 procedure TMainForm.ACPrintExecute(Sender: TObject);
@@ -205,7 +207,7 @@ end;
 
 procedure TMainForm.ACPrintUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := DBGrid.CanPrint and IsOpen;
+  TAction(Sender).Enabled := DBGrid.CanPrint and IsTableOpen;
 end;
 
 procedure TMainForm.BUAutoSizeClick(Sender: TObject);
@@ -233,7 +235,7 @@ begin
     if Sort <> '' then Sort := ' ORDER BY ' + Sort;
     Table.SQL.Clear;
     Table.SQL.Add(Query + Sort);
-    DoOpen;
+    DoTableOpen;
   {$ELSE}
     Table.Sort := Sort;
   {$ENDIF}
@@ -258,18 +260,18 @@ begin
 //  DBGrid.ShowCellHint;
 end;
 
-procedure TMainForm.DoClose;
+procedure TMainForm.DoTableClose;
 begin
   Table.Close;
 end;
 
-procedure TMainForm.DoOpen;
+procedure TMainForm.DoTableOpen;
 begin
   Table.Close;
   Table.Open;
 end;
 
-function TMainForm.IsOpen: Boolean;
+function TMainForm.IsTableOpen: Boolean;
 begin
   Result := Table.Active;
 end;
@@ -285,10 +287,4 @@ begin
   end;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i main.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
-end.
+end.

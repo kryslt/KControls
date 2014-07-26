@@ -7186,9 +7186,6 @@ begin
     end;
     CM_MOUSEWHEEL:
     begin
-      asm
-      nop
-      end;
     end;
     CN_CHAR:
       ClampInView(FEditorCell.Col, FEditorCell.Row);

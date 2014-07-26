@@ -2303,7 +2303,7 @@ var
               else
                 Index := NewIndex;
             end;
-            ALen := Index - AStart + 1;
+            ALen := Index - AStart;
             DrawEllipsis := True;
           end
           else if PathEllipsis then
@@ -2327,7 +2327,7 @@ var
                 else
                   Index := NewIndex;
               end;
-              ALen := Index - AStart + 1;
+              ALen := Index - AStart;
             end;
           end;
         end;
@@ -2993,4 +2993,4 @@ finalization
   //not necessary, but...
   UnregisterAlphaBitmap;
 {$ENDIF}
-end.
+end.

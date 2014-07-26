@@ -2,7 +2,7 @@ program kgriddemolaz;
 
 uses
   Interfaces, Printer4Lazarus,
-  Forms, kcontrolslaz,
+  Forms,
   Main in 'main.pas',
   Input in 'input.pas';
 

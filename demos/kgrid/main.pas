@@ -12,7 +12,7 @@ uses
 {$ENDIF}
   SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ActnList, ExtCtrls, ComCtrls,
-  KGrids, KControls, KDialogs, KGraphics;
+  KGrids, KControls, KDialogs, KGraphics, KFunctions;
 
 type
   { TForm1 }
@@ -153,7 +153,7 @@ type
       var CanExpand: Boolean);
   private
     { Private declarations }
-    FTextToInsert: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+    FTextToInsert: TKString;
     FThumbnail: TKAlphaBitmap;
     procedure FillRows(At, BaseIndex, NumRows: Integer);
     procedure SetOption(Option: TKGridOption; State: Boolean);
@@ -161,7 +161,7 @@ type
       R: TRect; State: TKGridDrawState);
   public
     { Public declarations }
-    A: array of array of WideString;
+    A: array of array of TKString;
   end;
 
 var
@@ -173,13 +173,13 @@ uses
 {$IFDEF USE_THEMES}
   Themes,
 {$ENDIF}
-  KFunctions, Input;
+  Input;
 
 const
   AutosizeRows: Boolean = False;
 
-procedure ParseText(const S: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
-  out TextPart: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+procedure ParseText(const S: TKString;
+  out TextPart: TKString;
   out NumberPart: Integer);
 var
   I, Len, Code: Integer;
@@ -756,7 +756,7 @@ procedure TForm1.KGrid1EditorDataFromGrid(Sender: TObject;
 var
   I, InitialCol, InitialRow: Integer;
   Cell: TMyTextCell;
-  S: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  S: TKString;
 begin
   InitialCol := KGrid1.InitialCol(ACol); // map column indexes
   InitialRow := KGrid1.InitialRow(ARow); // map row indexes
@@ -799,7 +799,7 @@ procedure TForm1.KGrid1EditorDataToGrid(Sender: TObject; AEditor: TWinControl;
 var
   InitialCol, InitialRow: Integer;
   Cell: TMyTextCell;
-  S, S1: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  S, S1: TKString;
   Value: Integer;
 begin
   InitialRow := KGrid1.InitialRow(ARow); // map row indexes
@@ -1028,7 +1028,7 @@ end;
 procedure TForm1.FillRows(At, BaseIndex, NumRows: Integer);
 var
   I, J, ACol: Integer;
-  S: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  S: TKString;
 begin
   // switch to fast operation mode
   KGrid1.LockUpdate;
@@ -1195,7 +1195,7 @@ end;
 procedure TForm1.KGrid3ExchangeCols(Sender: TObject; Index1, Index2: Integer);
 var
   I: Integer;
-  S: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  S: TKString;
 begin
   // called both from sorting interface and MoveCol
   for I := 0 to KGrid3.RowCount - 1 do
@@ -1209,7 +1209,7 @@ end;
 procedure TForm1.KGrid3ExchangeRows(Sender: TObject; Index1, Index2: Integer);
 var
   I: Integer;
-  S: {$IFDEF STRING_IS_UNICODE}string{$ELSE}WideString{$ENDIF};
+  S: TKString;
 begin
   // called both from sorting interface and MoveRow
   for I := 0 to KGrid3.ColCount - 1 do
