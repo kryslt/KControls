@@ -10,7 +10,7 @@ object MainForm: TMainForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
+  OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDeactivate = FormDeactivate
@@ -25,6 +25,8 @@ object MainForm: TMainForm
     Width = 88
     Height = 13
     Caption = 'Connection string:'
+    Color = clBtnFace
+    ParentColor = False
   end
   object Label2: TLabel
     Left = 8
@@ -32,6 +34,8 @@ object MainForm: TMainForm
     Width = 30
     Height = 13
     Caption = 'Table:'
+    Color = clBtnFace
+    ParentColor = False
   end
   object Label3: TLabel
     Left = 184
@@ -39,14 +43,8 @@ object MainForm: TMainForm
     Width = 90
     Height = 13
     Caption = 'First column value:'
-  end
-  object BUModify: TButton
-    Left = 512
-    Top = 104
-    Width = 123
-    Height = 25
-    Action = ACModify
-    TabOrder = 0
+    Color = clBtnFace
+    ParentColor = False
   end
   object EDConnectionString: TEdit
     Left = 8
@@ -54,14 +52,14 @@ object MainForm: TMainForm
     Width = 630
     Height = 21
     Anchors = [akLeft, akTop, akRight]
-    TabOrder = 1
+    TabOrder = 0
   end
   object EDTable: TEdit
     Left = 8
     Top = 64
     Width = 156
     Height = 21
-    TabOrder = 2
+    TabOrder = 1
   end
   object EDFirstCol: TDBEdit
     Left = 184
@@ -69,7 +67,7 @@ object MainForm: TMainForm
     Width = 121
     Height = 21
     DataSource = DSMain
-    TabOrder = 3
+    TabOrder = 2
   end
   object BUOpen: TButton
     Left = 8
@@ -77,7 +75,7 @@ object MainForm: TMainForm
     Width = 75
     Height = 25
     Action = ACOpen
-    TabOrder = 4
+    TabOrder = 3
   end
   object BUClose: TButton
     Left = 89
@@ -85,7 +83,7 @@ object MainForm: TMainForm
     Width = 75
     Height = 25
     Action = ACClose
-    TabOrder = 5
+    TabOrder = 4
   end
   object DBNav: TDBNavigator
     Left = 184
@@ -93,7 +91,7 @@ object MainForm: TMainForm
     Width = 240
     Height = 25
     DataSource = DSMain
-    TabOrder = 6
+    TabOrder = 5
   end
   object BUPrint: TButton
     Left = 536
@@ -101,7 +99,7 @@ object MainForm: TMainForm
     Width = 99
     Height = 25
     Action = ACPrint
-    TabOrder = 7
+    TabOrder = 6
   end
   object BUAutoSize: TButton
     Left = 328
@@ -109,7 +107,7 @@ object MainForm: TMainForm
     Width = 89
     Height = 25
     Caption = 'Autosize row'
-    TabOrder = 8
+    TabOrder = 7
     OnClick = BUAutoSizeClick
   end
   object DBGrid: TKDBGrid
@@ -119,19 +117,16 @@ object MainForm: TMainForm
     Height = 379
     Align = alBottom
     Anchors = [akLeft, akTop, akRight, akBottom]
-    DBOptions = [dboAutoMoveRecord, dboAutoSizeBooleanCells, dboImageHint, dboIndexFixedCol, dboIndicateActiveRecord]
-    ColCount = 2
+    DBOptions = [dboAutoMoveRecord, dboAutoSizeBooleanCells, dboDontClearFixedCells, dboImageHint, dboIndexFixedCol, dboIndicateActiveRecord]
     Columns = <
       item
-        Brush.Color = clAqua
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clRed
+        Font.Color = clFuchsia
         Font.Height = -11
         Font.Name = 'Tahoma'
         Font.Style = []
-        HorzAlign = halRight
-        FieldName = 'thumb_width'
-        Title = 'Width'
+        HorzAlign = halCenter
+        Title = 'Index'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
         TitleFont.Height = -11
@@ -139,15 +134,15 @@ object MainForm: TMainForm
         TitleFont.Style = []
       end
       item
-        Brush.Color = clAqua
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clRed
         Font.Height = -11
         Font.Name = 'Tahoma'
         Font.Style = []
         HorzAlign = halRight
-        FieldName = 'thumb_height'
-        Title = 'Height'
+        HorzPadding = 5
+        FieldName = 'thumb_width'
+        Title = 'Width'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
         TitleFont.Height = -11
@@ -161,7 +156,7 @@ object MainForm: TMainForm
         Font.Name = 'Tahoma'
         Font.Style = []
         FieldName = 'thumb_data'
-        Title = 'Data'
+        Title = 'Image'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
         TitleFont.Height = -11
@@ -169,9 +164,27 @@ object MainForm: TMainForm
         TitleFont.Style = []
       end
       item
+        Extent = 61
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clRed
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        HorzAlign = halRight
+        HorzPadding = 5
+        FieldName = 'thumb_height'
+        Title = 'Height'
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+      item
+        Extent = 200
         CellHint = True
         Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
+        Font.Color = clGreen
         Font.Height = -11
         Font.Name = 'Tahoma'
         Font.Style = [fsBold]
@@ -184,24 +197,26 @@ object MainForm: TMainForm
         TitleFont.Style = []
       end>
     DataSource = DSMain
-    Options = [goAlwaysShowEditor, goClippedCells, goColMoving, goColSizing, goColSorting, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRowSelect, goRowSizing, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
-    RowCount = 3
-    TabOrder = 9
+    Options = [goAlwaysShowEditor, goClippedCells, goColMoving, goColSizing, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRowSelect, goRowSizing, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
+    OptionsEx = [gxEnterWraps, gxFixedCellClickSelect, gxTabWraps, gxMouseWheelScroll]
+    RowCount = 2
+    TabOrder = 8
     OnCustomSortRows = DBGridCustomSortRows
     OnDrawCell = DBGridDrawCell
     OnEditorCreate = DBGridEditorCreate
-    OnMouseClickCell = DBGridMouseClickCell
     ColWidths = (
       64
-      64)
+      64
+      64
+      61
+      200)
     RowHeights = (
-      21
       21
       21)
   end
   object ALMain: TActionList
-    Left = 480
-    Top = 96
+    Left = 440
+    Top = 56
     object ACOpen: TAction
       Caption = 'Open table'
       OnExecute = ACOpenExecute
@@ -210,11 +225,6 @@ object MainForm: TMainForm
     object ACClose: TAction
       Caption = 'Close table'
       OnExecute = ACCloseExecute
-      OnUpdate = ACCloseUpdate
-    end
-    object ACModify: TAction
-      Caption = 'Modify random cell'
-      OnExecute = ACModifyExecute
       OnUpdate = ACCloseUpdate
     end
     object ACPrint: TAction

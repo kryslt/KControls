@@ -148,7 +148,6 @@ type
     procedure BUAutosizeRowClick(Sender: TObject);
     procedure KGrid1ColWidthsChanged(Sender: TObject);
     procedure CBAutosizeGridClick(Sender: TObject);
-    procedure KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);
     procedure KGrid3SelectionExpand(Sender: TObject; ACol, ARow: Integer;
       var CanExpand: Boolean);
   private
@@ -1018,11 +1017,6 @@ begin
   { Calling CellPainter.DefaultMeasure obtains the cell contents from default
     implementation }
   Extent := KGrid1.CellPainter.DefaultMeasure(Priority);
-end;
-
-procedure TForm1.KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);
-begin
-  ;
 end;
 
 procedure TForm1.FillRows(At, BaseIndex, NumRows: Integer);

@@ -70,7 +70,7 @@ type
 const
   { Default value for the @link(TKCustomDBGrid.DBOptions) property. }
   cDBOptionsDef = [dboAutoMoveRecord, dboAutoSizeBooleanCells,
-    dboIndexFixedCol, dboIndicateActiveRecord];
+    dboDontClearFixedCells, dboIndexFixedCol, dboIndicateActiveRecord];
 
   { Default value for the @link(TKDBGridColors.ActiveRecord) property. }
   cActiveRecordDef = clCream;
@@ -183,9 +183,11 @@ type
     FFont: TFont;
     FBrush: TBrush;
     FHorzAlign: TKHAlign;
+    FHorzPadding: Integer;
     FTitle: TKString;
     FTitleFont: TFont;
     FVertAlign: TKVAlign;
+    FVertPadding: Integer;
     function IsFieldNameStored: Boolean;
     function IsTitleStored: Boolean;
     procedure SetBrush(const Value: TBrush);
@@ -195,6 +197,8 @@ type
     procedure SetTitle(const Value: TKString);
     procedure SetTitleFont(const Value: TFont);
     procedure SetVertAlign(const Value: TKVAlign);
+    procedure SetHorzPadding(const Value: Integer);
+    procedure SetVertPadding(const Value: Integer);
   public
     { Creates the instance. Do not create custom instances. All necessary
       TKDBGridCol instances are created automatically by TKCustomDBGrid. }
@@ -219,42 +223,22 @@ type
     property Font: TFont read FFont write SetFont;
     { Specifies vertical alignment of the contents for this column. }
     property HorzAlign: TKHAlign read FHorzAlign write SetHorzAlign default halLeft;
-    { Specifies vertical alignment of the contents for this column. }
-    property VertAlign: TKVAlign read FVertAlign write SetVertAlign default valCenter;
+    { Specifies horizontal padding of the contents for this column. }
+    property HorzPadding: Integer read FHorzPadding write SetHorzPadding default cHPaddingDef;
     { Specifies the database column name. }
     property FieldName: TKString read FFieldName write SetFieldName stored IsFieldNameStored;
     { Specifies the column title. }
     property Title: TKString read FTitle write SetTitle stored IsTitleStored;
     { Specifies the font for the title of this column. }
     property TitleFont: TFont read FTitleFont write SetTitleFont;
+    { Specifies vertical alignment of the contents for this column. }
+    property VertAlign: TKVAlign read FVertAlign write SetVertAlign default valCenter;
+    { Specifies vertical padding of the contents for this column. }
+    property VertPadding: Integer read FVertPadding write SetVertPadding default cVPaddingDef;
   end;
 
   { @abstract(Metaclass for @link(TKDBGridCol)). }
   TKDBGridColClass = class of TKDBGridCol;
-
-  { @abstract(Column collection for TKCustomDBGrid)
-    This column collection provided for DBGrid compatibility and to use the TCollection editors at design time.
-    In the grid only copies are used because TKCustomGrid uses dynamic arrays to store columns and rows. }
-  TKDBGridCols = class(TCollection)
-  private
-    FGrid: TKCustomDBGrid;
-    function GetColumn(Index: Integer): TKDBGridCol;
-    function InternalAdd: TKDBGridCol;
-    procedure SetColumn(Index: Integer; Value: TKDBGridCol);
-  protected
-    function GetOwner: TPersistent; override;
-    procedure Update(Item: TCollectionItem); override;
-  public
-    { Creates the instance. Do not create custom instances. All necessary
-      TKDBGridCols instances are created automatically by TKCustomDBGrid. }
-    constructor Create(Grid: TKCustomDBGrid; ColumnClass: TCollectionItemClass);
-    { Adds new column to this collection. }
-    function Add: TKDBGridCol;
-    { References parent dbgrid. }
-    property Grid: TKCustomDBGrid read FGrid;
-    { References column items. }
-    property Items[Index: Integer]: TKDBGridCol read GetColumn write SetColumn; default;
-  end;
 
   { @abstract(Cell painter class used by TKCustomDBGrid class)
     Overrides some TKGridCellPainter methods for usage with TKCustomDBGrid. }
@@ -284,7 +268,6 @@ type
   TKCustomDBGrid = class(TKCustomGrid)
   private
     FActiveRecord: Integer;
-    FColumns: TKDBGridCols;
     FOldFieldCount: Integer;
     FOldColumnCount: Integer;
     FDBOptions: TKDBGridOptions;
@@ -292,7 +275,6 @@ type
     function GetDataSource: TDataSource;
     procedure SetDataSource(Value: TDataSource);
     procedure SetDBOptions(const Value: TKDBGridOptions);
-    procedure SetColumns(const Value: TKDBGridCols);
     procedure SetTitleRow(const Value: Integer);
   protected
     { This field represents the internal data link. }
@@ -308,8 +290,6 @@ type
     procedure Changed; override;
     { Extends TKCustomGrid behavior. Updates the grid if column has been moved. }
     procedure ColMoved(FromIndex, ToIndex: Integer); override;
-    { Update cell from first fixed row with column title. }
-    procedure ColTitleChanged(ACol: TKDBGridCol); virtual;
     { Extends TKCustomGrid behavior. Calls the event if data set is active etc. }
     function CustomSortRows(ByCol: Integer; var SortMode: TKGridSortMode): Boolean; override;
     { Extends TKCustomGrid behavior. Does not allow to edit if data set is writable
@@ -379,26 +359,18 @@ type
       ACol, ARow: Integer; SelectAll, CaretToLeft, SelectedByMouse: Boolean); override;
     { Provides default cell hint behavior. }
     procedure DefaultMouseCellHint(ACol, ARow: Integer; AShow: Boolean); override;
-    { Does nothing. Deleting columns not supported. }
-    procedure DeleteCols(At, Count: Integer); override;
     { Forces the data set to delete record at location At. }
     procedure DeleteRow(At: Integer); override;
     { Does nothing. Deleting more rows not supported. }
     procedure DeleteRows(At, Count: Integer); override;
-    { Does nothing. Inserting columns not supported. }
-    procedure InsertCols(At, Count: Integer); override;
     { Forces the data set to insert new record at location At. }
-    procedure InsertRow(At: Integer); override;
+    function InsertRow(At: Integer): TKGridRow; override;
     { Does nothing. Inserting more rows not supported. }
     procedure InsertRows(At, Count: Integer); override;
-    { Does nothing. Inserting sorted columns not supported. }
-    function InsertSortedCol(out ByRow, ACol: Integer): Boolean; override;
     { Does nothing. Inserting sorted rows not supported. }
     function InsertSortedRow(out ByCol, ARow: Integer): Boolean; override;
     { Does nothing. Row moving not supported. }
     procedure MoveRow(FromIndex, ToIndex: Integer); override;
-    { Specifies columns }
-    property Columns: TKDBGridCols read FColumns write SetColumns;
     { Specifies the data source. }
     property DataSource: TDataSource read GetDataSource write SetDataSource;
     { Specifies various display and behavioral properties of TKDGGrid. }
@@ -867,7 +839,6 @@ constructor TKDBGridCol.Create(ACollection: TCollection);
 var
   FS: TFormatSettings;
 begin
-  inherited;
   FFont := TFont.Create;
   FBrush := TBrush.Create;
   FS := GetFormatSettings;
@@ -879,10 +850,13 @@ begin
   FCurrencyFormat.UseThousandSep := True;
   FDataType := ftUnknown;
   FHorzAlign := halLeft;
+  FHorzPadding := cHPaddingDef;
   FFieldName := '';
   FTitle := '';
   FTitleFont := TFont.Create;
   FVertAlign := valCenter;
+  FVertPadding := cVPaddingDef;
+  inherited;
 end;
 
 destructor TKDBGridCol.Destroy;
@@ -895,6 +869,7 @@ end;
 
 procedure TKDBGridCol.Assign(Source: TPersistent);
 begin
+  inherited;
   if Source is TKDBGridCol then
   begin
     FCurrencyFormat := TKDBGridCol(Source).CurrencyFormat;
@@ -911,9 +886,11 @@ begin
     FFieldName := TKDBGridCol(Source).FieldName;
     FFont.Assign(TKDBGridCol(Source).Font);
     FHorzAlign := TKDBGridCol(Source).HorzAlign;
+    FHorzPadding := TKDBGridCol(Source).HorzPadding;
     FTitle := TKDBGridCol(Source).Title;
     FTitleFont.Assign(TKDBGridCol(Source).TitleFont);
     FVertAlign := TKDBGridCol(Source).VertAlign;
+    FVertPadding := TKDBGridCol(Source).VertPadding;
   end;
 end;
 
@@ -961,13 +938,23 @@ begin
   end;
 end;
 
+procedure TKDBGridCol.SetHorzPadding(const Value: Integer);
+begin
+  if Value <> FHorzPadding then
+  begin
+    FHorzPadding := Value;
+    if Grid is TKDBGrid then
+      TKDBGrid(Grid).Invalidate;
+  end;
+end;
+
 procedure TKDBGridCol.SetTitle(const Value: TKString);
 begin
   if Value <> FTitle then
   begin
     FTitle := Value;
     if Grid is TKDBGrid then
-      TKDBGrid(Grid).ColTitleChanged(Self);
+      TKDBGrid(Grid).DataChanged;
   end;
 end;
 
@@ -986,44 +973,14 @@ begin
   end;
 end;
 
-{ TKDBGridCols }
-
-constructor TKDBGridCols.Create(Grid: TKCustomDBGrid; ColumnClass: TCollectionItemClass);
+procedure TKDBGridCol.SetVertPadding(const Value: Integer);
 begin
-  inherited Create(ColumnClass);
-  FGrid := Grid;
-end;
-
-function TKDBGridCols.Add: TKDBGridCol;
-begin
-  Result := TKDBGridCol(inherited Add);
-end;
-
-function TKDBGridCols.GetColumn(Index: Integer): TKDBGridCol;
-begin
-  Result := TKDBGridCol(inherited Items[Index]);
-end;
-
-function TKDBGridCols.GetOwner: TPersistent;
-begin
-  Result := FGrid;
-end;
-
-procedure TKDBGridCols.SetColumn(Index: Integer; Value: TKDBGridCol);
-begin
-  Items[Index].Assign(Value);
-end;
-
-procedure TKDBGridCols.Update(Item: TCollectionItem);
-begin
-  inherited;
-  if (FGrid = nil) or (csLoading in FGrid.ComponentState) then Exit;
-  FGrid.DataChanged;
-end;
-
-function TKDBGridCols.InternalAdd: TKDBGridCol;
-begin
-  Result := Add;
+  if Value <> FVertPadding then
+  begin
+    FVertPadding := Value;
+    if Grid is TKDBGrid then
+      TKDBGrid(Grid).Invalidate;
+  end;
 end;
 
 { TKDBGridCellPainter }
@@ -1035,39 +992,41 @@ begin
   begin
     if Grid.Cols[Col] is TKDBGridCol then
     begin
-      if gdFixed in State then
-      begin
-        Canvas.Font.Assign(TKDBGridCol(Grid.Cols[Col]).TitleFont);
-      end else
+      if not (gdFixed in State) or (Row >= Grid.FixedRows) then
       begin
         HAlign := TKDBGridCol(Grid.Cols[Col]).HorzAlign;
+        HPadding := TKDBGridCol(Grid.Cols[Col]).HorzPadding;
         VAlign := TKDBGridCol(Grid.Cols[Col]).VertAlign;
+        VPadding := TKDBGridCol(Grid.Cols[Col]).VertPadding;
         Canvas.Font.Assign(TKDBGridCol(Grid.Cols[Col]).Font);
-        Canvas.Brush.Assign(TKDBGridCol(Grid.Cols[Col]).Brush);
-        case TKDBGridCol(Grid.Cols[Col]).DataType of
-          ftMemo
-        {$IF DEFINED(FPC) OR DEFINED(COMPILER10_UP)}
-          , ftWideMemo
-        {$IFEND}
-            :
-            Attributes := Attributes + [taLineBreak];
-          ftCurrency, ftBCD, ftFmtBCD:
-            HAlign := halRight;
-          ftBoolean:
-          begin
-            CheckBox := True;
-            CheckBoxChecked := LowerCase(Grid.Cells[Col, Row]) = 'true';
+        if not (gdFixed in State) then
+        begin
+          Canvas.Brush.Assign(TKDBGridCol(Grid.Cols[Col]).Brush);
+          case TKDBGridCol(Grid.Cols[Col]).DataType of
+            ftMemo
+          {$IF DEFINED(FPC) OR DEFINED(COMPILER10_UP)}
+            , ftWideMemo
+          {$IFEND}
+              :
+              Attributes := Attributes + [taLineBreak];
+            ftCurrency, ftBCD, ftFmtBCD:
+              HAlign := halRight;
+            ftBoolean:
+            begin
+              CheckBox := True;
+              CheckBoxChecked := LowerCase(Grid.Cells[Col, Row]) = 'true';
+            end;
           end;
         end;
-      end;
+      end
+      else
+        Canvas.Font.Assign(TKDBGridCol(Grid.Cols[Col]).TitleFont);
     end;
     if (dboIndicateActiveRecord in TKCustomDBGrid(Grid).DBOptions) and
       Assigned(TKCustomDBGrid(Grid).FDataLink.DataSet) and
       (TKCustomDBGrid(Grid).FDataLink.ActiveRecord = Row - Grid.FixedRows) and
       (State * [gdSelected, gdFocused] = []) then
       Canvas.Brush.Color := TKDBGridColors(TKCustomDBGrid(Grid).Colors).ActiveRecord;
-    if (dboIndexFixedCol in TKCustomDBGrid(Grid).DBOptions) and (Col = 0) and (Grid.FixedCols > 0) then
-      HAlign := halRight;
   end;
 end;
 
@@ -1101,21 +1060,19 @@ begin
   FDBOptions := cDBOptionsDef;
   FColors.Free;
   FColors := TKDBGridColors.Create(Self);
-  FColumns := TKDBGridCols.Create(Self, TKDBGridCol);
   FOldColumnCount := -1;
   FOldFieldCount := -1;
   FTitleRow := cTitleRowDef;
   CellClass := TKDBGridCell;
+  RealizeCellClass;
   CellPainterClass := TKDBGridCellPainter;
   ColClass := TKDBGridCol;
   RealizeColClass;
-  ColCount := FixedCols + 1;
 end;
 
 destructor TKCustomDBGrid.Destroy;
 begin
   inherited;
-  FColumns.Free;
   FDataLink.Free;
 end;
 
@@ -1164,20 +1121,6 @@ begin
   DataChanged;
 end;
 
-procedure TKCustomDBGrid.ColTitleChanged(ACol: TKDBGridCol);
-var
-  I: Integer;
-  Cell: TKGridCell;
-begin
-  I := FindCol(ACol);
-  if I >= 0 then
-  begin
-    Cell := InternalGetCell(I, InternalGetTitleRow);
-    if Cell is TKDBGridCell then
-      TKDBGridCell(Cell).Text := ACol.Title;
-  end;
-end;
-
 procedure TKCustomDBGrid.Commit;
 begin
   if Assigned(FDataLink.DataSet) and FDataLink.Modified then
@@ -1204,39 +1147,21 @@ end;
 procedure TKCustomDBGrid.DataChanged;
 var
   I, Index, J, Tmp, LastRow, FieldIndex: Integer;
-  NeedResize: Boolean;
   ADataType: TFieldType;
   Cell: TKGridCell;
 begin
-  if Assigned(FDataLink.DataSet) and not Flag(cGF_DBDataUpdating) then
+  if not Flag(cGF_DBDataUpdating) then
   begin
     FlagSet(cGF_DBDataUpdating);
     try
-      if FDataLink.Active then
+      if Assigned(FDataLink.DataSet) and FDataLink.Active then
       begin
         RowCount := FixedRows + FDataLink.DataSet.RecordCount;
-        NeedResize :=
-          (dboEntireTable in FDBOptions) and (FOldFieldCount <> FDataLink.DataSet.FieldCount) or
-          not (dboEntireTable in FDBOptions) and (FOldColumnCount <> FColumns.Count);
-        if NeedResize then
+        if (dboEntireTable in FDBOptions) and (FOldFieldCount <> FDataLink.DataSet.FieldCount) then
         begin
           ClearSortMode;
-          if dboEntireTable in FDBOptions then
-          begin
-            ColCount := FDataLink.DataSet.FieldCount + FixedCols;
-            FOldFieldCount := FDataLink.DataSet.FieldCount;
-          end
-          else if FColumns.Count > 0 then
-          begin
-            ColCount := FColumns.Count + FixedCols;
-            for I := 0 to FColumns.Count - 1 do
-            begin
-              // copy all published properties
-              if Cols[I + FixedCols] is TKDBGridCol then
-                Cols[I + FixedCols].AssignPublished(Columns[I]);
-            end;
-            FOldColumnCount := FColumns.Count;
-          end;
+          ColCount := FDataLink.DataSet.FieldCount + FixedCols;
+          FOldFieldCount := FDataLink.DataSet.FieldCount;
           for I := 0 to ColCount - 1 do
             Cols[I].InitialPos := I;
         end;
@@ -1254,18 +1179,12 @@ begin
         LastRow := Min(LastVisibleRow + 1, RowCount - 1);
         // here memory only grows. I don't know if it is possible to make this more memory effective
         FDataLink.BufferCount := Max(FDataLink.BufferCount, Max(LastRow, FDataLink.DataSet.RecNo - 1) + 1);
-        if (dboIndexFixedCol in FDBOptions) and (FixedCols > 0) then
-        begin
-          Cell := InternalGetCell(0, InternalGetTitleRow);
-          if Cell is TKDBGridCell then
-            TKDBGridCell(Cell).Text := SKDBGridIndex;
-        end;
         Tmp := FDataLink.ActiveRecord;
         try
           for I := FixedCols to ColCount - 1 do
           begin
             Index := Cols[I].InitialPos;
-            if Index < ColCount then
+            if (Index < ColCount) and (Cols[I] is TKDBGridCol) then
             begin
               FieldIndex := GetFieldIndex(I);
               if FieldIndex >= 0 then
@@ -1277,17 +1196,17 @@ begin
                   ColWidths[I] := cCheckBoxFrameSize + CellPainter.HPadding * 2;
                   Cols[I].CanResize := False;
                 end;
-                if dboColNamesToHeader in FDBOptions then
+                Cell := InternalGetCell(I, InternalGetTitleRow);
+                if Cell is TKDBGridCell then
                 begin
-                  Cell := InternalGetCell(I, InternalGetTitleRow);
-                  if Cell is TKDBGridCell then
+                  if dboColNamesToHeader in FDBOptions then
                   begin
                     if (dboEntireTable in FDBOptions) and (TKDBGridCol(Cols[I]).FieldName = '') then
                       TKDBGridCol(Cols[I]).FieldName := FDataLink.DataSet.FieldDefs[FieldIndex].Name;
-                    TKDBGridCell(Cell).Text :=  TKDBGridCol(Cols[I]).FieldName;
-                  end;
-                end else if Cols[I] is TKDbGridCol then
-                  ColTitleChanged(TKDBGridCol(Cols[I]));
+                    TKDBGridCell(Cell).Text := TKDBGridCol(Cols[I]).FieldName;
+                  end else
+                    TKDBGridCell(Cell).Text := TKDBGridCol(Cols[I]).Title;
+                end;
               end;
             end;
           end;
@@ -1298,7 +1217,7 @@ begin
               for I := FixedCols to ColCount - 1 do
               begin
                 Index := Cols[I].InitialPos;
-                if Index < ColCount then
+                if (Index < ColCount) and (Cols[I] is TKDBGridCol) then
                 begin
                   FieldIndex := GetFieldIndex(I);
                   if FieldIndex >= 0 then
@@ -1347,20 +1266,33 @@ begin
             InvalidateRow(FActiveRecord + FixedRows);
           end;
         end;
+        Cell := InternalGetCell(0, InternalGetTitleRow);
+        if Cell is TKDBGridCell then
+          TKDBGridCell(Cell).Text := TKDBGridCol(Cols[0]).Title;
       end else
       begin
         RowCount := FixedRows + 1;
         FMaxRow := FixedRows;
         if dboDontClearFixedCells in FDBOptions then
-          Tmp := FixedRows
-        else
+        begin
+          Tmp := FixedRows;
+          Cell := InternalGetCell(0, InternalGetTitleRow);
+          if Cell is TKDBGridCell then
+            TKDBGridCell(Cell).Text := TKDBGridCol(Cols[0]).Title;
+        end else
           Tmp := 0;
-        for I := 0 to ColCount - 1 do
+        for I := FixedCols to ColCount - 1 do
         begin
           Cols[I].InitialPos := I;
           if Cols[I] is TKDBGridCol then
           begin
             TKDBGridCol(Cols[I]).FDataType := ftUnknown;
+            if dboDontClearFixedCells in FDBOptions then
+            begin
+              Cell := InternalGetCell(I, InternalGetTitleRow);
+              if Cell is TKDBGridCell then
+                TKDBGridCell(Cell).Text := TKDBGridCol(Cols[I]).Title;
+            end;
           end;
           if not (dboDontClearFixedCells in FDBOptions) or (I >= FixedCols) then
           begin
@@ -1574,11 +1506,6 @@ begin
     FreeAndNil(FHint);
 end;
 
-procedure TKCustomDBGrid.DeleteCols(At, Count: Integer);
-begin
-  // does nothing
-end;
-
 procedure TKCustomDBGrid.DeleteRow(At: Integer);
 begin
   if Assigned(FDataLink.DataSet) and RowValid(At) then
@@ -1617,29 +1544,20 @@ begin
     Result := -1;
 end;
 
-procedure TKCustomDBGrid.InsertCols(At, Count: Integer);
+function TKCustomDBGrid.InsertRow(At: Integer): TKGridRow;
 begin
-  // does nothing
-end;
-
-procedure TKCustomDBGrid.InsertRow(At: Integer);
-begin
+  Result := nil;
   if Assigned(FDataLink.DataSet) and RowValid(At) then
   begin
     InternalSetActiveRecord(At - FixedRows);
     FDataLink.DataSet.Insert;
+    Result := TKGridRow(FRows[At]);
   end;
 end;
 
 procedure TKCustomDBGrid.InsertRows(At, Count: Integer);
 begin
   // does nothing
-end;
-
-function TKCustomDBGrid.InsertSortedCol(out ByRow, ACol: Integer): Boolean;
-begin
-  // does nothing
-  Result := False;
 end;
 
 function TKCustomDBGrid.InsertSortedRow(out ByCol, ARow: Integer): Boolean;
@@ -1758,11 +1676,6 @@ begin
   Result := inherited SelectCell(ACol, ARow);
   if Result and (dboAutoMoveRecord in FDBOptions) then
     InternalSetActiveRecord(ARow - FixedRows);
-end;
-
-procedure TKCustomDBGrid.SetColumns(const Value: TKDBGridCols);
-begin
-  FColumns.Assign(Value);
 end;
 
 procedure TKCustomDBGrid.SetDataSource(Value: TDataSource);

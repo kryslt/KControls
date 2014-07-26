@@ -380,7 +380,7 @@ type
     function GetVertPos: Integer; virtual;
     procedure Initialize(ACanvas: TCanvas; const ARect: TRect); virtual;
     procedure Process(Y: Integer; AFunction: TKTextBoxFunction);
-    procedure TextTrim(const AText: WideString; var AStart, ALen: Integer); virtual;
+    procedure TextTrim(const AText: TKString; var AStart, ALen: Integer); virtual;
   public
     constructor Create;
     procedure Draw(ACanvas: TCanvas; const ARect: TRect); virtual;
@@ -2602,7 +2602,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TKTextBox.TextTrim(const AText: WideString; var AStart, ALen: Integer);
+procedure TKTextBox.TextTrim(const AText: TKString; var AStart, ALen: Integer);
 begin
   if taLineBreak in Attributes then
     TrimWhiteSpaces(AText, AStart, ALen, cLineBreaks);

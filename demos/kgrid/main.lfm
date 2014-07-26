@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 473
+  Left = 508
   Height = 603
-  Top = 327
+  Top = 285
   Width = 838
   ActiveControl = PCMain
   Caption = 'KGridDemo'
@@ -426,7 +426,7 @@ object Form1: TForm1
     end
     object TabSheet2: TTabSheet
       Caption = 'Merged header cells demo'
-      ClientHeight = 567
+      ClientHeight = 577
       ClientWidth = 830
       ImageIndex = 1
       object KGrid2: TKGrid
@@ -483,7 +483,7 @@ object Form1: TForm1
     end
     object TabSheet3: TTabSheet
       Caption = 'Virtual grid demo'
-      ClientHeight = 567
+      ClientHeight = 577
       ClientWidth = 830
       ImageIndex = 2
       object KGrid3: TKGrid

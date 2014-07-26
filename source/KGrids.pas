@@ -448,8 +448,10 @@ type
     gxEnterAppendsRow,
     { Pressing Enter wraps selection to next column/row. }
     gxEnterWraps,
-    { Clicking fixed cells together with Shift key selects/unselects respective columns/rows. }
+    { Clicking fixed cells selects respective columns/rows. }
     gxFixedCellClickSelect,
+    { Clicking fixed cells selects or unselects respective columns/rows. }
+    gxFixedCellClickToggle,
     { All fixed cells will be painted with header theme (looks bad e.g. with classic WinXP). }
     gxFixedThemedCells,
     { Pressing TAB at the last cell appends a row. }
@@ -1046,6 +1048,11 @@ const
   { Default value for the @link(TKCustomGrid.SortStyle) property. }
   cSortStyleDef = ssDownUp;
 
+  { Default value for the @link(TKGridAttrTextCell.HPadding) property. }
+  cHPaddingDef = 2;
+  { Default value for the @link(TKGridAttrTextCell.VPadding) property. }
+  cVPaddingDef = 0;
+
   { Default value for the @link(TKGridColors.CellBkGnd) color property. }
   cCellBkGndDef = clWindow;
   { Default value for the @link(TKGridColors.CellLines) color property. }
@@ -1197,6 +1204,7 @@ type
     procedure SetMaxExtent(AValue: Integer);
     procedure SetMinExtent(AValue: Integer);
     procedure SetGrid(const Value: TKCustomgrid);
+    procedure SetInitialPos(const Value: Integer);
   protected
     FBackExtent: Integer;
     { Cell class aware version of @link(TKCustomGrid.OnBeginColDrag) or @link(TKCustomGrid.OnBeginRowDrag)
@@ -1256,16 +1264,13 @@ type
     { Returns True if shareable properties of this TKGridAxisItem instance have
       the same value as those in Item. }
     function {$ifdef COMPILER12_UP}EqualProperties{$ELSE}Equals{$ENDIF}(Item: TKGridAxisItem): Boolean; virtual;
-    { Shareable property. Determines the column width or row height.
-      Do not write this property unless you write a TKCustomGrid descendant. }
-    property Extent: Integer read FExtent write SetExtent;
     { Pointer to the grid. You will probably need it when implementing application
       specific behavior. }
     property Grid: TKCustomgrid read FGrid write SetGrid;
     { Non-shareable property. Determines the initial column or row position
       just after it was inserted into the grid. Do not write this property
       unless you write a TKCustomGrid descendant. }
-    property InitialPos: Integer read FInitialPos write FInitialPos;
+    property InitialPos: Integer read FInitialPos write SetInitialPos;
     { Provides access to the object cell instances corresponding to the column or
       row referred by this TKGridAxisItem instance. Provided to retain compatibility
       with TStringGrid. }
@@ -1278,13 +1283,16 @@ type
     property SortMode: TKGridSortMode read FSortMode write SetSortMode;
     { Provides access to custom object for Row }
     property Tag: TObject read FTag write FTag;
-    { Shareable property. Determines if the column or row is visible. }
+    { Determines if the column or row is visible. }
     property Visible: Boolean read GetVisible write SetVisible default True;
   published
-    { Shareable property. Determines if this column or row can be resized.
+    { Determines if this column or row can be resized.
       This property virtually covers the @link(TKCustomGrid.OnBeginColSizing) or
       @link(TKCustomGrid.OnBeginRowSizing) events. }
     property CanResize: Boolean read FCanResize write FCanResize default True;
+    { Determines the column width or row height.
+      Do not write this property unless you write a TKCustomGrid descendant. }
+    property Extent: Integer read FExtent write SetExtent;
     { Specifies the maximum extent of this column or row. Set zero to disable check.
       Does not work (cannot work) in goAlignLast... mode. }
     property MaxExtent: Integer read FMaxExtent write SetMaxExtent default 0;
@@ -1302,11 +1310,43 @@ type
   { @abstract(Metaclass for @link(TKGridAxisItem)) This type is used internally. }
   TKGridAxisItemClass = class of TKGridAxisItem;
 
-  { @abstract(Dynamic array type to store @link(TKGridAxisItem) instances)
-    There are always two arrays of this type in TKCustomGrid. First of them
+  { @abstract(Collection type to store @link(TKGridAxisItem) instances)
+    There are always two collections of this type in TKCustomGrid. First of them
     stores column properties - @link(TKCustomGrid.FCols) - and the second stores
     row properties - @link(TKCustomGrid.FRows). }
-  TKGridAxisItems = array of TKGridAxisItem;
+  TKGridAxisItems = class(TOwnedCollection)
+  private
+    FGrid: TKCustomGrid;
+    function GetItem(Index: Integer): TKGridAxisItem;
+    procedure SetItem(Index: Integer; Value: TKGridAxisItem);
+  protected
+    function GetOwner: TPersistent; override;
+    procedure Update(Item: TCollectionItem); override;
+  public
+    { Creates the instance. Do not create custom instances. All necessary
+      TKGridAxisItems instances are created automatically by TKCustomGrid. }
+    constructor Create(Grid: TKCustomGrid; AClass: TCollectionItemClass);
+    { Adds new item to this collection by updating the grid. }
+    function Add: TKGridAxisItem; virtual;
+    { Adds new item only to this collection. }
+    function AddOnly: TKGridAxisItem;
+    { Clears all items. }
+    procedure Clear; virtual;
+    { Deletes existing item by updating the grid. }
+    procedure Delete(Index: Integer); virtual;
+    { Deletes existing item only from this collection. }
+    procedure DeleteOnly(Index: Integer);
+    { Exchange two items. }
+    procedure Exchange(Index1, Index2: Integer); virtual;
+    { Adds new item to this collection by updating the grid. }
+    function Insert(At: Integer): TKGridAxisItem; virtual;
+    { Adds new item only to this collection. }
+    function InsertOnly(At: Integer): TKGridAxisItem;
+    { References parent dbgrid. }
+    property Grid: TKCustomGrid read FGrid;
+    { References items. }
+    property Items[Index: Integer]: TKGridAxisItem read GetItem write SetItem; default;
+  end;
 
   { @abstract(Class to store column properties)
     This class implements properties and methods specific to columns. }
@@ -1359,12 +1399,14 @@ type
       the same value as those in Item. }
     function {$ifdef COMPILER12_UP}EqualProperties{$ELSE}Equals{$ENDIF}(Item: TKGridAxisItem): Boolean; override;
   published
-    { Shareable property. Determines if cell hint is enabled for this column. }
+    { Determines if cell hint is enabled for this column. }
     property CellHint: Boolean read FCellHint write FCellHint default False;
-    { Shareable property. Determines if pressing the TAB or Shift+TAB key can
+    { Determines if pressing the TAB or Shift+TAB key can
       move the input focus at a cell that belongs to this column. This property
       has effect only if goTabs is present under @link(TKCustomGrid.Options). }
     property TabStop: Boolean read FTabStop write FTabStop default True;
+    { Inherited property. }
+    property Extent default cDefaultColWidthDef;
   end;
 
   { @abstract(Metaclass for @link(TKGridCol)) This type is used in
@@ -1412,6 +1454,9 @@ type
       referred by this TKGridRow instance. }
     procedure AssignStrings(Source: TWideStrings); override;
 {$ENDIF}
+  published
+    { Inherited property. }
+    property Extent default cDefaultRowHeightDef;
   end;
 
   { @abstract(Metaclass for @link(TKGridRow)) This type is used in
@@ -1552,7 +1597,7 @@ type
     { Readonly property. This is the editable text that appears in the cell -
       published as pointer for fast read operations like sorting. }
     property TextPtr: PKText read {$IFDEF STRING_IS_UNICODE}GetTextPtr{$ELSE}FText{$ENDIF};
-    { Shareable property. This is the editable text that appears in the cell. }
+    { This is the editable text that appears in the cell. }
     property Text: TKString read {$IFDEF STRING_IS_UNICODE}FText{$ELSE}GetText{$ENDIF} write SetText;
   end;
 
@@ -2130,6 +2175,7 @@ type
     procedure SetCol(Value: Integer);
     procedure SetColCount(Value: Integer);
     procedure SetColors(Value: TKGridColors);
+    procedure SetColumns(const Value: TKGridAxisItems);
     procedure SetColWidths(Index: Integer; Value: Integer);
     procedure SetDefaultColWidth(Value: Integer);
     procedure SetDefaultDrawing(Value: Boolean);
@@ -2850,7 +2896,7 @@ type
     { Inserts a new column into the grid. The new column will be inserted before
       the column identified by At. You can set this parameter greater or equal
       @link(TKCustomGrid.ColCount) to insert a new column behind the last column. }
-    procedure InsertCol(At: Integer); virtual;
+    function InsertCol(At: Integer): TKGridCol; virtual;
     { Inserts multiple new columns into the grid. The new columns will be inserted
       before the column identified by At. You can set this parameter greater or equal
       @link(TKCustomGrid.ColCount) to insert these after the last column. }
@@ -2858,7 +2904,7 @@ type
     { Inserts a new row into the grid. The new row will be inserted before
       the row identified by At. You can set this parameter greater or equal
       @link(TKCustomGrid.RowCount) to insert a new row behind the last row. }
-    procedure InsertRow(At: Integer); virtual;
+    function InsertRow(At: Integer): TKGridRow; virtual;
     { Inserts multiple new rows into the grid. The new rows will be inserted
       before the row identified by At. You can set this parameter greater or equal
       @link(TKCustomGrid.RowCount) to insert these after the last row. }
@@ -3072,6 +3118,8 @@ type
       grows. To replace all other column instances with ColClass, call
       @link(TKCustomGrid.RealizeColClass). }
     property Cols[Index: Integer]: TKGridCol read GetCols;
+    { Gains access to column collection class. }
+    property Columns: TKGridAxisItems read FCols write SetColumns;
     { Indicates the width (in pixels) of all the columns in the grid. Set ColWidths
       at runtime to change the width of an individual column. If the width of
       a column has not been set explicitly by resizing with the mouse, or by using
@@ -3854,10 +3902,10 @@ function CompareAxisItems(AxisItems1, AxisItems2: TKGridAxisItems): Boolean;
 var
   I: Integer;
 begin
-  Result := Length(AxisItems1) = Length(AxisItems2);
+  Result := (AxisItems1 <> nil) and (AxisItems2 <> nil) and (AxisItems1.Count = AxisItems2.Count);
   if Result then
-    for I := 0 to Length(AxisItems1) - 1 do
-      if not AxisItems1[I].Equals(AxisItems2[I]) then
+    for I := 0 to AxisItems1.Count - 1 do
+      if AxisItems1.Items[I] <> AxisItems2.Items[I] then
       begin
         Result := False;
         Exit;
@@ -4005,7 +4053,6 @@ end;
 
 constructor TKGridAxisItem.Create(ACollection: TCollection);
 begin
-  inherited Create(ACollection);
   FGrid := nil;
   FCanResize := True;
   FExtent := 0;
@@ -4014,15 +4061,17 @@ begin
   FMinExtent := 0;
   FSortArrowIndex := 0;
   FSortMode := smNone;
+  inherited;
 end;
 
 procedure TKGridAxisItem.Assign(Source: TPersistent);
 begin
   if Source is TKGridAxisItem then
   begin
+    FGrid := TKGridAxisItem(Source).Grid;
     FExtent := TKGridAxisItem(Source).Extent;
-  // FInitialPos := TKGridAxisItem(Source).InitialPos;
-  // FSortMode := TKGridAxisItem(Source).SortMode;
+    FInitialPos := TKGridAxisItem(Source).InitialPos;
+    FSortMode := TKGridAxisItem(Source).SortMode;
     AssignPublished(TKGridAxisItem(Source));
   end;
 end;
@@ -4065,6 +4114,12 @@ begin
   end;
 end;
 
+procedure TKGridAxisItem.SetInitialPos(const Value: Integer);
+begin
+  FInitialPos := Value;
+  // no update here yet
+end;
+
 procedure TKGridAxisItem.SetMaxExtent(AValue: Integer);
 begin
   if FMinExtent > 0 then
@@ -4098,13 +4153,122 @@ procedure TKGridAxisItem.GridChanged;
 begin
 end;
 
+{ TKGridAxisItems }
+
+constructor TKGridAxisItems.Create(Grid: TKCustomGrid; AClass: TCollectionItemClass);
+begin
+  inherited Create(FGrid, AClass);
+  FGrid := Grid;
+end;
+
+function TKGridAxisItems.Add: TKGridAxisItem;
+begin
+  if (FGrid <> nil) and (Self = FGrid.ArrayOfCols) then
+    Result := FGrid.InsertCol(-1)
+  else if (FGrid <> nil) and (Self = FGrid.ArrayOfRows) then
+    Result := FGrid.InsertRow(-1)
+  else
+    Result := AddOnly;
+end;
+
+function TKGridAxisItems.AddOnly: TKGridAxisItem;
+begin
+  Result := TKGridAxisItem(inherited Add);
+end;
+
+procedure TKGridAxisItems.Clear;
+begin
+  if (FGrid <> nil) and (Self = FGrid.ArrayOfCols) then
+    FGrid.DeleteCols(0, FGrid.ColCount)
+  else if (FGrid <> nil) and (Self = FGrid.ArrayOfRows) then
+    FGrid.DeleteRows(0, FGrid.RowCount)
+  else
+    inherited Clear;
+end;
+
+procedure TKGridAxisItems.Delete(Index: Integer);
+begin
+  if (Index >= 0) and (Index < Count) then
+  begin
+    if (FGrid <> nil) and (Self = FGrid.ArrayOfCols) then
+      FGrid.DeleteCol(Index)
+    else if (FGrid <> nil) and (Self = FGrid.ArrayOfRows) then
+      FGrid.DeleteRow(Index)
+    else
+      DeleteOnly(Index);
+  end;
+end;
+
+procedure TKGridAxisItems.DeleteOnly(Index: Integer);
+begin
+  inherited Delete(Index);
+end;
+
+procedure TKGridAxisItems.Exchange(Index1, Index2: Integer);
+var
+  Item: TKGridAxisItem;
+begin
+  // there is no exchange method in TCollection, grrr
+  Item := TKGridAxisItem(ItemClass.Create(nil));
+  try
+    Item.Assign(Items[Index1]);
+    Items[Index1] := Items[Index2];
+    Items[Index2] := Item;
+  finally
+    Item.Free;
+  end;
+end;
+
+function TKGridAxisItems.GetItem(Index: Integer): TKGridAxisItem;
+begin
+  Result := TKGridAxisItem(inherited Items[Index]);
+end;
+
+function TKGridAxisItems.GetOwner: TPersistent;
+begin
+  Result := FGrid;
+end;
+
+function TKGridAxisItems.Insert(At: Integer): TKGridAxisItem;
+begin
+  if Self = FGrid.ArrayOfCols then
+    Result := FGrid.InsertCol(At)
+  else if (FGrid <> nil) and (Self = FGrid.ArrayOfRows) then
+    Result := FGrid.InsertRow(At)
+  else
+    Result := InsertOnly(At);
+end;
+
+function TKGridAxisItems.InsertOnly(At: Integer): TKGridAxisItem;
+begin
+  Result := TKGridAxisItem(inherited Insert(At));
+end;
+
+procedure TKGridAxisItems.SetItem(Index: Integer; Value: TKGridAxisItem);
+begin
+  Items[Index].Assign(Value);
+end;
+
+procedure TKGridAxisItems.Update(Item: TCollectionItem);
+var
+  I: Integer;
+begin
+  inherited;
+  if (FGrid <> nil) and not FGrid.Flag(cGF_GridUpdates) then
+  begin
+    // we need to update grid data size if columns or rows changed
+    // by the Delphi or Lazarus designer
+    FGrid.ChangeDataSize(False, 0, 0, False, 0, 0);
+  end;
+end;
+
 { TKGridCol }
 
 constructor TKGridCol.Create(ACollection: TCollection);
 begin
-  inherited;
   FCellHint := False;
   FTabStop := True;
+  inherited;
 end;
 
 procedure TKGridCol.AssignStrings(Source: TStrings);
@@ -4112,18 +4276,22 @@ var
   I, J: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and (Source.Count > 0) and (FGrid.FindCol(Self) >= 0) then
+  if Assigned(FGrid) and (Source.Count > 0) then
   begin
-    FGrid.LockUpdate;
-    try
-      for J := 0 to Min(FGrid.RowCount, Source.Count) - 1 do
-      begin
-        Cell := FGrid.ArrayOfCells[J, I];
-        if Cell is TKGridTextCell then
-          TKGridTextCell(Cell).Text := Source[J];
+    I := Grid.FindCol(Self);
+    if I >= 0 then
+    begin
+      FGrid.LockUpdate;
+      try
+        for J := 0 to Min(FGrid.RowCount, Source.Count) - 1 do
+        begin
+          Cell := FGrid.ArrayOfCells[J, I];
+          if Cell is TKGridTextCell then
+            TKGridTextCell(Cell).Text := Source[J];
+        end;
+      finally
+        FGrid.UnlockUpdate;
       end;
-    finally
-      FGrid.UnlockUpdate;
     end;
   end;
 end;
@@ -4141,18 +4309,22 @@ var
   I, J: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and (Source.Count > 0) and FindCol(I) then
+  if Assigned(FGrid) and (Source.Count > 0) then
   begin
-    FGrid.LockUpdate;
-    try
-      for J := 0 to Min(FGrid.RowCount, Source.Count) - 1 do
-      begin
-        Cell := FGrid.ArrayOfCells[J, I];
-        if Cell is TKGridTextCell then
-          TKGridTextCell(Cell).Text := Source[J];
+    I := FGrid.FindCol(Self);
+    if I >= 0 then
+    begin
+      FGrid.LockUpdate;
+      try
+        for J := 0 to Min(FGrid.RowCount, Source.Count) - 1 do
+        begin
+          Cell := FGrid.ArrayOfCells[J, I];
+          if Cell is TKGridTextCell then
+            TKGridTextCell(Cell).Text := Source[J];
+        end;
+      finally
+        FGrid.UnlockUpdate;
       end;
-    finally
-      FGrid.UnlockUpdate;
     end;
   end;
 end;
@@ -4162,8 +4334,12 @@ procedure TKGridCol.Clear;
 var
   I: Integer;
 begin
-  if Assigned(FGrid) and (FGrid.FindCol(Self) >= 0) then
-    FGrid.ClearCol(I);
+  if Assigned(FGrid) then
+  begin
+    I := FGrid.FindCol(Self);
+    if I >= 0 then
+      FGrid.ClearCol(I);
+  end;
 end;
 
 function TKGridCol.{$ifdef COMPILER12_UP}EqualProperties{$ELSE}Equals{$ENDIF}(Item: TKGridAxisItem): Boolean;
@@ -4179,11 +4355,15 @@ var
   Cell: TKGridCell;
 begin
   Result := nil;
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) and (FGrid.FindCol(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[Index, I];
-    if Cell is TKGridObjectCell then
-      Result := TKGridObjectCell(Cell).CellObject;
+    I := FGrid.FindCol(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[Index, I];
+      if Cell is TKGridObjectCell then
+        Result := TKGridObjectCell(Cell).CellObject;
+    end;
   end;
 end;
 
@@ -4193,11 +4373,15 @@ var
   Cell: TKGridCell;
 begin
   Result := '';
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) and (FGrid.FindCol(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[Index, I];
-    if Cell is TKGridTextCell then
-      Result := TKGridTextCell(Cell).Text;
+    I := FGrid.FindCol(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[Index, I];
+      if Cell is TKGridTextCell then
+        Result := TKGridTextCell(Cell).Text;
+    end;
   end;
 end;
 
@@ -4213,9 +4397,12 @@ var
 begin
   if (Value >= 0) and (Value <> FExtent) then
   begin
-    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and (FGrid.FindCol(Self) >= 0) then
-      FGrid.ColWidths[I] := Value
-    else
+    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) then
+    begin
+      I := FGrid.FindCol(Self);
+      if I >= 0 then
+        FGrid.ColWidths[I] := Value
+    end else
     begin
       if FExtent <> 0 then FBackExtent := FExtent;
       FExtent := Value;
@@ -4228,11 +4415,15 @@ var
   I: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) and (FGrid.FindCol(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[Index, I];
-    if Cell is TKGridObjectCell then
-      TKGridObjectCell(Cell).CellObject := Value;
+    I := FGrid.FindCol(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[Index, I];
+      if Cell is TKGridObjectCell then
+        TKGridObjectCell(Cell).CellObject := Value;
+    end;
   end;
 end;
 
@@ -4245,8 +4436,12 @@ begin
   begin
     FSortArrowIndex := Value;
     if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and
-      (FSortMode <> smNone) and (FGrid.FixedRows > 1) and (FGrid.FindCol(Self) >= 0) then
-      FGrid.InvalidateGridRect(GridRect(I, 0, I, FGrid.FixedRows - 1));
+      (FSortMode <> smNone) and (FGrid.FixedRows > 1) then
+    begin
+      I := FGrid.FindCol(Self);
+      if I >= 0 then
+        FGrid.InvalidateGridRect(GridRect(I, 0, I, FGrid.FixedRows - 1));
+    end;
   end;
 end;
 
@@ -4256,9 +4451,12 @@ var
 begin
   if (Value <> FSortMode) and FGrid.SortModeUnlocked then
   begin
-    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and (FGrid.FindCol(Self) >= 0) then
-      FGrid.SortRows(I, Value)
-    else
+    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) then
+    begin
+      I := FGrid.FindCol(Self);
+      if I >= 0 then
+        FGrid.SortRows(I, Value);
+    end else
       FSortMode := Value;
   end;
 end;
@@ -4268,11 +4466,15 @@ var
   I: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) and (FGrid.FindCol(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.RowValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[Index, I];
-    if Cell is TKGridTextCell then
-      TKGridObjectCell(Cell).Text := Value;
+    I := FGrid.FindCol(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[Index, I];
+      if Cell is TKGridTextCell then
+        TKGridObjectCell(Cell).Text := Value;
+    end;
   end;
 end;
 
@@ -4300,18 +4502,22 @@ var
   I, J: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and (Source.Count > 0) and (FGrid.FindRow(Self) >= 0) then
+  if Assigned(FGrid) and (Source.Count > 0) then
   begin
-    FGrid.LockUpdate;
-    try
-      for J := 0 to Min(FGrid.ColCount, Source.Count) - 1 do
-      begin
-        Cell := FGrid.ArrayOfCells[I, J];
-        if Cell is TKGridTextCell then
-          TKGridTextCell(Cell).Text := Source[J];
+    I := FGrid.FindRow(Self);
+    if I >= 0 then
+    begin
+      FGrid.LockUpdate;
+      try
+        for J := 0 to Min(FGrid.ColCount, Source.Count) - 1 do
+        begin
+          Cell := FGrid.ArrayOfCells[I, J];
+          if Cell is TKGridTextCell then
+            TKGridTextCell(Cell).Text := Source[J];
+        end;
+      finally
+        FGrid.UnlockUpdate;
       end;
-    finally
-      FGrid.UnlockUpdate;
     end;
   end;
 end;
@@ -4322,18 +4528,22 @@ var
   I, J: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and (Source.Count > 0) and FindRow(I) then
+  if Assigned(FGrid) and (Source.Count > 0) then
   begin
-    FGrid.LockUpdate;
-    try
-      for J := 0 to Min(FGrid.ColCount, Source.Count) - 1 do
-      begin
-        Cell := FGrid.ArrayOfCells[I, J];
-        if Cell is TKGridTextCell then
-          TKGridTextCell(Cell).Text := Source[J];
+    I := FGrid.FindRow(Self);
+    if I >= 0 then
+    begin
+      FGrid.LockUpdate;
+      try
+        for J := 0 to Min(FGrid.ColCount, Source.Count) - 1 do
+        begin
+          Cell := FGrid.ArrayOfCells[I, J];
+          if Cell is TKGridTextCell then
+            TKGridTextCell(Cell).Text := Source[J];
+        end;
+      finally
+        FGrid.UnlockUpdate;
       end;
-    finally
-      FGrid.UnlockUpdate;
     end;
   end;
 end;
@@ -4357,11 +4567,15 @@ var
   Cell: TKGridCell;
 begin
   Result := nil;
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) and (FGrid.FindRow(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[I, Index];
-    if Cell is TKGridObjectCell then
-      Result := TKGridObjectCell(Cell).CellObject;
+    I := FGrid.FindRow(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[I, Index];
+      if Cell is TKGridObjectCell then
+        Result := TKGridObjectCell(Cell).CellObject;
+    end;
   end;
 end;
 
@@ -4371,11 +4585,15 @@ var
   Cell: TKGridCell;
 begin
   Result := '';
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) and (FGrid.FindRow(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[I, Index];
-    if Cell is TKGridTextCell then
-      Result := TKGridTextCell(Cell).Text;
+    I := FGrid.FindRow(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[I, Index];
+      if Cell is TKGridTextCell then
+        Result := TKGridTextCell(Cell).Text;
+    end;
   end;
 end;
 
@@ -4391,9 +4609,12 @@ var
 begin
   if (Value >= 0) and (Value <> FExtent) then
   begin
-    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and (FGrid.FindRow(Self) >= 0) then
-      FGrid.RowHeights[I] := Value
-    else
+    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) then
+    begin
+      I := FGrid.FindRow(Self);
+      if I >= 0 then
+        FGrid.RowHeights[I] := Value;
+    end else
     begin
       if FExtent <> 0 then FBackExtent := FExtent;
       FExtent := Value;
@@ -4406,11 +4627,15 @@ var
   I: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) and (FGrid.FindRow(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[I, Index];
-    if Cell is TKGridObjectCell then
-      TKGridObjectCell(Cell).CellObject := Value;
+    I := FGrid.FindRow(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[I, Index];
+      if Cell is TKGridObjectCell then
+        TKGridObjectCell(Cell).CellObject := Value;
+    end;
   end;
 end;
 
@@ -4423,8 +4648,12 @@ begin
   begin
     FSortArrowIndex := Value;
     if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and
-      (FSortMode <> smNone) and (FGrid.FixedCols > 1) and (FGrid.FindRow(Self) >= 0) then
-      FGrid.InvalidateGridRect(GridRect(0, I, FGrid.FixedCols - 1, I));
+      (FSortMode <> smNone) and (FGrid.FixedCols > 1) then
+    begin
+      I := FGrid.FindRow(Self);
+      if I >= 0 then
+        FGrid.InvalidateGridRect(GridRect(0, I, FGrid.FixedCols - 1, I));
+    end;
   end;
 end;
 
@@ -4434,9 +4663,12 @@ var
 begin
   if (Value <> FSortMode) and FGrid.SortModeUnlocked then
   begin
-    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and (FGrid.FindRow(Self) >= 0) then
-      FGrid.SortCols(I, Value)
-    else
+    if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) then
+    begin
+      I := FGrid.FindRow(Self);
+      if I >= 0 then
+        FGrid.SortCols(I, Value);
+    end else
       FSortMode := Value;
   end;
 end;
@@ -4446,14 +4678,17 @@ var
   I: Integer;
   Cell: TKGridCell;
 begin
-  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) and (FGrid.FindRow(Self) >= 0) then
+  if Assigned(FGrid) and Assigned(FGrid.ArrayOfCells) and FGrid.ColValid(Index) then
   begin
-    Cell := FGrid.ArrayOfCells[I, Index];
-    if Cell is TKGridTextCell then
-      TKGridTextCell(Cell).Text := Value;
+    I := FGrid.FindRow(Self);
+    if I >= 0 then
+    begin
+      Cell := FGrid.ArrayOfCells[I, Index];
+      if Cell is TKGridTextCell then
+        TKGridTextCell(Cell).Text := Value;
+    end;
   end;
 end;
-
 
 procedure TKGridRow.SetVisible(Value: Boolean);
 begin
@@ -4853,9 +5088,9 @@ begin
   inherited;
   FBackColor := clWindow;
   FHAlign := halLeft;
-  FHPadding := 2;
+  FHPadding := cHPaddingDef;
   FVAlign := valCenter;
-  FVPadding := 0;
+  FVPadding := cVPaddingDef;
   // no defaults for Brush and Font!
 end;
 
@@ -5835,7 +6070,7 @@ begin
   FCellPainter := FCellPainterClass.Create(Self);
   FColClass := TKGridCol;
   FColCount := cInvalidIndex;
-  FCols := nil;
+  FCols := TKGridAxisItems.Create(Self, FColClass);
   FColors := TKGridColors.Create(Self);
   FDefaultColWidth := cDefaultColWidthDef;
   FDefaultRowHeight := cDefaultRowHeightDef;
@@ -5871,7 +6106,7 @@ begin
   FRangeSelectStyle := cRangeSelectStyleDef;
   FRowClass := TKGridRow;
   FRowCount := cInvalidIndex;
-  FRows := nil;
+  FRows := TKGridAxisItems.Create(Self, FRowClass);
   FScrollBars := cScrollBarsDef;
   FScrollModeHorz := cScrollModeDef;
   FScrollModeVert := cScrollModeDef;
@@ -5956,6 +6191,8 @@ begin
   FHCI.VCenter.Free;
   FHCI.VEnd.Free;
   FTmpBitmap.Free;
+  FCols.Free;
+  FRows.Free;
   FreeData;
 end;
 
@@ -6290,47 +6527,70 @@ end;
 procedure TKCustomGrid.ChangeDataSize(ColInsert: Boolean; ColAt, ColCnt: Integer;
   RowInsert: Boolean; RowAt, RowCnt: Integer);
 
-  procedure Axis(var Data: TKGridAxisItems; AxisItemClass: TKGridAxisItemClass;
+  procedure Axis(var Data: TKGridAxisItems;
     Insert: Boolean; DefFixedCnt: Integer; var At, Cnt, MaxLen, ItemCount, FixedCount: Integer);
   var
     I, Len: Integer;
+    Item: TKGridAxisItem;
   begin
-    if Cnt > 0 then
-    begin
-      Len := Length(Data);
-      if Insert then
+    FlagSet(cGF_GridUpdates);
+    try
+      if Cnt > 0 then
       begin
-        At := MinMax(At, 0, Len);
-        SetLength(Data, Len + Cnt);
-        for I := Len - 1 downto At do Data[I + Cnt] := Data[I];
-        for I := At to At + Cnt - 1 do
+        Len := Data.Count;
+        if Insert then
         begin
-          Data[I] := AxisItemClass.Create(nil);
-          Data[I].Grid := Self;
-          Data[I].InitialPos := MaxLen + 1;
-          Inc(MaxLen);
-        end;
-        if FixedCount < 0 then
-          FixedCount := DefFixedCnt
-        else if At < FixedCount then
-          Inc(FixedCount, Cnt);
-      end
-      else if Len > 0 then
-      begin
-        At := MinMax(At, 0, Len - 1);
-        Cnt := Min(Cnt, Len - At);
-        if Cnt > 0 then
-        begin
+          At := MinMax(At, 0, Len);
           for I := At to At + Cnt - 1 do
-            Data[I].Free;
-          for I := At to Len - Cnt - 1 do Data[I] := Data[I + Cnt];
-          SetLength(Data, Len - Cnt);
-          if At < FixedCount then
-            Dec(FixedCount, FixedCount - At);
+          begin
+            Item := Data.InsertOnly(I);
+            Item.Grid := Self;
+            Item.InitialPos := MaxLen + 1;
+            Inc(MaxLen);
+          end;
+          if FixedCount < 0 then
+            FixedCount := DefFixedCnt
+          else if At < FixedCount then
+            Inc(FixedCount, Cnt);
+        end
+        else if Len > 0 then
+        begin
+          At := MinMax(At, 0, Len - 1);
+          Cnt := Min(Cnt, Len - At);
+          if Cnt > 0 then
+          begin
+            for I := At to At + Cnt - 1 do
+              Data.DeleteOnly(At);
+            if At < FixedCount then
+              Dec(FixedCount, FixedCount - At);
+          end;
+        end;
+        ItemCount := Data.Count;
+        FixedCount := Min(FixedCount, ItemCount - 1);
+      end else
+      begin
+        if ItemCount <> Data.Count then
+        begin
+          if Data.Count = 0 then
+            Item := Data.AddOnly;
+          Cnt := Abs(Data.Count - ItemCount);
+          ItemCount := Data.Count;
+          FixedCount := Min(FixedCount, ItemCount - 1);
+        end;
+        for I := 0 to Data.Count - 1  do
+        begin
+          Item := Data[I];
+          if Item.Grid <> Self then
+            Item.Grid := Self;
+          if Item.InitialPos < 0 then
+          begin
+            Item.InitialPos := MaxLen + 1;
+            Inc(MaxLen);
+          end;
         end;
       end;
-      ItemCount := Length(Data);
-      FixedCount := Min(FixedCount, ItemCount - 1);
+    finally
+      FlagClear(cGF_GridUpdates);
     end;
   end;
 
@@ -6346,10 +6606,10 @@ begin
   if not RowInsert then
     RowCnt := Min(RowCnt, FRowCount - 1);
   OldFixedCols := FFixedCols;
-  Axis(FCols, FColClass, ColInsert, cFixedColsDef,
+  Axis(FCols, ColInsert, cFixedColsDef,
     ColAt, ColCnt, FMaxCol, FColCount, FFixedCols);
   OldFixedRows := FFixedRows;
-  Axis(FRows, FRowClass, RowInsert, cFixedRowsDef,
+  Axis(FRows, RowInsert, cFixedRowsDef,
     RowAt, RowCnt, FMaxRow, FRowCount, FFixedRows);
   FMemCol := cInvalidIndex;
   FMemRow := cInvalidIndex;
@@ -7330,7 +7590,7 @@ begin
     Index := 0;
     while Index < ColCount do
     begin
-      if ArrayOfCols[Index] <> TKGridAxisItem(ACol) then
+      if FCols[Index] <> TKGridAxisItem(ACol) then
         Inc(Index)
       else
       begin
@@ -7351,7 +7611,7 @@ begin
     Index := 0;
     while Index < ColCount do
     begin
-      if ArrayOfRows[Index] <> TKGridAxisItem(ARow) then
+      if FRows[Index] <> TKGridAxisItem(ARow) then
         Inc(Index)
       else
       begin
@@ -7378,12 +7638,6 @@ procedure TKCustomGrid.FreeData;
 var
   I, J: Integer;
 begin
-  for I := 0 to FColCount - 1 do
-    FCols[I].Free;
-  FCols := nil;
-  for I := 0 to FRowCount - 1 do
-    FRows[I].Free;
-  FRows := nil;
   for I := 0 to Length(FCells) - 1 do
     for J := 0 to Length(FCells[I]) - 1 do
       FCells[I, J].Free;
@@ -7704,7 +7958,7 @@ begin
       if (FCols[ACol].SortMode <> smNone) or (FRows[ARow].SortMode <> smNone) then
         Include(Result, gdSorted);
     end;
-    if (FGridState in [gsNormal, gsSelecting, gsColMoveWaiting, gsRowMoveWaiting,
+    if (FGridState in [gsNormal, gsSelecting, gsClickWaiting, gsColMoveWaiting, gsRowMoveWaiting,
       gsColSortWaiting, gsRowSortWaiting]) and not (csDesigning in ComponentState) then
     begin
       InternalFindBaseCell(ACol, ARow, BaseCol, BaseRow);
@@ -8131,9 +8385,13 @@ begin
   end;
 end;
 
-procedure TKCustomGrid.InsertCol(At: Integer);
+function TKCustomGrid.InsertCol(At: Integer): TKGridCol;
 begin
   InsertCols(At, 1);
+  if (At < 0) or (At >= FColCount) then
+    Result := TKGridCol(FCols[FColCount - 1])
+  else
+    Result := TKGridCol(FCols[At]);
 end;
 
 procedure TKCustomGrid.InsertCols(At, Count: Integer);
@@ -8142,9 +8400,13 @@ begin
   ChangeDataSize(True, At, Count, False, 0, 0);
 end;
 
-procedure TKCustomGrid.InsertRow(At: Integer);
+function TKCustomGrid.InsertRow(At: Integer): TKGridRow;
 begin
   InsertRows(At, 1);
+  if (At < 0) or (At >= FRowCount) then
+    Result := TKGridRow(FRows[FRowCount - 1])
+  else
+    Result := TKGridRow(FRows[At]);
 end;
 
 procedure TKCustomGrid.InsertRows(At, Count: Integer);
@@ -8196,12 +8458,14 @@ end;
 procedure TKCustomGrid.InternalExchangeCols(Index1, Index2: Integer);
 var
   I: Integer;
-  AxisItem: TKGridAxisItem;
   CellPtr: TKGridCell;
 begin
-  AxisItem := FCols[Index1];
-  FCols[Index1] := FCols[Index2];
-  FCols[Index2] := AxisItem;
+  FlagSet(cGF_GridUpdates);
+  try
+    FCols.Exchange(Index1, Index2);
+  finally
+    FlagClear(cGF_GridUpdates);
+  end;
   if Assigned(FCells) then
   begin
     for I := 0 to FRowCount - 1 do
@@ -8223,12 +8487,14 @@ end;
 
 procedure TKCustomGrid.InternalExchangeRows(Index1, Index2: Integer);
 var
-  AxisItem: TKGridAxisItem;
   CellPtr: TKGridCellRow;
 begin
-  AxisItem := FRows[Index1];
-  FRows[Index1] := FRows[Index2];
-  FRows[Index2] := AxisItem;
+  FlagSet(cGF_GridUpdates);
+  try
+    FRows.Exchange(Index1, Index2);
+  finally
+    FlagClear(cGF_GridUpdates);
+  end;
   if Assigned(FCells) then
   begin
     CellPtr := FCells[Index1];
@@ -9440,11 +9706,12 @@ end;
 
 procedure TKCustomGrid.MouseClickCell(ACol, ARow: Integer);
 begin
-  if (gxFixedCellClickSelect in FOptionsEx) and ((ARow < FFixedRows) or (ACol < FFixedCols)) and (ssShift in GetShiftState) then
+  if (FOptionsEx * [gxFixedCellClickSelect, gxFixedCellClickToggle] <> []) and
+    ((ARow < FFixedRows) or (ACol < FFixedCols)) then
   begin
     if (ARow < FFixedRows) and (ACol < FFixedCols) then
     begin
-      if AllCellsSelected then
+      if AllCellsSelected and (gxFixedCellClickToggle in FOptionsEx) then
         UnselectRange
       else
         SelectAll;
@@ -9452,13 +9719,13 @@ begin
     begin
       if ACol >= FFixedCols then
       begin
-        if EntireColSelected[ACol] then
+        if EntireColSelected[ACol] and (gxFixedCellClickToggle in FOptionsEx) then
           UnselectRange
         else
           SelectCol(ACol);
       end else
       begin
-        if EntireRowSelected[ARow] then
+        if EntireRowSelected[ARow] and (gxFixedCellClickToggle in FOptionsEx) then
           UnselectRange
         else
           SelectRow(ARow);
@@ -9520,7 +9787,9 @@ begin
         if goColMoving in FOptions then
           FGridState := gsColMoveWaiting
         else if goRowSorting in FOptions then
-          FGridState := gsRowSortWaiting;
+          FGridState := gsRowSortWaiting
+        else
+          FGridState := gsClickWaiting;
       end
       // aki: col
       else if ((FHitCell.Col < FFixedCols) and (FHitCell.Row >= FFixedRows)) and (not (gxEditFixedCols in FOptionsEx)) then
@@ -9528,7 +9797,9 @@ begin
         if goRowMoving in FOptions then
           FGridState := gsRowMoveWaiting
         else if goColSorting in FOptions then
-          FGridState := gsColSortWaiting;
+          FGridState := gsColSortWaiting
+        else
+          FGridState := gsClickWaiting;
       end
       // aki: row for greater than fixed row:
       else if ((FHitCell.Col < FFixedCols) and (FHitCell.Row < FFixedRows)) and (not (gxEditFixedRows in FOptionsEx)) then
@@ -10872,11 +11143,11 @@ begin
           FlagSet(cGF_GridUpdates);
           try
             TmpCell.Assign(Cell); // copy known properties
+            Cell.Free;
+            FCells[J, I] := TmpCell;
           finally
             FlagClear(cGF_GridUpdates);
           end;
-          Cell.Free;
-          FCells[J, I] := TmpCell;
           UpdateNeeded := True;
         end;
       end;
@@ -10887,56 +11158,42 @@ end;
 
 procedure TKCustomGrid.RealizeColClass;
 var
-  I: Integer;
-  TmpItem: TKGridAxisItem;
-  UpdateNeeded: Boolean;
+  NewItems, BkItems: TKGridAxisItems;
 begin
-  UpdateNeeded := False;
-  for I := 0 to FColCount - 1 do
-    if FCols[I].ClassType <> FColClass then
-    begin
-      TmpItem := FColClass.Create(nil);
-      FlagSet(cGF_GridUpdates);
-      try
-        TmpItem.Grid := Self;
-        TmpItem.Assign(FCols[I]);
-        TmpItem.InitialPos := FCols[I].InitialPos;
-      finally
-        FlagClear(cGF_GridUpdates);
-      end;
-      FCols[I].Free;
-      FCols[I] := TmpItem;
-      UpdateNeeded := True;
+  if FCols.ItemClass <> FColClass then
+  begin
+    FlagSet(cGF_GridUpdates);
+    try
+      NewItems := TKGridAxisItems.Create(Self, FColClass);
+      NewItems.Assign(FCols);
+      BKItems := FCols;
+      FCols := NewItems;
+      BKItems.Free;
+    finally
+      FlagClear(cGF_GridUpdates);
     end;
-  if UpdateNeeded then
     UpdateAxes(True, cAll, False, cAll, []);
+  end;
 end;
 
 procedure TKCustomGrid.RealizeRowClass;
 var
-  I: Integer;
-  TmpItem: TKGridAxisItem;
-  UpdateNeeded: Boolean;
+  NewItems, BkItems: TKGridAxisItems;
 begin
-  UpdateNeeded := False;
-  for I := 0 to FRowCount - 1 do
-    if FRows[I].ClassType <> FRowClass then
-    begin
-      TmpItem := FRowClass.Create(nil);
-      FlagSet(cGF_GridUpdates);
-      try
-        TmpItem.Grid := Self;
-        TmpItem.Assign(FRows[I]);
-        TmpItem.InitialPos := FRows[I].InitialPos;
-      finally
-        FlagClear(cGF_GridUpdates);
-      end;
-      FRows[I].Free;
-      FRows[I] := TmpItem;
-      UpdateNeeded := True;
+  if FRows.ItemClass <> FRowClass then
+  begin
+    FlagSet(cGF_GridUpdates);
+    try
+      NewItems := TKGridAxisItems.Create(Self, FRowClass);
+      NewItems.Assign(FRows);
+      BKItems := FRows;
+      FRows := NewItems;
+      BKItems.Free;
+    finally
+      FlagClear(cGF_GridUpdates);
     end;
-  if UpdateNeeded then
     UpdateAxes(False, cAll, True, cAll, []);
+  end;
 end;
 
 procedure TKCustomGrid.ReadColWidths(Reader: TReader);
@@ -10946,7 +11203,8 @@ begin
   with Reader do
   begin
     ReadListBegin;
-    for I := 0 to FColCount - 1 do ColWidths[I] := ReadInteger;
+    for I := 0 to FColCount - 1 do
+      ColWidths[I] := ReadInteger;
     ReadListEnd;
   end;
 end;
@@ -10958,7 +11216,8 @@ begin
   with Reader do
   begin
     ReadListBegin;
-    for I := 0 to FRowCount - 1 do RowHeights[I] := ReadInteger;
+    for I := 0 to FRowCount - 1 do
+      RowHeights[I] := ReadInteger;
     ReadListEnd;
   end;
 end;
@@ -11291,23 +11550,29 @@ begin
 end;
 
 procedure TKCustomGrid.SelectCol(ACol: Integer);
+var
+  FirstRow: Integer;
 begin
+  if gxEditFixedRows in FOptionsEx then
+    FirstRow := 0
+  else
+    FirstRow := FFixedRows;
   if goRangeSelect in Options then
-    // aki:
-    if gxEditFixedRows in FOptionsEx then
-      Selection := GridRect(ACol, 0, ACol, FRowCount - 1)
-    else
-      Selection := GridRect(ACol, FFixedRows, ACol, FRowCount - 1);
+    Selection := GridRect(ACol, FirstRow, ACol, FRowCount - 1)
+  else
+    Selection := GridRect(ACol, Row, ACol, Row)
 end;
 
 procedure TKCustomGrid.SelectCols(FirstCol, Count: Integer);
+var
+  FirstRow: Integer;
 begin
+  if gxEditFixedCols in FOptionsEx then
+    FirstRow := 0
+  else
+    FirstRow := FFixedRows;
   if goRangeSelect in Options then
-    // aki:
-    if gxEditFixedRows in FOptionsEx then
-      Selection := GridRect(FirstCol, 0, FirstCol + Count, FRowCount - 1)
-    else
-      Selection := GridRect(FirstCol, FFixedRows, FirstCol + Count, FRowCount - 1);
+    Selection := GridRect(FirstCol, FirstRow, FirstCol + Count, FRowCount - 1);
 end;
 
 procedure TKCustomGrid.SelectionChanged(NewSelection: TKGridRect;
@@ -11447,15 +11712,29 @@ begin
 end;
 
 procedure TKCustomGrid.SelectRow(ARow: Integer);
+var
+  FirstCol: Integer;
 begin
-  if goRangeSelect in Options then
-    Selection := GridRect(FFixedCols, ARow, FColCount - 1, ARow);
+  if gxEditFixedCols in FOptionsEx then
+    FirstCol := 0
+  else
+    FirstCol := FFixedCols;
+  if FOptions * [goRangeSelect, goRowSelect] <> [] then
+    Selection := GridRect(FirstCol, ARow, FColCount - 1, ARow)
+  else
+    Selection := GridRect(Col, ARow, Col, ARow)
 end;
 
 procedure TKCustomGrid.SelectRows(FirstRow, Count: Integer);
+var
+  FirstCol: Integer;
 begin
+  if gxEditFixedCols in FOptionsEx then
+    FirstCol := 0
+  else
+    FirstCol := FFixedCols;
   if goRangeSelect in Options then
-    Selection := GridRect(FFixedCols, FirstRow, FColCount - 1, FirstRow + Count);
+    Selection := GridRect(FirstCol, FirstRow, FColCount - 1, FirstRow + Count);
 end;
 
 procedure TKCustomGrid.SetCell(ACol, ARow: Integer; Value: TKGridCell);
@@ -11541,6 +11820,16 @@ end;
 procedure TKCustomGrid.SetColors(Value: TKGridColors);
 begin
   FColors.Assign(Value);
+end;
+
+procedure TKCustomGrid.SetColumns(const Value: TKGridAxisItems);
+begin
+  if Value <> nil then
+  begin
+    if Value.Count <> FColCount then
+      InternalSetColCount(Value.Count);
+    FCols.Assign(Value);
+  end;
 end;
 
 {$IFDEF FPC}
@@ -12889,4 +13178,4 @@ initialization
 {$ELSE}
   {$R kgrids.res}
 {$ENDIF}
-end.
+end.

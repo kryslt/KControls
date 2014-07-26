@@ -4,7 +4,7 @@ program kdbgriddemoXE;
 
 uses
   Forms,
-  Main in 'main.pas' {MainForm};
+  main in 'main.pas' {MainForm};
 
 {$R *.res}
 {$IFDEF USE_THEMES}

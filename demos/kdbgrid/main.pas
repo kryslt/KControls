@@ -13,7 +13,7 @@ uses
   SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, DB, DBCtrls, KGrids, KDBGrids, ActnList,
   ExtCtrls, KFunctions, KGraphics, KControls, KIcon,
-  KDialogs, Grids, DBGrids;
+  KDialogs;
 
 type
 
@@ -21,7 +21,6 @@ type
 
   TMainForm = class(TForm)
     ACPrint: TAction;
-    BUModify: TButton;
     BUPrint: TButton;
     EDConnectionString: TEdit;
     PSDMain: TKPrintSetupDialog;
@@ -31,18 +30,16 @@ type
     EDFirstCol: TDBEdit;
     BUOpen: TButton;
     BUClose: TButton;
-    ALMain: TActionList;
     ACOpen: TAction;
     ACClose: TAction;
     DBNav: TDBNavigator;
     DSMain: TDataSource;
     Label3: TLabel;
-    ACModify: TAction;
     BUAutoSize: TButton;
     DBGrid: TKDBGrid;
+    ALMain: TActionList;
     procedure DBGridDrawCell(Sender: TObject; ACol, ARow: Integer; R: TRect;
       State: TKGridDrawState);
-    procedure DBGridMouseClickCell(Sender: TObject; ACol, ARow: Integer);
     procedure FormCreate(Sender: TObject);
     procedure DBGridCustomSortRows(Sender: TObject; ByIndex: Integer;
       SortMode: TKGridSortMode; var Sorted: Boolean);
@@ -52,7 +49,6 @@ type
     procedure ACOpenUpdate(Sender: TObject);
     procedure ACCloseExecute(Sender: TObject);
     procedure ACCloseUpdate(Sender: TObject);
-    procedure ACModifyExecute(Sender: TObject);
     procedure FormDeactivate(Sender: TObject);
     procedure ACPrintExecute(Sender: TObject);
     procedure ACPrintUpdate(Sender: TObject);
@@ -79,7 +75,6 @@ type
 
 var
   MainForm: TMainForm;
-  Col: TKDBGridCol;
 
 implementation
 
@@ -108,9 +103,7 @@ begin
   Table.Active := False;
 {$ENDIF}
   DSMain.DataSet := Table;
-  DBGrid.ColCount := 6; // As long as no columns property is used you may still use ColCount and do everything manually
   DBGrid.DoubleBuffered := True; // TKGrid is pretty flicker free but this is still better
-  Randomize;
 end;
 
 procedure TMainForm.FormDeactivate(Sender: TObject);
@@ -127,19 +120,6 @@ end;
 procedure TMainForm.ACCloseUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := IsTableOpen;
-end;
-
-procedure TMainForm.ACModifyExecute(Sender: TObject);
-var
-  RandomCol, RandomRow: Integer;
-begin
-  DBGrid.EditorMode := False;
-  RandomCol := Random(DBGrid.ColCount - DBGrid.FixedCols) + DBGrid.FixedCols;
-  RandomRow := Random(DBGrid.RowCount - DBGrid.FixedRows) + DBGrid.FixedRows;
-  DBGrid.Cells[RandomCol, RandomRow] := IntToStr(Random(1000000));
-  DBGrid.FocusCell(RandomCol, RandomRow);
-  // if DBGrid.Commit is called here the modified cell is written into database
-  // immediately, but the modified cell might not be focused anymore so don't call it here
 end;
 
 {$IFDEF FPC}
@@ -252,12 +232,6 @@ begin
   // (if you delete this event the same is used in TKDBGridCell)
   DBGrid.DefaultEditorCreate(ACol, ARow, AEditor);
   // use default handling for other inplace editor events
-end;
-
-procedure TMainForm.DBGridMouseClickCell(Sender: TObject; ACol, ARow: Integer);
-begin
-  // show hint immediately when cell is clicked
-//  DBGrid.ShowCellHint;
 end;
 
 procedure TMainForm.DoTableClose;
