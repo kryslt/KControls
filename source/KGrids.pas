@@ -1742,7 +1742,6 @@ type
     FHPadding: Integer;
     FRgn: HRGN;
     FRow: Integer;
-    FSortArrow: TKAlphaBitmap;
     FSortArrowHAlign: TKHAlign;
     FSortArrowHPadding: Integer;
     FState: TKGridDrawState;
@@ -1757,6 +1756,8 @@ type
   protected
     { Returns True if the grid is being printed out. }
     FPrinting: Boolean;
+    { Sort arrow glyph }
+    FSortArrow: TKAlphaBitmap;
     { High level method. Provides default behavior needed to initialize painting
       of a cell. It is called automatically in @link(TKCustomGrid.PaintCell). }
     procedure BeginDraw; virtual;
