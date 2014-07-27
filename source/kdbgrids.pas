@@ -75,7 +75,11 @@ const
   { Default value for the @link(TKDBGridColors.ActiveRecord) property. }
   cActiveRecordDef = clCream;
 
+  { Default value for the @link(TKCustomDBGrid.TitleRow) property. }
   cTitleRowDef = 0;
+
+  { Default value for the @link(TKCustomDBGrid.DataBufferGrow) property. }
+  cDataBufferGrowDef = 100;
 
   { Used by default to distinguish image field type. }
   cDefaultImageSet = [ftBlob, ftGraphic];
@@ -270,6 +274,7 @@ type
     FActiveRecord: Integer;
     FOldFieldCount: Integer;
     FOldColumnCount: Integer;
+    FDataBufferGrow: Integer;
     FDBOptions: TKDBGridOptions;
     FTitleRow: Integer;
     function GetDataSource: TDataSource;
@@ -371,6 +376,8 @@ type
     function InsertSortedRow(out ByCol, ARow: Integer): Boolean; override;
     { Does nothing. Row moving not supported. }
     procedure MoveRow(FromIndex, ToIndex: Integer); override;
+    { Specifies how many rows should be buffered in associated data set. }
+    property DataBufferGrow: Integer read FDataBufferGrow write FDataBufferGrow default cDataBufferGrowDef;
     { Specifies the data source. }
     property DataSource: TDataSource read GetDataSource write SetDataSource;
     { Specifies various display and behavioral properties of TKDGGrid. }
@@ -1060,6 +1067,7 @@ begin
   FDBOptions := cDBOptionsDef;
   FColors.Free;
   FColors := TKDBGridColors.Create(Self);
+  FDataBufferGrow := cDataBufferGrowDef;
   FOldColumnCount := -1;
   FOldFieldCount := -1;
   FTitleRow := cTitleRowDef;
@@ -1156,7 +1164,14 @@ begin
     try
       if Assigned(FDataLink.DataSet) and FDataLink.Active then
       begin
-        RowCount := FixedRows + FDataLink.DataSet.RecordCount;
+        // here memory only grows. I don't know if it is possible to make this more memory effective
+        if LastVisibleRow + FDataBufferGrow > FDataLink.BufferCount then
+          FDataLink.BufferCount := FDataLink.BufferCount + FDataBufferGrow;
+        I := FixedRows + FDataLink.RecordCount;
+        if FDataLink.DataSet.State = dsInsert then
+          Inc(I);
+        RowCount := I;
+        LastRow := Min(LastVisibleRow + 1, RowCount - 1);
         if (dboEntireTable in FDBOptions) and (FOldFieldCount <> FDataLink.DataSet.FieldCount) then
         begin
           ClearSortMode;
@@ -1176,9 +1191,6 @@ begin
               EditorMode := False;
           end;
         end;
-        LastRow := Min(LastVisibleRow + 1, RowCount - 1);
-        // here memory only grows. I don't know if it is possible to make this more memory effective
-        FDataLink.BufferCount := Max(FDataLink.BufferCount, Max(LastRow, FDataLink.DataSet.RecNo - 1) + 1);
         Tmp := FDataLink.ActiveRecord;
         try
           for I := FixedCols to ColCount - 1 do

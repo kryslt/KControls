@@ -1,4 +1,4 @@
-program DemoXE2;
+program DemoXE6;
 
 uses
   Forms,
