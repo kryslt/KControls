@@ -1,4 +1,4 @@
-program HexEditorXE2;
+program HexEditorXE6;
 
 {$include kcontrols.inc}
 

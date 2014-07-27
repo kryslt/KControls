@@ -1,4 +1,4 @@
-program kgriddemoXE2;
+program kgriddemoXE6;
 
 {$include kcontrols.inc}
 

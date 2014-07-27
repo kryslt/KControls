@@ -36,7 +36,7 @@ uses
     , UxTheme
    {$ENDIF}
   {$ENDIF}
-  {$IFDEF SUPPORT_ALPHASKINS}
+  {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
     , sSkinManager, sCommonData
    {$IFDEF USE_ALPHASKINS}
     , sAlphaGraph, sConst, sFade, sGraphUtils, sMessages
@@ -63,7 +63,7 @@ type
 
   TKButtonControl = class(TKCustomControl)
   private
-  {$IFDEF SUPPORT_ALPHASKINS}
+  {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
     FCommonData: TsCtrlSkinData;
     FDisabledKind: TsDisabledKind;
    {$IFDEF USE_ALPHASKINS}
@@ -88,7 +88,7 @@ type
     procedure CMTextChanged(var Msg: TLMessage); message CM_TEXTCHANGED;
     procedure SetCancel(AValue: Boolean);
     procedure SetDefault(AValue: Boolean);
-{$IFDEF SUPPORT_ALPHASKINS}
+{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
     procedure SetDisabledKind(const Value: TsDisabledKind);
 {$ENDIF}
     procedure SetHAlign(const Value: TKHAlign);
@@ -96,7 +96,7 @@ type
     procedure SetVAlign(const Value: TKVAlign);
     procedure SetWordWrap(const Value: Boolean);
   protected
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
     procedure DrawSkinned(ACanvas: TCanvas; const ARect: TRect; AInteriorOffset: Integer); virtual;
     function PrepareSkinCache(ARect: TRect; AInteriorOffset: Integer): Boolean;
 {$ENDIF}
@@ -129,7 +129,7 @@ type
     property Anchors;
     property Caption;
     property Constraints;
- {$IFDEF SUPPORT_ALPHASKINS}
+ {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
     property DisabledKind : TsDisabledKind read FDisabledKind write SetDisabledKind default [dkBlended];
  {$ENDIF}
     property DoubleBuffered;
@@ -142,7 +142,7 @@ type
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
- {$IFDEF SUPPORT_ALPHASKINS}
+ {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
     property SkinData : TsCtrlSkinData read FCommonData write FCommonData;
  {$ENDIF}
     property ShowHint;
@@ -254,7 +254,7 @@ begin
   FModalResult := mrNone;
   FStates := [];
   FWordWrap := False;
-{$IFDEF SUPPORT_ALPHASKINS}
+{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
   FCommonData := TsCtrlSkinData.Create(Self, True);
   FDisabledKind := [dkBlended];
  {$IFDEF USE_ALPHASKINS}
@@ -267,7 +267,7 @@ end;
 
 destructor TKButtonControl.Destroy;
 begin
-{$IFDEF SUPPORT_ALPHASKINS}
+{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
   FCommonData.Free;
 {$ENDIF}
   inherited;
@@ -276,7 +276,7 @@ end;
 procedure TKButtonControl.AfterConstruction;
 begin
   inherited;
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   FCommonData.FCacheBmp.Canvas.Font.Assign(Font);
   FCommonData.Loaded;
 {$ENDIF}
@@ -328,7 +328,7 @@ begin
   inherited;
   if Enabled then
     Include(FStates, cbsHot);
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   if Skinned then
   begin
     FCommonData.BGChanged := False;
@@ -344,7 +344,7 @@ begin
   inherited;
   if Enabled then
     Exclude(FStates, cbsHot);
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   if Skinned then
   begin
     FCommonData.BGChanged := False;
@@ -361,7 +361,7 @@ begin
   Invalidate;
 end;
 
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
 procedure TKButtonControl.DrawSkinned(ACanvas: TCanvas; const ARect: TRect; AInteriorOffset: Integer);
 begin
   if PrepareSkinCache(ARect, AInteriorOffset) then
@@ -457,7 +457,7 @@ end;
 
 function TKButtonControl.GetSkinned: Boolean;
 begin
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   Result := FCommonData.Skinned;
 {$ELSE}
   Result := False;
@@ -466,7 +466,7 @@ end;
 
 procedure TKButtonControl.Invalidate;
 begin
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   if FCommonData <> nil then
     FCommonData.Invalidate;
 {$ELSE}
@@ -483,7 +483,7 @@ end;
 procedure TKButtonControl.Loaded;
 begin
   inherited;
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   FCommonData.FCacheBmp.Canvas.Font.Assign(Font);
   FCommonData.Loaded;
 {$ENDIF}
@@ -498,7 +498,7 @@ begin
     SetFocus;
     Invalidate;
     FStates := FStates + [cbsMouseCapture, cbsPressed];
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
     if FCommonData.Skinned  then
       DoChangePaint(FFadeTimer, FCommonData, True, EventEnabled(aeMouseDown, [aeGlobalDef]));
 {$ENDIF}
@@ -538,7 +538,7 @@ begin
     Invalidate;
   end;
   Exclude(FStates, cbsMouseCapture);
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   if FCommonData.Skinned then
     DoChangePaint(FFadeTimer, FCommonData, True, EventEnabled(aeMouseUp, [aeGlobalDef]));
 {$ENDIF}
@@ -557,7 +557,7 @@ begin
   else
     Ofs := 0;
   States := [];
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   if Skinned then
     DrawSkinned(ACanvas, R, Ofs)
   else
@@ -625,7 +625,7 @@ begin
 {$ENDIF}
 end;
 
-{$IFDEF SUPPORT_ALPHASKINS}
+{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
 procedure TKButtonControl.SetDisabledKind(const Value: TsDisabledKind);
 begin
   if FDisabledKind <> Value then
@@ -691,7 +691,7 @@ end;
 
 procedure TKButtonControl.WndProc(var Msg: TLMessage);
 begin
-{$IFDEF SUPPORT_AND_USE_ALPHASKINS}
+{$IFDEF USE_ALPHASKINS}
   if Msg.Msg = SM_ALPHACMD then case Msg.WParamHi of
     AC_CTRLHANDLED : begin Msg.Result := 1; Exit end; // AlphaSkins is supported
     AC_GETAPPLICATION : begin Msg.Result := LRESULT(Application); Exit end;
@@ -1078,4 +1078,4 @@ begin
   end;
 end;
 
-end.
+end.
