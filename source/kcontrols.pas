@@ -319,11 +319,11 @@ type
     procedure AdjustPageSetup; virtual;
     { Cancels any dragging or resizing operations performed by mouse. }
     procedure CancelMode; virtual;
+    { Overriden method. Calls @link(TKCustomControl.UpdateSize). }
+    procedure CreateHandle; override;
     { Defines additional styles. }
     procedure CreateParams(var Params: TCreateParams); override;
   {$IFDEF FPC}
-    { Overriden method. Calls @link(TKCustomControl.UpdateSize). }
-    procedure CreateWnd; override;
     { Overriden method. Calls @link(TKCustomControl.UpdateSize). }
     procedure DoOnChangeBounds; override;
   {$ENDIF}
@@ -1177,6 +1177,12 @@ begin
   end;
 end;
 
+procedure TKCustomControl.CreateHandle;
+begin
+  inherited;
+  UpdateSize;
+end;
+
 procedure TKCustomControl.CreateParams(var Params: TCreateParams);
 begin
   inherited;
@@ -1197,12 +1203,6 @@ begin
 end;
 
 {$IFDEF FPC}
-procedure TKCustomControl.CreateWnd;
-begin
-  inherited;
-  UpdateSize;
-end;
-
 procedure TKCustomControl.DoOnChangeBounds;
 begin
   inherited;

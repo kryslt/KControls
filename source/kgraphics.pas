@@ -2479,7 +2479,7 @@ begin
           Index := I;
           FirstWord := False;
         end;
-        if LineBreak and (FText[I] = cCR) then
+        if LineBreak and (FText[I] = cFirstEOL) then
           Inc(LineBreaks);
         Inc(I);
       end;

@@ -96,7 +96,6 @@ type
     procedure SetVAlign(const Value: TKVAlign);
     procedure SetWordWrap(const Value: Boolean);
   protected
-    procedure AfterConstruction; override;
 {$IFDEF SUPPORT_AND_USE_ALPHASKINS}
     procedure DrawSkinned(ACanvas: TCanvas; const ARect: TRect; AInteriorOffset: Integer); virtual;
     function PrepareSkinCache(ARect: TRect; AInteriorOffset: Integer): Boolean;
@@ -105,7 +104,6 @@ type
     procedure DrawFocusRect(ACanvas: TCanvas; ARect: TRect); virtual;
     procedure DrawInterior(ACanvas: TCanvas; ARect: TRect); virtual; abstract;
     function GetSkinned: Boolean; virtual;
-    procedure Invalidate; override;
     procedure Loaded; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -117,6 +115,8 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    procedure AfterConstruction; override;
+    procedure Invalidate; override;
     property Cancel: Boolean read FCancel write SetCancel default false;
     property Default: Boolean read FDefault write SetDefault default false;
     property HAlign: TKHAlign read FHAlign write SetHAlign default halCenter;

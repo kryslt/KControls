@@ -306,6 +306,7 @@ type
     function GetRealSelEnd: Integer;
     function GetRealSelStart: Integer;
     function GetSelLength: Integer;
+    function GetEmpty: Boolean;
   protected
     FLines: TKMemoLines;
     FUpdateLock: Integer;
@@ -339,6 +340,8 @@ type
     function AddNewLineBlock(At: Integer = -1): TKNewLineMemoBlock;
     function AddTextBlock(AText: TKString; At: Integer = -1): TKTextMemoBlock;
     procedure ClearSelection; virtual;
+    procedure Clear; override;
+    procedure Delete(Index: Integer);
     function IndexToBlock(AIndex: Integer; out ALocalIndex: Integer): Integer; virtual;
     function IndexToLine(AIndex: Integer): Integer; virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer; ACaret: Boolean): TRect; virtual;
@@ -360,10 +363,12 @@ type
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ACaret: Boolean): Integer; virtual;
     function PointToLineIndex(ACanvas: TCanvas; ALine: Integer; const APoint: TPoint;
       AOutOfArea, ACaret: Boolean): Integer; virtual;
+    function Remove(AObject: TKMemoBlock): Integer; overload;
     function ShowFormatting: Boolean; virtual;
     procedure UnlockUpdate;
     function UpdateUnlocked: Boolean;
     property DefaultFont: TFont read GetDefaultFont;
+    property Empty: Boolean read GetEmpty;
     property ExtentX: Integer read FExtentX;
     property ExtentY: Integer read FExtentY;
     property LineBottom[Index: Integer]: Integer read GetLineBottom;
@@ -646,6 +651,8 @@ type
     function CanScroll(ACommand: TKEditCommand): Boolean; virtual;
     { Called by ContentPadding class to update the memo control. }
     procedure ContentPaddingChanged(Sender: TObject); virtual;
+    { Overriden method - window handle has been created. }
+    procedure CreateHandle; override;
     { Overriden method - defines additional styles for the memo window (scrollbars etc.). }
     procedure CreateParams(var Params: TCreateParams); override;
     { Overriden method - adjusts file drag&drop functionality. }
@@ -1250,7 +1257,7 @@ begin
   inherited Create(AOwner);
   Color := clWindow;
   ControlStyle := [csOpaque, csClickEvents, csDoubleClicks, csCaptureMouse];
-  DoubleBuffered := True;
+  DoubleBuffered := True; // is needed
   Font.OnChange := FontChange;
   Height := cHeight;
   ParentColor := False;
@@ -1287,8 +1294,7 @@ begin
   FVertScrollStep := cVertScrollStepDef;
   FOnChange := nil;
   FOnReplaceText := nil;
-  Clear;
-  Text := 'This is early alpha state control.'+#10+'You may try the demo but do not use it in your programs yet.';
+  Text := 'This is early alpha state control.'+cEOL+'You may try the demo but do not use it in your programs yet.';
   UpdateEditorCaret;
 end;
 
@@ -1300,7 +1306,6 @@ begin
   FKeyMapping.Free;
   FContentPadding.Free;
   FColors.Free;
-  FBlocks.LockUpdate;
   FBlocks.Free;
   FBackgroundImage.Free;
   inherited;
@@ -1570,6 +1575,12 @@ end;
 procedure TKCustomMemo.ContentPaddingChanged(Sender: TObject);
 begin
   BlocksChanged([muExtent]);
+end;
+
+procedure TKCustomMemo.CreateHandle;
+begin
+  inherited;
+  UpdateScrollRange(True);
 end;
 
 procedure TKCustomMemo.CreateParams(var Params: TCreateParams);
@@ -2368,7 +2379,7 @@ end;
 
 function TKCustomMemo.GetEmpty: Boolean;
 begin
-  Result := FBlocks.Count = 0;
+  Result := FBlocks.Empty;
 end;
 
 function TKCustomMemo.GetInsertMode: Boolean;
@@ -3898,6 +3909,8 @@ function TKMemoBlocks.AddAt(AObject: TKMemoBlock; At: Integer): Integer;
 begin
   if AObject <> nil then
   begin
+    if Empty and (Count > 0) then
+      inherited Delete(0);
     if (At < 0) or (At >= Count) then
       Result := inherited Add(AObject)
     else
@@ -3960,6 +3973,13 @@ begin
   end;
 end;
 
+procedure TKMemoBlocks.Clear;
+begin
+  inherited;
+  if (FMemo <> nil) and not (csDestroying in FMemo.ComponentState) then
+    AddNewLineBlock;
+end;
+
 procedure TKMemoBlocks.ClearSelection;
 var
   I, First, Last: Integer;
@@ -4010,12 +4030,24 @@ begin
   end;
 end;
 
+procedure TKMemoBlocks.Delete(Index: Integer);
+begin
+  inherited;
+  if Count = 0 then
+    AddNewLineBlock;
+end;
+
 function TKMemoBlocks.GetDefaultFont: TFont;
 begin
   if FMemo <> nil then
     Result := FMemo.Font
   else
     Result := nil;
+end;
+
+function TKMemoBlocks.GetEmpty: Boolean;
+begin
+  Result := (Count = 0) or (Count = 1) and (Items[0] is TKNewLineMemoBlock);
 end;
 
 function TKMemoBlocks.GetLineBottom(AIndex: Integer): Integer;
@@ -4145,7 +4177,7 @@ begin
     if Item.SelLength > 0 then
     begin
       if Item is TKNewLineMemoBlock then
-        Result := Result + cCR + cLF
+        Result := Result + cEOL
       else
         Result := Result + Item.SelText;
     end;
@@ -4162,7 +4194,7 @@ begin
   begin
     Item := TKMemoBlock(Items[I]);
     if Item is TKNewLineMemoBlock then
-      Result := Result + cCR + cLF
+      Result := Result + cEOL
     else
       Result := Result + Item.Text;
   end;
@@ -4619,6 +4651,13 @@ begin
   end;
 end;
 
+function TKMemoBlocks.Remove(AObject: TKMemoBlock): Integer;
+begin
+  Result := inherited Remove(AObject);
+  if Count = 0 then
+    AddNewLineBlock;
+end;
+
 function TKMemoBlocks.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean): Boolean;
 var
   I, LastIndex, CurIndex, NewSelEnd: Integer;
@@ -4693,23 +4732,35 @@ end;
 procedure TKMemoBlocks.SetText(const AValue: TKString);
 var
   List: TStringList;
-  I: Integer;
+  I, Ln, St: Integer;
   S: TKString;
 begin
   LockUpdate;
   try
-    List := TStringList.Create;
-    try
-      List.Text := AValue;
-      for I := 0 to List.Count - 1 do
+    St := 1;
+    I := 1;
+    Ln := Length(Avalue);
+    while I < Ln do
+    begin
+      if AValue[I] = cFirstEOL then
       begin
-        S := List[I];
-        if S <> '' then
+        if I > St then
+        begin
+          S := Copy(AValue, St, I - St);
           AddTextBlock(S);
+        end;
         AddNewLineBlock;
-      end;
-    finally
-      List.Free;
+        St := I + 1;
+      end
+      else if CharInSetEx(AValue[I], cLineBreaks) then
+        Inc(St);
+      Inc(I);
+    end;
+    if I > St then
+    begin
+      S := Copy(AValue, St, I - St + 1);
+      AddTextBlock(S);
+      AddNewLineBlock;
     end;
   finally
     UnlockUpdate;
@@ -4743,9 +4794,6 @@ begin
       // avoid possible infinite loops
       Inc(FUpdateLock);
       try
-        // if list is empty always assure at least one block
-        if (Count = 0) or not (Items[Count - 1] is TKNewLineMemoBlock) then
-          AddNewLineBlock;
         UpdateLineInfo;
       finally
         Dec(FUpdateLock);
@@ -4802,4 +4850,4 @@ begin
 end;
 
 end.
-
+

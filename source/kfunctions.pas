@@ -136,9 +136,9 @@ const
   cCheckBoxFrameSize = 13;
 
   { Carriage return character. }
-  cCR = #10;
+  cCR = #13;
   { Line feed character. }
-  cLF = #13;
+  cLF = #10;
   { TAB character. }
   cTAB = #9;
   { SPACE character. }
@@ -151,6 +151,14 @@ const
   cLineBreaks = [cCR, cLF];
   { Text ellipsis string. }
   cEllipsis = '...';
+
+{$IFDEF UNIX}
+  cEOL = cLF;
+  cFirstEOL = cLF;
+{$ELSE}
+  cEOL = cCR + cLF;
+  cFirstEOL = cCR;
+{$ENDIF}
 
 type
 {$IFNDEF FPC}

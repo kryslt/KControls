@@ -1,6 +1,8 @@
-﻿unit Main;
+unit Main;
 
 interface
+
+{$include KControls.inc}
 
 uses
   {$IFDEF FPC}
@@ -29,6 +31,16 @@ var
 
 implementation
 
+{$IFDEF USE_PNG_SUPPORT}
+uses
+ {$IFDEF FPC}
+  fpImage, IntfGraphics
+ {$ELSE}
+  PngImage
+ {$ENDIF}
+  ;
+{$ENDIF}
+
 procedure TMainForm.FormCreate(Sender: TObject);
 var
   TB: TKTextMemoBlock;
@@ -42,6 +54,7 @@ begin
   Memo := TKMemo.Create(Self);
   Memo.Options := Memo.Options + [eoShowFormatting];
   Memo.Colors.BkGnd := clWhite;
+  Memo.Font.Name := 'Arial';
   Memo.Font.Size := 36;
   Memo.Blocks.LockUpdate;
   Memo.Blocks.Clear;
@@ -101,6 +114,10 @@ begin
   Memo.ContentPadding.Right := 60;
   Memo.Blocks.Lines[2] := 'This is replacement.';
   Memo.Select(0, 5);
+{  W := Memo.Text;
+  Memo.Text := W;
+  W := Memo.Text;
+  Memo.Text := W;}
   Memo.Parent := Self;
 end;
 
