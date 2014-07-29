@@ -67,6 +67,7 @@ type
     FStatusPanel: Integer;
     FStatusTimer: TTimer;
     FStatusText: string;
+    procedure SetStatusText(const Value: string);
   protected
     procedure ClearStatusBar;
     function LogTypeToText(Code: TKLogType): string;
@@ -89,7 +90,7 @@ type
     property StatusBar: TStatusBar read FStatusBar write FStatusBar;
     property StatusCode: TKLogType read FStatusCode;
     property StatusPanel: Integer read FStatusPanel write FStatusPanel default cStatusPanelDef;
-    property StatusText: string read FStatusText;
+    property StatusText: string read FStatusText write SetStatusText;
     property HoverTime: Cardinal read FHoverTime write SetHoverTime default cHoverTimeDef;
   end;
 
@@ -201,6 +202,23 @@ begin
   begin
     FHoverTime := Value;
     FStatusTimer.Interval := FHoverTime;
+  end;
+end;
+
+procedure TKLog.SetStatusText(const Value: string);
+begin
+  if (Value <> FStatusText) and (Value <> '') then
+  begin
+    FStatusText := Value;
+    if FStatusBar <> nil then
+    begin
+      if FStatusPanel < 0 then
+        FStatusBar.SimpleText := FStatusText
+      else if FStatusPanel < FStatusBar.Panels.Count then
+        FStatusBar.Panels[FStatusPanel].Text := FStatusText;
+    end;
+    FStatusTimer.Enabled := False;
+    FStatusTimer.Enabled := True;
   end;
 end;
 
