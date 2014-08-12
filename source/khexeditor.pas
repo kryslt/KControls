@@ -1407,18 +1407,23 @@ end;
 
 function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection): AnsiString;
 var
-  I: Integer;
+  I, J: Integer;
 begin
-  SetLength(Result, (SelEnd.Index - SelStart.Index) * cDigitCount);
+  SetLength(Result, (SelEnd.Index - SelStart.Index) * cDigitCount - SelStart.Digit + SelEnd.Digit);
+  J := 1;
   for I := SelStart.Index to SelEnd.Index do
   begin
-    Result[1 + I * cDigitCount] := BinToDigit((Buffer[I] shr 4) and $F);
-    Result[1 + I * cDigitCount + 1] := BinToDigit(Buffer[I] and $F);
+    if ((I > SelStart.Index) or (SelStart.Digit < 1)) and ((I < SelEnd.Index) or (SelEnd.Digit > 0)) then
+    begin
+      Result[J] := BinToDigit((Buffer[I] shr 4) and $F);
+      Inc(J);
+    end;
+    if ((I > SelStart.Index) or (SelStart.Digit < 2)) and ((I < SelEnd.Index) or (SelEnd.Digit > 1)) then
+    begin
+      Result[J] := BinToDigit(Buffer[I] and $F);
+      Inc(J);
+    end;
   end;
-  for I := 0 to SelStart.Digit - 1 do
-    Delete(Result, 1, 1);
-  for I := SelEnd.Digit to cDigitCount - 1 do
-    Delete(Result, Length(Result), 1);
 end;
 
 function BinaryToDigits(const Source: AnsiString): AnsiString;
