@@ -1259,6 +1259,9 @@ function DigitsToBinStr(var S: AnsiString; Convert: Boolean = True): Boolean;
   '#A#F#0#1#D#C#0#5#3' is converted into '#AF#01#DC#05#30'. }
 function BinStrToBinary(const S: AnsiString): AnsiString;
 
+{ Converts binary value (0..15) to hexadecimal digit character ('0'..'F') }
+function BinToDigit(Value: Byte): AnsiChar;
+
 { Converts binary data into hexadecimal digit string.
   <UL>
   <LH>Parameters:</LH>
@@ -1267,7 +1270,10 @@ function BinStrToBinary(const S: AnsiString): AnsiString;
   converted. SelStart.Index must be lower or equal to SelEnd.Index - intended for
   @link(TKCustomHexEditor.GetRealSelStart) and @link(TKCustomHexEditor.GetRealSelEnd).</LI>
   </UL> }
-function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection): AnsiString;
+function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection): AnsiString; overload;
+
+{ Convertes binary data into hexadecimal digit string. Uses AnsiString as source data. }
+function BinaryToDigits(const Source: AnsiString): AnsiString; overload;
 
 { Converts binary data into text using given character mapping.
   <UL>
@@ -1389,27 +1395,35 @@ begin
   end;
 end;
 
+function BinToDigit(Value: Byte): AnsiChar;
+begin
+  if Value >= $10 then
+    Result := '0'
+  else if Value >= $A then
+    Result := AnsiChar(Ord('A') + Value - 10)
+  else
+    Result := AnsiChar(Ord('0') + Value)
+end;
+
 function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection): AnsiString;
 var
-  I, J: Integer;
-  S: AnsiString;
+  I: Integer;
 begin
-  Result := '';
-  S := '%s' + cFmtText;
+  SetLength(Result, (SelEnd.Index - SelStart.Index) * cDigitCount);
   for I := SelStart.Index to SelEnd.Index do
   begin
-    Result := AnsiString(Format(string(S), [Result, Buffer[I]]));
-    if I = SelStart.Index then
-    begin
-      for J := 0 to SelStart.Digit - 1 do
-        Delete(Result, 1, 1);
-    end;
-    if I = SelEnd.Index then
-    begin
-      for J := SelEnd.Digit to cDigitCount - 1 do
-        Delete(Result, Length(Result), 1);
-    end;
+    Result[1 + I * cDigitCount] := BinToDigit((Buffer[I] shr 4) and $F);
+    Result[1 + I * cDigitCount + 1] := BinToDigit(Buffer[I] and $F);
   end;
+  for I := 0 to SelStart.Digit - 1 do
+    Delete(Result, 1, 1);
+  for I := SelEnd.Digit to cDigitCount - 1 do
+    Delete(Result, Length(Result), 1);
+end;
+
+function BinaryToDigits(const Source: AnsiString): AnsiString;
+begin
+  Result := BinaryToDigits(PBytes(@Source[1]), MakeSelection(0, 0), MakeSelection(Length(Source) - 1, cDigitCount));
 end;
 
 function BinaryToText(Buffer: PBytes; SelStart, SelEnd: Integer;

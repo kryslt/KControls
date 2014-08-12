@@ -2880,6 +2880,7 @@ end;
 procedure TKHintWindow.ShowAt(const Origin: TPoint);
 begin
   ActivateHint(Rect(Origin.X, Origin.Y, Origin.X + FExtent.X + 10, Origin.Y + FExtent.Y + 10), '');
+//  ActivateWithBounds(Rect(Origin.X, Origin.Y, Origin.X + FExtent.X + 10, Origin.Y + FExtent.Y + 10), '');
 end;
 
 procedure TKHintWindow.Hide;
@@ -2993,4 +2994,4 @@ finalization
   //not necessary, but...
   UnregisterAlphaBitmap;
 {$ENDIF}
-end.
+end.
