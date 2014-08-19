@@ -33,7 +33,6 @@ begin
   RegisterComponents('TK addons', [
     TKPaintPanel, 
     TKHintWindowWrapper,
-    TKSplitter,
     TKBevel,
     TKVentilator,
     TKChart
