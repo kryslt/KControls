@@ -76,23 +76,27 @@ type
 
   TKLinkLabel = class(TLabel)
   private
-    FURL: string;
-    FMouseInControl: Boolean;
-    FShowURLAsHint: Boolean;
     FHotColor: TColor;
-    FBkColor: TColor;
-    procedure SetHotColor(Value: TColor);
+    FLinkColor: TColor;
+    FShowURLAsHint: Boolean;
+    FURL: string;
     procedure CMMouseEnter(var Message: TLMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TLMessage); message CM_MOUSELEAVE;
     procedure CMFontChanged(var Message: TLMessage); message CM_FONTCHANGED;
+    procedure SetHotColor(Value: TColor);
+    procedure SetLinkColor(const Value: TColor);
   protected
+    FActiveColor: TColor;
+    FMouseInControl: Boolean;
+    procedure Paint; override;
   public
     constructor Create(AOwner: TComponent); override;
     procedure Click; override;
   published
-    property HotColor: TColor read FHotColor write SetHotColor default clBlue;
-    property URL: string read FURL write FURL;
+    property HotColor: TColor read FHotColor write SetHotColor default clRed;
+    property LinkColor: TColor read FLinkColor write SetLinkColor default clBlue;
     property ShowURLAsHint: Boolean read FShowURLAsHint write FShowURLAsHint;
+    property URL: string read FURL write FURL;
   end;
 
 implementation
@@ -318,11 +322,17 @@ begin
   FShowURLAsHint := True;
   ShowHint := True;
   FHotColor := clRed;
-  Font.Color := clBlue;
-  FBkColor := Font.Color;
+  FLinkColor := clBlue;
+  FActiveColor := FLinkColor;
   FURL := 'http://www.tkweb.eu';
   Caption := FURL;
   Cursor := crHandPoint;
+end;
+
+procedure TKLinkLabel.Paint;
+begin
+  Font.Color := FActiveColor;
+  inherited;
 end;
 
 procedure TKLinkLabel.Click;
@@ -345,6 +355,16 @@ begin
   end;
 end;
 
+procedure TKLinkLabel.SetLinkColor(const Value: TColor);
+begin
+  if Value <> FLinkColor then
+  begin
+    FLinkColor := Value;
+    if not FMouseInControl then
+      Invalidate;
+  end;
+end;
+
 procedure TKLinkLabel.CMMouseEnter(var Message: TLMessage);
 begin
   inherited;
@@ -354,10 +374,10 @@ begin
     and Enabled and (DragMode <> dmAutomatic) and (GetCapture = 0) then
   begin
     FMouseInControl := True;
-    FBkColor := Font.Color;
-    Font.Color := FHotColor;
+    FActiveColor := FHotColor;
     if FShowURLAsHint then
       Hint := FURL;
+    Invalidate;
   end;
 end;
 
@@ -367,16 +387,15 @@ begin
   if not (csDesigning in ComponentState) and FMouseInControl and Enabled then
   begin
     FMouseInControl := False;
-    Font.Color := FBkColor;
+    FActiveColor := FLinkColor;
     if FShowURLAsHint then
       Hint := '';
+    Invalidate;
   end;
 end;
 
 procedure TKLinkLabel.CMFontChanged(var Message: TLMessage);
 begin
-  if Font.Color <> FHotColor then
-    FBkColor := Font.Color;
   Invalidate;
 end;
 
