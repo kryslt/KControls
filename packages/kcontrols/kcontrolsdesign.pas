@@ -86,7 +86,9 @@ begin
   RegisterPropertyEditor(TypeInfo(TKAlphaBitmap), nil, '', TKGraphicEditor);
 
   // images
+{$IFDEF REGISTER_PICTURE_FORMATS}
   TPicture.RegisterFileFormat('BMA', 'KControls alpha bitmap', TKAlphaBitmap);
+{$ENDIF}
 end;
 
 { TKOpenDialogEditor }

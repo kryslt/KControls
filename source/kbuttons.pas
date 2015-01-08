@@ -37,9 +37,9 @@ uses
    {$ENDIF}
   {$ENDIF}
   {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-    , sSkinManager, sCommonData
+    , sSkinManager, sCommonData, sConst
    {$IFDEF USE_ALPHASKINS}
-    , sAlphaGraph, sConst, sFade, sGraphUtils, sMessages
+    , sAlphaGraph, sFade, sGraphUtils, sMessages
    {$ENDIF}
 //  {$ELSE}
 //    Error!
