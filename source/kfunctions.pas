@@ -325,6 +325,14 @@ type
   { Dynamic array for Char. }
   TDynAnsiChars = array of AnsiChar;
 
+  PBoolean = ^Boolean;
+  { Static array for Double. }
+  TBooleans = array[0..MaxInt div SizeOf(Boolean) - 1] of Boolean;
+  { Pointer for TBooleans. }
+  PBooleans = ^TBooleans;
+  { Dynamic array for Double. }
+  TDynBooleans = array of Boolean;
+
 {$IFDEF FPC}
   { TKString is UTF8 string in Lazarus. }
   TKString = string;
