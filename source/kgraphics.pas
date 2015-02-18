@@ -426,6 +426,7 @@ type
     FInitialPos: TPoint;
     FLayered: Boolean;
     FMasterAlpha: Byte;
+    FRect: TRect;
   {$IFDEF USE_WINAPI}
     FBlend: TBlendFunction;
     FUpdateLayeredWindow: TUpdateLayeredWindowProc;
@@ -441,10 +442,10 @@ type
     { Shows the drag window on screen. Takes a rectangular part as set by ARect from
       IniCtrl's Canvas and displays it at position InitialPos. MasterAlpha and
       Gradient are used to premaster the copied image with a specific fading effect. }
-    procedure Show(IniCtrl: TCustomControl; const ARect: TRect; const InitialPos,
-      CurrentPos: TPoint; MasterAlpha: Byte; Gradient: Boolean);
+    procedure Init(IniCtrl: TCustomControl; const ARect: TRect;
+      const AInitialPos: TPoint; AMasterAlpha: Byte; AGradient: Boolean);
     { Moves the drag window to a new location. }
-    procedure Move(const NewPos: TPoint);
+    procedure Move(ARect: PRect; const ACurrentPos: TPoint; AShowAlways: Boolean);
     { Hides the drag window. }
     procedure Hide;
     { Returns True if the drag window is shown. }
@@ -2748,26 +2749,25 @@ begin
   end;
 end;
 
-procedure TKDragWindow.Show(IniCtrl: TCustomControl; const ARect: TRect;
-  const InitialPos, CurrentPos: TPoint; MasterAlpha: Byte; Gradient: Boolean);
+procedure TKDragWindow.Init(IniCtrl: TCustomControl; const ARect: TRect;
+  const AInitialPos: TPoint; AMasterAlpha: Byte; AGradient: Boolean);
 var
   Org: TPoint;
   W, H: Integer;
   ScreenDC: HDC;
 begin
-  if not (IniCtrl is TKCustomControl) then Exit;
-  if not FActive then
+  if not FActive and ((IniCtrl = nil) or (IniCtrl is TKCustomControl)) then
   begin
     FActive := True;
     FBitmapFilled := False;
     FControl := IniCtrl;
-    FMasterAlpha := MasterAlpha;
-    FGradient := Gradient;
-    FInitialPos := InitialPos;
+    FMasterAlpha := AMasterAlpha;
+    FGradient := AGradient;
+    FInitialPos := AInitialPos;
+    FRect := ARect;
     W := ARect.Right - ARect.Left;
     H := ARect.Bottom - ARect.Top;
     FBitmap.SetSize(W, H);
-    Org := IniCtrl.ClientToScreen(ARect.TopLeft);
     ScreenDC := GetDC(0);
     try
       FAlphaEffects := GetDeviceCaps(ScreenDC, BITSPIXEL) >= 15;
@@ -2775,11 +2775,16 @@ begin
     finally
       ReleaseDC(0, ScreenDC);
     end;
-    // to be compatible with all LCL widgetsets we must copy the control's part
-    // while painting in TKCustomControl.Paint!
-    TKCustomControl(FControl).MemoryCanvas := FBitmap.Canvas;
-    TKCustomControl(FControl).MemoryCanvasRect := ARect;
-    TKCustomControl(FControl).Repaint;
+    if FControl <> nil then
+    begin
+      Org := FControl.ClientToScreen(ARect.TopLeft);
+      // to be compatible with all LCL widgetsets we must copy the control's part
+      // while painting in TKCustomControl.Paint!
+      TKCustomControl(FControl).MemoryCanvas := FBitmap.Canvas;
+      TKCustomControl(FControl).MemoryCanvasRect := ARect;
+      TKCustomControl(FControl).Repaint;
+    end else
+      Org := ARect.TopLeft;
   {$IFDEF USE_WINAPI}
     if FLayered then with FBlend do
     begin
@@ -2796,15 +2801,15 @@ begin
   {$ELSE}
     FDragForm.SetBounds(Org.X, Org.Y, W, H);
   {$ENDIF}
-    Move(CurrentPos);
   end;
 end;
 
-procedure TKDragWindow.Move(const NewPos: TPoint);
+procedure TKDragWindow.Move(ARect: PRect; const ACurrentPos: TPoint; AShowAlways: Boolean);
 var
   R: TRect;
   DX, DY: Integer;
   BlendColor: TColor;
+  ChangedPos: Boolean;
 {$IFDEF USE_WINAPI}
   ScreenDC: HDC;
   CanvasOrigin: TPoint;
@@ -2812,9 +2817,21 @@ var
 begin
   if FActive then
   begin
-    if (TKCustomControl(FControl).MemoryCanvas = nil) and not FBitmapFilled then
+    ChangedPos := False;
+    DX := ACurrentPos.X - FInitialPos.X;
+    DY := ACurrentPos.Y - FInitialPos.Y;
+    if (DX <> 0) or (DY <> 0) then
+    begin
+      FInitialPos := ACurrentPos;
+      ChangedPos := True;
+    end;
+    if ARect <> nil then
+      ChangedPos := ChangedPos or not EqualRect(ARect^, FRect);
+    if ((FControl = nil) or (TKCustomControl(FControl).MemoryCanvas = nil)) and not FBitmapFilled or (ARect <> nil) then
     begin
       FBitmapFilled := True;
+      if ARect <> nil then
+        FBitmap.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
       FBitmap.UpdatePixels;
       if FAlphaEffects then
       begin
@@ -2826,13 +2843,13 @@ begin
         FBitmap.UpdateHandle;
       end;
     end;
-    DX := NewPos.X - FInitialPos.X;
-    DY := NewPos.Y - FInitialPos.Y;
-    if (DX <> 0) or (DY <> 0) then
+    if ChangedPos or AShowAlways then
     begin
-      FInitialPos := NewPos;
     {$IFDEF USE_WINAPI}
-      GetWindowRect(FWindow, R);
+      if ARect <> nil then
+        R := ARect^
+      else
+        GetWindowRect(FWindow, R);
       OffsetRect(R, DX, DY);
       if FLayered then
       begin
@@ -2853,13 +2870,17 @@ begin
         SetWindowPos(FWindow, 0, R.Left, R.Top, 0, 0,
           SWP_NOACTIVATE or SWP_NOSIZE or SWP_NOZORDER or SWP_SHOWWINDOW);
     {$ELSE}
-      R := FDragForm.BoundsRect;
+      if ARect <> nil then
+        R := ARect^
+      else
+        R := FDragForm.BoundsRect;
       OffsetRect(R, DX, DY);
       FDragForm.BoundsRect := R;
       if FBitmapFilled then
       begin
         FDragForm.Visible := True;
-        SetCaptureControl(FControl);
+        if FControl <> nil then
+          SetCaptureControl(FControl);
       end;
     {$ENDIF}
     end;

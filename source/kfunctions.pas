@@ -146,7 +146,7 @@ const
   { String terminator. }
   cNULL = #0;
   { Set of word break characters. }
-  cWordBreaks = [cNULL, cTAB,  cSPACE];
+  cWordBreaks = [cNULL, cTAB, cSPACE];
   { Set of line break characters. }
   cLineBreaks = [cCR, cLF];
   { Text ellipsis string. }

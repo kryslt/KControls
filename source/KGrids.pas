@@ -11109,7 +11109,8 @@ begin
           end;
           EditorMode := False;
           Update;
-          FDragWindow.Show(Self, RDest, PtIni, PtCur, Alpha, Gradient);
+          FDragWindow.Init(Self, RDest, PtIni, Alpha, Gradient);
+          FDragWindow.Move(nil, PtCur, False);
         end;
       end;
     end
@@ -11118,7 +11119,7 @@ begin
       if Hide then
         FDragWindow.Hide
       else
-        FDragWindow.Move(PtCur);
+        FDragWindow.Move(nil, PtCur, False);
     end;
   end;
 end;
@@ -11264,11 +11265,11 @@ procedure TKCustomGrid.SafeSetFocus;
 var
   Form: TCustomForm;
 begin
-  Form := GetParentForm(Self);
+  Form := GetParentForm(Self, True);
   if (Form <> nil) and Form.Visible and Form.Enabled and not (csDestroying in Form.ComponentState) then
-    if EditorMode and FEditor.Enabled then
+    if EditorMode and FEditor.CanFocus then
       Form.ActiveControl := FEditor
-    else if Visible and Enabled then
+    else if CanFocus then
       Form.ActiveControl := Self;
 end;
 

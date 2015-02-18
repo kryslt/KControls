@@ -92,8 +92,7 @@ type
     property Constraints;
     property MinSize: Integer read FMinSize write SetMinSize default 30;
     property ParentColor;
-    property ResizeStyle: TResizeStyle read FResizeStyle write FResizeStyle
-      default rsPattern;
+    property ResizeStyle: TResizeStyle read FResizeStyle write FResizeStyle default rsUpdate;
     property Visible;
     property Width default 3;
     property OnCanResize: TCanResizeEvent read FOnCanResize write FOnCanResize;
