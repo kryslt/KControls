@@ -662,6 +662,9 @@ procedure QuickSortNR(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareP
 procedure QuickSort(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareProc;
   AExchangeProc: TQsExchangeProc; ASortedDown: Boolean);
 
+{ Examines if some part of Rect lies within Bounds. }
+function RectInRect(Bounds, Rect: TRect): Boolean;
+
 { Restores application context, e.g. when calling a shared library. }
 function SetAppContext(const Ctx: TKAppContext): Boolean;
 
@@ -1922,6 +1925,12 @@ procedure QuickSort(AData: Pointer; ACount: Integer; ACompareProc: TQsComparePro
 begin
   if ACount > 1 then
     Sort(0, ACount - 1);
+end;
+
+function RectInRect(Bounds, Rect: TRect): Boolean;
+begin
+  Result := not ((Rect.Left > Bounds.Right) or (Rect.Right < Bounds.Left) or
+    (Rect.Top > Bounds.Bottom) or (Rect.Bottom < Bounds.Top));
 end;
 
 function SetAppContext(const Ctx: TKAppContext): Boolean;

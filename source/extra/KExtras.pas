@@ -157,9 +157,6 @@ procedure StringToData(const S: string; Buffer: Pointer; Size: Integer);
 procedure AddStringsToList(L: TStrings; const Strings: array of string);
 procedure PrintLines(S: TStrings);
 
-{ rectangle functions }
-function RectInRect(Bounds, Rect: TRect): Boolean;
-
 implementation
 
 uses
@@ -1283,13 +1280,6 @@ begin
     end;
     Dec(I);
   until I = 1;
-end;
-
-function RectInRect(Bounds, Rect: TRect): Boolean;
-begin
-  with Bounds do
-    Result := not ((Rect.Left > Bounds.Right) or (Rect.Right < Bounds.Left) or
-      (Rect.Top > Bounds.Bottom) or (Rect.Bottom < Bounds.Top));
 end;
 
 procedure DataToString(Buffer: Pointer; Size: Integer; var S: string);
