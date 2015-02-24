@@ -164,6 +164,8 @@ type
     procedure DoWarning(AValue: Extended); dynamic;
     function GetFormat(S: string; var Fmt: TKNumberEditDisplayedFormat): Extended; virtual;
     procedure GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string); dynamic;
+    function GetRealSelStart: Integer;
+    function GetRealSelLength: Integer;
     function InspectInputChar(Key: Char): Char; dynamic;
     procedure KeyPress(var Key: Char); override;
     procedure Notification(AComponent: TComponent;
@@ -810,6 +812,22 @@ begin
   end;  
 end;
 
+function TKNumberEdit.GetRealSelLength: Integer;
+begin
+  if Sellength >= 0 then
+    Result := SelLength
+  else
+    Result := -SelLength;
+end;
+
+function TKNumberEdit.GetRealSelStart: Integer;
+begin
+  if Sellength >= 0 then
+    Result := SelStart
+  else
+    Result := SelStart - SelLength;
+end;
+
 function TKNumberEdit.SetFormat(AValue: Extended): string;
 var
   S, Prefix, Suffix: string;
@@ -1322,8 +1340,10 @@ end;
 
 function TKNumberEdit.InspectInputChar(Key: Char): Char;
 var
+  S: string;
   KeyDec, KeyHex, KeyBin, KeyOct, KeyFLoat, KeySuffix: Char;
 begin
+  S := Copy(Text, 1, GetRealSelStart) + Copy(Text, GetRealSelStart + GetRealSelLength + 1, Length(Text));
   if neafAscii in FAcceptedFormats then
     Result := Key
   else
@@ -1336,7 +1356,7 @@ begin
       begin
         if (KeyDec = '-') and (SelStart <> 0) then
           KeyDec := #0;
-        if (Pos('0', Text) = 1) and (neafOct in FAcceptedFormats) then
+        if (Pos('0', S) = 1) and (neafOct in FAcceptedFormats) then
           KeyDec := #0;
       end else
         KeyDec := #0;
@@ -1348,10 +1368,10 @@ begin
       if CharInSetEx(KeyHex, ['0'..'9', 'a'..'f', 'A'..'F', #8, 'x', 'X', 'h', 'H']) then
       begin
         if CharInSetEx(KeyHex, ['x', 'X']) and ((SelStart > 1) or
-          (Pos('x', Text) <> 0) or (Pos('X', Text) <> 0)) then
+          (Pos('x', S) <> 0) or (Pos('X', S) <> 0)) then
           KeyHex := #0;
-        if CharInSetEx(KeyHex, ['h', 'H']) and ((SelStart < Length(Text)) or
-          (Pos('h', Text) <> 0) or (Pos('H', Text) <> 0)) then
+        if CharInSetEx(KeyHex, ['h', 'H']) and ((SelStart < Length(S)) or
+          (Pos('h', S) <> 0) or (Pos('H', S) <> 0)) then
           KeyHex := #0;
         if neoLowerCase in FOptions then
         begin
@@ -1367,8 +1387,8 @@ begin
       KeyBin := Key;
       if CharInSetEx(KeyBin, ['0'..'1', 'b', 'B', #8]) then
       begin
-        if CharInSetEx(KeyBin, ['b', 'B']) and ((SelStart < Length(Text)) or
-          (Pos('b', Text) <> 0) or (Pos('B', Text) <> 0)) then
+        if CharInSetEx(KeyBin, ['b', 'B']) and ((SelStart < Length(S)) or
+          (Pos('b', S) <> 0) or (Pos('B', S) <> 0)) then
           KeyBin := #0;
       end else
         KeyBin := #0;
@@ -1379,7 +1399,7 @@ begin
       KeyOct := Key;
       if CharInSetEx(KeyOct, ['0'..'7', #8]) then
       begin
-        if (Pos('0', Text) > 1) then
+        if (Pos('0', S) > 1) then
           KeyOct := #0;
       end else
         KeyOct := #0;
@@ -1387,16 +1407,15 @@ begin
       KeyOct := #0;
     if neafFloat in FAcceptedFormats then
     begin
-      KeyFLoat := Key;
+      KeyFloat := Key;
       if CharInSetEx(KeyFLoat, ['0'..'9','-', '.', ',', 'e', 'E', DecimalSeparator, #8]) then
       begin
-        if (KeyFLoat = '-') and (SelStart <> 0) then KeyFLoat := #0;
+        if (KeyFloat = '-') and (SelStart <> 0) then KeyFloat := #0;
         if CharInSetEx(KeyFLoat, ['.', ',', DecimalSeparator]) and
-          ((Pos('.', Text) <> 0) or (Pos(',', Text) <> 0) or
-           (Pos(DecimalSeparator, Text) <> 0)) then
-          KeyFLoat := #0;
+          ((Pos('.', S) <> 0) or (Pos(',', S) <> 0) or (Pos(DecimalSeparator, S) <> 0)) then
+          KeyFloat := #0;
       end else
-        KeyFLoat := #0;
+        KeyFloat := #0;
     end else
       KeyFLoat := #0;
     if FCustomSuffix <> '' then

@@ -32,7 +32,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  Classes, Controls, ComCtrls, Graphics, SysUtils,
+  Classes, Controls, ComCtrls, Graphics, StdCtrls, SysUtils,
   Forms;
 
 const
@@ -981,24 +981,41 @@ begin
     Result := Dividend div Divisor;
 end;
 
-
-function EditIsFocused: Boolean;
 {$IFDEF USE_WINAPI}
+function EditFocusedHandle: THandle;
 var
   Len: Integer;
   Wnd: HWND;
   S: string;
+  C: TWinControl;
 begin
-  Result := False;
+  Result := 0;
   Wnd := GetFocus;
-  SetLength(S, 100);
-  Len := GetClassName(Wnd, PChar(S), 100);
-  if Len > 0 then
+  C := FindControl(Wnd);
+  if (C <> nil) and (C is TCustomEdit) or (C is TCustomMemo)
+{$IFnDEF FPC}
+   or (C is TRichEdit)
+{$ENDIF}
+  then
+    Result := Wnd
+  else
   begin
-    SetLength(S, Len);
-    if (S = 'Edit') or (S = 'TEdit') or (S = 'TMemo') or (S = 'TRichEdit') then
-      Result := True;
+    SetLength(S, 100);
+    Len := GetClassName(Wnd, PChar(S), 100);
+    if Len > 0 then
+    begin
+      SetLength(S, Len);
+      if (S = 'EDIT') then
+        Result := Wnd;
+    end;
   end;
+end;
+{$ENDIF}
+
+function EditIsFocused: Boolean;
+{$IFDEF USE_WINAPI}
+begin
+  Result := EditFocusedHandle <> 0;
 end;
 {$ELSE}
 begin
@@ -1010,23 +1027,16 @@ end;
 function EditIsTextFocused: Boolean;
 {$IFDEF USE_WINAPI}
 var
-  A, B, Len: Integer;
-  Wnd: HWND;
-  S: string;
+  A, B: Integer;
+  Wnd: THandle;
 begin
-  Result := False;
-  Wnd := GetFocus;
-  SetLength(S, 100);
-  Len := GetClassName(Wnd, PChar(S), 100);
-  if Len > 0 then
+  Wnd := EditFocusedHandle;
+  if Wnd <> 0 then
   begin
-    SetLength(S, Len);
-    if (S = 'Edit') or (S = 'TEdit') or (S = 'TMemo') or (S = 'TRichEdit') then
-    begin
-      SendMessage(Wnd, EM_GETSEL, WParam(@A), LParam(@B));
-      Result := A <> B;
-    end;
-  end;
+    SendMessage(Wnd, EM_GETSEL, WParam(@A), LParam(@B));
+    Result := A <> B;
+  end else
+    Result := False;
 end;
 {$ELSE}
 begin

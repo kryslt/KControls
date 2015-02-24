@@ -6115,6 +6115,7 @@ begin
   FScrollTimer.Enabled := False;
   FScrollTimer.Interval := FScrollSpeed;
   FScrollTimer.OnTimer := ScrollTimerHandler;
+  FScrollPos := Point(0, 0);
   FSelections := nil;
   FSizingStyle := cSizingStyleDef;
   FSortStyle := cSortStyleDef;
@@ -11265,7 +11266,7 @@ procedure TKCustomGrid.SafeSetFocus;
 var
   Form: TCustomForm;
 begin
-  Form := GetParentForm(Self, True);
+  Form := GetParentForm(Self);
   if (Form <> nil) and Form.Visible and Form.Enabled and not (csDestroying in Form.ComponentState) then
     if EditorMode and FEditor.CanFocus then
       Form.ActiveControl := FEditor
@@ -12867,7 +12868,7 @@ procedure TKCustomGrid.UpdateEditor(Show: Boolean);
       if FEditor.HandleAllocated then
         EditorDataToGrid(FEditor, FEditorCell.Col, FEditorCell.Row);
       TabStop := True;
-      if Assigned(Form) and (Form.ActiveControl = FEditor) then
+      if Assigned(Form) and (Form.ActiveControl = FEditor) and CanFocus then
         Form.ActiveControl := Self;
       FEditor.Visible := False;
       FEditor.Parent := nil;
@@ -12877,7 +12878,7 @@ procedure TKCustomGrid.UpdateEditor(Show: Boolean);
         if CompareCellInstances(FEditedCell, InternalGetCell(FEditorCell.Col, FEditorCell.Row)) <> 0 then
           Changed;
       FEditorCell := GridPoint(-1, -1);
-      if Assigned(Form) and (Form.ActiveControl = nil) then
+      if Assigned(Form) and (Form.ActiveControl = nil) and CanFocus then
         Form.ActiveControl := Self;
       InvalidateCurrentSelection;
     end;
