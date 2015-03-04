@@ -9640,7 +9640,8 @@ end;
 
 procedure TKCustomGrid.MeasurePages(var Info: TKPrintMeasureInfo);
 
-  procedure Axis(const Info: TKGridAxisInfo; CanvasExtent, SelStart, SelEnd: Integer;
+  procedure Axis(const Info: TKGridAxisInfo;
+    CanvasExtent, SelStart, SelEnd: Integer;
     SelOnly, FitToPage: Boolean; out Pages, OutlineExtent: Integer);
   var
     I, StartIndex, EndIndex, Extent, PageExtent: Integer;
@@ -9673,7 +9674,6 @@ procedure TKCustomGrid.MeasurePages(var Info: TKPrintMeasureInfo);
   end;
 
 var
-  ColPages, RowPages: Integer;
   Scale: Double;
   FitToPage, SelOnly: Boolean;
   R: TKGridRect;
@@ -9685,15 +9685,13 @@ begin
   FitToPage := poFitToPage in APageSetup.Options;
   SelOnly := APageSetup.Range = prSelectedOnly;
   Scale := APageSetup.Scale / 100;
-  Axis(GetAxisInfoHorz([]), Round(APageSetup.PaintAreaWidth / Scale), R.Col1, R.Col2,
-    SelOnly, FitToPage, ColPages, Info.OutlineWidth);
+  Axis(GetAxisInfoHorz([]), Round(APageSetup.MappedControlPaintAreaWidth / Scale), R.Col1, R.Col2,
+    SelOnly, FitToPage, Info.HorzPageCount, Info.OutlineWidth);
   if FitToPage then
-    Scale := APageSetup.PaintAreaWidth / Info.OutlineWidth;
-  Axis(GetAxisInfoVert([]), Round(APageSetup.PaintAreaHeight / Scale), R.Row1, R.Row2,
-    SelOnly, False, RowPages, Info.OutlineHeight);
-  Info.HorzPageCount := ColPages;
-  Info.VertPageCount := RowPages;
-  Info.PageCount := ColPages * RowPages;
+    Scale := APageSetup.MappedControlPaintAreaWidth / Info.OutlineWidth;
+  Axis(GetAxisInfoVert([]), Round(APageSetup.MappedPaintAreaHeight / Scale), R.Row1, R.Row2,
+    SelOnly, False, Info.VertPageCount, Info.OutlineHeight);
+  Info.PageCount := Info.HorzPageCount * Info.VertPageCount;
 end;
 
 procedure TKCustomGrid.MouseCellHint(ACol, ARow: Integer; AShow: Boolean);
@@ -10623,7 +10621,8 @@ procedure TKCustomGrid.PaintPage;
   end;
 
 var
-  FirstCol, FirstRow, LastCol, LastRow, OutlineWidth, OutlineHeight, AreaWidth, AreaHeight: Integer;
+  FirstCol, FirstRow, LastCol, LastRow, OutlineWidth, OutlineHeight,
+  AreaWidth, AreaHeight: Integer;
   FitToPage, SelOnly{$IFDEF LCLQT}, AThemedCells{$ENDIF}: Boolean;
   TmpRect, TmpRect1: TRect;
   MainClipRgn: HRGN;
@@ -10636,11 +10635,11 @@ begin
   APageSetup := PageSetup;
   FitToPage := poFitToPage in APageSetup.Options;
   SelOnly := APageSetup.Range = prSelectedOnly;
-  AreaWidth := Round(APageSetup.PaintAreaWidth / APageSetup.CurrentScale);
-  AreaHeight := Round(APageSetup.PaintAreaHeight / APageSetup.CurrentScale);
-  Axis(GetAxisInfoHorz([]), AreaWidth, (APageSetup.CurrentPage - 1) mod APageSetup.HorzPageCount + 1,
+  AreaWidth := Round(APageSetup.MappedControlPaintAreaWidth / APageSetup.CurrentScale);
+  AreaHeight := Round(APageSetup.MappedPaintAreaHeight / APageSetup.CurrentScale);
+  Axis(GetAxisInfoHorz([]), AreaWidth, (APageSetup.ControlCurrentPage - 1) mod APageSetup.ControlHorzPageCount + 1,
     R.Col1, R.Col2, SelOnly, FitToPage, FirstCol, LastCol, OutlineWidth);
-  Axis(GetAxisInfoVert([]), AreaHeight, (APageSetup.CurrentPage - 1) div APageSetup.HorzPageCount + 1,
+  Axis(GetAxisInfoVert([]), AreaHeight, (APageSetup.ControlCurrentPage - 1) div APageSetup.ControlHorzPageCount + 1,
     R.Row1, R.Row2, SelOnly, False, FirstRow, LastRow, OutlineHeight);
   if poUseColor in APageSetup.Options then
     FColors.ColorScheme := csNormal

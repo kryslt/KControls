@@ -3366,8 +3366,8 @@ begin
   AD := GetAreaDimensions;
   Info.OutlineWidth := AD.TotalHorz * FCharWidth;
   if FitToPage then
-    Scale := APageSetup.PaintAreaWidth / Info.OutlineWidth;
-  PageLines := Round(APageSetup.PaintAreaHeight / Scale) div FCharHeight;
+    Scale := APageSetup.MappedControlPaintAreaWidth / Info.OutlineWidth;
+  PageLines := Round(APageSetup.MappedPaintAreaHeight / Scale) div FCharHeight;
   if SelOnly then
     ActiveLines := DivUp(GetRealSelEnd.Index, FLineSize) - GetRealSelStart.Index div FLineSize
   else
@@ -3993,8 +3993,8 @@ var
 begin
   APageSetup := PageSetup;
   SelOnly := APageSetup.Range = prSelectedOnly;
-  AreaWidth := Round(APageSetup.PaintAreaWidth / APageSetup.CurrentScale);
-  AreaHeight := Round(APageSetup.PaintAreaHeight / APageSetup.CurrentScale);
+  AreaWidth := Round(APageSetup.MappedControlPaintAreaWidth / APageSetup.CurrentScale);
+  AreaHeight := Round(APageSetup.MappedPaintAreaHeight / APageSetup.CurrentScale);
   PageLines := AreaHeight div FCharHeight;
   if SelOnly then
   begin
@@ -4015,7 +4015,7 @@ begin
   Data.Canvas.Font := Font;
   Data.Canvas.Font.Height := Abs(Font.Height);
   Data.PaintRect := TmpRect;
-  Data.TopLine := (APageSetup.CurrentPage - 1) * PageLines;
+  Data.TopLine := (APageSetup.ControlCurrentPage - 1) * PageLines;
   Data.BottomLine := Min(Data.TopLine + PageLines, ActiveLines) - 1;
   Inc(Data.TopLine, FirstLine);
   Inc(Data.BottomLine, FirstLine);

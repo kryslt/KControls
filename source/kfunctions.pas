@@ -992,7 +992,8 @@ begin
   Result := 0;
   Wnd := GetFocus;
   C := FindControl(Wnd);
-  if (C <> nil) and (C is TCustomEdit) or (C is TCustomMemo)
+  if (C <> nil) and (C is TCustomEdit) or (C is TCustomMemo) or
+    (C is TComboBox) and (TComboBox(C).Style in [csSimple, csDropDown])
 {$IFnDEF FPC}
    or (C is TRichEdit)
 {$ENDIF}
@@ -1005,6 +1006,7 @@ begin
     if Len > 0 then
     begin
       SetLength(S, Len);
+      S := UpperCase(S);
       if (S = 'EDIT') then
         Result := Wnd;
     end;

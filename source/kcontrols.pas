@@ -550,14 +550,14 @@ type
   end;
 
   { @abstract(Class to specify the print job parameters) }
-
-  { TKPrintPageSetup }
-
   TKPrintPageSetup = class(TPersistent)
   private
     FActive: Boolean;
     FCanvas: TCanvas;
     FControl: TKCustomControl;
+    FControlCurrentPage: Integer;
+    FControlHorzPageCount: Integer;
+    FControlPaintAreaWidth: Double;
     FCopies: Integer;
     FCurrentCopy: Integer;
     FCurrentPage: Integer;
@@ -565,10 +565,19 @@ type
     FDesktopPixelsPerInchX: Integer;
     FDesktopPixelsPerInchY: Integer;
     FEndPage: Integer;
+    FExtraLeftPages: Integer;
+    FExtraRightPages: Integer;
+    FExtraSpaceLeft: Double;
+    FExtraSpaceRight: Double;
     FFooterSpace: Double;
     FHeaderSpace: Double;
     FHorzPageCount: Integer;
     FIsValid: Boolean;
+    FMappedControlPaintAreaWidth: Integer;
+    FMappedExtraSpaceLeft: Integer;
+    FMappedExtraSpaceRight: Integer;
+    FMappedPaintAreaHeight: Integer;
+    FMappedPaintAreaWidth: Integer;
     FMarginBottom: Double;
     FMarginLeft: Double;
     FMarginRight: Double;
@@ -580,9 +589,12 @@ type
     FPageCount: Integer;
     FPageHeight: Integer;
     FPageWidth: Integer;
-    FPaintAreaHeight: Integer;
-    FPaintAreaWidth: Integer;
+    FPaintAreaHeight: Double;
+    FPaintAreaWidth: Double;
     FPreviewing: Boolean;
+    FPrinterControlPaintAreaWidth: Integer;
+    FPrinterExtraSpaceLeft: Integer;
+    FPrinterExtraSpaceRight: Integer;
     FPrinterFooterSpace: Integer;
     FPrinterHeaderSpace: Integer;
     FPrinterMarginBottom: Integer;
@@ -592,6 +604,8 @@ type
     FPrinterMarginRightMirrored: Integer;
     FPrinterMarginTop: Integer;
     FPrinterName: string;
+    FPrinterPaintAreaHeight: Integer;
+    FPrinterPaintAreaWidth: Integer;
     FPrinterPixelsPerInchX: Integer;
     FPrinterPixelsPerInchY: Integer;
     FPrintingMapped: Boolean;
@@ -603,9 +617,13 @@ type
     FUpdateLock: Integer;
     FValidating: Boolean;
     FVertPageCount: Integer;
+    FOnUpdateSettings: TNotifyEvent;
     function GetCanPrint: Boolean;
+    function GetSelAvail: Boolean;
     procedure SetCopies(Value: Integer);
     procedure SetEndPage(Value: Integer);
+    procedure SetExtraSpaceLeft(const Value: Double);
+    procedure SetExtraSpaceRight(const Value: Double);
     procedure SetFooterSpace(Value: Double);
     procedure SetHeaderSpace(Value: Double);
     procedure SetMarginBottom(Value: Double);
@@ -620,12 +638,13 @@ type
     procedure SetScale(Value: Integer);
     procedure SetStartPage(Value: Integer);
     procedure SetUnits(Value: TKPrintUnits);
-    function GetSelAvail: Boolean;
   protected
     { Called before new Units are set. Converts the margins to inches by default. }
     procedure AfterUnitsChange; virtual;
     { Called after new Units are set. Converts the margins from inches by default. }
     procedure BeforeUnitsChange; virtual;
+    { Update current page relative to the control, excluding extra left and right areas. }
+    procedure CalcControlCurrentPage; virtual;
     { Paints a page to APreview.Canvas. }
     procedure PaintPageToPreview(APreview: TKPrintPreview); virtual;
     { Prints the page number at the bottom of the page, horizontally centered. }
@@ -670,6 +689,13 @@ type
     property Canvas: TCanvas read FCanvas;
     { Returns the control to which this TKPrintPageSetup instance is assigned. }
     property Control: TKCustomControl read FControl;
+    { Returns the currently printed page relative to the control shape.
+      It must be used with associated control to print page. }
+    property ControlCurrentPage: Integer read FControlCurrentPage;
+    { Returns the maximum amount of pages for horizontal axis of the control. }
+    property ControlHorzPageCount: Integer read FControlHorzPageCount;
+    { Returns the control paint area width on canvas in Units. }
+    property ControlPaintAreaWidth: Double read FControlPaintAreaWidth;
     { Specifies the number of copies to print. }
     property Copies: Integer read FCopies write SetCopies;
     { Returns the currently printed copy. }
@@ -684,14 +710,35 @@ type
     property DesktopPixelsPerInchY: Integer read FDesktopPixelsPerInchY;
     { Specifies last page printed if Range is eprRange. }
     property EndPage: Integer read FEndPage write SetEndPage;
+    { Returns extra pages needed to print extra left space. }
+    property ExtraLeftPages: Integer read FExtraLeftPages;
+    { Returns extra pages needed to print extra right space. }
+    property ExtraRightPages: Integer read FExtraRightPages;
+    { Specifies the horizontal space that should stay free for application
+      specific contents at the left side of printed control. Value is given in Units. }
+    property ExtraSpaceLeft: Double read FExtraSpaceLeft write SetExtraSpaceLeft;
+    { Specifies the horizontal space that should stay free for application
+      specific contents at the right side of printed control. Value is given in Units. }
+    property ExtraSpaceRight: Double read FExtraSpaceRight write SetExtraSpaceRight;
     { Specifies the vertical space that should stay free for application
       specific footer. Value is given in Units. }
     property FooterSpace: Double read FFooterSpace write SetFooterSpace;
     { Specifies the vertical space that should stay free for application
       specific header. Value is given in Units. }
     property HeaderSpace: Double read FHeaderSpace write SetHeaderSpace;
-    { Returns the maximum amount of pages for horizontal axis of the control. }
+    { Returns the maximum amount of pages for horizontal axis.
+      Includes the extra left and right areas. }
     property HorzPageCount: Integer read FHorzPageCount;
+    { Returns the control paint area width on canvas in units depending on PrintingMapped. }
+    property MappedControlPaintAreaWidth: Integer read FMappedControlPaintAreaWidth;
+    { Returns the width of extra left paint area on canvas in units depending on PrintingMapped. }
+    property MappedExtraSpaceLeft: Integer read FMappedExtraSpaceLeft;
+    { Returns the width of extra right paint area on canvas in units depending on PrintingMapped. }
+    property MappedExtraSpaceRight: Integer read FMappedExtraSpaceRight;
+    { Returns the paint area height on canvas in units depending on PrintingMapped. }
+    property MappedPaintAreaHeight: Integer read FMappedPaintAreaHeight;
+    { Returns the paint area width on canvas in units depending on PrintingMapped. }
+    property MappedPaintAreaWidth: Integer read FMappedPaintAreaWidth;
     { Specifies the bottom margin. Value is given in Units. }
     property MarginBottom: Double read FMarginBottom write SetMarginBottom;
     { Specifies the left margin. Value is given in Units. }
@@ -710,18 +757,24 @@ type
     { Returns the printed shape width (maximum of all pages)
       in units depending on PrintingMapped.. }
     property OutlineWidth: Integer read FOutlineWidth;
-    { Returns the amount of all pages. }
+    { Returns the amount of all pages. Includes the extra left and right areas. }
     property PageCount: Integer read FPageCount;
     { Returns the page height in printer device context's pixels. }
     property PageHeight: Integer read FPageHeight;
     { Returns the page width in printer device context's pixels. }
     property PageWidth: Integer read FPageWidth;
-    { Returns the top paint area width on canvas in units depending on PrintingMapped. }
-    property PaintAreaHeight: Integer read FPaintAreaHeight;
-    { Returns the top paint area width on canvas in units depending on PrintingMapped. }
-    property PaintAreaWidth: Integer read FPaintAreaWidth;
+    { Returns the paint area height on canvas in Units. }
+    property PaintAreaHeight: Double read FPaintAreaHeight;
+    { Returns the paint area width on canvas in Units. }
+    property PaintAreaWidth: Double read FPaintAreaWidth;
     { Returns True if painting to a TKPrintPreview.Canvas is active. }
     property Previewing: Boolean read FPreviewing;
+    { Returns the control paint area width in printer device context's units. }
+    property PrinterControlPaintAreaWidth: Integer read FPrinterControlPaintAreaWidth;
+    { Returns the left extra space in printer device context's units. }
+    property PrinterExtraSpaceLeft: Integer read FPrinterExtraSpaceLeft;
+    { Returns the right extra space in printer device context's units. }
+    property PrinterExtraSpaceRight: Integer read FPrinterExtraSpaceRight;
     { Returns the footer space in printer device context's units. }
     property PrinterFooterSpace: Integer read FPrinterFooterSpace;
     { Returns the header space in printer device context's units. }
@@ -740,6 +793,10 @@ type
     property PrinterMarginTop: Integer read FPrinterMarginTop;
     { Specifies the printer name. }
     property PrinterName: string read FPrinterName write SetPrinterName;
+    { Returns the paint area height in printer device context's units. }
+    property PrinterPaintAreaHeight: Integer read FPrinterPaintAreaHeight;
+    { Returns the paint area width in printer device context's units. }
+    property PrinterPaintAreaWidth: Integer read FPrinterPaintAreaWidth;
     { Returns the amount of pixels per inch for the printer device context's horizontal axis }
     property PrinterPixelsPerInchX: Integer read FPrinterPixelsPerInchX;
     { Returns the amount of pixels per inch for the printer device context's vertical axis }
@@ -764,6 +821,8 @@ type
     property Units: TKPrintUnits read FUnits write SetUnits;
     { Returns the maximum amount of pages for vertical axis of the control. }
     property VertPageCount: Integer read FVertPageCount;
+    { Allows to inspect settings before printing information is updated. }
+    property OnUpdateSettings: TNotifyEvent read FOnUpdateSettings write FOnUpdateSettings;
   end;
 
   { @abstract(Container for all colors used by @link(TKPrintPreview) class)
@@ -1705,12 +1764,26 @@ end;
 
 { TKPrintPageSetup }
 
+procedure TKPrintPageSetup.CalcControlCurrentPage;
+var
+  HorzRow, VertCol: Integer;
+begin
+  HorzRow := (FCurrentPage - 1) div FHorzPageCount;
+  VertCol := (FCurrentPage - 1) mod FHorzPageCount;
+  if (VertCol >= FExtraLeftPages) and (VertCol < FHorzPageCount - FExtraRightPages) then
+    FControlCurrentPage := HorzRow * FControlHorzPageCount + VertCol - FExtraLeftPages + 1
+  else
+    FControlCurrentPage := 0; // we are in extra left or right area
+end;
+
 constructor TKPrintPageSetup.Create(AControl: TKCustomControl);
 begin
   inherited Create;
   FActive := False;
   FCanvas := nil;
   FControl := AControl;
+  FControlCurrentPage := 0;
+  FControlHorzPageCount := 0;
   FCopies := cCopiesDef;
   FCurrentCopy := 0;
   FCurrentPage := 0;
@@ -1718,6 +1791,10 @@ begin
   FDesktopPixelsPerInchX := 0;
   FDesktopPixelsPerInchY := 0;
   FEndPage := 0;
+  FExtraLeftPages := 0;
+  FExtraRightPages := 0;
+  FExtraSpaceLeft := 0;
+  FExtraSpaceRight := 0;
   FFooterSpace := 0;
   FHeaderSpace := 0;
   FHorzPageCount := 0;
@@ -1736,6 +1813,8 @@ begin
   FPaintAreaHeight := 0;
   FPaintAreaWidth := 0;
   FPreviewing := False;
+  FPrinterExtraSpaceLeft := 0;
+  FPrinterExtraSpaceRight := 0;
   FPrinterFooterSpace := 0;
   FPrinterHeaderSpace := 0;
   FPrinterMarginBottom := 0;
@@ -1756,6 +1835,7 @@ begin
   FUpdateLock := 0;
   FValidating := False;
   FVertPageCount := 0;
+  FOnUpdateSettings := nil;
 end;
 
 function TKPrintPageSetup.GetCanPrint: Boolean;
@@ -1773,6 +1853,8 @@ end;
 
 procedure TKPrintPageSetup.AfterUnitsChange;
 begin
+  FExtraSpaceLeft := InchesToValue(FUnits, FExtraSpaceLeft);
+  FExtraSpaceRight := InchesToValue(FUnits, FExtraSpaceRight);
   FFooterSpace := InchesToValue(FUnits, FFooterSpace);
   FHeaderSpace := InchesToValue(FUnits, FHeaderSpace);
   FMarginBottom := InchesToValue(FUnits, FMarginBottom);
@@ -1789,6 +1871,8 @@ begin
     try
       Copies := TKPrintPageSetup(Source).Copies;
       EndPage := TKPrintPageSetup(Source).EndPage;
+      ExtraSpaceLeft := TKPrintPageSetup(Source).ExtraSpaceLeft;
+      ExtraSpaceRight := TKPrintPageSetup(Source).ExtraSpaceRight;
       FooterSpace := TKPrintPageSetup(Source).FooterSpace;
       HeaderSpace := TKPrintPageSetup(Source).HeaderSpace;
       MarginBottom := TKPrintPageSetup(Source).MarginBottom;
@@ -1802,6 +1886,7 @@ begin
       Scale := TKPrintPageSetup(Source).Scale;
       Title := TKPrintPageSetup(Source).Title;
       Units := TKPrintPageSetup(Source).Units;
+      OnUpdateSettings := TKPrintPageSetup(Source).OnUpdateSettings;
     finally
       UnlockUpdate;
     end;
@@ -1810,6 +1895,8 @@ end;
 
 procedure TKPrintPageSetup.BeforeUnitsChange;
 begin
+  FExtraSpaceLeft := ValueToInches(FUnits, FExtraSpaceLeft);
+  FExtraSpaceRight := ValueToInches(FUnits, FExtraSpaceRight);
   FFooterSpace := ValueToInches(FUnits, FFooterSpace);
   FHeaderSpace := ValueToInches(FUnits, FHeaderSpace);
   FMarginBottom := ValueToInches(FUnits, FMarginBottom);
@@ -1835,7 +1922,9 @@ end;
 
 procedure TKPrintPageSetup.PaintPageToPreview(APreview: TKPrintPreview);
 var
-  PaperWidth, PaperHeight, SaveIndex: Integer;
+  PaperWidth, PaperHeight,
+  DesktopPageWidth, DesktopPageHeight,
+  SaveIndex, LeftOffset: Integer;
   R, PageRect: TRect;
 begin
   if UpdateUnlocked and Assigned(FControl) then
@@ -1846,6 +1935,7 @@ begin
     try
       FCurrentCopy := 1;
       FCurrentPage := APreview.Page;
+      CalcControlCurrentPage;
       if (poMirrorMargins in FOptions) and (FCurrentPage and 1 <> 0) then
       begin
         FPrinterMarginLeftMirrored := FPrinterMarginRight;
@@ -1858,22 +1948,34 @@ begin
       R := APreview.PageRect;
       PaperWidth := R.Right - R.Left;
       PaperHeight := R.Bottom - R.Top;
-      SaveIndex := SaveDC(FCanvas.Handle);
-      try
-        // change the canvas mapping mode to scale the page outline
-        CanvasSetOffset(FCanvas,
-          R.Left + MulDiv(FPrinterMarginLeftMirrored, PaperWidth, FPageWidth),
-          R.Top + MulDiv(FPrinterMarginTop + FPrinterHeaderSpace, PaperHeight, FPageHeight));
-        if FPrintingMapped then
-          CanvasSetScale(FCanvas, Round(PaperWidth * FCurrentScale), Round(PaperHeight * FCurrentScale),
-            MulDiv(FPageWidth, FDesktopPixelsPerInchX, FPrinterPixelsPerInchX),
-            MulDiv(FPageHeight, FDesktopPixelsPerInchY, FPrinterPixelsPerInchY))
-        else
-          CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPageWidth, FPageHeight);
-        FControl.PaintPage;
-      finally
-        RestoreDC(FCanvas.Handle, SaveIndex);
+
+      if FControlCurrentPage > 0 then
+      begin
+        SaveIndex := SaveDC(FCanvas.Handle);
+        try
+          if poFitToPage in FOptions then
+            LeftOffset := FPrinterExtraSpaceLeft
+          else
+            LeftOffset := 0;
+          // change the canvas mapping mode to scale the page outline
+          CanvasSetOffset(FCanvas,
+            R.Left + MulDiv(FPrinterMarginLeftMirrored + LeftOffset, PaperWidth, FPageWidth),
+            R.Top + MulDiv(FPrinterMarginTop + FPrinterHeaderSpace, PaperHeight, FPageHeight));
+          if FPrintingMapped then
+          begin
+            DesktopPageWidth := MulDiv(FPageWidth, FDesktopPixelsPerInchX, FPrinterPixelsPerInchX);
+            DesktopPageHeight := MulDiv(FPageHeight, FDesktopPixelsPerInchY, FPrinterPixelsPerInchY);
+            CanvasSetScale(FCanvas, Round(PaperWidth * FCurrentScale), Round(PaperHeight * FCurrentScale), DesktopPageWidth, DesktopPageHeight);
+          end
+          else
+            CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPageWidth, FPageHeight);
+          FControl.PaintPage;
+        finally
+          RestoreDC(FCanvas.Handle, SaveIndex);
+        end;
       end;
+      PaperWidth := R.Right - R.Left;
+      PaperHeight := R.Bottom - R.Top;
       SaveIndex := SaveDC(FCanvas.Handle);
       try
         CanvasSetOffset(FCanvas, R.Left, R.Top);
@@ -1946,7 +2048,7 @@ procedure TKPrintPageSetup.PrintOut;
 
   function DoPrint: Boolean;
   var
-    SaveIndex: Integer;
+    LeftOffset, SaveIndex: Integer;
     PageRect: TRect;
   begin
     Result := False;
@@ -1959,20 +2061,27 @@ procedure TKPrintPageSetup.PrintOut;
       FPrinterMarginLeftMirrored := FPrinterMarginLeft;
       FPrinterMarginRightMirrored := FPrinterMarginRight;
     end;
-    SaveIndex := SaveDC(FCanvas.Handle);
-    try
-      CanvasSetOffset(FCanvas, FPrinterMarginLeftMirrored, FPrinterMarginTop + FPrinterHeaderSpace);
-      if FPrintingMapped then
-      begin
-        // change the canvas mapping mode to scale the page outline
-        CanvasSetScale(FCanvas, Round(FPageWidth * FCurrentScale), Round(FPageHeight * FCurrentScale),
-          MulDiv(FPageWidth, FDesktopPixelsPerInchX, FPrinterPixelsPerInchX),
-          MulDiv(FPageHeight, FDesktopPixelsPerInchY, FPrinterPixelsPerInchY));
-      end else
-        CanvasResetScale(FCanvas);
-      FControl.PaintPage;
-    finally
-      RestoreDC(FCanvas.Handle, SaveIndex);
+    if FControlCurrentPage > 0 then
+    begin
+      SaveIndex := SaveDC(FCanvas.Handle);
+      try
+        if poFitToPage in FOptions then
+          LeftOffset := FPrinterExtraSpaceLeft
+        else
+          LeftOffset := 0;
+        CanvasSetOffset(FCanvas, FPrinterMarginLeftMirrored + LeftOffset, FPrinterMarginTop + FPrinterHeaderSpace);
+        if FPrintingMapped then
+        begin
+          // change the canvas mapping mode to scale the page outline
+          CanvasSetScale(FCanvas, Round(FPageWidth * FCurrentScale), Round(FPageHeight * FCurrentScale),
+            MulDiv(FPageWidth, FDesktopPixelsPerInchX, FPrinterPixelsPerInchX),
+            MulDiv(FPageHeight, FDesktopPixelsPerInchY, FPrinterPixelsPerInchY));
+        end else
+          CanvasResetScale(FCanvas);
+        FControl.PaintPage;
+      finally
+        RestoreDC(FCanvas.Handle, SaveIndex);
+      end;
     end;
     SaveIndex := SaveDC(FCanvas.Handle);
     try
@@ -2040,6 +2149,7 @@ begin
               for J := FStartPage to FEndPage do
               begin
                 FCurrentPage := J;
+                CalcControlCurrentPage;
                 AbortPrint := DoPrint;
                 if AbortPrint then Break;
               end;
@@ -2049,6 +2159,7 @@ begin
             for J := FStartPage to FEndPage do
             begin
               FCurrentPage := J;
+              CalcControlCurrentPage;
               for I := 1 to FCopies do
               begin
                 FCurrentCopy := I;
@@ -2086,6 +2197,26 @@ begin
   if Value <> FEndPage then
   begin
     FEndPage := Value;
+    UpdateSettings;
+  end;
+end;
+
+procedure TKPrintPageSetup.SetExtraSpaceLeft(const Value: Double);
+begin
+  if FActive then Exit;
+  if Value <> FExtraSpaceLeft then
+  begin
+    FExtraSpaceLeft := Value;
+    UpdateSettings;
+  end;
+end;
+
+procedure TKPrintPageSetup.SetExtraSpaceRight(const Value: Double);
+begin
+  if FActive then Exit;
+  if Value <> FExtraSpaceRight then
+  begin
+    FExtraSpaceRight := Value;
     UpdateSettings;
   end;
 end;
@@ -2241,7 +2372,8 @@ end;
 
 procedure TKPrintPageSetup.UpdateSettings;
 var
-  I, PixelsPerInchX, PixelsPerInchY: Integer;
+  I, PixelsPerInchX, PixelsPerInchY,
+  ExtraHSpace: Integer;
   D: Double;
   DC: HDC;
   Info: TKPrintMeasureInfo;
@@ -2250,6 +2382,8 @@ begin
   begin
     FValidating := True;
     try
+      if Assigned(FOnUpdateSettings) then
+        FOnUpdateSettings(Self);
 //      Printer.Refresh;
       I := Printer.Printers.IndexOf(FPrinterName);
       if I >= 0 then
@@ -2313,29 +2447,64 @@ begin
       FHeaderSpace := InchesToValue(FUnits, FPrinterHeaderSpace / FPrinterPixelsPerInchY);
       FPrinterFooterSpace := Round(MinMax(ValueToInches(FUnits, Max(FFooterSpace, 0)) * FPrinterPixelsPerInchY, 0, D -  FPrinterMarginBottom));
       FFooterSpace := InchesToValue(FUnits, FPrinterFooterSpace / FPrinterPixelsPerInchY);
+      // limit and convert extra space
+      FPrinterExtraSpaceLeft := Round(ValueToInches(FUnits, Max(FExtraSpaceLeft, 0)) * FPrinterPixelsPerInchX);
+      FExtraSpaceLeft := InchesToValue(FUnits, FPrinterExtraSpaceLeft / FPrinterPixelsPerInchX);
+      FMappedExtraSpaceLeft := MulDiv(FPrinterExtraSpaceLeft, PixelsPerInchX, FPrinterPixelsPerInchX);
+      FPrinterExtraSpaceRight := Round(ValueToInches(FUnits, Max(FExtraSpaceRight, 0)) * FPrinterPixelsPerInchX);
+      FExtraSpaceRight := InchesToValue(FUnits, FPrinterExtraSpaceRight / FPrinterPixelsPerInchX);
+      FMappedExtraSpaceRight := MulDiv(FPrinterExtraSpaceRight, PixelsPerInchX, FPrinterPixelsPerInchX);
       // paint area extent
-      FPaintAreaHeight := MulDiv(FPageHeight - FPrinterMarginTop - FPrinterMarginBottom - FPrinterHeaderSpace - FPrinterFooterSpace, PixelsPerInchY, FPrinterPixelsPerInchY);
-      FPaintAreaWidth := MulDiv(FPageWidth - FPrinterMarginLeft - FPrinterMarginRight, PixelsPerInchX, FPrinterPixelsPerInchX);
+      FPrinterPaintAreaHeight := FPageHeight - FPrinterMarginTop - FPrinterMarginBottom - FPrinterHeaderSpace - FPrinterFooterSpace;
+      FPaintAreaHeight := InchesToValue(FUnits, FPrinterPaintAreaHeight / FPrinterPixelsPerInchY);
+      FMappedPaintAreaHeight := MulDiv(FPrinterPaintAreaHeight, PixelsPerInchY, FPrinterPixelsPerInchY);
+      FPrinterPaintAreaWidth := FPageWidth - FPrinterMarginLeft - FPrinterMarginRight;
+      FPaintAreaWidth := InchesToValue(FUnits, FPrinterPaintAreaWidth / FPrinterPixelsPerInchX);
+      FMappedPaintAreaWidth := MulDiv(FPrinterPaintAreaWidth, PixelsPerInchX, FPrinterPixelsPerInchX);
+      // control paint area extent
+      FPrinterControlPaintAreaWidth := FPrinterPaintAreaWidth;
+      if poFitToPage in FOptions then
+        Dec(FPrinterControlPaintAreaWidth, FPrinterExtraSpaceLeft + FPrinterExtraSpaceRight);
+      FControlPaintAreaWidth := InchesToValue(FUnits, FPrinterControlPaintAreaWidth / FPrinterPixelsPerInchX);
+      FMappedControlPaintAreaWidth := MulDiv(FPrinterControlPaintAreaWidth, PixelsPerInchX, FPrinterPixelsPerInchX);
+
       // default horizontal scaling
       FCurrentScale := FScale / 100;
       // default page/copy info
       FCurrentCopy := 0;
       FCurrentPage := 0;
+      FExtraLeftPages := 0;
+      FExtraRightPages := 0;
       // measured data
       if Assigned(FControl) then
       begin
         FillChar(Info, SizeOf(TKPrintMeasureInfo), 0);
         FControl.MeasurePages(Info);
         FOutlineWidth := Info.OutlineWidth;
+        ExtraHSpace := FMappedExtraSpaceLeft + FMappedExtraSpaceRight;
+        if (ExtraHSpace > 0) and not (poFitToPage in FOptions) then
+        begin
+          FExtraLeftPages := DivUp(FMappedExtraSpaceLeft, FMappedControlPaintAreaWidth);
+          if FMappedExtraSpaceLeft > FMappedControlPaintAreaWidth then
+            FOutlineWidth := FMappedControlPaintAreaWidth
+          else
+            FOutlineWidth := Max(FOutlineWidth, FMappedExtraSpaceLeft);
+          FExtraRightPages := DivUp(FMappedExtraSpaceRight, FMappedControlPaintAreaWidth);
+          if FMappedExtraSpaceRight > FMappedControlPaintAreaWidth then
+            FOutlineWidth := FMappedControlPaintAreaWidth
+          else
+            FOutlineWidth := Max(FOutlineWidth, FMappedExtraSpaceRight);
+        end;
         FOutlineHeight := Info.OutlineHeight;
-        FHorzPageCount := Info.HorzPageCount;
+        FControlHorzPageCount := Info.HorzPageCount;
+        FHorzPageCount := FControlHorzPageCount + FExtraLeftPages + FExtraRightPages;
         FVertPageCount := Info.VertPageCount;
-        FPageCount := Info.PageCount;
+        FPageCount := Info.PageCount + (FExtraLeftPages + FExtraRightPages) * FVertPageCount;
         if FPageCount > 0 then
         begin
           // update horizontal scaling
           if (poFitToPage in FOptions) and (FOutlineWidth > 0) then
-            FCurrentScale := FPaintAreaWidth / FOutlineWidth;
+            FCurrentScale := FMappedControlPaintAreaWidth / FOutlineWidth;
           // limit start and end page
           case FRange of
             prAll, prSelectedOnly:

@@ -657,7 +657,7 @@ procedure StretchBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcRect: TRect
 { Swaps the color format from RGB to BGR and vice versa. }
 function SwitchRGBToBGR(Value: TColor): TColor;
 
-{ Subtracts the current device context offset to ARect. }
+{ Subtracts the current device context offset from ARect. }
 procedure TranslateRectToDevice(DC: HDC; var ARect: TRect);
 
 { Returns vertical position of shape within ABoundary according to AAlignment. Shape has size defined by AShapeSize. }
