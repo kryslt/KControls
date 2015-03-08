@@ -9686,12 +9686,11 @@ begin
   SelOnly := APageSetup.Range = prSelectedOnly;
   Scale := APageSetup.Scale / 100;
   Axis(GetAxisInfoHorz([]), Round(APageSetup.MappedControlPaintAreaWidth / Scale), R.Col1, R.Col2,
-    SelOnly, FitToPage, Info.HorzPageCount, Info.OutlineWidth);
+    SelOnly, FitToPage, Info.ControlHorzPageCount, Info.OutlineWidth);
   if FitToPage then
     Scale := APageSetup.MappedControlPaintAreaWidth / Info.OutlineWidth;
   Axis(GetAxisInfoVert([]), Round(APageSetup.MappedPaintAreaHeight / Scale), R.Row1, R.Row2,
-    SelOnly, False, Info.VertPageCount, Info.OutlineHeight);
-  Info.PageCount := Info.HorzPageCount * Info.VertPageCount;
+    SelOnly, False, Info.ControlVertPageCount, Info.OutlineHeight);
 end;
 
 procedure TKCustomGrid.MouseCellHint(ACol, ARow: Integer; AShow: Boolean);
@@ -10637,9 +10636,9 @@ begin
   SelOnly := APageSetup.Range = prSelectedOnly;
   AreaWidth := Round(APageSetup.MappedControlPaintAreaWidth / APageSetup.CurrentScale);
   AreaHeight := Round(APageSetup.MappedPaintAreaHeight / APageSetup.CurrentScale);
-  Axis(GetAxisInfoHorz([]), AreaWidth, (APageSetup.ControlCurrentPage - 1) mod APageSetup.ControlHorzPageCount + 1,
+  Axis(GetAxisInfoHorz([]), AreaWidth, (APageSetup.CurrentPageControl - 1) mod APageSetup.ControlHorzPageCount + 1,
     R.Col1, R.Col2, SelOnly, FitToPage, FirstCol, LastCol, OutlineWidth);
-  Axis(GetAxisInfoVert([]), AreaHeight, (APageSetup.ControlCurrentPage - 1) div APageSetup.ControlHorzPageCount + 1,
+  Axis(GetAxisInfoVert([]), AreaHeight, (APageSetup.CurrentPageControl - 1) div APageSetup.ControlHorzPageCount + 1,
     R.Row1, R.Row2, SelOnly, False, FirstRow, LastRow, OutlineHeight);
   if poUseColor in APageSetup.Options then
     FColors.ColorScheme := csNormal

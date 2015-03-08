@@ -3373,9 +3373,8 @@ begin
   else
     ActiveLines := LineCount;
   Info.OutlineHeight := PageLines * FCharHeight;
-  Info.HorzPageCount := 1; // cut text off
-  Info.VertPageCount := DivUp(ActiveLines, PageLines);
-  Info.PageCount := Info.VertPageCount;
+  Info.ControlHorzPageCount := 1; // cut text off
+  Info.ControlVertPageCount := DivUp(ActiveLines, PageLines);
 end;
 
 procedure TKCustomHexEditor.ModifyScrollBar(ScrollBar, ScrollCode,
@@ -4005,7 +4004,7 @@ begin
     FirstLine := 0;
     ActiveLines := LineCount;
   end;
-  TmpRect := Rect(0, 0, APageSetup.OutlineWidth, APageSetup.OutlineHeight);
+  TmpRect := Rect(0, 0, APageSetup.MappedOutlineWidth, APageSetup.MappedOutlineHeight);
   TmpRect1 := Rect(0, 0, AreaWidth, AreaHeight);
   IntersectRect(TmpRect, TmpRect, TmpRect1);
   TmpRect1 := TmpRect;
@@ -4015,7 +4014,7 @@ begin
   Data.Canvas.Font := Font;
   Data.Canvas.Font.Height := Abs(Font.Height);
   Data.PaintRect := TmpRect;
-  Data.TopLine := (APageSetup.ControlCurrentPage - 1) * PageLines;
+  Data.TopLine := (APageSetup.CurrentPageControl - 1) * PageLines;
   Data.BottomLine := Min(Data.TopLine + PageLines, ActiveLines) - 1;
   Inc(Data.TopLine, FirstLine);
   Inc(Data.BottomLine, FirstLine);

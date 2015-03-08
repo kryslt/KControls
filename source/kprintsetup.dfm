@@ -144,8 +144,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBLeft: TLabel
-      Left = 8
-      Top = 86
+      Left = 14
+      Top = 103
       Width = 23
       Height = 13
       Caption = 'Left:'
@@ -154,8 +154,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBRight: TLabel
-      Left = 102
-      Top = 86
+      Left = 114
+      Top = 103
       Width = 29
       Height = 13
       Caption = 'Right:'
@@ -164,8 +164,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBTop: TLabel
-      Left = 9
-      Top = 131
+      Left = 63
+      Top = 65
       Width = 22
       Height = 13
       Caption = 'Top:'
@@ -174,8 +174,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBBottom: TLabel
-      Left = 102
-      Top = 131
+      Left = 62
+      Top = 140
       Width = 38
       Height = 13
       Caption = 'Bottom:'
@@ -184,8 +184,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBUnitsLeft: TLabel
-      Left = 58
-      Top = 105
+      Left = 64
+      Top = 122
       Width = 7
       Height = 13
       Caption = 'A'
@@ -193,8 +193,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBUnitsTop: TLabel
-      Left = 58
-      Top = 150
+      Left = 112
+      Top = 84
       Width = 7
       Height = 13
       Caption = 'A'
@@ -202,8 +202,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBUnitsRight: TLabel
-      Left = 152
-      Top = 105
+      Left = 164
+      Top = 122
       Width = 7
       Height = 13
       Caption = 'A'
@@ -211,8 +211,8 @@ object KPrintSetupForm: TKPrintSetupForm
       ParentColor = False
     end
     object LBUnitsBottom: TLabel
-      Left = 152
-      Top = 150
+      Left = 112
+      Top = 159
       Width = 7
       Height = 13
       Caption = 'A'
@@ -243,32 +243,32 @@ object KPrintSetupForm: TKPrintSetupForm
       OnClick = CBPageNumbersClick
     end
     object EDLeft: TEdit
-      Left = 8
-      Top = 102
+      Left = 14
+      Top = 119
       Width = 48
-      Height = 21
+      Height = 20
       TabOrder = 1
       OnExit = EDTopExit
     end
     object EDRight: TEdit
-      Left = 102
-      Top = 102
+      Left = 114
+      Top = 119
       Width = 48
       Height = 21
       TabOrder = 2
       OnExit = EDTopExit
     end
     object EDTop: TEdit
-      Left = 8
-      Top = 147
+      Left = 62
+      Top = 81
       Width = 48
       Height = 21
       TabOrder = 3
       OnExit = EDTopExit
     end
     object EDBottom: TEdit
-      Left = 102
-      Top = 147
+      Left = 62
+      Top = 156
       Width = 48
       Height = 21
       TabOrder = 4

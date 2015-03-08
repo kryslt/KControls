@@ -186,10 +186,8 @@ begin
       CoBPrinterName.Items.Assign(Printer.Printers);
       CoBPrinterName.ItemIndex := CoBPrinterName.Items.IndexOf(FPageSetup.PrinterName);
       if CoBPrinterName.ItemIndex < 0 then CoBPrinterName.ItemIndex := Printer.PrinterIndex;
-      RBSelectedOnly.Enabled := FPageSetup.SelAvail;
-      if RBSelectedOnly.Enabled and FSelAvail then
-        RBSelectedOnly.Checked := True
-      else if FPageSetup.Range = prRange then
+      RBSelectedOnly.Enabled := FPageSetup.SelAvail and FSelAvail;
+      if FPageSetup.Range = prRange then
         RBRange.Checked := True
       else
         RBAll.Checked := True;
@@ -204,10 +202,10 @@ begin
       EDTitle.Text := FPageSetup.Title;
       CoBMarginUnits.ItemIndex := Integer(FPageSetup.Units);
       S := FmtUnit;
-      EDBottom.Text := FmtMargin(FPageSetup.MarginBottom); LBUnitsBottom.Caption := S;
-      EDLeft.Text := FmtMargin(FPageSetup.MarginLeft); LBUnitsLeft.Caption := S;
-      EDRight.Text := FmtMargin(FPageSetup.MarginRight); LBUnitsRight.Caption := S;
-      EDTop.Text := FmtMargin(FPageSetup.MarginTop); LBUnitsTop.Caption := S;
+      EDBottom.Text := FmtMargin(FPageSetup.UnitMarginBottom); LBUnitsBottom.Caption := S;
+      EDLeft.Text := FmtMargin(FPageSetup.UnitMarginLeft); LBUnitsLeft.Caption := S;
+      EDRight.Text := FmtMargin(FPageSetup.UnitMarginRight); LBUnitsRight.Caption := S;
+      EDTop.Text := FmtMargin(FPageSetup.UnitMarginTop); LBUnitsTop.Caption := S;
     finally
       FUpdateLock := False;
     end;
@@ -241,10 +239,10 @@ begin
       FPageSetup.Scale := StrToIntDef(EDPrintScale.Text, FPageSetup.Scale);
       FPageSetup.Title := EDTitle.Text;
       FPageSetup.Units := TKPrintUnits(CoBMarginUnits.ItemIndex);
-      FPageSetup.MarginBottom := StrToFloatDef(AdjustDecimalSeparator(EDBottom.Text), FPageSetup.MarginBottom);
-      FPageSetup.MarginLeft := StrToFloatDef(AdjustDecimalSeparator(EDLeft.Text), FPageSetup.MarginLeft);
-      FPageSetup.MarginRight := StrToFloatDef(AdjustDecimalSeparator(EDRight.Text), FPageSetup.MarginRight);
-      FPageSetup.MarginTop := StrToFloatDef(AdjustDecimalSeparator(EDTop.Text), FPageSetup.MarginTop);
+      FPageSetup.UnitMarginBottom := StrToFloatDef(AdjustDecimalSeparator(EDBottom.Text), FPageSetup.UnitMarginBottom);
+      FPageSetup.UnitMarginLeft := StrToFloatDef(AdjustDecimalSeparator(EDLeft.Text), FPageSetup.UnitMarginLeft);
+      FPageSetup.UnitMarginRight := StrToFloatDef(AdjustDecimalSeparator(EDRight.Text), FPageSetup.UnitMarginRight);
+      FPageSetup.UnitMarginTop := StrToFloatDef(AdjustDecimalSeparator(EDTop.Text), FPageSetup.UnitMarginTop);
     finally
       FPageSetup.UnlockUpdate;
     end;
@@ -300,7 +298,6 @@ end;
 
 procedure TKPrintSetupForm.RBAllClick(Sender: TObject);
 begin
-  FSelAvail := RBSelectedOnly.Checked;
   ValidateForm;
 end;
 
