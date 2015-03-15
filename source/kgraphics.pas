@@ -122,7 +122,9 @@ type
     { Text line(s) will be broken if they don't fit within col width. }
     taWrapText, //JR:20091229
     { White spaces will be trimmed at the beginning or end of text lines. }
-    taTrimWhiteSpaces
+    taTrimWhiteSpaces,
+    { Text will be drawn with start ellipsis if it does not fit within given width. }
+    taStartEllipsis
   );
 
   { Set type for @link(TKTextAttribute) enumeration. }
@@ -2211,7 +2213,7 @@ end;
 
 procedure TKTextBox.Process(Y: Integer; AFunction: TKTextBoxFunction);
 var
-  EndEllipsis, PathEllipsis: Boolean;
+  StartEllipsis, EndEllipsis, PathEllipsis: Boolean;
   Width, EllipsisWidth: Integer;
   NormalColor, NormalBkgnd: TColor;
 
@@ -2285,26 +2287,50 @@ var
       DrawFileName := False;
       SlashPos := 0;
       FileNameLen := 0;
-      if (EndEllipsis or PathEllipsis) and (ALen > 1) then
+      if (StartEllipsis or EndEllipsis or PathEllipsis) and (ALen > 1) then
       begin
         AWidth := TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
         if AWidth > Width then
         begin
           AWidth := 0;
           Index := AStart;
-          if EndEllipsis then
+          if EndEllipsis or StartEllipsis then
           begin
             EllipsisMaxX := Width - EllipsisWidth;
-            while (Index <= AStart + ALen - 1) do
+            if EndEllipsis then
             begin
-              NewIndex := StrNextCharIndex(FText, Index);
-              Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
-              if (AWidth >= EllipsisMaxX) and (Index > AStart) then
-                Break
-              else
-                Index := NewIndex;
+              while Index <= AStart + ALen - 1 do
+              begin
+                NewIndex := StrNextCharIndex(FText, Index);
+                Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+                if (AWidth >= EllipsisMaxX) and (Index > AStart) then
+                  Break
+                else
+                  Index := NewIndex;
+              end;
+              ALen := Index - AStart;
+            end else
+            begin
+              Index := AStart + ALen - 1;
+              while Index > AStart do
+              begin
+                NewIndex := StrPreviousCharIndex(FText, Index);
+                Inc(AWidth, TextExtent(FCanvas, FText, Index, Index - NewIndex, FHasTabs, FSpacesForTab).cx);
+                if AWidth >= EllipsisMaxX then
+                  Break
+                else
+                  Index := NewIndex;
+              end;
+              if Index = AStart + ALen - 1 then
+              begin
+                AStart := Index;
+                ALen := 1;
+              end else
+              begin
+                Dec(ALen, Index - AStart);
+                AStart := Index + 1;
+              end;
             end;
-            ALen := Index - AStart;
             DrawEllipsis := True;
           end
           else if PathEllipsis then
@@ -2336,10 +2362,11 @@ var
       if DrawEllipsis then
       begin
         if DrawFileName then
-        begin
-          S := Copy(FText, AStart, ALen) + cEllipsis + Copy(FText, AStart + SlashPos, FileNameLen);
-        end else
-          S := Copy(FText, AStart, ALen) + cEllipsis;
+          S := Copy(FText, AStart, ALen) + cEllipsis + Copy(FText, AStart + SlashPos, FileNameLen)
+        else if EndEllipsis then
+          S := Copy(FText, AStart, ALen) + cEllipsis
+        else
+          S := cEllipsis + Copy(FText, AStart, ALen);
         AStart := 1;
         ALen := Length(S);
       end else
@@ -2431,6 +2458,7 @@ begin
     WrapText := taWrapText in Attributes; //JR:20091229
     if AFunction = tbfDraw then
     begin
+      StartEllipsis := taStartEllipsis in Attributes;
       EndEllipsis := taEndEllipsis in Attributes;
       PathEllipsis := taPathEllipsis in Attributes;
       EllipsisWidth := TextExtent(FCanvas, cEllipsis, 1, Length(cEllipsis)).cx;

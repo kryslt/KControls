@@ -683,6 +683,10 @@ procedure StripLastPathSlash(var APath: string);
   Takes MBCS (UTF8 in Lazarus) into account. }
 function StrNextCharIndex(const AText: TKString; Index: Integer): Integer;
 
+{ Returns previous character index for given null terminated string and character index.
+  Takes MBCS (UTF8 in Lazarus) into account. }
+function StrPreviousCharIndex(const AText: TKString; Index: Integer): Integer;
+
 { Returns the index for given string where character at given index begins.
   Takes MBCS (UTF8 in Lazarus) into account. }
 function StringCharBegin(const AText: TKString; Index: Integer): Integer;
@@ -2005,6 +2009,15 @@ begin
   Result := Index + UTF8CharacterLength(@AText[Index]);
 {$ELSE}
   Result := Index + 1; // neglecting surrogate pairs
+{$ENDIF}
+end;
+
+function StrPreviousCharIndex(const AText: TKString; Index: Integer): Integer;
+begin
+{$IFDEF FPC}
+  Result := Index - UTF8CharacterLength(@AText[StringCharBegin(AText, Index - 1)]);
+{$ELSE}
+  Result := Index - 1; // neglecting surrogate pairs
 {$ENDIF}
 end;
 
