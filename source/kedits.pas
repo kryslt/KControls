@@ -273,7 +273,7 @@ type
 
   TKFileNameEditButtonAlign = (fbaRight, fbaLeft, fbaLeftDown, fbaRightDown);
 
-  TKFileNameEditOption = (foFolderOnly, foAlwaysInitialDir, foAddToList,
+  TKFileNameEditOption = (foFolderOnly, foSaveDialog, foAlwaysInitialDir, foAddToList,
     foCheckPath, foCorrectPath, foPathMustExist, foAddInitialDir,
     foCheckWithInitialDir, foWarning);
 
@@ -1700,6 +1700,7 @@ end;
 procedure TKFileNameEdit.ButtonClick(Sender: TObject);
 var
   OD: TOpenDialog;
+  SD: TSaveDialog;
   BF: TKBrowseFolderDialog;
 begin
   if foFolderOnly in FOptions then
@@ -1722,6 +1723,29 @@ begin
       end;
     finally
       BF.Free;
+    end;
+  end else if foSaveDialog in FOptions then
+  begin
+    SD := TSaveDialog.Create(Self);
+    try
+      if (Text = '') or (foAlwaysInitialDir in FOptions) then
+        SD.InitialDir := FDlgProperties.InitialDir
+      else
+        SD.InitialDir := ExtractFilePath(Text);
+      SD.DefaultExt := FDlgProperties.DefaultExt;
+      SD.Filter := FDlgProperties.Filter;
+      SD.FilterIndex := FDlgProperties.FilterIndex;
+      SD.Options := FDlgProperties.OpenOptions;
+      if SD.Execute then
+      begin
+        Text := SD.FileName;
+        if foAddToList in FOptions then
+          Items.Insert(0, Text);
+        FDlgProperties.InitialDir := ExtractFilePath(Text);
+        Font.Color := clWindowText;
+      end;
+    finally
+      SD.Free;
     end;
   end else
   begin
