@@ -1269,11 +1269,22 @@ function BinToDigit(Value: Byte): AnsiChar;
   <LI><I>SelStart, SelEnd</I> - specifies which part of the buffer is about to be
   converted. SelStart.Index must be lower or equal to SelEnd.Index - intended for
   @link(TKCustomHexEditor.GetRealSelStart) and @link(TKCustomHexEditor.GetRealSelEnd).</LI>
-  </UL> }
-function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection): AnsiString; overload;
+  </UL>
+  Example: '#AF#01#DC#05#30' is converted into 'AF01DC0530'.
+  If AInsertSpaces is True then resulting string is 'AF 01 DC 05 30'. }
+function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection;
+  AInsertSpaces: Boolean = False): AnsiString; overload;
 
 { Convertes binary data into hexadecimal digit string. Uses AnsiString as source data. }
-function BinaryToDigits(const Source: AnsiString): AnsiString; overload;
+function BinaryToDigits(const Source: AnsiString;
+  AInsertSpaces: Boolean = False): AnsiString; overload;
+
+{ Converts a binary value string into hexadecimal digit string. If the binary value string
+  is not divisible by 2, it will be trimmed. Example:
+  '#A#F#0#1#D#C#0#5#3' is converted into 'AF01DC05'.
+  If AInsertSpaces is True then resulting string is 'AF 01 DC 05'. }
+function BinStrToDigits(const Source: AnsiString;
+  AInsertSpaces: Boolean = False): AnsiString;
 
 { Converts binary data into text using given character mapping.
   <UL>
@@ -1287,6 +1298,10 @@ function BinaryToDigits(const Source: AnsiString): AnsiString; overload;
 function BinaryToText(Buffer: PBytes; SelStart, SelEnd: Integer;
   CharMapping: PKEditCharMapping): AnsiString;
 
+{ Insert spaces into hexadecimal digit string.
+  Example: 'AF01DC05' becomes 'AF 01 DC 05'. }
+function InsertSpacesToDigits(const Source: AnsiString): AnsiString;
+
 { Replaces a hexadecimal digit in the given binary value. Returns the original
   value with a replaced digit.
   <UL>
@@ -1297,6 +1312,8 @@ function BinaryToText(Buffer: PBytes; SelStart, SelEnd: Integer;
   </UL>
   Example: Value = $A18D, Digit = $C, Pos = 3: Result = $AC8D }
 function ReplaceDigit(Value, Digit, Pos: Integer): Integer;
+
+function ReplaceNonprintableCharacters(const AText: AnsiString; AMapping: TKEditCharMapping = nil): AnsiString;
 
 { Declared for backward compatibility only. Use @link(TKCustomHexEditor.Colors) and its properties/methods. }
 function GetColorSpec(Index: TKHexEditorColorIndex): TKHexEditorColorSpec;
@@ -1405,11 +1422,16 @@ begin
     Result := AnsiChar(Ord('0') + Value)
 end;
 
-function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection): AnsiString;
+function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection;
+  AInsertSpaces: Boolean): AnsiString;
 var
-  I, J: Integer;
+  I, J, SpaceCount: Integer;
 begin
-  SetLength(Result, (SelEnd.Index - SelStart.Index) * cDigitCount - SelStart.Digit + SelEnd.Digit);
+  if AInsertSpaces then
+    SpaceCount := SelEnd.Index - SelStart.Index - 1
+  else
+    SpaceCount := 0;
+  SetLength(Result, (SelEnd.Index - SelStart.Index) * cDigitCount - SelStart.Digit + SelEnd.Digit + SpaceCount);
   J := 1;
   for I := SelStart.Index to SelEnd.Index do
   begin
@@ -1423,12 +1445,42 @@ begin
       Result[J] := BinToDigit(Buffer[I] and $F);
       Inc(J);
     end;
+    if AInsertSpaces and (I < SelEnd.Index) then
+    begin
+      Result[J] := ' ';
+      Inc(J);
+    end;
   end;
 end;
 
-function BinaryToDigits(const Source: AnsiString): AnsiString;
+function BinaryToDigits(const Source: AnsiString; AInsertSpaces: Boolean): AnsiString;
 begin
-  Result := BinaryToDigits(PBytes(@Source[1]), MakeSelection(0, 0), MakeSelection(Length(Source) - 1, cDigitCount));
+  Result := BinaryToDigits(PBytes(@Source[1]), MakeSelection(0, 0), MakeSelection(Length(Source) - 1, cDigitCount), AInsertSpaces);
+end;
+
+function BinStrToDigits(const Source: AnsiString; AInsertSpaces: Boolean): AnsiString;
+var
+  I, J, CharLen, SpaceCount: Integer;
+begin
+  CharLen := Length(Source) div 2;
+  if AInsertSpaces then
+    SpaceCount := CharLen - 1
+  else
+    SpaceCount := 0;
+  SetLength(Result, CharLen * 2 + SpaceCount);
+  J := 1;
+  for I := 1 to CharLen do
+  begin
+    Result[J] := BinToDigit(Ord(Source[I * 2 - 1]));
+    Inc(J);
+    Result[J] := BinToDigit(Ord(Source[I * 2]));
+    Inc(J);
+    if AInsertSpaces and (I < CharLen) then
+    begin
+      Result[J] := ' ';
+      Inc(J);
+    end;
+  end;
 end;
 
 function BinaryToText(Buffer: PBytes; SelStart, SelEnd: Integer;
@@ -1447,6 +1499,28 @@ begin
     Result := '';
 end;
 
+function InsertSpacesToDigits(const Source: AnsiString): AnsiString;
+var
+  I, J, CharLen, SpaceCount: Integer;
+begin
+  CharLen := Length(Source) div 2;
+  SpaceCount := CharLen - 1;
+  SetLength(Result, CharLen * 2 + SpaceCount);
+  J := 1;
+  for I := 1 to CharLen do
+  begin
+    Result[J] := Source[I * 2 - 1];
+    Inc(J);
+    Result[J] := Source[I * 2];
+    Inc(J);
+    if I < CharLen then
+    begin
+      Result[J] := ' ';
+      Inc(J);
+    end;
+  end;
+end;
+
 function ReplaceDigit(Value, Digit, Pos: Integer): Integer;
 var
   I, Mask, O: Integer;
@@ -1456,6 +1530,17 @@ begin
     O := O * cBase;
   Mask := cBase - 1;
   Result := (((Value div O) and not Mask) + (Digit and Mask)) * O + Value mod O;
+end;
+
+function ReplaceNonprintableCharacters(const AText: AnsiString; AMapping: TKEditCharMapping = nil): AnsiString;
+var
+  I: Integer;
+begin
+  if AMapping = nil then
+    AMapping := DefaultCharMapping;
+  SetLength(Result, Length(AText));
+  for I := 1 to Length(AText) do
+    Result[I] := AMapping[Ord(AText[I])];
 end;
 
 function OppositeReason(ItemReason: TKHexEditorChangeReason): TKHexEditorChangeReason;
