@@ -2440,8 +2440,7 @@ end;
 
 procedure TKPrintPageSetup.UpdateSettings;
 var
-  I, PixelsPerInchX, PixelsPerInchY,
-  ExtraHSpace: Integer;
+  I, PixelsPerInchX, PixelsPerInchY: Integer;
   D: Double;
   DC: HDC;
   Info: TKPrintMeasureInfo;

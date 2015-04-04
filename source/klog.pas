@@ -67,6 +67,7 @@ type
     FStatusPanel: Integer;
     FStatusTimer: TTimer;
     FStatusText: string;
+    FOnLog: TKLogEvent;
     procedure SetStatusText(const Value: string);
   protected
     procedure ClearStatusBar;
@@ -79,7 +80,7 @@ type
     destructor Destroy; override;
     procedure Clear;
     procedure Log(Code: TKLogType; const Text: string);
-    procedure LogStr(const BracketText, Text: string);
+    procedure LogStr(const BracketText, Text: string; Code: TKLogType = lgNone);
     procedure StatusLog(Code: TKLogType; const Text: string);
     procedure StatusLogStr(const BracketText, Text: string);
   published
@@ -92,6 +93,7 @@ type
     property StatusPanel: Integer read FStatusPanel write FStatusPanel default cStatusPanelDef;
     property StatusText: string read FStatusText write SetStatusText;
     property HoverTime: Cardinal read FHoverTime write SetHoverTime default cHoverTimeDef;
+    property OnLog: TKLogEvent read FOnLog write FOnLog;
   end;
 
 implementation
@@ -113,6 +115,7 @@ begin
   FStatusTimer.OnTimer := StatusLogTimer;
   FStatusText := '';
   FStatusCode := lgNone;
+  FOnLog := nil;
 end;
 
 destructor TKLog.Destroy;
@@ -163,10 +166,10 @@ var
 begin
   S := LogTypeToText(Code);
   if (S <> '') or (Code = lgNone) then
-    LogStr(S, Text);
+    LogStr(S, Text, Code);
 end;
 
-procedure TKLog.LogStr(const BracketText, Text: string);
+procedure TKLog.LogStr(const BracketText, Text: string; Code: TKLogType);
 begin
   if BracketText <> '' then
     FLogText := Format('%s: [%s] %s', [FormatDateTime('dd.mm.yy hh:nn:ss', Now), BracketText, Text])
@@ -184,6 +187,8 @@ begin
       if not FListBox.MultiSelect then FListBox.ItemIndex := FListBox.Items.Count - 1;
     end
   end;
+  if Assigned(FOnLog) then
+    FOnLog(Self, Code, FLogText);
 end;
 
 procedure TKLog.Notification(AComponent: TComponent; Operation: TOperation);
