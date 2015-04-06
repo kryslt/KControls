@@ -1,4 +1,4 @@
-{ @abstract(This unit contains some texts localized to different languages)
+{ @abstract(This unit contains modified TSplitter component. )
   @author(Tomas Krysl (tk@@tkweb.eu))
   @created(20 Oct 2001)
   @lastmod(12 Feb 2014)

@@ -580,6 +580,10 @@ procedure DrawEdges(Canvas: TCanvas; const R: TRect; HighlightColor,
 procedure DrawFilledRectangle(Canvas: TCanvas; const ARect: TRect;
   BackColor: TColor);
 
+{ Fills rectangle with linear gradient. Parameters should be self explaining. }
+procedure DrawGradientRect(Canvas: TCanvas; const ARect: TRect;
+  AStartColor, AEndColor: TColor; AColorStep: Integer; AHorizontal: Boolean);
+
 { This helper function excludes a rectangular area occupied by a shape from
   BaseRect and calculates the shape area rectangles Bounds and Interior.
   The shape area is specified by the shape extent (ShapeWidth and ShapeHeight),
@@ -988,6 +992,89 @@ begin
   SetBkMode(DC, OPAQUE);
   SetBkColor(DC, ColorToRGB(BackColor));
   FillRect(DC, ARect, Canvas.Brush.Handle);
+end;
+
+procedure DrawGradientRect(Canvas: TCanvas; const ARect: TRect;
+  AStartColor, AEndColor: TColor; AColorStep: Integer; AHorizontal: Boolean);
+var
+  J, OldJ, Extent, Num: Integer;
+  L: Byte;
+  CS, CE: TKColorRec;
+  RCnt, GCnt, BCnt: Longint;
+  RInc, GInc, BInc: Longint;
+  B: Boolean;
+  R: TRect;
+
+  function NumToRGB(Num: Cardinal): TKColorRec;
+  begin
+    Result.R := Byte(Num shr 16);
+    Result.G := Byte(Num shr 8);
+    Result.B := Byte(Num);
+  end;
+
+  function RGBToNum(Col: TKColorRec): Cardinal;
+  begin
+    Result := Cardinal(Col.R) shl 16 + Cardinal(Col.G) shl 8 + Col.B;
+  end;
+
+begin
+  with Canvas do
+  begin
+    if AHorizontal then
+      Extent := ARect.Right - ARect.Left - 1
+    else
+      Extent := ARect.Bottom - ARect.Top - 1;
+    Num := Max(Extent div AColorStep, 1);
+    CS := NumToRGB(AStartColor);
+    CE := NumToRGB(AEndColor);
+    // colors per pixel
+    RInc := (Integer(CE.R - CS.R) shl 16) div Extent;
+    GInc := (Integer(CE.G - CS.G) shl 16) div Extent;
+    Binc := (Integer(CE.B - CS.B) shl 16) div Extent;
+    // start colors
+    RCnt := CS.R shl 16;
+    GCnt := CS.G shl 16;
+    BCnt := CS.B shl 16;
+    // drawing bar
+    Brush.Color := RGBToNum(CS);
+    OldJ := 0;
+    B := False;
+    for J := 0 to Extent do
+    begin
+      Inc(RCnt, RInc);
+      L := Byte(RCnt shr 16);
+      if L <> CS.R then
+      begin
+        CS.R := L;
+        B := True;
+      end;
+      Inc(GCnt, GInc);
+      L := Byte(GCnt shr 16);
+      if L <> CS.G then
+      begin
+        CS.G := L;
+        B := True;
+      end;
+      Inc(BCnt, BInc);
+      L := Byte(BCnt shr 16);
+      if L <> CS.B then
+      begin
+        CS.B := L;
+        B := True;
+      end;
+      if B and (J mod Num = 0) then
+      begin
+        if AHorizontal then
+          R := Rect(ARect.Left + OldJ, ARect.Top, ARect.Left + J, ARect.Bottom)
+        else
+          R := Rect(ARect.Left, ARect.Top + OldJ, ARect.Right, ARect.Top + J);
+        FillRect(R);
+        Brush.Color := RGBToNum(CS);
+        OldJ := J;
+        B := False;
+      end;
+    end;
+  end;
 end;
 
 procedure ExcludeShapeFromBaseRect(var BaseRect: TRect; ShapeWidth, ShapeHeight: Integer;

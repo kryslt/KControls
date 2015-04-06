@@ -207,86 +207,20 @@ begin
 end;
 
 procedure TKGradientLabel.Paint;
-var
-  J, OldJ, K, Num: Integer;
-  L: Byte;
-  C, C1: TKColorRec;
-  RCnt, GCnt, BCnt: Longint;
-  RInc, GInc, BInc: Longint;
-  B: Boolean;
-
-  function NumToRGB(Num: Cardinal): TKColorRec;
-  begin
-    Result.R := Byte(Num shr 16);
-    Result.G := Byte(Num shr 8);
-    Result.B := Byte(Num);
-  end;
-
-  function RGBToNum(Col: TKColorRec): Cardinal;
-  begin
-    Result := Cardinal(Col.R) shl 16 + Cardinal(Col.G) shl 8 + Col.B;
-  end;
-
 begin
-  K := Width + 1;
-  if K > 0 then
+  if Width > 0 then
   begin
-    BM.Width := K;
+    BM.Width := Width;
     BM.Height := Max(Height - FDividerWidth, 1);
-    Num := Max(K div FColorStep, 1);
     with BM.Canvas do
     begin
       if FLeftColor <> FRightColor then
       begin
-        C := NumToRGB(FLeftColor);
-        C1 := NumToRGB(FRightColor);
-        // colors per pixel
-        RInc := (Integer(C1.R - C.R) shl 16) div K;
-        GInc := (Integer(C1.G - C.G) shl 16) div K;
-        Binc := (Integer(C1.B - C.B) shl 16) div K;
-        // start colors
-        RCnt := C.R shl 16;
-        GCnt := C.G shl 16;
-        BCnt := C.B shl 16;
-        // drawing bar
-        Brush.Color := RGBToNum(C);
-        OldJ := 0;
-        B := False;
-        for J := 0 to K do
-        begin
-          Inc(RCnt, RInc);
-          L := Byte(RCnt shr 16);
-          if L <> C.R then
-          begin
-            C.R := L;
-            B := True;
-          end;
-          Inc(GCnt, GInc);
-          L := Byte(GCnt shr 16);
-          if L <> C.G then
-          begin
-            C.G := L;
-            B := True;
-          end;
-          Inc(BCnt, BInc);
-          L := Byte(BCnt shr 16);
-          if L <> C.B then
-          begin
-            C.B := L;
-            B := True;
-          end;
-          if B and (J mod Num = 0) then
-          begin
-            FillRect(Rect(OldJ, 0, J, Height));
-            Brush.Color := RGBToNum(C);
-            OldJ := J;
-            B := False;
-          end;
-        end;
+        DrawGradientRect(BM.Canvas, Rect(0, 0, BM.Width, BM.Height), FLeftColor, FRightColor, FColorStep, True);
       end else
       begin
         Brush.Color := FLeftColor;
-        FillRect(Rect(0, 0, Width, Height));
+        FillRect(Rect(0, 0, BM.Width, BM.Height));
       end;
       Font := Self.Font;
       SetBkMode(Handle, TRANSPARENT);
@@ -300,8 +234,7 @@ begin
       begin
         Pen.Color := FDividerColor;
         Brush.Color := FDividerColor;
-        J := Max(Height - FDividerWidth, 0);
-        Rectangle(0, J, Width, Height);
+        Rectangle(0, Max(Height - FDividerWidth, 0), Width, Height);
       end;
     end;
   end;

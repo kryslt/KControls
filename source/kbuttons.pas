@@ -697,26 +697,26 @@ begin
     AC_GETAPPLICATION : begin Msg.Result := LRESULT(Application); Exit end;
     AC_SETNEWSKIN : if (LongWord(Msg.LParam) = LongWord(SkinData.SkinManager)) then
     begin
-      StopFading(FFadeTimer, FCommonData);
+      StopFading(FFadeTimer{, FCommonData});
       CommonWndProc(Msg, FCommonData);
       Exit;
     end;
     AC_REMOVESKIN : if (LongWord(Msg.LParam) = LongWord(SkinData.SkinManager)) and not (csDestroying in ComponentState) then
     begin
-      StopFading(FFadeTimer, FCommonData);
+      StopFading(FFadeTimer{, FCommonData});
       CommonWndProc(Msg, FCommonData);
       Repaint;
       Exit;
     end;
     AC_REFRESH : if LongWord(Msg.LParam) = LongWord(SkinData.SkinManager) then
     begin
-      StopFading(FFadeTimer, FCommonData);
+      StopFading(FFadeTimer{, FCommonData});
       CommonWndProc(Msg, FCommonData);
       if SkinData.PrintDC = 0 then Repaint;
       Exit;
     end;
     AC_PREPARECACHE: PrepareSkinCache(ClientRect, 0);
-    AC_STOPFADING : begin StopFading(FFadeTimer, FCommonData); Exit end;
+    AC_STOPFADING : begin StopFading(FFadeTimer{, FCommonData}); Exit end;
   end;
   CommonWndProc(Msg, FCommonData);
 {$ENDIF}
