@@ -28,7 +28,7 @@ uses
     Windows, Messages,
   {$ENDIF}
     SysUtils, Classes, Controls, Forms, Graphics,
-    ActnList, StdCtrls, Dialogs, Buttons,
+    ActnList, StdCtrls, Dialogs, Buttons, ImgList,
     KFunctions, KGraphics, KControls
   {$IFDEF USE_THEMES}
     , Themes
@@ -72,6 +72,7 @@ type
   {$ENDIF}
     FCancel: Boolean;
     FDefault: Boolean;
+    FFocusRect: Boolean;
     FHAlign: TKHAlign;
     FModalResult: TModalResult;
     FStates: TKButtonStates;
@@ -91,6 +92,7 @@ type
 {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
     procedure SetDisabledKind(const Value: TsDisabledKind);
 {$ENDIF}
+    procedure SetFocusRect(const Value: Boolean);
     procedure SetHAlign(const Value: TKHAlign);
     procedure SetModalResult(AValue: TModalResult);
     procedure SetVAlign(const Value: TKVAlign);
@@ -136,6 +138,7 @@ type
     property DragCursor;
     property DragKind;
     property DragMode;
+    property FocusRect: Boolean read FFocusRect write SetFocusRect default True;
     property Enabled;
     property Font;
     property ParentDoubleBuffered;
@@ -231,6 +234,33 @@ type
     property ColorDlgOptions: TColorDialogOptions read FColorDlgOptions write FColorDlgOptions;
   end;
 
+  { Custom drawn TSpeedBtn using TKAlphaBitmap as Glyph. }
+  TKSpeedButton = class(TKButtonControl)
+  private
+    FGlyph: TKAlphaBitmap;
+    FImages: TCustomImageList;
+    FImageIndex: TImageIndex;
+    function GetGlyph: TKAlphaBitmap;
+    function IsGlyphStored: Boolean;
+    procedure SetGlyph(const Value: TKAlphaBitmap);
+    procedure SetImages(const Value: TCustomImageList);
+    procedure SetImageIndex(Value: TImageIndex);
+  protected
+    procedure GlyphChange(Sender: TObject);
+    procedure DrawInterior(ACanvas: TCanvas; ARect: TRect); override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+  published
+    property Cancel;
+    property Default;
+    property Glyph: TKAlphaBitmap read GetGlyph write SetGlyph stored IsGlyphStored;
+    property Images: TCustomImageList read FImages write SetImages;
+    property ImageIndex: TImageIndex read FImageIndex write SetImageIndex default -1;
+    property ModalResult;
+  end;
+
 implementation
 
 uses
@@ -249,6 +279,7 @@ begin
   TabStop := True;
   FCancel := False;
   FDefault := False;
+  FFocusRect := True;
   FHAlign := halCenter;
   FVAlign := valCenter;
   FModalResult := mrNone;
@@ -414,7 +445,8 @@ begin
   PaintItem(FCommonData, CI, False, State, R, P,  FCommonData.FCacheBmp, True);
   OffsetRect(R, AInteriorOffset, AInteriorOffset);
   DrawInterior(FCommonData.FCacheBmp.Canvas, R);
-  DrawFocusRect(FCommonData.FCacheBmp.Canvas, R);
+  if FFocusRect then
+    DrawFocusRect(FCommonData.FCacheBmp.Canvas, R);
   if not Enabled then
     BmpDisabledKind(FCommonData.FCacheBmp, FDisabledKind, Parent, CI, P);
   Result := True;
@@ -577,7 +609,8 @@ begin
     OffsetRect(R, Ofs, Ofs);
     DrawInterior(ACanvas, R);
     OffsetRect(R, -Ofs, -Ofs);
-    DrawFocusRect(ACanvas, R);
+    if FFocusRect then
+      DrawFocusRect(ACanvas, R);
   end;
 end;
 
@@ -623,6 +656,15 @@ begin
      end;
   end;
 {$ENDIF}
+end;
+
+procedure TKButtonControl.SetFocusRect(const Value: Boolean);
+begin
+  if Value <> FFocusRect then
+  begin
+    FFocusRect := Value;
+    Invalidate;
+  end;
 end;
 
 {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
@@ -697,26 +739,26 @@ begin
     AC_GETAPPLICATION : begin Msg.Result := LRESULT(Application); Exit end;
     AC_SETNEWSKIN : if (LongWord(Msg.LParam) = LongWord(SkinData.SkinManager)) then
     begin
-      StopFading(FFadeTimer{, FCommonData});
+      StopFading(FFadeTimer, FCommonData);
       CommonWndProc(Msg, FCommonData);
       Exit;
     end;
     AC_REMOVESKIN : if (LongWord(Msg.LParam) = LongWord(SkinData.SkinManager)) and not (csDestroying in ComponentState) then
     begin
-      StopFading(FFadeTimer{, FCommonData});
+      StopFading(FFadeTimer, FCommonData);
       CommonWndProc(Msg, FCommonData);
       Repaint;
       Exit;
     end;
     AC_REFRESH : if LongWord(Msg.LParam) = LongWord(SkinData.SkinManager) then
     begin
-      StopFading(FFadeTimer{, FCommonData});
+      StopFading(FFadeTimer, FCommonData);
       CommonWndProc(Msg, FCommonData);
       if SkinData.PrintDC = 0 then Repaint;
       Exit;
     end;
     AC_PREPARECACHE: PrepareSkinCache(ClientRect, 0);
-    AC_STOPFADING : begin StopFading(FFadeTimer{, FCommonData}); Exit end;
+    AC_STOPFADING : begin StopFading(FFadeTimer, FCommonData); Exit end;
   end;
   CommonWndProc(Msg, FCommonData);
 {$ENDIF}
@@ -1074,6 +1116,84 @@ begin
   if Value <> FDlgColor then
   begin
     FDlgColor := Value;
+    Invalidate;
+  end;
+end;
+
+{ TKSpeedButton }
+
+constructor TKSpeedButton.Create(AOwner: TComponent);
+begin
+  inherited;
+  Width := Height;
+  FGlyph := TKAlphaBitmap.Create;
+  FGlyph.OnChange := GlyphChange;
+  FImages := nil;
+  FImageIndex := -1;
+end;
+
+destructor TKSpeedButton.Destroy;
+begin
+  FGlyph.Free;
+  inherited;
+end;
+
+function TKSpeedButton.GetGlyph: TKAlphaBitmap;
+begin
+  Result := FGlyph;
+end;
+
+procedure TKSpeedButton.GlyphChange(Sender: TObject);
+begin
+  Invalidate;
+end;
+
+procedure TKSpeedButton.DrawInterior(ACanvas: TCanvas; ARect: TRect);
+begin
+  if (FImages <> nil) and (FImageIndex >= 0) and (FImageIndex < FImages.Count) then
+  begin
+    FImages.Draw(ACanvas,
+      ARect.Left + (ARect.Right - ARect.Left - FImages.Width) div 2,
+      ARect.Top + (ARect.Bottom - ARect.Top - FImages.Height) div 2,
+      FImageIndex);
+  end else
+    FGlyph.AlphaDrawTo(ACanvas,
+      ARect.Left + (ARect.Right - ARect.Left - FGlyph.Width) div 2,
+      ARect.Top + (ARect.Bottom - ARect.Top - FGlyph.Height) div 2);
+end;
+
+function TKSpeedButton.IsGlyphStored: Boolean;
+begin
+  Result := not FGlyph.Empty and
+    (FGlyph.Width > 0) and (FGlyph.Height > 0);
+end;
+
+procedure TKSpeedButton.Notification(AComponent: TComponent; Operation: TOperation);
+begin
+  inherited;
+  if (Operation = opRemove) and (AComponent = Images) then
+    Images := nil;
+end;
+
+procedure TKSpeedButton.SetGlyph(const Value: TKAlphaBitmap);
+begin
+  FGlyph.Assign(Value);
+end;
+
+procedure TKSpeedButton.SetImageIndex(Value: TImageIndex);
+begin
+  if Value <> FImageIndex then
+  begin
+    FImageIndex := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TKSpeedButton.SetImages(const Value: TCustomImageList);
+begin
+  if Value <> FImages then
+  begin
+    FImages := Value;
     Invalidate;
   end;
 end;

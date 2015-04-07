@@ -2456,7 +2456,11 @@ begin
       if I >= 0 then
         Printer.PrinterIndex := I;
       // set orientation in case somebody assigned it programmatically
-      Printer.Orientation := FOrientation;
+      try
+        Printer.Orientation := FOrientation;
+      except
+        FOrientation := Printer.Orientation;
+      end;
       // limit copies and Scale
       FCopies := MinMax(FCopies, cCopiesMin, cCopiesMax);
       FScale := MinMax(FScale, cScaleMin, cScaleMax);

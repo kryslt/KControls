@@ -46,7 +46,8 @@ implementation
 uses
   Classes, Dialogs, Controls, SysUtils, Forms, Graphics,
   KGraphics, KControls, KButtons, KDialogs, KGrids, KHexEditor,
-  KEdits, KLabels, KLog, KMemo, KProgress, KSplitter, KRes
+  KEdits, KLabels, KLog, KMemo, KProgress, KSplitter,
+  KPageControl, KRes
 {$IFDEF TKDBGRID_USE}
   , KDBGrids
 {$ENDIF}
@@ -66,6 +67,7 @@ begin
     TKHexEditor,
     TKBitBtn,
     TKColorButton,
+    TKSpeedButton,
     TKNumberEdit,
     TKFileNameEdit,
     TKLog,
@@ -73,6 +75,7 @@ begin
     TKLinkLabel,
     TKGradientLabel,
     TKSplitter,
+    TKPageControl,
     TKPrintPreview,
     TKPrintSetupDialog,
     TKPrintPreviewDialog,
