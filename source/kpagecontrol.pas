@@ -197,6 +197,7 @@ type
     procedure SetPageControl(APageControl: TKCustomPageControl);
     procedure SetPageIndex(Value: Integer);
     procedure CMShowingChanged(var Message: TMessage); message CM_SHOWINGCHANGED;
+    procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoHide; dynamic;
@@ -1203,6 +1204,34 @@ begin
   FHighlighted := False;
 end;
 
+procedure TKTabSheet.CMTextChanged(var Message: TMessage);
+begin
+  if FPageControl <> nil then
+    FPageControl.UpdateTabPanel;
+end;
+
+procedure TKTabSheet.CMShowingChanged(var Message: TMessage);
+begin
+  inherited;
+  if Showing then
+  begin
+    try
+      DoShow
+    except
+      Application.HandleException(Self);
+    end;
+  end
+  else
+  if not Showing then
+  begin
+    try
+      DoHide;
+    except
+      Application.HandleException(Self);
+    end;
+  end;
+end;
+
 destructor TKTabSheet.Destroy;
 begin
   if FPageControl <> nil then
@@ -1248,6 +1277,16 @@ begin
     PageControl := TKCustomPageControl(Reader.Parent);
 end;
 
+procedure TKTabSheet.SetHighlighted(Value: Boolean);
+begin
+  if Value <> FHighLighted then
+  begin
+    FHighlighted := Value;
+    if FPageControl <> nil then
+      FPageControl.UpdateTabPanel;
+  end;
+end;
+
 procedure TKTabSheet.SetImageIndex(Value: TImageIndex);
 begin
   if FImageIndex <> Value then
@@ -1284,38 +1323,6 @@ begin
   inherited;
   if not (csReading in ComponentState) and not HandleAllocated then
     Dec(AOriginalParentSize.X, BorderWidth * 2);
-end;
-
-procedure TKTabSheet.CMShowingChanged(var Message: TMessage);
-begin
-  inherited;
-  if Showing then
-  begin
-    try
-      DoShow
-    except
-      Application.HandleException(Self);
-    end;
-  end
-  else
-  if not Showing then
-  begin
-    try
-      DoHide;
-    except
-      Application.HandleException(Self);
-    end;
-  end;
-end;
-
-procedure TKTabSheet.SetHighlighted(Value: Boolean);
-begin
-  if Value <> FHighLighted then
-  begin
-    FHighlighted := Value;
-    if FPageControl <> nil then
-      FPageControl.UpdateTabPanel;
-  end;
 end;
 
 { TKTabSheets }
@@ -1733,6 +1740,8 @@ end;
 
 procedure TKCustomPageControl.PaintToCanvas(ACanvas: TCanvas);
 begin
+  if FPages.Count = 0 then
+    ACanvas.FillRect(ClientRect);
 end;
 
 procedure TKCustomPageControl.RemovePage(Page: TKTabSheet);
@@ -1932,10 +1941,7 @@ end;
 
 procedure TKCustomPageControl.WMEraseBkgnd(var Msg: TLMessage);
 begin
-  if csDesigning in ComponentState then
-    inherited
-  else
-    Msg.Result := 1;
+  Msg.Result := 1;
 end;
 
 end.
