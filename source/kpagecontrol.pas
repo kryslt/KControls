@@ -342,6 +342,7 @@ type
     property DisabledImages: TImageList read FDisabledImages write SetDisabledImages;
     property HotTrack: Boolean read FHotTrack write SetHotTrack default True;
     property Images: TImageList read FImages write SetImages;
+    property ImageIndex[Index: Integer]: Integer read GetImageIndex;
     property LeftButtonIndex: TImageIndex read GetLeftButtonIndex write SetLeftButtonIndex default -1;
     property Options: TKTabOptions read GetOptions write SetOptions default cDefaultTabOptions;
     property Padding: Integer read GetPadding write SetPadding default cDefaultTabPadding;
@@ -520,11 +521,13 @@ function TKTabPanel.GetTabInfo(ACanvas: TCanvas; ATabIndex: Integer;
   out Info: TKTabInfo): Boolean;
 var
   Page: TKTabSheet;
+  ImageIndex: Integer;
 begin
   if FPageControl <> nil then
   begin
     Page := FPageControl.Pages[ATabIndex];
-    if (Page.ImageIndex >= 0) and (Page.ImageIndex < FPageControl.Images.Count) then
+    ImageIndex := FPageControl.GetImageIndex(ATabIndex);
+    if (ImageIndex >= 0) and (ImageIndex < FPageControl.Images.Count) then
     begin
       Info.ImageWidth := FPageControl.Images.Width;
       Info.ImageHeight := FPageControl.Images.Height;
@@ -822,6 +825,9 @@ begin
   if FPageControl <> nil then with ACanvas do
   begin
     Pen.Color := FColors.TabBorder;
+    T := 0;
+    B := 0;
+    L := 0;
     case FPageControl.TabPosition of
       tpTop:
       begin
@@ -835,8 +841,20 @@ begin
         B := Height;
         L := 0;
       end;
-      tpLeft: {TODO};
-      tpRight: {TODO};
+      tpLeft:
+      begin
+        { TODO }
+        T := 0;
+        B := Height - 1;
+        L := B;
+      end;
+      tpRight:
+      begin
+        { TODO }
+        T := 1;
+        B := Height;
+        L := 0;
+      end;
     end;
     if FAllTabsExtent <= Width then
     begin
@@ -992,7 +1010,7 @@ procedure TKTabPanel.PaintTabImage(ACanvas: TCanvas; const ARect: TRect; ATabInd
 begin
   if (FPageControl <> nil) and (ATabIndex >= 0) and (ATabIndex < FPageControl.PageCount) and not IsRectEmpty(ARect) then
   begin
-    FPageControl.Images.Draw(ACanvas, ARect.Left, ARect.Top, FPageControl.Pages[ATabIndex].ImageIndex);
+    FPageControl.Images.Draw(ACanvas, ARect.Left, ARect.Top, FPageControl.GetImageIndex(ATabIndex));
   end
 end;
 
@@ -1438,7 +1456,6 @@ end;
 
 procedure TKCustomPageControl.CMDockClient(var Message: TCMDockClient);
 var
-  IsVisible: Boolean;
   DockCtl: TControl;
   I: Integer;
 begin
@@ -1628,7 +1645,7 @@ end;
 
 function TKCustomPageControl.GetImageIndex(TabIndex: Integer): Integer;
 begin
-  Result := -1;
+  Result := FPages[TabIndex].ImageIndex;
   if Assigned(FOnGetImageIndex) then
     FOnGetImageIndex(Self, TabIndex, Result);
 end;

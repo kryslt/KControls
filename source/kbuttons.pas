@@ -264,7 +264,7 @@ type
 implementation
 
 uses
-  Math;
+  Math, Types;
 
 { TKButtonControl }
 
