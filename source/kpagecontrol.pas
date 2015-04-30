@@ -527,7 +527,7 @@ begin
   begin
     Page := FPageControl.Pages[ATabIndex];
     ImageIndex := FPageControl.GetImageIndex(ATabIndex);
-    if (ImageIndex >= 0) and (ImageIndex < FPageControl.Images.Count) then
+    if (FPageControl.Images <> nil) and (ImageIndex >= 0) and (ImageIndex < FPageControl.Images.Count) then
     begin
       Info.ImageWidth := FPageControl.Images.Width;
       Info.ImageHeight := FPageControl.Images.Height;

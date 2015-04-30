@@ -353,6 +353,8 @@ type
     { Adds a new image to the end of the internal image list. You should always
       specify valid color and mask bitmap handles else an exception will occur. }
     procedure Add(const Handles: TKIconHandles);
+    { Adds a new image from bitmap to the end of the internal image list. }
+    procedure AddFromBitmap(ABitmap: TBitmap);
   {$IFDEF USE_PNG_SUPPORT}
     { Adds a new image from PNG to the end of the internal image list.
       No conversion is made, thus a PNG icon is added. }
@@ -958,6 +960,29 @@ begin
   LoadHandles(FIconCount - 1, Handles, True);
 end;
 
+procedure TKIcon.AddFromBitmap(ABitmap: TBitmap);
+begin
+  if ABitmap <> nil then
+  begin
+    Inc(FIconCount);
+    SetLength(FIconData, FIconCount);
+    FillChar(FIconData[FIconCount - 1], SizeOf(TKIconData), 0);
+    FIconData[FIconCount - 1].Width := ABitmap.Width;
+    FIconData[FIconCount - 1].Height := ABitmap.Height;
+    FIconData[FIconCount - 1].Bpp := 32;
+    if ABitmap.Width > 32 then
+    begin
+      FIconData[FIconCount - 1].IsPNG := True;
+      FIconData[FIconCount - 1].PNG := TKPngImage.Create;
+      FIconData[FIconCount - 1].PNG.Assign(ABitmap);
+    end else
+    begin
+      FIconData[FIconCount - 1].IsPNG := False;
+      LoadHandles(FIconCount - 1, MakeHandles(ABitmap.Handle, CreateMonochromeBitmap(ABitmap.Width, ABitmap.Height)), True);
+    end;
+  end;
+end;
+
 {$IFDEF USE_PNG_SUPPORT}
 procedure TKIcon.AddFromPng(APngImage: TKPngImage);
 {$IFNDEF FPC}
@@ -973,7 +998,7 @@ begin
     SetLength(FIconData, FIconCount);
     FillChar(FIconData[FIconCount - 1], SizeOf(TKIconData), 0);
     FIconData[FIconCount - 1].Width := APngImage.Width;
-    FIconData[FIconCount - 1].Height := APngImage.Width;
+    FIconData[FIconCount - 1].Height := APngImage.Height;
     FIconData[FIconCount - 1].Bpp := 32;
     if APngImage.Width > 32 then
     begin
