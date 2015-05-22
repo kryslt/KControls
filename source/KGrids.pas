@@ -1239,11 +1239,13 @@ type
     procedure SetStrings(Index: Integer; const Value: TKString); virtual; abstract;
     { Write method for the @link(TKGridAxisItem.Visible) property. Without implementation. }
     procedure SetVisible(Value: Boolean); virtual; abstract;
+    { Validate initial position. }
+    procedure ValidateInitialPos; virtual; abstract;
   public
     { Creates the instance. Do not create custom instances. All necessary
       TKGridAxisItem instances are created automatically by TKCustomGrid. }
     constructor Create(ACollection: TCollection); override;
-    { Copies shareable properties of another TKGridAxisItem instances into this
+    { Copies properties of another TKGridAxisItem instances into this
       TKGridAxisItem instance. }
     procedure Assign(Source: TPersistent); override;
     { Makes it possible to assign a list of strings contained in TStrings
@@ -1261,15 +1263,14 @@ type
     procedure AssignPublished(Source: TKGridAxisItem); virtual;
     { Abstract prototype. Sets text of all cells corresponding to this column or row to empty string. }
     procedure Clear; virtual; abstract;
-    { Returns True if shareable properties of this TKGridAxisItem instance have
+    { Returns True if properties of this TKGridAxisItem instance have
       the same value as those in Item. }
     function {$ifdef COMPILER12_UP}EqualProperties{$ELSE}Equals{$ENDIF}(Item: TKGridAxisItem): Boolean; virtual;
     { Pointer to the grid. You will probably need it when implementing application
       specific behavior. }
     property Grid: TKCustomgrid read FGrid write SetGrid;
-    { Non-shareable property. Determines the initial column or row position
-      just after it was inserted into the grid. Do not write this property
-      unless you write a TKCustomGrid descendant. }
+    { Determines the initial column or row position
+      just after it was inserted into the grid. }
     property InitialPos: Integer read FInitialPos write SetInitialPos;
     { Provides access to the object cell instances corresponding to the column or
       row referred by this TKGridAxisItem instance. Provided to retain compatibility
@@ -1373,6 +1374,8 @@ type
     procedure SetStrings(Index: Integer; const Value: TKString); override;
     { Write method for the @link(TKGridAxisItem.Visible) property. Implementation for columns. }
     procedure SetVisible(Value: Boolean); override;
+    { Validate initial column position. }
+    procedure ValidateInitialPos; override;
   public
     { Creates the instance. Do not create custom instances. All necessary
       TKGridCol instances are created automatically by TKCustomGrid. }
@@ -1395,7 +1398,7 @@ type
     procedure AssignPublished(Source: TKGridAxisItem); override;
     { Sets text of all cells corresponding to this column to empty string. }
     procedure Clear; override;
-    { Returns True if shareable properties of this TKGridAxisItem instance have
+    { Returns True if properties of this TKGridAxisItem instance have
       the same value as those in Item. }
     function {$ifdef COMPILER12_UP}EqualProperties{$ELSE}Equals{$ENDIF}(Item: TKGridAxisItem): Boolean; override;
   published
@@ -1435,6 +1438,8 @@ type
     procedure SetStrings(Index: Integer; const Value: TKString); override;
     { Write method for the @link(TKGridAxisItem.Visible) property. Implementation for rows. }
     procedure SetVisible(Value: Boolean); override;
+    { Validate initial row position. }
+    procedure ValidateInitialPos; override;
   public
     { Creates the instance. Do not create custom instances. All necessary
       TKGridRow instances are created automatically by TKCustomGrid. }
@@ -1591,7 +1596,7 @@ type
     destructor Destroy; override;
     { Applies TKGridTextCell properties to the cell painter. }
     procedure ApplyDrawProperties; override;
-    { Copies shareable properties of another instance that inherits from
+    { Copies properties of another instance that inherits from
       TKGridCell into this TKGridTextCell instance. }
     procedure Assign(Source: TKGridCell); override;
     { Readonly property. This is the editable text that appears in the cell -
@@ -1636,32 +1641,32 @@ type
     destructor Destroy; override;
     { Applies TKGridAttrTextCell properties to the cell painter. }
     procedure ApplyDrawProperties; override;
-    { Copies shareable properties of another instance that inherits from
+    { Copies properties of another instance that inherits from
       TKGridCell into this TKGridAttrTextCell instance. }
     procedure Assign(Source: TKGridCell); override;
-    { Shareable property. These are the text attributes to render the text. }
+    { These are the text attributes to render the text. }
     property Attributes: TKTextAttributes read FAttributes write SetAttributes;
-    { Shareable property. This is the color used to fill the gaps between
+    { This is the color used to fill the gaps between
       a non solid @link(TKGridAttrTextCell.Brush). }
     property BackColor: TColor read FBackColor write SetBackColor;
-    { Shareable property. This is the brush that will be used to fill the cell background. }
+    { This is the brush that will be used to fill the cell background. }
     property Brush: TBrush read FBrush;
-    { Non-shareable property. Returns True if Brush.OnChange occured. }
+    { Returns True if Brush.OnChange occured. }
     property BrushChanged: Boolean read FBrushChanged;
-    { Shareable property. This is the font that will be used to render the text. }
+    { This is the font that will be used to render the text. }
     property Font: TFont read FFont;
-    { Non-shareable property. Returns True if Font.OnChange occured. }
+    { Returns True if Font.OnChange occured. }
     property FontChanged: Boolean read FFontChanged;
-    { Shareable property. This is the horizontal alignment
+    { This is the horizontal alignment
       that will be used to place the text within the cell rectangle. }
     property HAlign: TKHAlign read FHAlign write SetFHAlign;
-    { Shareable property. This is the horizontal padding
+    { This is the horizontal padding
       of the text from the cell rectangle. }
     property HPadding: Integer read FHPadding write SetFHPadding;
-    { Shareable property. This is the vertical alignment
+    { This is the vertical alignment
       that will be used to place the text within the cell rectangle. }
     property VAlign: TKVAlign read FVAlign write SetFVAlign;
-    { Shareable property. This is the vertical padding
+    { This is the vertical padding
       of the text from the cell rectangle. }
     property VPadding: Integer read FVPadding write SetFVPadding;
   end;
@@ -1696,10 +1701,10 @@ type
     constructor Create(AGrid: TKCustomGrid); override;
     { Destroys the instance. See TObject.Destroy in Delphi help. }
     destructor Destroy; override;
-    { Copies shareable properties of another instance that inherits from
+    { Copies properties of another instance that inherits from
       TKGridCell into this TKGridObjectCell instance. }
     procedure Assign(Source: TKGridCell); override;
-    { Shareable property. This is the object stored within the cell class.
+    { This is the object stored within the cell class.
       A single object instance passed to CellObject cannot be shared among multiple
       cell class instances. The reason is that TObject instances do not support
       Assign method, more convenient it would be to store TPersistents. }
@@ -2710,6 +2715,7 @@ type
       of respective grid areas. Set UpdateNeeded to False to let UpdateScrollRange
       decide whether these need to be invalidated. }
     procedure UpdateScrollRange(Horz, Vert, UpdateNeeded: Boolean); virtual;
+    procedure ValidateInitialPositions; virtual;
   {$IFNDEF FPC}
     { Inherited method. Used to ensure correct painting for transparent inplace
       editors. }
@@ -4117,8 +4123,11 @@ end;
 
 procedure TKGridAxisItem.SetInitialPos(const Value: Integer);
 begin
-  FInitialPos := Value;
-  // no update here yet
+  if Value <> FInitialPos then
+  begin
+    FInitialPos := Value;
+    ValidateInitialPos;
+  end;
 end;
 
 procedure TKGridAxisItem.SetMaxExtent(AValue: Integer);
@@ -4489,6 +4498,44 @@ begin
     Extent := 0
 end;
 
+procedure TKGridCol.ValidateInitialPos;
+
+  function PosExists(AIndex: Integer): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := False;
+    for I := 0 to FGrid.ColCount - 1 do
+      if FGrid.Cols[I].InitialPos = AIndex then
+      begin
+        Result := True;
+        Break;
+      end;
+  end;
+
+var
+  I: Integer;
+  Exists: Boolean;
+begin
+  if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and (FInitialPos <> -1) then
+  begin
+    Exists := False;
+    for I := 0 to FGrid.ColCount - 1 do
+      if (FGrid.Cols[I] <> Self) and (FInitialPos = FGrid.Cols[I].InitialPos) then
+      begin
+        Exists := True;
+        Break;
+      end;
+    if Exists then
+      for I := 0 to FGrid.ColCount - 1 do
+        if not PosExists(I) then
+        begin
+          FInitialPos := I;
+          Break;
+        end
+  end;
+end;
+
 { TKGridRow }
 
 constructor TKGridRow.Create(ACollection: TCollection);
@@ -4699,6 +4746,44 @@ begin
       Extent := FBackExtent;
   end else
     Extent := 0
+end;
+
+procedure TKGridRow.ValidateInitialPos;
+
+  function PosExists(AIndex: Integer): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := False;
+    for I := 0 to FGrid.RowCount - 1 do
+      if FGrid.Rows[I].InitialPos = AIndex then
+      begin
+        Result := True;
+        Break;
+      end;
+  end;
+
+var
+  I: Integer;
+  Exists: Boolean;
+begin
+  if Assigned(FGrid) and FGrid.UpdateUnlocked and not FGrid.Flag(cGF_GridUpdates) and (FInitialPos <> -1) then
+  begin
+    Exists := False;
+    for I := 0 to FGrid.RowCount - 1 do
+      if (FGrid.Rows[I] <> Self) and (FInitialPos = FGrid.Rows[I].InitialPos) then
+      begin
+        Exists := True;
+        Break;
+      end;
+    if Exists then
+      for I := 0 to FGrid.RowCount - 1 do
+        if not PosExists(I) then
+        begin
+          FInitialPos := I;
+          Break;
+        end
+  end;
 end;
 
 { TKGridCell }
@@ -9274,6 +9359,7 @@ end;
 procedure TKCustomGrid.InternalUnlockUpdate;
 begin
   ClearSortMode;
+  ValidateInitialPositions;
   UpdateAxes(True, cAll, True, cAll, [afCheckMinExtent]);
 end;
 
@@ -13030,6 +13116,21 @@ begin
   finally
     UnlockSortMode;
   end;
+end;
+
+procedure TKCustomGrid.ValidateInitialPositions;
+
+  procedure Axis(AxisItems: TKGridAxisItems);
+  var
+    I: Integer;
+  begin
+    for I := 0 to AxisItems.Count - 1 do
+      AxisItems[I].ValidateInitialPos;
+  end;
+
+begin
+  Axis(FCols);
+  Axis(FRows);
 end;
 
 procedure TKCustomGrid.WMChar(var Msg: {$IFDEF FPC}TLMChar{$ELSE}TWMChar{$ENDIF});
