@@ -119,7 +119,7 @@ type
     FPageControl: TKCustomPageControl;
     FRightButtonIndex: TImageIndex;
     FScrollButtonSize: Integer;
-    procedure CMCursorChanged(var Message: TMessage); message CM_CURSORCHANGED;
+    procedure CMCursorChanged(var Message: TLMessage); message CM_CURSORCHANGED;
     function GetTabs(Index: Integer): string;
     procedure SetCloseButtonIndex(const Value: TImageIndex);
     procedure SetColors(const Value: TKTabColors);
@@ -196,14 +196,16 @@ type
     procedure SetImageIndex(Value: TImageIndex);
     procedure SetPageControl(APageControl: TKCustomPageControl);
     procedure SetPageIndex(Value: Integer);
-    procedure CMShowingChanged(var Message: TMessage); message CM_SHOWINGCHANGED;
-    procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
+    procedure CMShowingChanged(var Message: TLMessage); message CM_SHOWINGCHANGED;
+    procedure CMTextChanged(var Message: TLMessage); message CM_TEXTCHANGED;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoHide; dynamic;
     procedure DoShow; dynamic;
     procedure ReadState(Reader: TReader); override;
+{$IFnDEF FPC}
     procedure UpdateControlOriginalParentSize(AControl: TControl; var AOriginalParentSize: TPoint); override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -211,7 +213,6 @@ type
   published
     property BorderWidth;
     property Caption;
-    property DoubleBuffered;
     property DragMode;
     property Enabled;
     property Font;
@@ -221,13 +222,11 @@ type
     property Left stored False;
     property Constraints;
     property PageIndex: Integer read GetPageIndex write SetPageIndex stored False;
-    property ParentDoubleBuffered;
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
     property ShowHint;
     property Top stored False;
-    property Touch;
     property Visible stored False;
     property Width stored False;
     property OnContextPopup;
@@ -236,9 +235,7 @@ type
     property OnEndDrag;
     property OnEnter;
     property OnExit;
-    property OnGesture;
     property OnHide: TNotifyEvent read FOnHide write FOnHide;
-    property OnMouseActivate;
     property OnMouseDown;
     property OnMouseEnter;
     property OnMouseLeave;
@@ -285,9 +282,11 @@ type
     procedure SetTabHeight(const Value: Integer);
     procedure SetTabWidth(const Value: Integer);
     procedure CMDialogKey(var Message: TCMDialogKey); message CM_DIALOGKEY;
+{$IFnDEF FPC}
     procedure CMDockNotification(var Message: TCMDockNotification); message CM_DOCKNOTIFICATION;
     procedure CMDockClient(var Message: TCMDockClient); message CM_DOCKCLIENT;
     procedure CMUnDockClient(var Message: TCMUnDockClient); message CM_UNDOCKCLIENT;
+{$ENDIF}
     procedure WMEraseBkgnd(var Msg: TLMessage); message LM_ERASEBKGND;
     function GetCloseButtonIndex: TImageIndex;
     function GetLeftButtonIndex: TImageIndex;
@@ -399,7 +398,6 @@ type
     property TabPosition;
     property TabStop;
     property TabWidth;
-    property Touch;
     property Visible;
     property OnChange;
     property OnChanging;
@@ -412,10 +410,8 @@ type
     property OnEndDrag;
     property OnEnter;
     property OnExit;
-    property OnGesture;
     property OnGetImageIndex;
     property OnGetSiteInfo;
-    property OnMouseActivate;
     property OnMouseDown;
     property OnMouseEnter;
     property OnMouseLeave;
@@ -466,16 +462,6 @@ end;
 
 { TKTabPanel }
 
-procedure TKTabPanel.CMCursorChanged(var Message: TMessage);
-begin
-{$IFDEF FPC}
-  FCursor := ACursor;
-  SetTempCursor(ACursor);
-{$ELSE}
-  Windows.SetCursor(Screen.Cursors[Cursor]);
-{$ENDIF}
-end;
-
 constructor TKTabPanel.Create(AOwner: TComponent);
 begin
   inherited;
@@ -515,6 +501,15 @@ destructor TKTabPanel.Destroy;
 begin
   FColors.Free;
   inherited;
+end;
+
+procedure TKTabPanel.CMCursorChanged(var Message: TLMessage);
+begin
+{$IFDEF FPC}
+  SetTempCursor(Screen.Cursors[Cursor]);
+{$ELSE}
+  Windows.SetCursor(Screen.Cursors[Cursor]);
+{$ENDIF}
 end;
 
 function TKTabPanel.GetTabInfo(ACanvas: TCanvas; ATabIndex: Integer;
@@ -777,10 +772,10 @@ begin
     begin
       if FMouseIndex >= 0 then
         if getTabPaintInfo(Canvas, FMouseIndex, OldInfo) then
-          InvalidateRect(Handle, OldInfo.TabRect, False);
+          InvalidateRectArea(OldInfo.TabRect);
       FMouseIndex := NewMouseIndex;
       if FMouseIndex >= 0 then
-        InvalidateRect(Handle, Info.TabRect, False);
+        InvalidateRectArea(Info.TabRect);
     end
     else if NewMouseIndex >= 0 then
     begin
@@ -788,7 +783,7 @@ begin
       if NewMouseInCloseButton <> FMouseInCloseButton then
       begin
         FMouseInCloseButton := NewMouseInCloseButton;
-        InvalidateRect(Handle, Info.CloseRect, False);
+        InvalidateRectArea(Info.CloseRect);
       end;
     end;
   end;
@@ -1217,18 +1212,18 @@ constructor TKTabSheet.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   Align := alClient;
-  ControlStyle := ControlStyle + [csOpaque, csAcceptsControls, csNoDesignVisible, csPannable];
+  ControlStyle := ControlStyle + [csOpaque, csAcceptsControls, csNoDesignVisible];
   Visible := False;
   FHighlighted := False;
 end;
 
-procedure TKTabSheet.CMTextChanged(var Message: TMessage);
+procedure TKTabSheet.CMTextChanged(var Message: TLMessage);
 begin
   if FPageControl <> nil then
     FPageControl.UpdateTabPanel;
 end;
 
-procedure TKTabSheet.CMShowingChanged(var Message: TMessage);
+procedure TKTabSheet.CMShowingChanged(var Message: TLMessage);
 begin
   inherited;
   if Showing then
@@ -1335,6 +1330,7 @@ begin
   end;
 end;
 
+{$IFnDEF FPC}
 procedure TKTabSheet.UpdateControlOriginalParentSize(AControl: TControl;
   var AOriginalParentSize: TPoint);
 begin
@@ -1342,6 +1338,7 @@ begin
   if not (csReading in ComponentState) and not HandleAllocated then
     Dec(AOriginalParentSize.X, BorderWidth * 2);
 end;
+{$ENDIF}
 
 { TKTabSheets }
 
@@ -1370,7 +1367,7 @@ end;
 constructor TKCustomPageControl.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  ControlStyle := [csOpaque, csDoubleClicks, csPannable, csGestures];
+  ControlStyle := [csOpaque, csDoubleClicks];
   Width := 400;
   Height := 300;
   FActivePageIndex := -1;
@@ -1391,10 +1388,10 @@ destructor TKCustomPageControl.Destroy;
 var
   I: Integer;
 begin
+  FreeAndNil(FTabPanel);
   for I := 0 to FPages.Count - 1 do
     FPages[I].PageControl := nil;
   FPages.Free;
-  FTabPanel.Free;
   inherited Destroy;
 end;
 
@@ -1445,7 +1442,7 @@ end;
 
 procedure TKCustomPageControl.CMDialogKey(var Message: TCMDialogKey);
 begin
-  if (Focused or Windows.IsChild(Handle, Windows.GetFocus)) and
+  if (Focused {$IFnDEF FPC} or IsChild(Handle, GetFocus) {$ENDIF}) and
     (Message.CharCode = VK_TAB) and (GetKeyState(VK_CONTROL) < 0) then
   begin
     SelectNextPage(GetKeyState(VK_SHIFT) >= 0);
@@ -1454,6 +1451,7 @@ begin
     inherited;
 end;
 
+{$IFnDEF FPC}
 procedure TKCustomPageControl.CMDockClient(var Message: TCMDockClient);
 var
   DockCtl: TControl;
@@ -1535,6 +1533,7 @@ begin
     end;
   end;
 end;
+{$ENDIF}
 
 procedure TKCustomPageControl.DeletePage(Index: Integer);
 var

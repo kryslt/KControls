@@ -267,6 +267,7 @@ type
   TKCustomControl = class(TCustomControl)
   private
   {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
+    FParentBackground: Boolean;
     FParentDoubleBuffered: Boolean;
   {$IFEND}
   {$IFNDEF FPC}
@@ -452,6 +453,7 @@ type
     property PageSetupAllocated: Boolean read GetPageSetupAllocated;
     { Just to be compatible with Delphi. }
   {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
+    property ParentBackground: Boolean read FParentBackground write FParentBackground default True;
     property ParentDoubleBuffered: Boolean read FParentDoubleBuffered write FParentDoubleBuffered default True;
   {$IFEND}
   end;
@@ -1238,6 +1240,7 @@ begin
 {$ENDIF}
   FPageSetup := nil;
 {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
+  FParentBackground := True;
   FParentDoubleBuffered := True;
 {$IFEND}
   FPreviewList := TList.Create;

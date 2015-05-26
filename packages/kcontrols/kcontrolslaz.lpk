@@ -38,7 +38,7 @@ of the original or modified source code must retain the original copyright
 notice. The Author accepts no liability for any damage that may result
 from using this code."/>
     <Version Major="1" Minor="6"/>
-    <Files Count="29">
+    <Files Count="30">
       <Item1>
         <Filename Value="..\..\source\kfunctions.pas"/>
         <UnitName Value="KFunctions"/>
@@ -156,19 +156,26 @@ from using this code."/>
         <Filename Value="..\..\source\kbuttons.pas"/>
         <UnitName Value="KButtons"/>
       </Item29>
+      <Item30>
+        <Filename Value="..\..\source\KPageControl.pas"/>
+        <UnitName Value="KPageControl"/>
+      </Item30>
     </Files>
     <Type Value="RunAndDesignTime"/>
-    <RequiredPkgs Count="3">
+    <RequiredPkgs Count="4">
       <Item1>
-        <PackageName Value="Printer4Lazarus"/>
+        <PackageName Value="LazAlphaControls"/>
       </Item1>
       <Item2>
-        <PackageName Value="DBFLaz"/>
+        <PackageName Value="Printer4Lazarus"/>
       </Item2>
       <Item3>
+        <PackageName Value="DBFLaz"/>
+      </Item3>
+      <Item4>
         <PackageName Value="LCL"/>
         <MinVersion Major="1" Valid="True"/>
-      </Item3>
+      </Item4>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
