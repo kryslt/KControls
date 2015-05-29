@@ -256,6 +256,8 @@ type
     property Items[Index: Integer]: TKTabSheet read GetItem write SetItem; default;
   end;
 
+  TKTabClickEvent = procedure(Sender: TObject; TabIndex: Integer) of object;
+
   TKCustomPageControl = class(TKCustomControl)
   private
     FActivePageIndex: Integer;
@@ -270,6 +272,7 @@ type
     FOnChange: TNotifyEvent;
     FOnChanging: TTabChangingEvent;
     FOnGetImageIndex: TTabGetImageEvent;
+    FOnTabClick: TKTabClickEvent;
     function GetActivePage: TKTabSheet;
     function GetPage(Index: Integer): TKTabSheet;
     function GetPageCount: Integer;
@@ -314,6 +317,7 @@ type
     procedure DockOver(Source: TDragDockObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean); override;
     procedure DoRemoveDockClient(Client: TControl); override;
+    procedure DoTabClick(AIndex: Integer); virtual;
     function GetImageIndex(TabIndex: Integer): Integer; virtual;
     function GetPageFromDockClient(Client: TControl): TKTabSheet;
     procedure GetSiteInfo(Client: TControl; var InfluenceRect: TRect;
@@ -357,6 +361,7 @@ type
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnChanging: TTabChangingEvent read FOnChanging write FOnChanging;
     property OnGetImageIndex: TTabGetImageEvent read FOnGetImageIndex write FOnGetImageIndex;
+    property OnTabClick: TKTabClickEvent read FOnTabClick write FOnTabClick;
   end;
 
   TKPageControl = class(TKCustomPageControl)
@@ -420,6 +425,7 @@ type
     property OnResize;
     property OnStartDock;
     property OnStartDrag;
+    property OnTabClick;
     property OnUnDock;
   end;
 
@@ -669,7 +675,8 @@ begin
         end
         else if PtInRect(Info.TabRect, MousePt) then
         begin
-          FpageControl.ActivePageIndex := I;
+          FPageControl.DoTabClick(I);
+          FPageControl.ActivePageIndex := I;
           if toDrag in FOptions then
           begin
             FDraggedTab := I;
@@ -1381,6 +1388,8 @@ begin
   FTabWidth := cDefaultTabWidth;
   FOnChange := nil;
   FOnChanging := nil;
+  FOnGetImageIndex := nil;
+  FOnTabClick := nil;
   TabPanel := TKTabPanel.Create(nil);
 end;
 
@@ -1583,6 +1592,12 @@ begin
     RemovePage(FUndockingPage);
     FUndockingPage := nil;
   end;
+end;
+
+procedure TKCustomPageControl.DoTabClick(AIndex: Integer);
+begin
+  if Assigned(FOnTabClick) then
+    FOnTabClick(Self, AIndex);
 end;
 
 function TKCustomPageControl.FindNextPage(CurPage: TKTabSheet; GoForward: Boolean): TKTabSheet;
