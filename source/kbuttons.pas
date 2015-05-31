@@ -164,6 +164,10 @@ type
     property OnKeyPress;
     property OnKeyUp;
     property OnMouseDown;
+  {$IFDEF COMPILER9_UP}
+    property OnMouseEnter;
+    property OnMouseLeave;
+  {$ENDIF}
     property OnMouseMove;
     property OnMouseUp;
     property OnStartDock;
