@@ -2131,6 +2131,7 @@ type
     FOnRowHeightsChangedEx: TKGridExtentEvent;
     FOnSelectCell: TKGridSelectCellEvent;
     FOnSelectionExpand: TKGridSelectionExpandEvent;
+    FOnSelectionChanged: TNotifyEvent;
     FOnSizeChanged: TKGridSizeChangedEvent;
     FOnTopLeftChanged: TNotifyEvent;
     function GetAllCellsSelected: Boolean;
@@ -3531,6 +3532,8 @@ type
       to allow all cells to become a target of selection expansion. Change this
       parameter to False to disallow selection expansion.}
     property OnSelectionExpand: TKGridSelectionExpandEvent read FOnSelectionExpand write FOnSelectionExpand;
+    { OnSelectionChanged is called after selection change is completed.}
+    property OnSelectionChanged: TNotifyEvent read FOnSelectionChanged write FOnSelectionChanged;
     { OnSizeChanged is called whenever the @link(TKCustomGrid.ColCount) or
       @link(TKCustomGrid.RowCount) properties change. }
     property OnSizeChanged: TKGridSizeChangedEvent read FOnSizeChanged write FOnSizeChanged;
@@ -5470,9 +5473,9 @@ begin
   end
   else if gdSelected in FState then
   begin
-    if FGrid.Options * [goRowSelect, goRangeSelect] <> [] then    
+    if FGrid.Options * [goRowSelect, goRangeSelect] <> [] then
       DrawSelectedCellBackground(FBlockRect, @FCellRect)
-    else  
+    else
       DrawSelectedCellBackground(FCellRect)
   end else
     DrawNormalCellBackground(FCellRect);
@@ -11685,6 +11688,10 @@ begin
       InvalidateCurrentSelection;
   end else
     FSelection := NewSelection;
+
+  if Assigned(FOnSelectionChanged) then
+    FOnSelectionChanged(Self);
+
   InvalidatePageSetup;
   if not (sfNoMemPos in Flags) then
   begin
