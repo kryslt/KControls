@@ -1,6 +1,4 @@
-package KControls_RXE5;
-
-{$include ..\..\source\kcontrols.inc}
+package KControls_RXE_copy;
 
 {$R *.res}
 {$ALIGN 8}
@@ -13,12 +11,12 @@ package KControls_RXE5;
 {$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS ON}
 {$RANGECHECKS ON}
 {$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS ON}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST ON}
@@ -27,16 +25,16 @@ package KControls_RXE5;
 {$DESCRIPTION 'KControls Development Suite - runtime package'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
+{$DEFINE USE_ALPHASKINS}
+{$DEFINE SUPPORT_ALPHASKINS}
 
 requires
   vcl,
   vclx,
-  vclimg
-{$IFDEF TKDBGRID_USE}
-  , dbrtl
-  , vcldb
-{$ENDIF}
-  ;
+  vclimg,
+  dbrtl,
+  vcldb,
+  acntDelphiXE_R;
 
 contains
   kcontrols in '..\..\source\kcontrols.pas',
@@ -53,14 +51,13 @@ contains
   kbuttons in '..\..\source\kbuttons.pas',
   kedits in '..\..\source\kedits.pas',
   klabels in '..\..\source\klabels.pas',
-  kmemo in '..\..\source\kmemo.pas',
   kmessagebox in '..\..\source\kmessagebox.pas',
   klog in '..\..\source\klog.pas',
   kprogress in '..\..\source\kprogress.pas',
   kres in '..\..\source\kres.pas',
-  kpagecontrol in '..\..\source\kpagecontrol.pas'
-{$IFDEF TKDBGRID_USE}
-  , kdbgrids in '..\..\source\kdbgrids.pas'
-{$ENDIF}
-  ;
+  kdbgrids in '..\..\source\kdbgrids.pas',
+  ksplitter in '..\..\source\ksplitter.pas',
+  kpagecontrol in '..\..\source\kpagecontrol.pas';
+
 end.
+

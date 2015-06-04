@@ -1383,7 +1383,11 @@ begin
 {$IFDEF FPC}
   Result := FormatSettings;
 {$ELSE}
+ {$IFDEF COMPILER12_UP}
+  Result := TFormatSettings.Create;
+ {$ELSE}
   GetLocaleFormatSettings(GetThreadLocale, Result);
+ {$ENDIF}
 {$ENDIF}
 end;
 

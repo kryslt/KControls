@@ -58,6 +58,7 @@ contains
   klog in '..\..\source\klog.pas',
   kprogress in '..\..\source\kprogress.pas',
   kres in '..\..\source\kres.pas'
+  kpagecontrol in '..\..\source\kpagecontrol.pas'
 {$IFDEF TKDBGRID_USE}
   , kdbgrids in '..\..\source\kdbgrids.pas'
 {$ENDIF}

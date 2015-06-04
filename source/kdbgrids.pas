@@ -576,8 +576,16 @@ type
     property OnMouseClickCell;
     { Inherited property - see Delphi help. }
     property OnMouseDown;
+  {$IFDEF COMPILER9_UP}
+    { Inherited property - see Delphi help. }
+    property OnMouseEnter;
+  {$ENDIF}
     { See TKCustomGrid.@link(TKCustomGrid.OnMouseEnterCell) for details. }
     property OnMouseEnterCell;
+  {$IFDEF COMPILER9_UP}
+    { Inherited property - see Delphi help. }
+    property OnMouseLeave;
+  {$ENDIF}
     { See TKCustomGrid.@link(TKCustomGrid.OnMouseLeaveCell) for details. }
     property OnMouseLeaveCell;
     { Inherited property - see Delphi help. }

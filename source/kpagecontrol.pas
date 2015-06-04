@@ -203,9 +203,6 @@ type
     procedure DoHide; dynamic;
     procedure DoShow; dynamic;
     procedure ReadState(Reader: TReader); override;
-{$IFnDEF FPC}
-    procedure UpdateControlOriginalParentSize(AControl: TControl; var AOriginalParentSize: TPoint); override;
-{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -237,8 +234,10 @@ type
     property OnExit;
     property OnHide: TNotifyEvent read FOnHide write FOnHide;
     property OnMouseDown;
+  {$IFDEF COMPILER9_UP}
     property OnMouseEnter;
     property OnMouseLeave;
+  {$ENDIF}
     property OnMouseMove;
     property OnMouseUp;
     property OnResize;
@@ -418,8 +417,10 @@ type
     property OnGetImageIndex;
     property OnGetSiteInfo;
     property OnMouseDown;
+  {$IFDEF COMPILER9_UP}
     property OnMouseEnter;
     property OnMouseLeave;
+  {$ENDIF}
     property OnMouseMove;
     property OnMouseUp;
     property OnResize;
@@ -1337,16 +1338,6 @@ begin
   end;
 end;
 
-{$IFnDEF FPC}
-procedure TKTabSheet.UpdateControlOriginalParentSize(AControl: TControl;
-  var AOriginalParentSize: TPoint);
-begin
-  inherited;
-  if not (csReading in ComponentState) and not HandleAllocated then
-    Dec(AOriginalParentSize.X, BorderWidth * 2);
-end;
-{$ENDIF}
-
 { TKTabSheets }
 
 function TKTabSheets.Add(AItem: TKTabSheet): Integer;
@@ -1516,7 +1507,7 @@ begin
           S := PChar(Message.NotifyRec.MsgLParam);
           // Search for first CR/LF and end string there
           for I := 1 to Length(S) do
-            if CharInSet(S[I], [#13, #10]) then
+            if CharInSetEx(S[I], [#13, #10]) then
             begin
               SetLength(S, I - 1);
               Break;

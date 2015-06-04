@@ -1210,6 +1210,12 @@ type
     property OnKeyUp;
     { Inherited property - see Delphi help }
     property OnMouseDown;
+  {$IFDEF COMPILER9_UP}
+    { Inherited property - see Delphi help. }
+    property OnMouseEnter;
+    { Inherited property - see Delphi help. }
+    property OnMouseLeave;
+  {$ENDIF}
     { Inherited property - see Delphi help }
     property OnMouseMove;
     { Inherited property - see Delphi help }
