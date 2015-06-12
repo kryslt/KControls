@@ -120,7 +120,7 @@ type
     FRightButtonIndex: TImageIndex;
     FScrollButtonSize: Integer;
     procedure CMCursorChanged(var Message: TLMessage); message CM_CURSORCHANGED;
-    function GetTabs(Index: Integer): string;
+    function GetTabs(Index: Integer): TKString;
     procedure SetCloseButtonIndex(const Value: TImageIndex);
     procedure SetColors(const Value: TKTabColors);
     procedure SetFirstVisibleTab(Value: Integer);
@@ -181,7 +181,7 @@ type
     property PageControl: TKCustomPageControl read FPageControl write SetPageControl;
     property RightButtonIndex: TImageIndex read FRightButtonIndex write SetRightButtonIndex default -1;
     property ScrollButtonSize: Integer read FScrollButtonSize write SetScrollButtonSize default cDefaultScrollButtonSize;
-    property Tabs[Index: Integer]: string read GetTabs;
+    property Tabs[Index: Integer]: TKString read GetTabs;
   end;
 
   TKTabSheet = class(TWinControl)
@@ -607,7 +607,7 @@ begin
   end;
 end;
 
-function TKTabPanel.GetTabs(Index: Integer): string;
+function TKTabPanel.GetTabs(Index: Integer): TKString;
 begin
   if (FPageControl <> nil) and (Index >= 0) and (Index < FPageControl.PageCount) then
     Result := FPageControl.Pages[Index].Caption
@@ -1496,7 +1496,7 @@ end;
 procedure TKCustomPageControl.CMDockNotification(var Message: TCMDockNotification);
 var
   I: Integer;
-  S: string;
+  S: TKString;
   Page: TKTabSheet;
 begin
   Page := GetPageFromDockClient(Message.Client);

@@ -111,7 +111,7 @@ type
     taFillRect,
     { Only the text within given rectangle will be filled. }
     taFillText,
-    { Include padding created by aligns int @link(TKTextBox.PointToIndex) calculation. }
+    { Include padding created by aligns in the @link(TKTextBox.PointToIndex) calculation. }
     taIncludePadding,
     { Text will be drawn as multi-line text if it contains carriage returns and line feeds. }
     taLineBreak,
@@ -2524,7 +2524,7 @@ var
 var
   I, Index, TextLen, LineBegin, LineBreaks, Vert, TrimStart, TrimLen: Integer;
   WordBreak, LineBreak, WhiteSpace, PrevWhiteSpace, FirstWord,
-  WrapText: Boolean;
+  WasLineBreak, WrapText: Boolean;
   Size: TSize;
 begin
   case AFunction of
@@ -2558,6 +2558,7 @@ begin
       Index := LineBegin;
       WhiteSpace := True;
       FirstWord := True;
+      WasLineBreak := False;
       while I <= TextLen + 1 do
       begin
         PrevWhiteSpace := WhiteSpace;
@@ -2595,8 +2596,16 @@ begin
           Index := I;
           FirstWord := False;
         end;
-        if LineBreak and (FText[I] = cFirstEOL) then
-          Inc(LineBreaks);
+        if LineBreak then
+          if CharInSetEx(FText[I], cLineBreaks) then
+          begin
+            if not WasLineBreak then
+            begin
+              Inc(LineBreaks);
+              WasLineBreak := True;
+            end;
+          end else
+            WasLineBreak := False;
         Inc(I);
       end;
     end;

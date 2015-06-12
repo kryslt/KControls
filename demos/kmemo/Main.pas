@@ -52,13 +52,25 @@ var
   I: Integer;
 begin
   Memo := TKMemo.Create(Self);
+  Memo.ContentPadding.Left := 20;
+  Memo.ContentPadding.Right := 20;
+  Memo.Align := alClient;
   Memo.Options := Memo.Options + [eoShowFormatting];
   Memo.Colors.BkGnd := clWhite;
   Memo.Font.Name := 'Arial';
   Memo.Font.Size := 36;
   Memo.Blocks.LockUpdate;
-  Memo.Blocks.Clear;
-  Memo.Blocks.AddTextBlock('testtext1');
+  Memo.Blocks.Clear(False);
+  Memo.Blocks.AddTextBlock('This is a test text 1.');
+  TB := Memo.Blocks.AddTextBlock(' This is a test text 2.');
+  TB.Font.Size := 40;
+  TB.Font.Color := clRed;
+  TB := Memo.Blocks.AddTextBlock(' This is a test text 3.');
+  TB.Font.Size := 30;
+  TB.Font.Color := clBlue;
+  TB.Brush.Color := clYellow;
+//  Width := 50;
+{  Memo.Blocks.AddTextBlock('testtext1');
   Memo.Blocks.AddNewLineBlock;
   Memo.Blocks.AddTextBlock('testtext2');
   Memo.Blocks.AddNewLineBlock;
@@ -107,18 +119,20 @@ begin
     MS.Free;
   end;
   Memo.BackgroundImage.LoadFromFile('../../resource_src/clouds.jpg');
+  }
   Memo.Blocks.UnlockUpdate;
-  Memo.Align := alClient;
+{
   Memo.ContentPadding.Left := 50;
   Memo.ContentPadding.Top := 30;
   Memo.ContentPadding.Right := 60;
   Memo.Blocks.Lines[2] := 'This is replacement.';
-  Memo.Select(0, 5);
+  Memo.Select(0, 5);}
 {  W := Memo.Text;
   Memo.Text := W;
   W := Memo.Text;
   Memo.Text := W;}
   Memo.Parent := Self;
+  Memo.Select(2, 10);
 end;
 
 {$IFDEF FPC}
