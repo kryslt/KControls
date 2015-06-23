@@ -6197,13 +6197,13 @@ begin
   FScrollBars := cScrollBarsDef;
   FScrollModeHorz := cScrollModeDef;
   FScrollModeVert := cScrollModeDef;
-  FScrollOffset := Point(0, 0);
+  FScrollOffset := CreateEmptyPoint;
   FScrollSpeed := cScrollSpeedDef;
   FScrollTimer := TTimer.Create(Self);
   FScrollTimer.Enabled := False;
   FScrollTimer.Interval := FScrollSpeed;
   FScrollTimer.OnTimer := ScrollTimerHandler;
-  FScrollPos := Point(0, 0);
+  FScrollPos := CreateEmptyPoint;
   FSelections := nil;
   FSizingStyle := cSizingStyleDef;
   FSortStyle := cSortStyleDef;
@@ -6476,7 +6476,7 @@ begin
         SuggestSizing(csStop);
       gsColMoving, gsRowMoving:
       begin
-        ProcessDragWindow(FHitPos, Point(0, 0), cInvalidIndex, FGridState = gsColMoving, True);
+        ProcessDragWindow(FHitPos, CreateEmptyPoint, cInvalidIndex, FGridState = gsColMoving, True);
         SuggestDrag(csStop);
       end;
     else
@@ -10834,7 +10834,7 @@ begin
     ClientW := ClientWidth;
     Info := GetAxisInfoBoth([aiFixedParams]);
     GridW := 0; GridH := 0;
-    TmpExtent := Point(0, 0);
+    TmpExtent := CreateEmptyPoint;
     if (goDoubleBufferedCells in FOptions) and not DoubleBuffered then
       CellBitmap := TKAlphaBitmap.Create
     else

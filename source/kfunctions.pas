@@ -1949,8 +1949,9 @@ end;
 
 function RectInRect(Bounds, Rect: TRect): Boolean;
 begin
-  Result := not ((Rect.Left > Bounds.Right) or (Rect.Right < Bounds.Left) or
-    (Rect.Top > Bounds.Bottom) or (Rect.Bottom < Bounds.Top));
+  Result :=
+    (Rect.Left < Bounds.Right) and (Rect.Right >= Bounds.Left) and
+    (Rect.Top < Bounds.Bottom) and (Rect.Bottom >= Bounds.Top);
 end;
 
 function SetAppContext(const Ctx: TKAppContext): Boolean;

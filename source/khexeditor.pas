@@ -3144,7 +3144,7 @@ end;
 
 function TKCustomHexEditor.GetFirstVisibleIndex: Integer;
 begin
-  Result := PointToSel(Point(0, 0), False, FEditArea).Index;
+  Result := PointToSel(CreateEmptyPoint, False, FEditArea).Index;
 end;
 
 function TKCustomHexEditor.GetInsertMode: Boolean;
@@ -4415,7 +4415,7 @@ function TKCustomHexEditor.SelToPoint(Value: TKHexEditorSelection; Area: TKHexEd
 var
   AD: TKHexEditorAreaDimensions;
 begin
-  Result := Point(0, 0);
+  Result := CreateEmptyPoint;
   AD := GetAreaDimensions;
   ValidateSelection(Value, Area);
   if (Area = eaDigits) and (edDigits in FDrawStyles) then

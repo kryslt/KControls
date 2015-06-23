@@ -94,6 +94,11 @@ const
   { Default value for the @link(TKCustomControl.BorderStyle) property. }
   cBorderStyleDef = bsSingle;
 
+  cContentPaddingBottomDef = 0;
+  cContentPaddingLeftDef = 0;
+  cContentPaddingRightDef = 0;
+  cContentPaddingTopDef = 0;
+
   { Minimum for the @link(TKPrintPageSetup.Copies) property }
   cCopiesMin = 1;
   { Maximum for the @link(TKPrintPageSetup.Copies) property }
@@ -251,16 +256,19 @@ type
     procedure Changed;
   public
     constructor Create;
-    constructor CreateFromRect(const ARect: TRect);
-    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
+    procedure Assign(Source: TPersistent); override;
+    procedure AssignFromRect(const ARect: TRect);
+    procedure AssignFromValues(ALeft, ATop, ARight, ABottom: Integer);
     function ContainsPoint(const APoint: TPoint): Boolean;
+    function EqualProperties(const ARect: TKRect): Boolean;
     function OffsetRect(ARect: TKRect): TRect; overload;
     function OffsetRect(const ARect: TRect): TRect; overload;
+    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   published
-    property Left: Integer read FLeft write SetLeft default 0;
-    property Top: Integer read FTop write SetTop default 0;
-    property Right: Integer read FRight write SetRight default 0;
-    property Bottom: Integer read FBottom write SetBottom default 0;
+    property Left: Integer read FLeft write SetLeft default cContentPaddingLeftDef;
+    property Top: Integer read FTop write SetTop default cContentPaddingTopDef;
+    property Right: Integer read FRight write SetRight default cContentPaddingRightDef;
+    property Bottom: Integer read FBottom write SetBottom default cContentPaddingBottomDef;
   end;
 
   { Base class for all visible controls in KControls. }
@@ -419,7 +427,7 @@ type
     procedure UnlockUpdate; virtual;
     { Returns True if control updating is not locked, i.e. there is no open
       LockUpdate and UnlockUpdate pair. }
-    function UpdateUnlocked: Boolean;
+    function UpdateUnlocked: Boolean; virtual;
     { Determines whether a single line border is drawn around the control.
       Set BorderStyle to bsSingle to add a single line border around the control.
       Set BorderStyle to bsNone to omit the border. }
@@ -1154,20 +1162,43 @@ constructor TKRect.Create;
 begin
   inherited Create;
   FOnChanged := nil;
-  FBottom := 0;
-  FLeft := 0;
-  FRight := 0;
-  FTop := 0;
+  FBottom := cContentPaddingBottomDef;
+  FLeft := cContentPaddingLeftDef;
+  FRight := cContentPaddingRightDef;
+  FTop := cContentPaddingTopDef;
 end;
 
-constructor TKRect.CreateFromRect(const ARect: TRect);
+procedure TKRect.Assign(Source: TPersistent);
 begin
-  inherited Create;
-  FOnChanged := nil;
+  if Source is TKRect then
+  begin
+    Bottom := TKRect(Source).Bottom;
+    Left := TKRect(Source).Left;
+    Right := TKRect(Source).Right;
+    Top := TKRect(Source).Top;
+  end;
+end;
+
+procedure TKRect.AssignFromRect(const ARect: TRect);
+begin
   FBottom := ARect.Bottom;
   FLeft := ARect.Left;
   FRight := ARect.Right;
   FTop := ARect.Top;
+end;
+
+procedure TKRect.AssignFromValues(ALeft, ATop, ARight, ABottom: Integer);
+begin
+  FBottom := ABottom;
+  FLeft := ALeft;
+  FRight := ARight;
+  FTop := ATop;
+end;
+
+procedure TKRect.Changed;
+begin
+  if Assigned(FOnChanged) then
+    FOnChanged(Self);
 end;
 
 function TKRect.ContainsPoint(const APoint: TPoint): Boolean;
@@ -1175,6 +1206,13 @@ begin
   Result :=
     (FLeft <= APoint.X) and (APoint.X < FRight) and
     (FTop <= APoint.Y) and (APoint.Y < FBottom);
+end;
+
+function TKRect.EqualProperties(const ARect: TKRect): Boolean;
+begin
+  Result := (ARect <> nil) and
+    (Left = ARect.Left) and (Right = ARect.Right) and
+    (Top = ARect.Top) and (Bottom = ARect.Bottom);
 end;
 
 function TKRect.OffsetRect(ARect: TKRect): TRect;
@@ -1224,12 +1262,6 @@ begin
     FTop := Value;
     Changed;
   end;
-end;
-
-procedure TKRect.Changed;
-begin
-  if Assigned(FOnChanged) then
-    FOnChanged(Self);
 end;
 
 { TKCustomControl }
@@ -2670,7 +2702,7 @@ begin
   FControl := nil;
   FMouseWheelAccumulator := 0;
   FPage := 1;
-  FPageSize := Point(0, 0);
+  FPageSize := CreateEmptyPoint;
   FScale := 100;
   FScaleMode := smPageWidth;
   FOnChanged := nil;

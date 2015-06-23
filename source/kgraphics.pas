@@ -547,6 +547,9 @@ function ColorToGrayScale(Color: TColor): TColor;
 { Calls BitBlt. }
 procedure CopyBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcX, SrcY: Integer);
 
+{ Creates an empty point. }
+function CreateEmptyPoint: TPoint;
+
 { Creates an empty rectangle. }
 function CreateEmptyRect: TRect;
 
@@ -861,6 +864,11 @@ begin
   {$IFDEF USE_WINAPI}Windows.{$ENDIF}BitBlt(DestDC,
     DestRect.Left, DestRect.Top, DestRect.Right - DestRect.Left, DestRect.Bottom - DestRect.Top,
     SrcDC, 0, 0, SRCCOPY);
+end;
+
+function CreateEmptyPoint: TPoint;
+begin
+  Result := Point(0,0);
 end;
 
 function CreateEmptyRect: TRect;
@@ -2819,7 +2827,7 @@ begin
   inherited;
   FActive := False;
   FBitmap := TKAlphaBitmap.Create;
-  FInitialPos := Point(0, 0);
+  FInitialPos := CreateEmptyPoint;
 {$IFDEF USE_WINAPI}
   FUpdateLayeredWindow := GetProcAddress(GetModuleHandle('user32.dll'), 'UpdateLayeredWindow');
   FLayered := Assigned(FUpdateLayeredWindow);
@@ -2979,7 +2987,7 @@ begin
       begin
         R.Right := FBitmap.Width;
         R.Bottom := FBitmap.Height;
-        CanvasOrigin := Point(0, 0);
+        CanvasOrigin := CreateEmptyPoint;
         ScreenDC := GetDC(0);
         try
           if FUpdateLayeredWindow(FWindow, ScreenDC, @R.TopLeft, PSize(@R.BottomRight),
