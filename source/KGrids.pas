@@ -624,6 +624,8 @@ type
     ssDownUp,
     { First click sorts from lowest to highest value, second click sorts from highest to lowest value, third click turns sorting off. }
     ssDownUpNone,
+    { First click sorts from highest to lowest value, second click sorts from lowest to highest value. }
+    ssUpDown,
     { First click sorts from highest to lowest value, second click sorts from lowest to highest value, third click turns sorting off. }
     ssUpDownNone
     );
@@ -10100,13 +10102,14 @@ procedure TKCustomGrid.MouseUp(Button: TMouseButton; Shift: TShiftState;
         else
           Result := smDown;
         end;
+      ssUpDown: if ASortMode = smUp then Result := smDown else Result := smUp;
+    else
+      case ASortMode of
+        smUp: Result := smDown;
+        smDown: Result := smNone;
       else
-        case ASortMode of
-          smUp: Result := smDown;
-          smDown: Result := smNone;
-        else
-          Result := smUp;
-        end;
+        Result := smUp;
+      end;
     end;
   end;
 
