@@ -2660,8 +2660,8 @@ type
     function SelectionExpand(ACol, ARow: Integer): Boolean; virtual;
     { Adjusts the grid rectangle identified by Sel and makes it valid. This method
       is intended to adjust FSelection or a rectangle assumed to be assigned
-      to FSelection later. }
-    procedure SelectionFix(var Sel: TKGridRect); virtual;
+      to FSelection later. Returns True if selection was changed and False if no fix was needed.}
+    function SelectionFix(var Sel: TKGridRect): Boolean; virtual;
     { Initializes or expands the current selection and performs all necessary adjustments.
       ACol and ARow are the indexes used to initialize or expand the selection.
       Stage determines, if the selection should be initialized or expanded.
@@ -2670,6 +2670,8 @@ type
       would not be modified, either. }
     function SelectionMove(ACol, ARow: Integer; Stage: TKGridSelectionStage;
       Flags: TKGridSelectionFlags): Boolean; virtual;
+    { Calls @link(TKCustomGrid.OnSelectionChanged) event handler. }
+    procedure DoSelectionChanged;
     { Assigns new selection and performs all necessary adjustments. }
     function SelectionSet(const NewSelection: TKGridRect): Boolean;
   {$IFDEF FPC}
@@ -6759,7 +6761,8 @@ begin
   end;
   if (ColCnt > 0) or (RowCnt > 0) then
   begin
-    SelectionFix(FSelection);
+    if SelectionFix(FSelection) then
+      DoSelectionChanged;
     if (FFixedRows <> OldFixedRows) or (FFixedCols <> OldFixedCols) then
       ResetTopLeft;
     UpdateAxes(ColCnt > 0, cAll, RowCnt > 0, cAll, []);
@@ -7347,6 +7350,12 @@ begin
       Result := True;
     end;
   end;
+end;
+
+procedure TKCustomGrid.DoSelectionChanged;
+begin
+  if Assigned(FOnSelectionChanged) then
+    FOnSelectionChanged(Self);
 end;
 
 procedure TKCustomGrid.DragMove(ACol, ARow: Integer; MousePt: TPoint);
@@ -9333,7 +9342,8 @@ begin
   ColCount := Max(ColCount, Value + 1);
   FFixedCols := Value;
   ResetTopLeft;
-  SelectionFix(FSelection);
+  if SelectionFix(FSelection) then
+    DoSelectionChanged;
   UpdateAxes(True, cAll, False, cAll, []);
 end;
 
@@ -9342,7 +9352,8 @@ begin
   RowCount := Max(RowCount, Value + 1);
   FFixedRows := Value;
   ResetTopLeft;
-  SelectionFix(FSelection);
+  if SelectionFix(FSelection) then
+    DoSelectionChanged;
   UpdateAxes(False, cAll, True, cAll, []);
 end;
 
@@ -10225,7 +10236,8 @@ begin
     else
       for I := ToIndex to FromIndex do
         InternalExchangeCols(I, FromIndex);
-    SelectionFix(FSelection);
+    if SelectionFix(FSelection) then
+      DoSelectionChanged;
     UpdateAxes(True, cAll, False, cAll, []);
     UpdateCellSpan;
     ClearSortModeVert;
@@ -10246,7 +10258,8 @@ begin
     else
       for I := ToIndex to FromIndex do
         InternalExchangeRows(I, FromIndex);
-    SelectionFix(FSelection);
+    if SelectionFix(FSelection) then
+      DoSelectionChanged;
     UpdateAxes(False, cAll, True, cAll, []);
     UpdateCellSpan;
     ClearSortModeHorz;
@@ -11689,9 +11702,7 @@ begin
   end else
     FSelection := NewSelection;
 
-  if Assigned(FOnSelectionChanged) then
-    FOnSelectionChanged(Self);
-
+  DoSelectionChanged;
   InvalidatePageSetup;
   if not (sfNoMemPos in Flags) then
   begin
@@ -11711,8 +11722,11 @@ begin
     InternalGetCell(ACol, ARow).SelectionExpand(ACol, ARow, Result);
 end;
 
-procedure TKCustomGrid.SelectionFix(var Sel: TKGridRect);
+function TKCustomGrid.SelectionFix(var Sel: TKGridRect): Boolean;
+var
+  OrigSel: TKGridRect;
 begin
+  OrigSel := Sel;
   //aki:
   if (not (gxEditFixedCols in FOptionsEx) and (Sel.Row1 >= FFixedRows)) or (not (gxEditFixedRows in FOptionsEx) and (Sel.Row1 < FFixedRows)) then
   begin
@@ -11733,7 +11747,8 @@ begin
     Sel.Row2 := MinMax(Sel.Row2, 0, FRowCount - 1);
   end;
   if not (goRangeSelect in FOptions) then
-    Sel.Cell2 := Sel.Cell1
+    Sel.Cell2 := Sel.Cell1;
+  Result := not GridRectEqual(Sel, OrigSel);
 end;
 
 function TKCustomGrid.SelectionMove(ACol, ARow: Integer;
@@ -12200,7 +12215,10 @@ begin
     WasVirtual := goVirtualGrid in FOptions;
     FOptions := Value;
     if UpdateSelection then
-      SelectionFix(FSelection);
+    begin
+      if SelectionFix(FSelection) then
+        DoSelectionChanged;
+    end;
     if UpdateCols or UpdateRows then
       UpdateAxes(UpdateCols, cAll, UpdateRows, cAll, []);
     if UpdateScrollBars or UpdateThemes then
