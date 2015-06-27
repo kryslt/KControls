@@ -1423,7 +1423,7 @@ begin
     ARect.Bottom := MulDiv(ARect.Bottom, ViewportExt.cy, WindowExt.cy);
   end;
   if Boolean(GetViewPortOrgEx(DC, {$IFDEF FPC}@{$ENDIF}P)) then
-    OffsetRect(ARect, P.X, P.Y);
+    OffsetRect(ARect, P);
   {$ENDIF}
 {$ENDIF}
   if Boolean(GetWindowOrgEx(DC, {$IFDEF FPC}@{$ENDIF}P)) then

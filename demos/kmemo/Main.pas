@@ -62,12 +62,16 @@ begin
   Memo.Colors.BkGnd := clWhite;
   Memo.Font.Name := 'Arial';
   Memo.Font.Size := 20;
+  Memo.ParaStyle.FirstIndent := 30;
 //  Memo.ParaStyle.HAlign := halCenter;
   Memo.Blocks.LockUpdate;
   try
     Memo.Blocks.Clear;
-{    Memo.Blocks.AddTextBlock('This is a test text 1.');
-    Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_info.png');
+    Memo.Blocks.AddTextBlock('This is a test text 1.');
+    PA := Memo.Blocks.AddParagraph;
+    TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
+    PA := Memo.Blocks.AddParagraph;
+   {    Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_info.png');
     IB := Memo.Blocks.AddImageBlock('label_wre.png');
     IB.LeftOffset := 20;
     IB.TopOffset := 20;
@@ -105,16 +109,30 @@ begin
     IB.TopOffset := 0;
     IB.Position := mbpRelative; }
     CO := Memo.Blocks.AddContainer;
+//    CO.Position := mbpRelative;
+    CO.LeftOffset := 100;
     CO.RequiredWidth := 200;
-
-    CO.Blocks.AddTextBlock('test text1');
-    CO.Blocks.AddParagraph;
-    CO.Blocks.AddTextBlock('test text2');
-    CO.Blocks.AddParagraph;
-    CO.Blocks.AddTextBlock('test text3');
-    CO.Blocks.AddParagraph;
-    CO.Blocks.AddTextBlock('test text4');
-    CO.Blocks.AddParagraph;
+    CO.BlockStyle.ContentPadding.AssignFromValues(10,10,10,10);
+    CO.BlockStyle.Brush.Color := clGreen;
+    CO.BlockStyle.BorderRadius := 5;
+    CO.Blocks.LockUpdate;
+    try
+      TB := CO.Blocks.AddTextBlock('test text1');
+      TB.TextStyle.Font.Color := clRed;
+      PA := CO.Blocks.AddParagraph;
+      PA.ParaStyle.Brush.Color := clInfoBk;
+      PA.ParaStyle.BorderRadius := 5;
+      TB := CO.Blocks.AddTextBlock('test text2');
+      TB.TextStyle.Brush.Color := clYellow;
+      TB.TextStyle.Font.Style := [fsBold];
+      CO.Blocks.AddParagraph;
+      CO.Blocks.AddTextBlock('test text3');
+      CO.Blocks.AddParagraph;
+      CO.Blocks.AddTextBlock('test text4');
+      CO.Blocks.AddParagraph;
+    finally
+      CO.Blocks.UnlockUpdate;
+    end;
   {  TB := Memo.Blocks.AddTextBlock('This is big bold text.');
     TB.Font.Style := [fsBold];
     TB.Font.Size := 15;
@@ -156,6 +174,8 @@ begin
     end;
 
     Memo.Blocks[15].Position := mbpRelative;
+    Memo.Font.Size := 15;
+//    Memo.Blocks[15].TopOffset := 50;
 
 {    IB := Memo.Blocks.AddImageBlock('label_wre.png', 15);
     IB.LeftOffset := 350;

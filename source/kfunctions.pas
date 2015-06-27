@@ -662,8 +662,20 @@ procedure QuickSortNR(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareP
 procedure QuickSort(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareProc;
   AExchangeProc: TQsExchangeProc; ASortedDown: Boolean);
 
+{ Add AX and AY to APoint. }
+procedure OffsetPoint(var APoint: TPoint; AX, AY: Integer); overload;
+
+{ Add AOffset to APoint. }
+procedure OffsetPoint(var APoint: TPoint; const AOffset: TPoint); overload;
+
 { Examines if some part of Rect lies within Bounds. }
 function RectInRect(Bounds, Rect: TRect): Boolean;
+
+{ Add AX and AY to ARect. }
+procedure OffsetRect(var ARect: TRect; AX, AY: Integer); overload;
+
+{ Add AOffset to ARect. }
+procedure OffsetRect(var ARect: TRect; const AOffset: TPoint); overload;
 
 { Restores application context, e.g. when calling a shared library. }
 function SetAppContext(const Ctx: TKAppContext): Boolean;
@@ -1947,11 +1959,39 @@ begin
     Sort(0, ACount - 1);
 end;
 
+procedure OffsetPoint(var APoint: TPoint; AX, AY: Integer);
+begin
+  Inc(APoint.X, AX);
+  Inc(APoint.Y, AY);
+end;
+
+procedure OffsetPoint(var APoint: TPoint; const AOffset: TPoint);
+begin
+  Inc(APoint.X, AOffset.X);
+  Inc(APoint.Y, AOffset.Y);
+end;
+
 function RectInRect(Bounds, Rect: TRect): Boolean;
 begin
   Result :=
     (Rect.Left < Bounds.Right) and (Rect.Right >= Bounds.Left) and
     (Rect.Top < Bounds.Bottom) and (Rect.Bottom >= Bounds.Top);
+end;
+
+procedure OffsetRect(var ARect: TRect; AX, AY: Integer);
+begin
+  Inc(ARect.Left, AX);
+  Inc(ARect.Top, AY);
+  Inc(ARect.Right, AX);
+  Inc(ARect.Bottom, AY);
+end;
+
+procedure OffsetRect(var ARect: TRect; const AOffset: TPoint);
+begin
+  Inc(ARect.Left, AOffset.X);
+  Inc(ARect.Top, AOffset.Y);
+  Inc(ARect.Right, AOffset.X);
+  Inc(ARect.Bottom, AOffset.Y);
 end;
 
 function SetAppContext(const Ctx: TKAppContext): Boolean;
