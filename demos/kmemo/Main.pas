@@ -43,9 +43,10 @@ uses
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  TB: TKTextMemoBlock;
-  IB: TKImageMemoBlock;
+  TB: TKMemoTextBlock;
+  IB: TKMemoImageBlock;
   PA: TKMemoParagraph;
+  CO: TKMemoContainer;
   Index: Integer;
   MS: TMemoryStream;
   S: AnsiString;
@@ -61,7 +62,7 @@ begin
   Memo.Colors.BkGnd := clWhite;
   Memo.Font.Name := 'Arial';
   Memo.Font.Size := 20;
-  Memo.ParaStyle.HAlign := halCenter;
+//  Memo.ParaStyle.HAlign := halCenter;
   Memo.Blocks.LockUpdate;
   try
     Memo.Blocks.Clear;
@@ -103,16 +104,18 @@ begin
     IB.LeftOffset := 50;
     IB.TopOffset := 0;
     IB.Position := mbpRelative; }
+    CO := Memo.Blocks.AddContainer;
+    CO.RequiredWidth := 200;
 
-  {  Memo.Blocks.AddTextBlock('testtext1');
-    Memo.Blocks.AddNewLineBlock;
-    Memo.Blocks.AddTextBlock('testtext2');
-    Memo.Blocks.AddNewLineBlock;
-    Memo.Blocks.AddTextBlock('testtext3');
-    Memo.Blocks.AddNewLineBlock;
-    Memo.Blocks.AddTextBlock('testtext4');
-    Memo.Blocks.AddNewLineBlock;
-    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
+    CO.Blocks.AddTextBlock('test text1');
+    CO.Blocks.AddParagraph;
+    CO.Blocks.AddTextBlock('test text2');
+    CO.Blocks.AddParagraph;
+    CO.Blocks.AddTextBlock('test text3');
+    CO.Blocks.AddParagraph;
+    CO.Blocks.AddTextBlock('test text4');
+    CO.Blocks.AddParagraph;
+  {  TB := Memo.Blocks.AddTextBlock('This is big bold text.');
     TB.Font.Style := [fsBold];
     TB.Font.Size := 15;
     TB := Memo.Blocks.AddTextBlock(' This is small bold text.');
@@ -151,6 +154,8 @@ begin
     finally
       MS.Free;
     end;
+
+    Memo.Blocks[15].Position := mbpRelative;
 
 {    IB := Memo.Blocks.AddImageBlock('label_wre.png', 15);
     IB.LeftOffset := 350;
