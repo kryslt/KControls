@@ -1,4 +1,4 @@
-unit Main;
+﻿unit Main;
 
 interface
 
@@ -42,11 +42,44 @@ uses
 {$ENDIF}
 
 procedure TMainForm.FormCreate(Sender: TObject);
+
+  procedure AddTextField;
+  var
+    CO: TKMemoContainer;
+    TB: TKMemoTextBlock;
+    PA: TKMemoParagraph;
+  begin
+    CO := Memo.Blocks.AddContainer;
+//    CO.Position := mbpRelative;
+    CO.LeftOffset := 100;
+    CO.RequiredWidth := 200;
+    CO.BlockStyle.ContentPadding.AssignFromValues(10,10,10,10);
+    CO.BlockStyle.Brush.Color := clGreen;
+    CO.BlockStyle.BorderRadius := 5;
+    CO.Blocks.LockUpdate;
+    try
+      TB := CO.Blocks.AddTextBlock('This is very very long test text 1');
+      TB.TextStyle.Font.Color := clRed;
+      PA := CO.Blocks.AddParagraph;
+      PA.ParaStyle.Brush.Color := clInfoBk;
+      PA.ParaStyle.BorderRadius := 5;
+      TB := CO.Blocks.AddTextBlock('This is very very long test text 2');
+      TB.TextStyle.Brush.Color := clYellow;
+      TB.TextStyle.Font.Style := [fsBold];
+      CO.Blocks.AddParagraph;
+      CO.Blocks.AddTextBlock('This is very very long test text 3');
+      CO.Blocks.AddParagraph;
+      CO.Blocks.AddTextBlock('This is very very long test text 4');
+      CO.Blocks.AddParagraph;
+    finally
+      CO.Blocks.UnlockUpdate;
+    end;
+  end;
+
 var
   TB: TKMemoTextBlock;
   IB: TKMemoImageBlock;
   PA: TKMemoParagraph;
-  CO: TKMemoContainer;
   Index: Integer;
   MS: TMemoryStream;
   S: AnsiString;
@@ -67,7 +100,7 @@ begin
   Memo.Blocks.LockUpdate;
   try
     Memo.Blocks.Clear;
-    Memo.Blocks.AddTextBlock('This is a test text 1.');
+    Memo.Blocks.AddTextBlock('This is můj testovací test text 1.');
     PA := Memo.Blocks.AddParagraph;
     TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
     PA := Memo.Blocks.AddParagraph;
@@ -108,31 +141,8 @@ begin
     IB.LeftOffset := 50;
     IB.TopOffset := 0;
     IB.Position := mbpRelative; }
-    CO := Memo.Blocks.AddContainer;
-//    CO.Position := mbpRelative;
-    CO.LeftOffset := 100;
-    CO.RequiredWidth := 200;
-    CO.BlockStyle.ContentPadding.AssignFromValues(10,10,10,10);
-    CO.BlockStyle.Brush.Color := clGreen;
-    CO.BlockStyle.BorderRadius := 5;
-    CO.Blocks.LockUpdate;
-    try
-      TB := CO.Blocks.AddTextBlock('test text1');
-      TB.TextStyle.Font.Color := clRed;
-      PA := CO.Blocks.AddParagraph;
-      PA.ParaStyle.Brush.Color := clInfoBk;
-      PA.ParaStyle.BorderRadius := 5;
-      TB := CO.Blocks.AddTextBlock('test text2');
-      TB.TextStyle.Brush.Color := clYellow;
-      TB.TextStyle.Font.Style := [fsBold];
-      CO.Blocks.AddParagraph;
-      CO.Blocks.AddTextBlock('test text3');
-      CO.Blocks.AddParagraph;
-      CO.Blocks.AddTextBlock('test text4');
-      CO.Blocks.AddParagraph;
-    finally
-      CO.Blocks.UnlockUpdate;
-    end;
+    AddTextField;
+    AddTextField;
   {  TB := Memo.Blocks.AddTextBlock('This is big bold text.');
     TB.Font.Style := [fsBold];
     TB.Font.Size := 15;
