@@ -43,34 +43,33 @@ uses
 
 procedure TMainForm.FormCreate(Sender: TObject);
 
-  procedure AddTextField;
+  procedure AddTextField(CO: TKMemoContainer; Text1: Boolean);
   var
-    CO: TKMemoContainer;
     TB: TKMemoTextBlock;
     PA: TKMemoParagraph;
   begin
-    CO := Memo.Blocks.AddContainer;
-//    CO.Position := mbpRelative;
-    CO.LeftOffset := 100;
-    CO.RequiredWidth := 200;
-    CO.BlockStyle.ContentPadding.AssignFromValues(10,10,10,10);
-    CO.BlockStyle.Brush.Color := clGreen;
-    CO.BlockStyle.BorderRadius := 5;
     CO.Blocks.LockUpdate;
     try
-      TB := CO.Blocks.AddTextBlock('This is very very long test text 1');
-      TB.TextStyle.Font.Color := clRed;
-      PA := CO.Blocks.AddParagraph;
-      PA.ParaStyle.Brush.Color := clInfoBk;
-      PA.ParaStyle.BorderRadius := 5;
-      TB := CO.Blocks.AddTextBlock('This is very very long test text 2');
-      TB.TextStyle.Brush.Color := clYellow;
-      TB.TextStyle.Font.Style := [fsBold];
-      CO.Blocks.AddParagraph;
-      CO.Blocks.AddTextBlock('This is very very long test text 3');
-      CO.Blocks.AddParagraph;
-      CO.Blocks.AddTextBlock('This is very very long test text 4');
-      CO.Blocks.AddParagraph;
+      if Text1 then
+      begin
+        TB := CO.Blocks.AddTextBlock('This is special text 1');
+        TB.TextStyle.Font.Color := clRed;
+        PA := CO.Blocks.AddParagraph;
+        PA.ParaStyle.Brush.Color := clInfoBk;
+        PA.ParaStyle.BorderRadius := 5;
+        TB := CO.Blocks.AddTextBlock('This is test text 2');
+        TB.TextStyle.Brush.Color := clYellow;
+        TB.TextStyle.Font.Style := [fsBold];
+        CO.Blocks.AddParagraph;
+        CO.Blocks.AddTextBlock('This is test text 3');
+        CO.Blocks.AddParagraph;
+        CO.Blocks.AddTextBlock('This is test text 4');
+        CO.Blocks.AddParagraph;
+      end else
+      begin
+        TB := CO.Blocks.AddTextBlock('This is other text 1');
+        CO.Blocks.AddParagraph;
+      end;
     finally
       CO.Blocks.UnlockUpdate;
     end;
@@ -80,6 +79,7 @@ var
   TB: TKMemoTextBlock;
   IB: TKMemoImageBlock;
   PA: TKMemoParagraph;
+  TBL: TKMemoTable;
   Index: Integer;
   MS: TMemoryStream;
   S: AnsiString;
@@ -100,7 +100,7 @@ begin
   Memo.Blocks.LockUpdate;
   try
     Memo.Blocks.Clear;
-    Memo.Blocks.AddTextBlock('This is můj testovací test text 1.');
+    Memo.Blocks.AddTextBlock('This is test text 1.');
     PA := Memo.Blocks.AddParagraph;
     TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
     PA := Memo.Blocks.AddParagraph;
@@ -141,12 +141,32 @@ begin
     IB.LeftOffset := 50;
     IB.TopOffset := 0;
     IB.Position := mbpRelative; }
-    AddTextField;
-    AddTextField;
-  {  TB := Memo.Blocks.AddTextBlock('This is big bold text.');
-    TB.Font.Style := [fsBold];
-    TB.Font.Size := 15;
-    TB := Memo.Blocks.AddTextBlock(' This is small bold text.');
+    //AddTextField;
+    //AddTextField;
+    TBL := Memo.Blocks.AddTable;
+    TBL.BlockStyle.TopPadding := 20;
+    TBL.BlockStyle.BottomPadding := 30;
+    TBL.CellStyle.BorderWidth := 2;
+    TBL.CellStyle.ContentPadding.AssignFromValues(5,5,5,5);
+    TBL.CellStyle.Brush.Color := clWhite;
+    TBL.ColCount := 2;
+    TBL.RowCount := 2;
+    TBL.Rows[0].RequiredHeight := 200;
+    TBL.ColWidths[0] := 500;
+    TBl.ColWidths[1] := 400;
+    AddTextField(TBL.Rows[0].Cells[0], True);
+    AddTextField(TBL.Rows[0].Cells[1], True);
+    AddTextField(TBL.Rows[1].Cells[0], False);
+    AddTextField(TBL.Rows[1].Cells[1], False);
+    PA := Memo.Blocks.AddParagraph;
+    PA.ParaStyle.FirstIndent := 0;
+//    TBL.RequiredWidth := 600;
+    TBL.ApplyDefaultCellStyle;
+
+    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
+    TB.TextStyle.Font.Style := [fsBold];
+    TB.TextStyle.Font.Size := 15;
+{    TB := Memo.Blocks.AddTextBlock(' This is small bold text.');
     TB.Font.Style := [fsBold];
     Memo.Blocks.AddNewLineBlock;
     TB := Memo.Blocks.AddTextBlock('This is text on gray.');
@@ -174,7 +194,7 @@ begin
     TB.Font.Size := 15;
     TB.Font.Color := clRed;
     Memo.Blocks.AddNewLineBlock;}
-    MS := TMemoryStream.Create;
+  {  MS := TMemoryStream.Create;
     try
       MS.LoadFromFile('../../kgrid_readme.txt');
       SetString(S, PAnsiChar(MS.Memory), MS.Size);
@@ -183,7 +203,7 @@ begin
       MS.Free;
     end;
 
-    Memo.Blocks[15].Position := mbpRelative;
+    Memo.Blocks[15].Position := mbpRelative;}
     Memo.Font.Size := 15;
 //    Memo.Blocks[15].TopOffset := 50;
 

@@ -261,6 +261,7 @@ type
     procedure AssignFromValues(ALeft, ATop, ARight, ABottom: Integer);
     function ContainsPoint(const APoint: TPoint): Boolean;
     function EqualProperties(const ARect: TKRect): Boolean;
+    function NonZero: Boolean;
     function OffsetRect(ARect: TKRect): TRect; overload;
     function OffsetRect(const ARect: TRect): TRect; overload;
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
@@ -1211,8 +1212,13 @@ end;
 function TKRect.EqualProperties(const ARect: TKRect): Boolean;
 begin
   Result := (ARect <> nil) and
-    (Left = ARect.Left) and (Right = ARect.Right) and
-    (Top = ARect.Top) and (Bottom = ARect.Bottom);
+    (FLeft = ARect.Left) and (FRight = ARect.Right) and
+    (FTop = ARect.Top) and (FBottom = ARect.Bottom);
+end;
+
+function TKRect.NonZero: Boolean;
+begin
+  Result := (FLeft <> 0) or (FTop <> 0) or (FRight <> 0) or (FBottom <> 0);
 end;
 
 function TKRect.OffsetRect(ARect: TKRect): TRect;
