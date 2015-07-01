@@ -60,6 +60,7 @@ procedure TMainForm.FormCreate(Sender: TObject);
         TB := CO.Blocks.AddTextBlock('This is test text 2');
         TB.TextStyle.Brush.Color := clYellow;
         TB.TextStyle.Font.Style := [fsBold];
+        CO.Blocks.AddImageBlock('../../resource_src/kmessagebox_stop.png');
         CO.Blocks.AddParagraph;
         CO.Blocks.AddTextBlock('This is test text 3');
         CO.Blocks.AddParagraph;
