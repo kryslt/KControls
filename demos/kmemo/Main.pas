@@ -152,6 +152,8 @@ begin
     TBL.CellStyle.Brush.Color := clWhite;
     TBL.ColCount := 2;
     TBL.RowCount := 2;
+//    TBL.Rows[0].Cells[0].FixedWidth := True;
+//    TBL.Rows[1].Cells[1].FixedWidth := True;
     TBL.Rows[0].RequiredHeight := 200;
     TBL.ColWidths[0] := 500;
     TBl.ColWidths[1] := 400;
@@ -161,7 +163,8 @@ begin
     AddTextField(TBL.Rows[1].Cells[1], False);
     PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
-//    TBL.RequiredWidth := 600;
+//    TBL.RequiredWidth := 1000;
+//    TBL.FixedWidth := True;
     TBL.ApplyDefaultCellStyle;
 
     TB := Memo.Blocks.AddTextBlock('This is big bold text.');

@@ -634,6 +634,7 @@ type
     procedure NotifyDefaultParaChange; override;
     procedure NotifyDefaultTextChange; override;
     function Select(ASelStart, ASelLength: Integer): Boolean; override;
+    procedure SetBlockExtent(AWidth, AHeight: Integer); virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
@@ -818,7 +819,7 @@ type
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function PointToIndexOnLine(ACanvas: TCanvas; ALineIndex: Integer; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
-    procedure SetExtent(const APoint: TPoint); virtual;
+    procedure SetExtent(AWidth, AHeight: Integer); virtual;
     procedure UnlockUpdate;
     function UpdateUnlocked: Boolean;
     property BoundsRect: TRect read GetBoundsRect;
@@ -2412,6 +2413,7 @@ begin
       Self.KeyMapping.Assign(KeyMapping);
       Self.Modified := False;
       Self.Options := Options;
+      Self.ParaStyle.Assign(ParaStyle);
       Self.ParentBiDiMode := ParentBiDiMode;
       Self.ParentColor := ParentColor;
     {$IFNDEF FPC}
@@ -2426,6 +2428,7 @@ begin
       Self.ShowHint := ShowHint;
       Self.TabOrder := TabOrder;
       Self.TabStop := TabStop;
+      Self.TextStyle.Assign(TextStyle);
       Self.Visible := Visible;
     finally
       Self.UnlockUpdate;
@@ -5372,6 +5375,11 @@ begin
   Result := FBlocks.Select(ASelStart, ASelLength);
 end;
 
+procedure TKMemoContainer.SetBlockExtent(AWidth, AHeight: Integer);
+begin
+  FBlocks.SetExtent(AWidth - FBlockStyle.LeftPadding - FBlockStyle.TopPadding, AHeight - FBlockStyle.TopPadding - FBlockStyle.BottomPadding);
+end;
+
 procedure TKMemoContainer.SetClip(const Value: Boolean);
 begin
   if Value <> FClip then
@@ -5697,13 +5705,16 @@ function TKMemoTable.MeasureWordExtent(ACanvas: TCanvas; AIndex,
 const
   cMinColSize = 20;
 var
-  I, J, Len, ColWidth, DefColCount, DefSpace, UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY: Integer;
+  I, J, Len, ColWidth, DefColCount, DefSpace, MinSpace, OverflowSpace, UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY: Integer;
+  Ratio: Double;
   Extent: TPoint;
   Row: TKMemoTableRow;
   Cell: TKmemoTableCell;
-  HorzExtents, VertExtents: TKmemoSparseList;
+  CalcHorzExtents, MeasHorzExtents, MinHorzExtents, VertExtents: TKmemoSparseList;
 begin
   // this is the simple table layout calculation
+  if FFixedWidth then
+    ARequiredWidth := FRequiredWidth;
   // calculate predefined column widths
   DefColCount := 0;
   DefSpace := 0;
@@ -5722,10 +5733,14 @@ begin
     UndefSpace := 0;
   TotalSpace := DefSpace + UndefSpace;
   // now measure cells
-  HorzExtents := TKmemoSparseList.Create;
-  VertExtents := TKmemoSparseList.Create;
+  CalcHorzExtents := TKMemoSparseList.Create;
+  MeasHorzExtents := TKMemoSparseList.Create;
+  MinHorzExtents := TKMemoSparseList.Create;
+  VertExtents := TKMemoSparseList.Create;
   try
-    HorzExtents.SetSize(FColCount);
+    CalcHorzExtents.SetSize(FColCount);
+    MeasHorzExtents.SetSize(FColCount);
+    MinHorzExtents.SetSize(FColCount);
     VertExtents.SetSize(RowCount);
     for J := 0 to RowCount - 1 do
       VertExtents[J].Index := 0;
@@ -5733,19 +5748,44 @@ begin
     for I := 0 to FColCount - 1 do
     begin
       if FColWidths[I].Index > 0 then
-        ColWidth := MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace)
+        CalcHorzExtents[I].Index := MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace)
       else
-        ColWidth := UndefColWidth;
-      HorzExtents[I].Index := 0;
+        CalcHorzExtents[I].Index := UndefColWidth;
+      MeasHorzExtents[I].Index := 0;
+      MinHorzExtents[I].Index := 0;
       for J := 0 to RowCount - 1 do
       begin
         Row := Rows[J];
         if I < Row.CellCount then
         begin
-          Extent := Row.Cells[I].MeasureWordExtent(ACanvas, 0, ColWidth);
-          HorzExtents[I].Index := Max(HorzExtents[I].Index, Extent.X);
+          Extent := Row.Cells[I].MeasureWordExtent(ACanvas, 0, cMinColSize);
+          MinHorzExtents[I].Index := Max(MinHorzExtents[I].Index, Extent.X);
+          Extent := Row.Cells[I].MeasureWordExtent(ACanvas, 0, CalcHorzExtents[I].Index);
+          MeasHorzExtents[I].Index := Max(MeasHorzExtents[I].Index, Extent.X);
           VertExtents[J].Index := Max(VertExtents[J].Index, Extent.Y);
         end;
+      end;
+    end;
+    // if some MeasHorzExtents are bigger than CalcHorzExtents then recalculate remaining columns to fit required width
+    OverflowSpace := 0;
+    for I := 0 to FColCount - 1 do
+      Inc(OverflowSpace, Max(MeasHorzExtents[I].Index - CalcHorzExtents[I].Index, 0));
+    if OverflowSpace > 0 then
+    begin
+      MinSpace := 0;
+      TotalSpace := 0;
+      for I := 0 to FColCount - 1 do
+        if MeasHorzExtents[I].Index <= CalcHorzExtents[I].Index then
+        begin
+          Inc(TotalSpace, Max(MeasHorzExtents[I].Index, CalcHorzExtents[I].Index));
+          Inc(MinSpace, CalcHorzExtents[I].Index - MinHorzExtents[I].Index);
+        end;
+      if MinSpace > 0 then
+      begin
+        Ratio := (TotalSpace - OverflowSpace) / TotalSpace;
+        for I := 0 to FColCount - 1 do
+          if MeasHorzExtents[I].Index <= CalcHorzExtents[I].Index then
+            MeasHorzExtents[I].Index := Max(Round(CalcHorzExtents[I].Index * Ratio), MinHorzExtents[I].Index);
       end;
     end;
     // second measure with maximum column width
@@ -5755,12 +5795,12 @@ begin
       for J := 0 to Row.CellCount - 1 do
       begin
         Cell := Row.Cells[J];
-        if (J > FColCount) or (HorzExtents[J].Index <> Cell.Width) then
+        if (J > FColCount) or (MeasHorzExtents[J].Index <> Cell.Width) then
         begin
           if J < FColCount then
-            ColWidth := HorzExtents[J].Index
+            ColWidth := MeasHorzExtents[J].Index
           else
-            ColWidth := HorzExtents[FColCount - 1].Index;
+            ColWidth := MeasHorzExtents[FColCount - 1].Index;
           Extent := Cell.MeasureWordExtent(ACanvas, 0, ColWidth);
           VertExtents[I].Index := Max(VertExtents[I].Index, Extent.Y);
         end;
@@ -5779,34 +5819,35 @@ begin
         if J < Row.CellCount then
         begin
           Cell := Row.Cells[J];
-          Cell.Blocks.SetExtent(Point(Cell.WordWidth[0], VertExtents[I].Index));
+//          Cell.SetBlockExtent(Cell.WordWidth[0], VertExtents[I].Index); // No! Cell is measured by default way
           Cell.WordLeft[0] := PosX;
           Cell.WordTop[0] := 0;
           Cell.WordHeight[0] := VertExtents[I].Index;
           Inc(PosX, Cell.WordWidth[0]);
         end;
       end;
-      Row.Blocks.SetExtent(Point(PosX, VertExtents[I].Index));
+      Row.SetBlockExtent(PosX, VertExtents[I].Index);
       Row.WordLeft[0] := 0;
       Row.WordTop[0] := PosY;
       Row.WordHeight[0] := VertExtents[I].Index;
       Row.AddSingleLine;
-      AddBlockLine(I, Len, I, Len + Row.ContentLength, 0, PosY, PosX, VertExtents[I].Index);
+      AddBlockLine(I, Len, I, Len + Row.ContentLength - 1, 0, PosY, PosX, VertExtents[I].Index);
       Inc(Len, Row.ContentLength);
       Inc(PosY, VertExtents[I].Index);
     end;
-    Blocks.SetExtent(Point(PosX, PosY));
+    Inc(PosX, FBlockStyle.LeftPadding + FBlockStyle.RightPadding);
+    Inc(PosY, FBlockStyle.TopPadding + FBlockStyle.BottomPadding);
+    SetBlockExtent(PosX, PosY);
     WordLeft[0] := 0;
     WordTop[0] := 0;
     WordHeight[0] := 0;
   finally
-    HorzExtents.Free;
+    CalcHorzExtents.Free;
+    MeasHorzExtents.Free;
+    MinHorzExtents.Free;
     VertExtents.Free;
   end;
-  Inc(PosX, FBlockStyle.LeftPadding + FBlockStyle.RightPadding);
-  Inc(PosY, FBlockStyle.TopPadding + FBlockStyle.BottomPadding);
   Result := Point(PosX, PosY);
-//  Result := inherited MeasureWordExtent(ACanvas, AIndex, ARequiredWidth);
 end;
 
 procedure TKMemoTable.RequiredWidthChanged;
@@ -6829,7 +6870,7 @@ end;
 procedure TKMemoBlocks.MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer);
 var
   PosX, PosY, Right, CurBlock, CurIndex, CurWord, CurTotalWord, LineHeight, ParaWidth, ParaPosY, LastBlock, LastIndex, LastWord, LastTotalWord: Integer;
-  PP: TKMemoParaStyle;
+  CurParaStyle: TKMemoParaStyle;
 
   function GetParaStyle(ABlockIndex: Integer): TKMemoParaStyle;
   var
@@ -6935,8 +6976,8 @@ var
       WasParagraph := (LastLine = nil) or (Items[LastLine.EndBlock] is TKMemoParagraph);
       if WasParagraph then
       begin
-        FirstIndent := PP.FirstIndent;
-        TopPadding := PP.TopPadding
+        FirstIndent := CurParaStyle.FirstIndent;
+        TopPadding := CurParaStyle.TopPadding
       end else
       begin
         FirstIndent := 0;
@@ -6945,7 +6986,7 @@ var
       if IsParagraph then
       begin
         Item := Items[Line.EndBlock];
-        BottomPadding := PP.BottomPadding;
+        BottomPadding := CurParaStyle.BottomPadding;
         ParaMarkWidth := Item.WordWidth[Item.WordCount - 1];
       end else
       begin
@@ -6963,10 +7004,10 @@ var
       // adjust line and paragraph heights
       Inc(LineHeight, TopPadding + BottomPadding);
       // adjust all words horizontally
-      if PP.HAlign <> halLeft then
+      if CurParaStyle.HAlign <> halLeft then
       begin
         // reposition all line chunks like MS Word does it
-        PosX := PP.LeftPadding + FirstIndent;
+        PosX := CurParaStyle.LeftPadding + FirstIndent;
         StPosX := PosX;
         W := 0;
         for I := Line.StartBlock to Line.EndBlock do
@@ -6984,7 +7025,7 @@ var
                 if RectCollidesWithNonText(RW, R) then
                 begin
                   Delta := R.Left - StPosX - W;
-                  case PP.HAlign of
+                  case CurParaStyle.HAlign of
                     halCenter: Delta := Delta div 2;
                   end;
                   MoveWords(LineIndex, StPosX, R.Left, Delta);
@@ -7003,13 +7044,13 @@ var
           Delta := R.Left - StPosX - W
         else
           Delta := Right + ParaMarkWidth - StPosX - W;
-        case PP.HAlign of
+        case CurParaStyle.HAlign of
           halCenter: Delta := Delta div 2;
         end;
         MoveWords(LineIndex, StPosX, Right + ParaMarkWidth, Delta);
       end;
       // adjust all words vertically, compute line extent
-      LineRight := PP.LeftPadding;
+      LineRight := CurParaStyle.LeftPadding;
       LineLeft := Right;
       for I := Line.StartBlock to Line.EndBlock do
       begin
@@ -7038,20 +7079,20 @@ var
       begin
         TKMemoParagraph(Item).Top := ParaPosY;
         TKmemoParagraph(Item).Width := ParaWidth;
-        TKmemoParagraph(Item).Height := PosY + LineHeight - ParaPosY - PP.BottomPadding;
+        TKmemoParagraph(Item).Height := PosY + LineHeight - ParaPosY - CurParaStyle.BottomPadding;
         ParaWidth := 0;
-        ParaPosY := PosY + LineHeight + PP.TopPadding;
+        ParaPosY := PosY + LineHeight + CurParaStyle.TopPadding;
       end;
       // adjust line extent
       Line.Extent := Point(LineRight - LineLeft, LineHeight);
       Line.Position := Point(LineLeft, PosY);
       // other tasks
       FExtent.X := Max(FExtent.X, LineRight);
-      PP := GetParaStyle(CurBlock);
-      PosX := PP.LeftPadding;
+      CurParaStyle := GetParaStyle(CurBlock);
+      PosX := CurParaStyle.LeftPadding;
       if IsParagraph then
-        Inc(PosX, PP.FirstIndent);
-      Right := ARequiredWidth - PP.RightPadding;
+        Inc(PosX, CurParaStyle.FirstIndent);
+      Right := ARequiredWidth - CurParaStyle.RightPadding;
       Inc(PosY, LineHeight);
       LastBlock := CurBlock;
       LastWord := CurWord;
@@ -7076,7 +7117,7 @@ var
         begin
           if not AddLine then
             Inc(PosY, 5);
-          PosX := PP.LeftPadding;
+          PosX := CurParaStyle.LeftPadding;
         end;
       end;
     end;
@@ -7087,6 +7128,7 @@ var
   WLen: Integer;
   IsParagraph, OutSide, WasParagraph: Boolean;
   Item: TKMemoBlock;
+  NextParaStyle: TKMemoParaStyle;
 begin
   FRequiredWidth := ARequiredWidth;
   FLines.Clear;
@@ -7099,11 +7141,11 @@ begin
   LastTotalWord := 0;
   CurTotalWord := 0;
   CurIndex := 0;
-  PP := GetParaStyle(0);
-  PosX := PP.LeftPadding + PP.FirstIndent;
+  CurParaStyle := GetParaStyle(0);
+  PosX := CurParaStyle.LeftPadding + CurParaStyle.FirstIndent;
   PosY := 0;
-  ParaPosY := PP.TopPadding;
-  Right := ARequiredWidth - PP.RightPadding;
+  ParaPosY := CurParaStyle.TopPadding;
+  Right := ARequiredWidth - CurParaStyle.RightPadding;
   // first measure all absolutely positioned items
   for CurBlock := 0 to FRelPos.Count - 1 do
   begin
@@ -7126,9 +7168,13 @@ begin
           WasParagraph := IsParagraph;
           IsParagraph := (Item is TKMemoParagraph) and (CurWord = Item.WordCount - 1);
           WLen := Item.WordLength[CurWord];
-          Extent := Item.MeasureWordExtent(ACanvas, CurWord, Right - PP.LeftPadding - PP.FirstIndent);
-          OutSide := PP.WordWrap and not IsParagraph and (PosX + Extent.X > Right);
-          if OutSide or WasParagraph or PP.LineWrap then
+          if WasParagraph then
+            NextParaStyle := GetParaStyle(CurBlock)
+          else
+            NextParaStyle := CurParaStyle;
+          Extent := Item.MeasureWordExtent(ACanvas, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - NextParaStyle.FirstIndent);
+          OutSide := CurParaStyle.WordWrap and not IsParagraph and (PosX + Extent.X > Right);
+          if OutSide or WasParagraph or CurParaStyle.LineWrap then
             AddLine;
           MoveWordToFreeSpace(Extent.X, Extent.Y);
           Item.WordLeft[CurWord] := PosX;
@@ -7138,7 +7184,6 @@ begin
           Inc(CurIndex, WLen);
           Inc(CurWord);
           Inc(CurTotalWord);
-          WasParagraph := False;
         end;
       end;
       mbpRelative:
@@ -7441,9 +7486,9 @@ begin
     Result := False;
 end;
 
-procedure TKMemoBlocks.SetExtent(const APoint: TPoint);
+procedure TKMemoBlocks.SetExtent(AWidth, AHeight: Integer);
 begin
-  FExtent := APoint;
+  FExtent := Point(AWidth, AHeight);
 end;
 
 procedure TKMemoBlocks.SetIgnoreParaMark(const Value: Boolean);
