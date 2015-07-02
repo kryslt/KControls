@@ -5472,7 +5472,9 @@ end;
 procedure TKMemoContainer.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
 var
   R, ClipRect: TRect;
-  PrevRgn: HRGN;
+  MainClipRgn: HRGN;
+  RgnValid: Boolean;
+  SaveIndex: Integer;
 begin
   R := Rect(0, 0, Width, Height);
   OffsetRect(R, Left + ALeft + InternalLeftOffset, Top + ATop + InternalTopOffset);
@@ -5481,14 +5483,21 @@ begin
   Inc(ATop, Top + FBlockStyle.TopPadding + InternalTopOffset);
   if FClip then
   begin
-    PrevRgn := RgnCreateAndGet(ACanvas.Handle);
+    ClipRect := FBlockStyle.BorderRect(R);
+    SaveIndex := SaveDC(ACanvas.Handle);
+    MainClipRgn := CreateEmptyRgn;
     try
-      ClipRect := FBlockStyle.BorderRect(R);
       TranslateRectToDevice(ACanvas.Handle, ClipRect);
-      if ExtSelectClipRect(ACanvas.Handle, ClipRect, RGN_AND, PrevRgn) then
+      if GetClipRgn(ACanvas.Handle, MainClipRgn) <> 1 then
+      begin
+        DeleteObject(MainClipRgn);
+        MainClipRgn := CreateRectRgnIndirect(ClipRect);
+      end;
+      if ExtSelectClipRect(ACanvas.Handle, ClipRect, RGN_AND, MainClipRgn) then
         FBlocks.PaintToCanvas(ACanvas, ALeft, ATop, R);
     finally
-      RgnSelectAndDelete(ACanvas.Handle, PrevRgn);
+      RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
+      RestoreDC(ACanvas.Handle, SaveIndex);
     end;
   end else
     FBlocks.PaintToCanvas(ACanvas, ALeft, ATop, R);
@@ -6593,27 +6602,30 @@ var
 begin
   Result := -1;
   ALocalIndex := -1;
-  if (AIndex >= 0) and (AIndex < FSelectableLength) then
+  if AIndex >= 0 then
   begin
-    I := 0;
-    CurIndex := 0;
-    while (Result < 0) and (I < Count) do
+    if AIndex < FSelectableLength then
     begin
-      LastIndex := CurIndex;
-      Inc(CurIndex, Items[I].SelectableLength);
-      if (AIndex >= LastIndex) and (AIndex < CurIndex) then
+      I := 0;
+      CurIndex := 0;
+      while (Result < 0) and (I < Count) do
       begin
-        Result := I;
-        ALocalIndex := AIndex - LastIndex;
+        LastIndex := CurIndex;
+        Inc(CurIndex, Items[I].SelectableLength);
+        if (AIndex >= LastIndex) and (AIndex < CurIndex) then
+        begin
+          Result := I;
+          ALocalIndex := AIndex - LastIndex;
+        end;
+        Inc(I);
       end;
-      Inc(I);
+    end
+    else if Count > 0 then
+    begin
+      Result := Count - 1;
+      ALocalIndex := Items[Result].SelectableLength;
     end;
   end
-  else if AIndex = FSelectableLength then
-  begin
-    Result := Count - 1;
-    ALocalIndex := Items[Result].SelectableLength;
-  end;
 end;
 
 function TKMemoBlocks.IndexToItem(AIndex: Integer; out ALocalIndex: Integer): TKMemoBlock;
