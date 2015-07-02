@@ -101,6 +101,13 @@ begin
   Memo.Blocks.LockUpdate;
   try
     Memo.Blocks.Clear;
+    IB := Memo.Blocks.AddImageBlock('label_wre.png');
+//    IB.ImageStyle.BorderWidth := 1;
+//    IB.ImageStyle.BorderRadius := 10;
+//    IB.ImageStyle.Brush.Color := clLime;
+    IB.LeftOffset := 0;
+    IB.TopOffset := 0;
+    IB.Position := mbpRelative;
     Memo.Blocks.AddTextBlock('This is test text 1.');
     PA := Memo.Blocks.AddParagraph;
     TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
@@ -134,14 +141,7 @@ begin
   //  PA.ParaStyle.BorderWidth := 1;
   //  PA.ParaStyle.WordWrap := False;
     Memo.Blocks.AddTextBlock('This is a test text 4.');
-    Memo.Blocks.AddParagraph;
-    IB := Memo.Blocks.AddImageBlock('label_wre.png');
-    IB.ImageStyle.BorderWidth := 1;
-    IB.ImageStyle.BorderRadius := 10;
-    IB.ImageStyle.Brush.Color := clLime;
-    IB.LeftOffset := 50;
-    IB.TopOffset := 0;
-    IB.Position := mbpRelative; }
+    Memo.Blocks.AddParagraph;}
     //AddTextField;
     //AddTextField;
     TBL := Memo.Blocks.AddTable;
@@ -166,6 +166,16 @@ begin
 //    TBL.RequiredWidth := 1000;
 //    TBL.FixedWidth := True;
     TBL.ApplyDefaultCellStyle;
+
+//    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
+
+    IB := Memo.Blocks.AddImageBlock('label_wre.png');
+//    IB.ImageStyle.BorderWidth := 1;
+//    IB.ImageStyle.BorderRadius := 10;
+//    IB.ImageStyle.Brush.Color := clLime;
+    IB.LeftOffset := 0;
+    IB.TopOffset := 0;
+    IB.Position := mbpRelative;
 
     TB := Memo.Blocks.AddTextBlock('This is big bold text.');
     TB.TextStyle.Font.Style := [fsBold];

@@ -396,6 +396,7 @@ type
     procedure AssignAttributes(AItem: TKMemoBlock); virtual;
     procedure BeforeDestruction; override;
     function CalcBaseLine(ACanvas: TCanvas): Integer; virtual;
+    function CanAdd(AItem: TKMemoBlock): Boolean; virtual;
     procedure ClearSelection(ATextOnly: Boolean); virtual;
     function Concat(AItem: TKMemoBlock): Boolean; virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer; ACaret: Boolean): TRect; virtual;
@@ -627,6 +628,7 @@ type
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
+    function CanAdd(AItem: TKMemoBlock): Boolean; override;
     procedure ClearSelection(ATextOnly: Boolean); override;
     function InsertParagraph(AIndex: Integer): Boolean; override;
     function InsertString(const AText: TKString; At: Integer = -1): Boolean; override;
@@ -680,6 +682,7 @@ type
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
     procedure ApplyDefaultCellStyle; virtual;
+    function CanAdd(AItem: TKMemoBlock): Boolean; override;
     procedure UpdateRequiredWidth; virtual;
     property CellCount: Integer read GetCellCount write SetCellCount;
     property Cells[Index: Integer]: TKMemoTableCell read GetCells;
@@ -706,6 +709,7 @@ type
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
     procedure ApplyDefaultCellStyle; virtual;
+    function CanAdd(AItem: TKMemoBlock): Boolean; override;
     function MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
     property CellStyle: TKMemoBlockStyle read FCellStyle;
     property ColCount: Integer read FColCount write SetColCount;
@@ -775,7 +779,7 @@ type
   public
     constructor Create(AParent: TKMemoBlock); virtual;
     destructor Destroy; override;
-    function AddAt(AObject: TKMemoBlock; At: Integer = -1): Integer;
+    function AddAt(AObject: TKMemoBlock; At: Integer = -1): Integer; virtual;
     function AddContainer(At: Integer = -1): TKMemoContainer;
     function AddImageBlock(APath: TKString; At: Integer = -1): TKMemoImageBlock;
     function AddParagraph(At: Integer = -1): TKMemoParagraph;
@@ -1245,7 +1249,11 @@ type
     function ClampInView(CallScrollWindow: Boolean): Boolean;
     { Clears all blocks. Unlike @link(ecClearAll) clears everything inclusive undo a redo lists. }
     procedure Clear;
-    { Deletes blocks or parts of blocks corresponding to the active selection. }
+    { Deletes blocks or parts of blocks corresponding to the active selection.
+      <UL>
+      <LH>Parameters:</LH>
+      <LI><I>ATextOnly</I> - don't clear containers if True</LI>
+      </UL> }
     procedure ClearSelection(ATextOnly: Boolean = True); virtual;
     { Clears undo (and redo) list. }
     procedure ClearUndo;
@@ -3909,6 +3917,11 @@ begin
   Result := 0;
 end;
 
+function TKMemoBlock.CanAdd(AItem: TKMemoBlock): Boolean;
+begin
+  Result := False;
+end;
+
 procedure TKMemoBlock.ClearSelection(ATextOnly: Boolean);
 begin
 end;
@@ -5248,6 +5261,15 @@ begin
   Update([muExtent]);
 end;
 
+function TKMemoContainer.CanAdd(AItem: TKMemoBlock): Boolean;
+begin
+  // generic container cannot accept some kinds of subblocks
+  Result := not (
+    (AItem is TKMemoTableRow) or
+    (AItem is TKMemoTableCell)
+    );
+end;
+
 procedure TKMemoContainer.ClearLines;
 begin
   FBlocks.Lines.Clear;
@@ -5377,7 +5399,7 @@ end;
 
 procedure TKMemoContainer.SetBlockExtent(AWidth, AHeight: Integer);
 begin
-  FBlocks.SetExtent(AWidth - FBlockStyle.LeftPadding - FBlockStyle.TopPadding, AHeight - FBlockStyle.TopPadding - FBlockStyle.BottomPadding);
+  FBlocks.SetExtent(AWidth - FBlockStyle.LeftPadding - FBlockStyle.RightPadding, AHeight - FBlockStyle.TopPadding - FBlockStyle.BottomPadding);
 end;
 
 procedure TKMemoContainer.SetClip(const Value: Boolean);
@@ -5438,6 +5460,7 @@ begin
   Result := FBlocks.IndexToRect(ACanvas, AIndex, ACaret, False);
   if not ACaret then
   begin
+    // expand rect to enable vertical caret movement
     if Result.Top = 0 then
       Dec(Result.Top, FBlockStyle.TopPadding);
     if Result.Bottom = FBlocks.Height then
@@ -5536,6 +5559,12 @@ begin
   FParaStyle.LineWrap := True;
 end;
 
+destructor TKMemoTableRow.Destroy;
+begin
+  FParaStyle.Free;
+  inherited;
+end;
+
 procedure TKMemoTableRow.ApplyDefaultCellStyle;
 var
   Table: TKMemoTable;
@@ -5563,10 +5592,10 @@ begin
   end;
 end;
 
-destructor TKMemoTableRow.Destroy;
+function TKMemoTableRow.CanAdd(AItem: TKMemoBlock): Boolean;
 begin
-  FParaStyle.Free;
-  inherited;
+  // table row can only accept table cells
+  Result := AItem is TKMemoTableCell;
 end;
 
 function TKMemoTableRow.GetParaStyle: TKMemoParaStyle;
@@ -5672,6 +5701,12 @@ var
 begin
   for I := 0 to RowCount - 1 do
     Rows[I].ApplyDefaultCellStyle;
+end;
+
+function TKMemoTable.CanAdd(AItem: TKMemoBlock): Boolean;
+begin
+  // table can only accept table rows
+  Result := AItem is TKMemoTableRow;
 end;
 
 function TKMemoTable.GetColWidths(Index: Integer): Integer;
@@ -5957,14 +5992,22 @@ function TKMemoBlocks.AddAt(AObject: TKMemoBlock; At: Integer): Integer;
 begin
   if AObject <> nil then
   begin
-    if Empty and (Count > 0) then
-      inherited Delete(0);
-    if (At < 0) or (At >= Count) then
-      Result := inherited Add(AObject)
-    else
+    // check if parent can add this item
+    if (FParent = nil) or FParent.CanAdd(AObject) then
     begin
-      inherited Insert(At, AObject);
-      Result := At;
+      if Empty and (Count > 0) then
+        inherited Delete(0);
+      if (At < 0) or (At >= Count) then
+        Result := inherited Add(AObject)
+      else
+      begin
+        inherited Insert(At, AObject);
+        Result := At;
+      end;
+    end else
+    begin
+      AObject.Free;
+      Result := -1;
     end;
   end else
     Result := -1;
@@ -6032,7 +6075,7 @@ end;
 
 procedure TKMemoBlocks.ClearSelection(ATextOnly: Boolean);
 var
-  I, First, Last: Integer;
+  I, First, Last, SelectableCnt: Integer;
   Item: TKMemoBlock;
 begin
   LockUpdate;
@@ -6079,7 +6122,17 @@ begin
       FSelEnd := FSelStart
     else
       FSelStart := FSelEnd;
-    if Count <= FRelPos.Count then
+    FSelStart := MinMax(FSelStart, 0, FSelectableLength);
+    FSelEnd := MinMax(FSelEnd, 0, FSelectableLength);
+    // do not leave empty blocks, always add single paragraph
+    SelectableCnt := 0;
+    for I := 0 to Count - 1 do
+    begin
+      Item := Items[I];
+      if (Item.Position = mbpText) and not (Item is TKMemoContainer) then
+        Inc(SelectableCnt);
+    end;
+    if SelectableCnt = 0 then
       AddParagraph;
   finally
     UnlockUpdate;
@@ -6171,13 +6224,15 @@ begin
     end else
     begin
       Line := IndexToLine(AIndex);
-      if (Line >= 0) and (AIndex = LineEndIndex[Line]) then
+      if (Line >= 0) and (AIndex >= LineEndIndex[Line]) then
       begin
         Item := Items[FLines[Line].EndBlock];
         if Item is TKMemoParagraph then
         begin
           ALinePos := eolInside;
-        end;
+        end
+        else if AIndex > LineEndIndex[Line] then
+          ALinePos := eolEnd;
       end;
     end;
   end;
@@ -6607,6 +6662,22 @@ begin
       Result.Left := Result.Right;
       Result.Right := Result.Left + Tmp;
     end;
+    if not ACaret then
+    begin
+      // expand rect to enable vertical caret movement
+      if (Line > 0) and (Result.Top = LineTop[Line]) then
+      begin
+        Tmp := LineTop[Line] - LineBottom[Line - 1];
+        if Tmp > 0 then
+          Dec(Result.Top, Tmp);
+      end;
+      if (Line < LineCount - 1) and (Result.Bottom = LineBottom[Line]) then
+      begin
+        Tmp := LineTop[Line + 1] - LineBottom[Line];
+        if Tmp > 0 then
+          Inc(Result.Bottom, Tmp);
+      end;
+    end;
   end else
     Result := Rect(0, 0, 0, Abs(GetDefaultTextStyle.Font.Height));
 end;
@@ -6950,12 +7021,14 @@ var
       CurIndexCopy := CurIndex;
       CurWordCopy := CurWord;
       CurBlockCopy := CurBlock;
-      if (CurWordCopy <= 0) or (CurBlockCopy >= Count) then
+      if (CurWordCopy <= 0) or (CurBlockCopy >= Count) or (Items[CurBlockCopy].Position <> mbpText) then
       begin
-        if CurBlockCopy > LastBlock then
+        I := 0;
+        while (CurBlockCopy > LastBlock) and ((CurBlockCopy >= Count) or (I = 0) or (Items[CurBlockCopy].Position <> mbpText)) do
+        begin
           Dec(CurBlockCopy);
-        while (CurBlockCopy > LastBlock) and (Items[CurBlockCopy].Position <> mbpText) do
-          Dec(CurBlockCopy);
+          Inc(I);
+        end;
         CurWordCopy := Items[CurBlockCopy].WordCount - 1;
       end else
       begin
@@ -7184,21 +7257,23 @@ begin
           Inc(CurIndex, WLen);
           Inc(CurWord);
           Inc(CurTotalWord);
+          FExtent.Y := Max(FExtent.Y, PosY + Extent.Y);
         end;
       end;
       mbpRelative:
       begin
-        if WasParagraph then
+        if IsParagraph then
           AddLine;
         Item.WordLeft[0] := PosX;
         Item.WordTop[0] := PosY;
+        FExtent.X := Max(FExtent.X, PosX + Item.Width);
+        FExtent.Y := Max(FExtent.Y, PosY + Item.Height);
       end;
     end;
     Inc(CurBlock);
   end;
   if CurIndex > LastIndex then
     AddLine;
-  FExtent.Y := PosY;
 end;
 
 function TKMemoBlocks.NextIndexByCharCount(AIndex, ACharCount: Integer): Integer;
