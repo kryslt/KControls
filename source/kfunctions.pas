@@ -151,6 +151,10 @@ const
   cLineBreaks = [cCR, cLF];
   { Text ellipsis string. }
   cEllipsis = '...';
+  { Alphabetic letters. }
+  cLetters = ['a'..'z', 'A'..'Z'];
+  { Number. }
+  cNumbers = ['0'..'9'];
 
 {$IFDEF UNIX}
   cEOL = cLF;
@@ -405,9 +409,9 @@ type
 function AdjustDecimalSeparator(const S: string): string;
 
 {$IFNDEF FPC}
-{ Converts an AnsiString into a PWideChar string. If CodePage is not set
+{ Converts an AnsiString into a WideString. If CodePage is not set
   the current system code page for ANSI-UTFx translations will be used. }
-function AnsiStringToWideChar(const Text: AnsiString; CodePage: Cardinal = CP_ACP): PWideChar;
+function AnsiStringToWideString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): WideString;
 {$ENDIF}
 
 type
@@ -758,13 +762,13 @@ begin
 end;
 
 {$IFNDEF FPC}
-function AnsiStringToWideChar(const Text: AnsiString; CodePage: Cardinal): PWideChar;
+function AnsiStringToWideString(const Text: AnsiString; CodePage: Cardinal): WideString;
 var
   Len: Integer;
 begin
   Len := MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, nil, 0);
-  GetMem(Result, Len shl 1);
-  MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, Result, Len);
+  SetLength(Result, Len shr 1);
+  MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, PWideChar(Result), Len);
 end;
 {$ENDIF}
 

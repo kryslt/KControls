@@ -163,8 +163,10 @@ begin
     AddTextField(TBL.Rows[1].Cells[1], False);
     PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
-//    TBL.RequiredWidth := 1000;
-//    TBL.FixedWidth := True;
+    PA.ParaStyle.HAlign := halCenter;
+    PA.ParaStyle.CancelFloat := True;
+    TBL.RequiredWidth := 600;
+    TBL.FixedWidth := True;
     TBL.ApplyDefaultCellStyle;
 
 //    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
@@ -208,7 +210,7 @@ begin
     TB.Font.Size := 15;
     TB.Font.Color := clRed;
     Memo.Blocks.AddNewLineBlock;}
-  {  MS := TMemoryStream.Create;
+    MS := TMemoryStream.Create;
     try
       MS.LoadFromFile('../../kgrid_readme.txt');
       SetString(S, PAnsiChar(MS.Memory), MS.Size);
@@ -217,7 +219,7 @@ begin
       MS.Free;
     end;
 
-    Memo.Blocks[15].Position := mbpRelative;}
+  {  Memo.Blocks[15].Position := mbpRelative;}
     Memo.Font.Size := 15;
 //    Memo.Blocks[15].TopOffset := 50;
 
@@ -231,6 +233,9 @@ begin
     //Memo.UnlockUpdate;
     Memo.Blocks.UnlockUpdate;
   end;
+
+//  Memo.LoadFromRTF('test_no_img.rtf');
+  Memo.LoadFromRTF('test.rtf');
 {
   Memo.ContentPadding.Left := 50;
   Memo.ContentPadding.Top := 30;
