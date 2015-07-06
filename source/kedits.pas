@@ -81,11 +81,17 @@ type
     neoUseLabel,
     neoUsePrefix,
     neoUseUpDown,
-    neoWarning
+    neoWarning,
+    neoClampToMinMax
   );
 
   TKNumberEditOptions = set of TKNumberEditOption;
 
+const
+  DefaultNumberEditOptions = [neoLowerCase, neoUseLabel, neoUsePrefix,
+    neoUseUpDown, neoWarning, neoClampToMinMax];
+
+type
   { TKNumberEdit }
 
   TKNumberEdit = class(TCustomEdit)
@@ -233,7 +239,7 @@ type
     property Max: Extended read FMax write SetMax stored IsMaxStored;
     property Min: Extended read FMin write SetMin stored IsMinStored;
     property Options: TKNumberEditOptions read FOptions write SetOptions
-      default [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown, neoWarning];
+      default DefaultNumberEditOptions;
     property ParentBiDiMode;
     property ParentColor;
     property ParentFont;
@@ -938,12 +944,14 @@ begin
   Font.Color := clWindowText;
   if AValue > FMax then
   begin
-    AValue := FMax;
+    if neoClampToMinMax in FOptions then
+      AValue := FMax;
     DoWarning(AValue);
   end
   else if AValue < FMin then
   begin
-    AValue := FMin;
+    if neoClampToMinMax in FOptions then
+      AValue := FMin;
     DoWarning(AValue);
   end;
   S := SetFormat(AValue);
@@ -1604,7 +1612,7 @@ begin
     Exit;
   Fmt := nedfAsInput;
   AValue := GetFormat(Text, Fmt);
-  if Fmt = nedfAsInput then
+  if (Fmt = nedfAsInput) and (neoClampToMinMax in FOptions) then
     AValue := MinMax(AValue, FMin, FMax)
   else
     FLastInputFormat := Fmt;
