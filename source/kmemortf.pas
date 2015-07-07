@@ -15,6 +15,9 @@ type
   public
     constructor Create;
     property ColorRec: TKColorRec read FColorRec write FColorRec;
+    property Red: Byte read FColorRec.R write FColorRec.R;
+    property Green: Byte read FColorRec.G write FColorRec.G;
+    property Blue: Byte read FColorRec.B write FColorRec.B;
   end;
 
   TKMemoRTFColorTable = class(TObjectList)
@@ -23,37 +26,70 @@ type
     procedure SetItem(Index: Integer; const Value: TKMemoRTFColor);
   public
     procedure AddColor(const AColor: TKColorRec);
-    function GetColor(AIndex: Integer): TColor;
+    function GetColor(AIndex: Integer): TColor; virtual;
     property Items[Index: Integer]: TKMemoRTFColor read GetItem write SetItem; default;
+  end;
+
+  TKMemoRTFFont = class(TObject)
+  private
+    FFont: TFont;
+    FFontIndex: Integer;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Font: TFont read FFont;
+    property FontIndex: Integer read FFontIndex write FFontIndex;
+  end;
+
+  TKMemoRTFFontTable = class(TObjectList)
+  private
+    function GetItem(Index: Integer): TKMemoRTFFont;
+    procedure SetItem(Index: Integer; const Value: TKMemoRTFFont);
+  public
+    function GetFont(AFontIndex: Integer): TFont;
+    property Items[Index: Integer]: TKMemoRTFFont read GetItem write SetItem; default;
   end;
 
   TKMemoRTFReader = class(TObject)
   private
+    function GetFont: TKMemoRTFFont;
+    function GetColor: TKMemoRTFColor;
     function GetImageBlock: TKMemoImageBlock;
-    function GetTextBlock: TKMemoTextBlock;
   protected
     FBlocks: TKMemoBlocks;
     FCodePage: Integer;
     FColorTable: TKMemoRTFColorTable;
-    FColorRec: TKColorRec;
+    FColor: TKMemoRTFColor;
+    FDefFontIndex: Integer;
+    FFontTable: TKMemoRTFFontTable;
+    FFont: TKMemoRTFFont;
     FImageBlock: TKMemoImageBlock;
     FImageClass: TGraphicClass;
     FGraphicClass: TGraphicClass;
     FMemo: TKCustomMemo;
     FStream: TMemoryStream;
     FTextBlock: TKMemoTextBlock;
-    procedure AddText(const APart: TKString); virtual;
+    FTextStyle: TKMemoTextStyle;
+    procedure AddImage(AImage: TGraphic); virtual;
+    procedure AddText(const APart: TKString; ATextStyle: TKMemoTextStyle); virtual;
+    procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer); virtual;
     procedure ApplyHighlight(ATextStyle: TKMemoTextStyle; AHighlightCode: Integer); virtual;
+    procedure FlushColor; virtual;
+    procedure FlushFont; virtual;
     procedure FlushImage; virtual;
-    procedure FlushText(ATextStyle: TKMemoTextStyle); virtual;
+    procedure FlushText; virtual;
     function ReadNext(out ACtrl, AText: AnsiString; out AParam: Int64): Boolean; virtual;
     procedure ReadColorGroup(const ACtrl: AnsiString; AParam: Integer); virtual;
+    procedure ReadFontGroup(const ACtrl, AText: AnsiString; AParam: Integer); virtual;
     procedure ReadGroup(GroupIndex: Integer; Group: TKMemoRTFGroup; ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle); virtual;
     procedure ReadPictureGroup(const ACtrl, AText: AnsiString; AParam: Integer); virtual;
+    function ReadParaFormatting(const ACtrl: AnsiString; AParam: Integer; AParaStyle: TKMemoParaStyle): Boolean; virtual;
+    function ReadTextFormatting(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle): Boolean; virtual;
     procedure SkipSemiColon;
     function TwipsToPoints(AValue: Integer): Integer;
+    property Color: TKMemoRTFColor read GetColor;
+    property Font: TKMemoRTFFont read GetFont;
     property ImageBlock: TKMemoImageBlock read GetImageBlock;
-    property TextBlock: TKMemoTextBlock read GetTextBlock;
   public
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
@@ -101,7 +137,103 @@ begin
   inherited SetItem(Index, Value);
 end;
 
+{ TKMemoRTFFont }
+
+constructor TKMemoRTFFont.Create;
+begin
+  FFont := TFont.Create;
+end;
+
+destructor TKMemoRTFFont.Destroy;
+begin
+  FFont.Free;
+  inherited;
+end;
+
+{ TKMemoRTFFontTable }
+
+function TKMemoRTFFontTable.GetFont(AFontIndex: Integer): TFont;
+var
+  I: Integer;
+  Item: TKMemoRTFFont;
+begin
+  Result := nil;
+  for I := 0 to Count - 1 do
+  begin
+    Item := Items[I];
+    if Item.FontIndex = AFontIndex then
+    begin
+      Result := Item.Font;
+      Exit;
+    end;
+  end;
+end;
+
+function TKMemoRTFFontTable.GetItem(Index: Integer): TKMemoRTFFont;
+begin
+  Result := TKMemoRTFFont(inherited GetItem(Index));
+end;
+
+procedure TKMemoRTFFontTable.SetItem(Index: Integer;
+  const Value: TKMemoRTFFont);
+begin
+  inherited SetItem(Index, Value);
+end;
+
 { TKMemoRTFReader }
+
+constructor TKMemoRTFReader.Create(AMemo: TKCustomMemo);
+begin
+  FBlocks := AMemo.Blocks;
+  FColorTable := TKMemoRTFColorTable.Create;
+  FFontTable := TKMemoRTFFontTable.Create;
+  FMemo := AMemo;
+  FStream := TMemoryStream.Create;
+  FTextStyle := TKMemoTextStyle.Create;
+end;
+
+destructor TKMemoRTFReader.Destroy;
+begin
+  FColorTable.Free;
+  FFontTable.Free;
+  FStream.Free;
+  FTextStyle.Free;
+  inherited;
+end;
+
+procedure TKMemoRTFReader.AddImage(AImage: TGraphic);
+begin
+  ImageBlock.Image.Graphic := AImage;
+end;
+
+procedure TKMemoRTFReader.AddText(const APart: TKString; ATextStyle: TKMemoTextStyle);
+begin
+  FTextStyle.Assign(ATextStyle);
+  if FTextStyle.StyleChanged then
+  begin
+    FlushText;
+    FTextStyle.StyleChanged := False;
+  end;
+  if FTextBlock = nil then
+  begin
+    FTextBlock := TKMemoTextBlock.Create(nil);
+    FTextBlock.TextStyle.Assign(FTextStyle);
+  end;
+  FTextBlock.InsertString(APart);
+end;
+
+procedure TKMemoRTFReader.ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer);
+var
+  Font: TFont;
+begin
+  Font := FFontTable.GetFont(AFontIndex);
+  if Font <> nil then
+  begin
+    ATextStyle.Font.Name := Font.Name;
+    ATextStyle.Font.Charset := Font.Charset;
+    ATextStyle.Font.Pitch := Font.Pitch;
+  end;
+end;
 
 procedure TKMemoRTFReader.ApplyHighlight(ATextStyle: TKMemoTextStyle; AHighlightCode: Integer);
 var
@@ -132,24 +264,22 @@ begin
     ATextStyle.Brush.Style := bsClear;
 end;
 
-constructor TKMemoRTFReader.Create(AMemo: TKCustomMemo);
+procedure TKMemoRTFReader.FlushColor;
 begin
-  FBlocks := AMemo.Blocks;
-  FColorTable := TKMemoRTFColorTable.Create;
-  FMemo := AMemo;
-  FStream := TMemoryStream.Create;
+  if FColor <> nil then
+  begin
+    FColorTable.Add(FColor);
+    FColor := nil;
+  end;
 end;
 
-destructor TKMemoRTFReader.Destroy;
+procedure TKMemoRTFReader.FlushFont;
 begin
-  FColorTable.Free;
-  FStream.Free;
-  inherited;
-end;
-
-procedure TKMemoRTFReader.AddText(const APart: TKString);
-begin
-  TextBlock.InsertString(APart);
+  if FFont <> nil then
+  begin
+    FFontTable.Add(FFont);
+    FFont := nil;
+  end;
 end;
 
 procedure TKMemoRTFReader.FlushImage;
@@ -161,14 +291,27 @@ begin
   end;
 end;
 
-procedure TKMemoRTFReader.FlushText(ATextStyle: TKMemoTextStyle);
+procedure TKMemoRTFReader.FlushText;
 begin
   if FTextBlock <> nil then
   begin
-    FTextBlock.TextStyle.Assign(ATextStyle);
     FBlocks.AddAt(FTextBlock);
     FTextBlock := nil;
   end;
+end;
+
+function TKMemoRTFReader.GetColor: TKMemoRTFColor;
+begin
+  if FColor = nil then
+    FColor := TKMemoRTFColor.Create;
+  Result := FColor;
+end;
+
+function TKMemoRTFReader.GetFont: TKMemoRTFFont;
+begin
+  if FFont = nil then
+    FFont := TKMemoRTFFont.Create;
+  Result := FFont;
 end;
 
 function TKMemoRTFReader.GetImageBlock: TKMemoImageBlock;
@@ -176,13 +319,6 @@ begin
   if FImageBlock = nil then
     FImageBlock := TKMemoImageBlock.Create(nil);
   Result := FImageBlock;
-end;
-
-function TKMemoRTFReader.GetTextBlock: TKMemoTextBlock;
-begin
-  if FTextBlock = nil then
-    FTextBlock := TKMemoTextBlock.Create(nil);
-  Result := FTextBlock;
 end;
 
 procedure TKMemoRTFReader.Load(const AFileName: TKString);
@@ -194,13 +330,14 @@ begin
   try
     FStream.LoadFromFile(AFileName);
     FCodePage := 0;
-    FColorRec.Value := 0;
     FColorTable.Clear;
     FMemo.TextStyle.Defaults;
     FMemo.ParaStyle.Defaults;
-    FTextBlock := nil;
+    FColor := nil;
+    FFont := nil;
     FImageBlock := nil;
     FImageClass := nil;
+    FTextBlock := nil;
     ReadNext(Ctrl, Text, Param);
     if Ctrl = '{' then
     begin
@@ -259,7 +396,7 @@ begin
         SetLength(ParamStr, 2);
         Result := FStream.Read(ParamStr[1], 2) = 2;
         if Result then
-          AParam := HexStrToInt(ParamStr, Length(ParamStr), False, Code);
+          AParam := HexStrToInt(string(ParamStr), Length(ParamStr), False, Code);
       end;
     end;
   end
@@ -279,16 +416,43 @@ end;
 procedure TKMemoRTFReader.ReadColorGroup(const ACtrl: AnsiString; AParam: Integer);
 begin
   if ACtrl = 'red' then
-    FColorRec.R := Byte(AParam)
+    Color.Red := Byte(AParam)
   else if ACtrl = 'green' then
-    FColorRec.G := Byte(AParam)
+    Color.Green := Byte(AParam)
   else if ACtrl = 'blue' then
-    FColorRec.B := Byte(AParam)
+    Color.Blue := Byte(AParam)
   else if ACtrl = ';' then
+    FlushColor;
+end;
+
+procedure TKMemoRTFReader.ReadFontGroup(const ACtrl, AText: AnsiString; AParam: Integer);
+var
+  I: Integer;
+  S: string;
+begin
+  if ACtrl = 'f' then
+    Font.FFontIndex := AParam
+  else if ACtrl = 'fcharset' then
+    Font.Font.Charset := AParam
+  else if ACtrl = 'fprq' then
   begin
-    FColorTable.AddColor(FColorRec);
-    FColorRec.Value := 0;
-  end;
+    case AParam of
+      1: Font.Font.Pitch := fpFixed;
+      2: Font.Font.Pitch := fpVariable;
+    else
+      Font.Font.Pitch := fpDefault;
+    end;
+    Font.Font.Pitch := TFontPitch(AParam)
+  end
+  else if (ACtrl = '') and (AText <> '') then
+  begin
+    S := string(AText);
+    I := Pos(';', S);
+    if I > 0 then
+      Delete(S, I, 1);
+    Font.Font.Name := S;
+    FlushFont;
+  end
 end;
 
 procedure TKMemoRTFReader.ReadGroup(GroupIndex: Integer; Group: TKMemoRTFGroup; ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle);
@@ -296,11 +460,8 @@ var
   Ctrl: AnsiString;
   Text: AnsiString;
   Param: Int64;
-  Code, Value: Integer;
-  UText: TKString;
   LocalTextStyle: TKMemoTextStyle;
   LocalParaStyle: TKMemoParaStyle;
-  NewDestination: TKMemoRTFGroup;
   PA: TKMemoParagraph;
 begin
   LocalParaStyle := TKMemoParaStyle.Create;
@@ -309,13 +470,12 @@ begin
     LocalParaStyle.Assign(AParaStyle);
     LocalTextStyle.Assign(ATextStyle);
     Ctrl := '';
-    NewDestination := Group;
     while (FStream.Position < FStream.Size) and (Ctrl <> '}') do
     begin
       ReadNext(Ctrl, Text, Param);
       if (Ctrl <> '') or (Text <> '') then
       begin
-        if Ctrl = '{' then
+       if Ctrl = '{' then
           ReadGroup(GroupIndex + 1, Group, LocalTextStyle, LocalParaStyle)
         else if Ctrl = '*' then
         begin
@@ -326,7 +486,7 @@ begin
         begin
           case Group of
             rgColorTable: ReadColorGroup(Ctrl, Param);
-            rgFontTable:;
+            rgFontTable: ReadFontGroup(Ctrl, Text, Param);
             rgInfo:;
             rgPicture: ReadPictureGroup(Ctrl, Text, Param);
             rgShape:
@@ -340,6 +500,11 @@ begin
                 Group := rgPicture;
             end;
             rgStyleSheet:;
+            rgUnknown:
+            begin
+              if Ctrl = 'shppict' then
+                Group := rgPicture;
+            end;
           else
             if Ctrl <> '' then
             begin
@@ -368,161 +533,111 @@ begin
               begin
                 FCodePage := Param;
               end
-              else if Ctrl = 'plain' then
+              else if Ctrl = 'deff' then
               begin
-                FlushText(LocalTextStyle);
-                LocalTextStyle.Assign(ATextStyle);
+                FDefFontIndex := Param;
+              end
+              else if Ctrl = 'nonshppict' then
+              begin
+                Group := rgUnknown;
               end
               else if Ctrl = 'par' then
               begin
-                FlushText(LocalTextStyle);
+                FlushText;
                 PA := FBlocks.AddParagraph;
+                PA.TextStyle.Assign(LocalTextStyle);
                 PA.ParaStyle.Assign(LocalParaStyle);
               end
-              else if Ctrl = 'pard' then
-              begin
-                LocalParaStyle.Assign(FMemo.ParaStyle);
-              end
               // supported text formatting
-              else if Ctrl = 'b' then
+              else if ReadTextFormatting(Ctrl, Param, LocalTextStyle) then
               begin
-                FlushText(LocalTextStyle);
-                if Param = 0 then
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style - [fsBold]
-                else
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style + [fsBold];
-              end
-              else if Ctrl = 'i' then
-              begin
-                FlushText(LocalTextStyle);
-                if Param = 0 then
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style - [fsItalic]
-                else
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style + [fsItalic];
-              end
-              else if Ctrl = 'ul' then
-              begin
-                FlushText(LocalTextStyle);
-                if Param = 0 then
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style - [fsUnderline]
-                else
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style + [fsUnderline];
-              end
-              else if Ctrl = 'strike' then
-              begin
-                FlushText(LocalTextStyle);
-                if Param = 0 then
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style - [fsStrikeout]
-                else
-                  LocalTextStyle.Font.Style := LocalTextStyle.Font.Style + [fsStrikeout];
-              end
-              else if Ctrl = 'caps' then
-              begin
-                FlushText(LocalTextStyle);
-                LocalTextStyle.Capitals := tcaNormal;
-              end
-              else if Ctrl = 'scaps' then
-              begin
-                FlushText(LocalTextStyle);
-                LocalTextStyle.Capitals := tcaSmall;
-              end
-              else if Ctrl = 'fs' then
-              begin
-                FlushText(LocalTextStyle);
-                LocalTextStyle.Font.Size := Param div 2;
-              end
-              else if Ctrl = 'cf' then
-              begin
-                FlushText(LocalTextStyle);
-                LocalTextStyle.Font.Color := FColorTable.GetColor(Param - 1);
-              end
-              else if Ctrl = 'cb' then
-              begin
-                FlushText(LocalTextStyle);
-                LocalTextStyle.Brush.Color := FColorTable.GetColor(Param - 1);
-              end
-              else if Ctrl = 'highlight' then
-              begin
-                FlushText(LocalTextStyle);
-                ApplyHighlight(LocalTextStyle, Param);
               end
               // supported paragraph formatting
-              else if Ctrl = 'fi' then
+              else if ReadParaFormatting(Ctrl, Param, LocalParaStyle) then
               begin
-                LocalParaStyle.FirstIndent := TwipsToPoints(Param);
-              end
-              else if Ctrl = 'li' then
-              begin
-                LocalParaStyle.LeftPadding := TwipsToPoints(Param);
-              end
-              else if Ctrl = 'ri' then
-              begin
-                LocalParaStyle.RightPadding := TwipsToPoints(Param);
-              end
-              else if Ctrl = 'sb' then
-              begin
-                LocalParaStyle.TopPadding := TwipsToPoints(Param);
-              end
-              else if Ctrl = 'sa' then
-              begin
-                LocalParaStyle.BottomPadding := TwipsToPoints(Param);
-              end
-              else if Ctrl = 'ql' then
-              begin
-                LocalParaStyle.HAlign := halLeft;
-              end
-              else if Ctrl = 'qr' then
-              begin
-                LocalParaStyle.HAlign := halRight;
-              end
-              else if Ctrl = 'qc' then
-              begin
-                LocalParaStyle.HAlign := halCenter;
-              end
-              else if Ctrl = 'qj' then
-              begin
-                //LocalParaStyle.HAlign := halJustify; // TODO
-              end
-              else if Ctrl = 'cbpat' then
-              begin
-                LocalParaStyle.Brush.Color := FColorTable.GetColor(Param - 1);
               end
               // supported special characters
-              else if Group = rgNone then
+              else if (Ctrl = '''') then
               begin
-                if (Ctrl = '''') then
-                begin
-                  Text := AnsiStringToWideString(AnsiChar(Param), FCodePage);
-                  AddText(Text);
-                end
-                else if Ctrl = 'tab' then
-                begin
-                  AddText(#9);
-                end
-                else if Ctrl = '~' then
-                begin
-                  AddText(' '); // nonbreaking spaces not supported
-                end
-                else if (Ctrl = '\') or (Ctrl = '{') or (Ctrl = '}') then
-                begin
-                  AddText(TKString(Ctrl))
-                end
+                AddText(AnsiStringToWideString(AnsiChar(Param), FCodePage), LocalTextStyle);
+              end
+              else if Ctrl = 'tab' then
+              begin
+                AddText(#9, LocalTextStyle);
+              end
+              else if Ctrl = '~' then
+              begin
+                AddText(' ', LocalTextStyle); // nonbreaking spaces not supported
+              end
+              else if (Ctrl = '\') or (Ctrl = '{') or (Ctrl = '}') then
+              begin
+                AddText(TKString(Ctrl), LocalTextStyle)
               end;
             end
-            else if (Text <> '') and (Group = rgNone) then
+            else if Text <> '' then
             begin
-              AddText(TKString(Text));
+              AddText(TKString(Text), LocalTextStyle);
             end
           end;
         end;
       end;
     end;
-    if LocalTextStyle.StyleChanged then
-      FlushText(LocalTextStyle);
   finally
     LocalParaStyle.Free;
     LocalTextStyle.Free;
   end;
+end;
+
+function TKMemoRTFReader.ReadParaFormatting(const ACtrl: AnsiString;
+  AParam: Integer; AParaStyle: TKMemoParaStyle): Boolean;
+begin
+  Result := True;
+  if ACtrl = 'pard' then
+  begin
+    AParaStyle.Assign(FMemo.ParaStyle);
+  end
+  else if ACtrl = 'fi' then
+  begin
+    AParaStyle.FirstIndent := TwipsToPoints(AParam);
+  end
+  else if ACtrl = 'li' then
+  begin
+    AParaStyle.LeftPadding := TwipsToPoints(AParam);
+  end
+  else if ACtrl = 'ri' then
+  begin
+    AParaStyle.RightPadding := TwipsToPoints(AParam);
+  end
+  else if ACtrl = 'sb' then
+  begin
+    AParaStyle.TopPadding := TwipsToPoints(AParam);
+  end
+  else if ACtrl = 'sa' then
+  begin
+    AParaStyle.BottomPadding := TwipsToPoints(AParam);
+  end
+  else if ACtrl = 'ql' then
+  begin
+    AParaStyle.HAlign := halLeft;
+  end
+  else if ACtrl = 'qr' then
+  begin
+    AParaStyle.HAlign := halRight;
+  end
+  else if ACtrl = 'qc' then
+  begin
+    AParaStyle.HAlign := halCenter;
+  end
+  else if ACtrl = 'qj' then
+  begin
+    AParaStyle.HAlign := halJustify;
+  end
+  else if ACtrl = 'cbpat' then
+  begin
+    AParaStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+  end
+  else
+    Result := False;
 end;
 
 procedure TKMemoRTFReader.ReadPictureGroup(const ACtrl, AText: AnsiString; AParam: Integer);
@@ -537,6 +652,10 @@ begin
     FImageClass := TMetafile
   else if ACtrl = 'jpegblip' then
     FImageClass := TJpegImage
+  else if ACtrl = 'picwgoal' then
+    ImageBlock.ScaleWidth := TwipsToPoints(AParam)
+  else if ACtrl = 'pichgoal' then
+    ImageBlock.ScaleHeight := TwipsToPoints(AParam)
   else if (ACtrl = '') and (AText <> '') then
   begin
     if FImageClass <> nil then
@@ -553,7 +672,7 @@ begin
             Image := FImageClass.Create;
             try
               Image.LoadFromStream(MS);
-              ImageBlock.Image.Graphic := Image;
+              AddImage(Image);
             finally
               Image.Free;
             end;
@@ -570,6 +689,74 @@ begin
       nop
     end;
   end;
+end;
+
+function TKMemoRTFReader.ReadTextFormatting(const ACtrl: AnsiString;
+  AParam: Integer; ATextStyle: TKMemoTextStyle): Boolean;
+begin
+  Result := True;
+  if ACtrl = 'plain' then
+  begin
+    ATextStyle.Assign(FMemo.TextStyle);
+  end
+  else if ACtrl = 'f' then
+  begin
+    ApplyFont(ATextStyle, AParam);
+  end
+  else if ACtrl = 'b' then
+  begin
+    if AParam = 0 then
+      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsBold]
+    else
+      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsBold];
+  end
+  else if ACtrl = 'i' then
+  begin
+    if AParam = 0 then
+      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsItalic]
+    else
+      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsItalic];
+  end
+  else if ACtrl = 'ul' then
+  begin
+    if AParam = 0 then
+      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsUnderline]
+    else
+      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsUnderline];
+  end
+  else if ACtrl = 'strike' then
+  begin
+    if AParam = 0 then
+      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsStrikeout]
+    else
+      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsStrikeout];
+  end
+  else if ACtrl = 'caps' then
+  begin
+    ATextStyle.Capitals := tcaNormal;
+  end
+  else if ACtrl = 'scaps' then
+  begin
+    ATextStyle.Capitals := tcaSmall;
+  end
+  else if ACtrl = 'fs' then
+  begin
+    ATextStyle.Font.Size := AParam div 2;
+  end
+  else if ACtrl = 'cf' then
+  begin
+    ATextStyle.Font.Color := FColorTable.GetColor(AParam - 1);
+  end
+  else if ACtrl = 'cb' then
+  begin
+    ATextStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+  end
+  else if ACtrl = 'highlight' then
+  begin
+    ApplyHighlight(ATextStyle, AParam);
+  end
+  else
+    Result := False;
 end;
 
 procedure TKMemoRTFReader.SkipSemiColon;

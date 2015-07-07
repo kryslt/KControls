@@ -191,7 +191,7 @@ type
     property Capitals: TKMemoTextCapitals read FCapitals write SetCapitals;
     property Brush: TBrush read FBrush write SetBrush;
     property Font: TFont read FFont write SetFont;
-    property StyleChanged: Boolean read FStyleChanged;
+    property StyleChanged: Boolean read FStyleChanged write FStyleChanged;
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   end;
 
@@ -565,9 +565,14 @@ type
     FImageStyle: TKMemoBlockStyle;
     FExtent: TPoint;
     FPosition: TPoint;
+    FScaleExtent: TPoint;
     FTopPadding: Integer;
     procedure SetImage(const Value: TPicture);
     procedure SetImagePath(const Value: TKString);
+    procedure SetScaleHeight(const Value: Integer);
+    procedure SetScaleWidth(const Value: Integer);
+    function GetImageHeight: Integer;
+    function GetImageWidth: Integer;
   protected
     function ContentLength: Integer; override;
     function GetWordBottomPadding(Index: Integer): Integer; override;
@@ -591,14 +596,18 @@ type
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
     procedure Assign(AItem: TKMemoBlock); override;
-    function ImageRect(ACaret: Boolean): TRect; virtual;
     function MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
+    function OuterRect(ACaret: Boolean): TRect; virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property Image: TPicture read FImage write SetImage;
     property ImageStyle: TKMemoBlockStyle read FImageStyle;
+    property ImageHeight: Integer read GetImageHeight;
+    property ImageWidth: Integer read GetImageWidth;
     property Path: TKString write SetImagePath;
+    property ScaleHeight: Integer read FScaleExtent.Y write SetScaleHeight;
+    property ScaleWidth: Integer read FScaleExtent.X write SetScaleWidth;
   end;
 
   TKMemoContainer = class(TKMemoBlock)
@@ -4659,10 +4668,7 @@ end;
 
 function TKMemoTextBlock.MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint;
 var
-  S, SU: TKString;
-  C: TKChar;
-  Size: TSize;
-  I, SmallFontSize, X, Y: Integer;
+  S: TKString;
 begin
   S := ApplyFormatting(Words[AIndex]);
   with ACanvas do
@@ -5130,6 +5136,7 @@ begin
   FImage := TPicture.Create;
   FExtent := CreateEmptyPoint;
   FPosition := CreateEmptyPoint;
+  FScaleExtent := CreateEmptyPoint;
   FTopPadding := 0;
 end;
 
@@ -5138,6 +5145,39 @@ begin
   FImageStyle.Free;
   FImage.Free;
   inherited;
+end;
+
+procedure TKMemoImageBlock.Assign(AItem: TKMemoBlock);
+begin
+  inherited;
+  if AItem is TKMemoImageBlock then
+  begin
+    FImage.Assign(TKMemoImageBlock(AItem).Image);
+    ScaleHeight := TKMemoImageBlock(AItem).ScaleHeight;
+    ScaleWidth := TKMemoImageBlock(AItem).ScaleWidth;
+    UpdateExtent;
+  end;
+end;
+
+function TKMemoImageBlock.ContentLength: Integer;
+begin
+  Result := 1;
+end;
+
+function TKMemoImageBlock.GetImageHeight: Integer;
+begin
+  if FScaleExtent.Y <> 0 then
+    Result := FScaleExtent.Y
+  else
+    Result := FImage.Height
+end;
+
+function TKMemoImageBlock.GetImageWidth: Integer;
+begin
+  if FScaleExtent.X <> 0 then
+    Result := FScaleExtent.X
+  else
+    Result := FImage.Width
 end;
 
 function TKMemoImageBlock.GetWordBottomPadding(Index: Integer): Integer;
@@ -5192,22 +5232,20 @@ begin
   Result := FExtent.X;
 end;
 
-procedure TKMemoImageBlock.Assign(AItem: TKMemoBlock);
+procedure TKMemoImageBlock.ImageStyleChanged(Sender: TObject);
 begin
-  inherited;
-  if AItem is TKMemoImageBlock then
-  begin
-    FImage.Assign(TKMemoImageBlock(AItem).Image);
-    UpdateExtent;
-  end;
+  Update([muExtent]);
 end;
 
-function TKMemoImageBlock.ContentLength: Integer;
+function TKMemoImageBlock.MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint;
 begin
-  Result := 1;
+  Result := Point(
+    ImageWidth + FImageStyle.ContentPadding.Left + FImageStyle.ContentPadding.Right,
+    ImageHeight + FImageStyle.ContentPadding.Top + FImageStyle.ContentPadding.Bottom);
+  FExtent := Result;
 end;
 
-function TKMemoImageBlock.ImageRect(ACaret: Boolean): TRect;
+function TKMemoImageBlock.OuterRect(ACaret: Boolean): TRect;
 begin
   Result.TopLeft := FPosition;
   Result.Right := Result.Left + FExtent.X;
@@ -5220,30 +5258,36 @@ begin
   OffsetRect(Result, InternalLeftOffset, InternalTopOffset);
 end;
 
-procedure TKMemoImageBlock.ImageStyleChanged(Sender: TObject);
-begin
-  Update([muExtent]);
-end;
-
-function TKMemoImageBlock.MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint;
-begin
-  Result := Point(
-    FImage.Width + FImageStyle.ContentPadding.Left + FImageStyle.ContentPadding.Right,
-    FImage.Height + FImageStyle.ContentPadding.Top + FImageStyle.ContentPadding.Bottom);
-end;
-
 procedure TKMemoImageBlock.SetImage(const Value: TPicture);
 begin
   FImage.Assign(Value);
-  UpdateExtent;
+//  UpdateExtent;
   Update([muContent]);
 end;
 
 procedure TKMemoImageBlock.SetImagePath(const Value: TKString);
 begin
   FImage.LoadFromFile(Value);
-  UpdateExtent;
+//  UpdateExtent;
   Update([muContent]);
+end;
+
+procedure TKMemoImageBlock.SetScaleHeight(const Value: Integer);
+begin
+  if Value <> FScaleExtent.Y then
+  begin
+    FScaleExtent.Y := Value;
+    Update([muExtent]);
+  end;
+end;
+
+procedure TKMemoImageBlock.SetScaleWidth(const Value: Integer);
+begin
+  if Value <> FScaleExtent.X then
+  begin
+    FScaleExtent.X := Value;
+    Update([muExtent]);
+  end;
 end;
 
 procedure TKMemoImageBlock.SetWordBottomPadding(Index: Integer; const Value: Integer);
@@ -5273,43 +5317,48 @@ end;
 
 procedure TKMemoImageBlock.UpdateExtent;
 begin
+
+end;
+
+{procedure TKMemoImageBlock.UpdateExtent;
+begin
   FExtent := Point(
     FImage.Width + FImageStyle.ContentPadding.Left + FImageStyle.ContentPadding.Right,
     FImage.Height + FImageStyle.ContentPadding.Top + FImageStyle.ContentPadding.Bottom);
-end;
+end;}
 
 function TKMemoImageBlock.WordIndexToRect(ACanvas: TCanvas; AWordIndex,
   AIndex: Integer; ACaret: Boolean): TRect;
 begin
-  Result := ImageRect(ACaret);
+  Result := OuterRect(ACaret);
 end;
 
 procedure TKMemoImageBlock.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
 var
   X, Y: Integer;
-  R: TRect;
+  ROuter: TRect;
   Bitmap: TKAlphaBitmap;
   Color, Bkgnd: TColor;
 begin
   inherited;
-  X := FPosition.X + ALeft + FImageStyle.ContentPadding.Left + InternalLeftOffset;
-  Y := FPosition.Y + FTopPadding + ATop + FImageStyle.ContentPadding.Top + InternalTopOffset;
-  R := ImageRect(False);
-  OffsetRect(R, ALeft, ATop);
+  ROuter := OuterRect(False);
+  OffsetRect(ROuter, ALeft, ATop);
+  X := ROuter.Left + FImageStyle.ContentPadding.Left;
+  Y := ROuter.Top + FImageStyle.ContentPadding.Top + FTopPadding;
   if SelLength > 0 then
   begin
     GetSelColors(Color, BkGnd);
     ACanvas.Brush.Color := BkGnd;
-    ACanvas.FillRect(R);
+    ACanvas.FillRect(ROuter);
     Bitmap := TKAlphaBitmap.Create;
     try
-      Bitmap.SetSize(FImage.Width, FImage.Height);
+      Bitmap.SetSize(ImageWidth, ImageHeight);
     {$IFDEF FPC}
       Bitmap.UpdateHandle;
     {$ENDIF}
       Bitmap.Canvas.Brush.Color := BkGnd;
       Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
-      Bitmap.Canvas.Draw(0, 0, FImage.Graphic);
+      Bitmap.Canvas.StretchDraw(Rect(0, 0, ImageWidth, ImageHeight), FImage.Graphic);
     {$IFDEF FPC}
       Bitmap.UpdatePixels;
     {$ENDIF}
@@ -5320,15 +5369,15 @@ begin
     end;
   end else
   begin
-    FImageStyle.PaintBox(ACanvas, R);
-    ACanvas.Draw(X, Y, FImage.Graphic);
+    FImageStyle.PaintBox(ACanvas, ROuter);
+    ACanvas.StretchDraw(Rect(X, Y, X + ImageWidth, Y + ImageHeight), FImage.Graphic);
   end;
 end;
 
 function TKMemoImageBlock.WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint;
   AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer;
 begin
-  if PtInRect(ImageRect(False), APoint) then
+  if PtInRect(OuterRect(False), APoint) then
     Result := 0
   else
     Result := -1;

@@ -137,7 +137,9 @@ type
     { Text is horizontally centered within the cell rectangle. }
     halCenter,
     { Text is aligned to the right border of a cell rectangle. }
-    halRight
+    halRight,
+    { Text is aligned to the left and right border of a cell rectangle. }
+    halJustify
   );
 
   { Declares possible values for the StretchMode parameter in the @link(ExcludeShapeFromBaseRect) function. }
@@ -1119,13 +1121,6 @@ begin
   Bounds := BaseRect;
   Interior := BaseRect;
   case HAlign of
-    halLeft:
-    begin
-      Inc(BaseRect.Left, StretchWidth + HPadding);
-      // Bounds.Left remains unchanged
-      Bounds.Right := BaseRect.Left;
-      Inc(Interior.Left, HPadding);
-    end;
     halCenter:
     begin
       BaseRect.Right := BaseRect.Left; // BaseRect empty, no space for next item!
@@ -1139,12 +1134,18 @@ begin
       // Bounds.Right remains unchanged
       Interior.Left := BaseRect.Right;
     end;
+  else
+    Inc(BaseRect.Left, StretchWidth + HPadding);
+    // Bounds.Left remains unchanged
+    Bounds.Right := BaseRect.Left;
+    Inc(Interior.Left, HPadding);
   end;
   Interior.Right := Interior.Left + StretchWidth;
   case VAlign of
-    valTop: Inc(Interior.Top, VPadding);
     valCenter: Inc(Interior.Top, VPadding + (MaxHeight - StretchHeight) div 2);
     valBottom: Interior.Top := BaseRect.Bottom - VPadding - StretchHeight;
+  else
+    Inc(Interior.Top, VPadding);
   end;
   Interior.Bottom := Interior.Top + StretchHeight;
 end;
