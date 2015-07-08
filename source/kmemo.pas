@@ -817,6 +817,7 @@ type
     procedure DeleteLastChar(At: Integer); virtual;
     procedure DeleteLine(At: Integer); virtual;
     procedure FixEOL(AIndex: Integer; AAdjust: Boolean; var ALinePos: TKMemoLinePosition); virtual;
+    function GetNearestAnchorIndex(AIndex: Integer): Integer; virtual;
     function GetNearestParagraph(AIndex: Integer): TKMemoParagraph; virtual;
     function GetShowFormatting: Boolean; virtual;
     function GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
@@ -6622,6 +6623,20 @@ begin
     Result := 0;
 end;
 
+function TKMemoBlocks.GetNearestAnchorIndex(AIndex: Integer): Integer;
+begin
+  Result := -1;
+  if AIndex >= 0 then
+    while (Result < 0) and (AIndex >= 0) do
+    begin
+      if Items[AIndex] is TKMemoParagraph then
+        Result := AIndex;
+      Dec(AIndex);
+    end;
+  if Result >= 0 then
+    Inc(Result);
+end;
+
 function TKMemoBlocks.GetNearestParagraph(AIndex: Integer): TKMemoParagraph;
 begin
   Result := nil;
@@ -7467,6 +7482,7 @@ begin
       begin
         if IsParagraph then
           AddLine;
+        MoveWordToFreeSpace(Item.Width, Item.Height);
         Item.WordLeft[0] := PosX;
         Item.WordTop[0] := PosY;
         FExtent.X := Max(FExtent.X, PosX + Item.Width);
@@ -7856,7 +7872,7 @@ end;
 
 procedure TKMemoBlocks.UpdateAttributes;
 var
-  I: Integer;
+  I, Anchor: Integer;
   Item: TKMemoBlock;
 begin
   if FRelPos <> nil then
@@ -7874,7 +7890,9 @@ begin
             Item.AssignAttributes(GetLastItemByClass(I, TKMemoTextBlock));
           Inc(FSelectableLength, Item.SelectableLength);
         end else
+        begin
           FRelPos.AddItem(I);
+        end;
       end;
     finally
       Dec(FUpdateLock);

@@ -641,7 +641,10 @@ procedure LoadCustomCursor(Cursor: TCursor; const ResName: string);
 procedure LoadGraphicFromResource(Graphic: TGraphic; const ResName: string; ResType: PChar);
 
 { Builds a TKColorRec structure. }
-function MakeColorRec(R, G, B, A: Byte): TKColorRec;
+function MakeColorRec(R, G, B, A: Byte): TKColorRec; overload;
+
+{ Builds a TKColorRec structure. }
+function MakeColorRec(Value: LongWord): TKColorRec; overload;
 
 { Returns a pixel format that matches Bpp. }
 function PixelFormatFromBpp(Bpp: Cardinal): TPixelFormat;
@@ -1250,6 +1253,11 @@ begin
   Result.G := G;
   Result.B := B;
   Result.A := A;
+end;
+
+function MakeColorRec(Value: LongWord): TKColorRec;
+begin
+  Result.Value := Value;
 end;
 
 procedure LoadCustomCursor(Cursor: TCursor; const ResName: string);
