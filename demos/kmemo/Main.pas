@@ -236,6 +236,9 @@ begin
 
 //  Memo.LoadFromRTF('test_no_img.rtf');
   Memo.LoadFromRTF('test.rtf');
+//  Memo.LoadFromRTF('kgrid_manual.rtf');
+//  Memo.LoadFromRTF('Word2007RTFSpec9.rtf');
+
 {
   Memo.ContentPadding.Left := 50;
   Memo.ContentPadding.Top := 30;

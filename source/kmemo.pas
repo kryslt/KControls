@@ -708,6 +708,7 @@ type
     destructor Destroy; override;
     procedure ApplyDefaultCellStyle; virtual;
     function CanAdd(AItem: TKMemoBlock): Boolean; override;
+    procedure FixupBorders; virtual;
     procedure UpdateRequiredWidth; virtual;
     property CellCount: Integer read GetCellCount write SetCellCount;
     property Cells[Index: Integer]: TKMemoTableCell read GetCells;
@@ -735,6 +736,7 @@ type
     destructor Destroy; override;
     procedure ApplyDefaultCellStyle; virtual;
     function CanAdd(AItem: TKMemoBlock): Boolean; override;
+    procedure FixupBorders; virtual;
     function MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
     property CellStyle: TKMemoBlockStyle read FCellStyle;
     property ColCount: Integer read FColCount write SetColCount;
@@ -4692,7 +4694,7 @@ begin
     Result := Point(Size.cx, Size.cy);
   end else
   begin
-    SU := AnsiUpperCase(AText);
+    SU := UnicodeUpperCase(AText);
     if FTextStyle.Capitals = tcaNormal then
     begin
       Size := ACanvas.TextExtent(SU);
@@ -4950,7 +4952,7 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
         TextOut(ARect.Left, ABaseLine, AText)
       else
       begin
-        SU := AnsiUpperCase(AText);
+        SU := UnicodeUpperCase(AText);
         if FTextStyle.Capitals = tcaNormal then
           TextOut(ARect.Left, ABaseLine, SU)
         else
@@ -5691,6 +5693,7 @@ begin
       RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
       RestoreDC(ACanvas.Handle, SaveIndex);
     end;
+    ACanvas.Refresh;
   end else
     FBlocks.PaintToCanvas(ACanvas, ALeft, ATop, R);
 end;
@@ -5764,6 +5767,59 @@ destructor TKMemoTableRow.Destroy;
 begin
   FParaStyle.Free;
   inherited;
+end;
+
+procedure TKMemoTableRow.FixupBorders;
+var
+  Table: TKMemoTable;
+  Cell: TKMemoTableCell;
+  PrevRow: TKMemoTableRow;
+  PrevColCell: TKMemoTableCell;
+  PrevRowCell: TKMemoTableCell;
+  I, Width, Part: Integer;
+begin
+  Table := ParentTable;
+  if Table <> nil then
+  begin
+    I := Table.Blocks.IndexOf(Self);
+    if I > 0 then
+      PrevRow := Table.Rows[I - 1]
+    else
+      PrevRow := nil;
+    for I := 0 to CellCount - 1 do
+    begin
+      Cell := Cells[I];
+      if I > 0 then
+        PrevColCell := Cells[I - 1]
+      else
+        PrevColCell := nil;
+      if PrevRow <> nil then
+        PrevRowCell := PrevRow.Cells[I]
+      else
+        PrevRowCell := nil;
+      Cell.BlockStyle.BorderWidth := 0;
+      if PrevColCell <> nil then
+      begin
+        // we split the border width among two neighbor cells
+        Width := Cell.BlockStyle.BorderWidths.Left;
+        Part := DivUp(Width, 2);
+        Cell.BlockStyle.BorderWidths.Left := Part;
+        PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
+      end;
+      if PrevRowCell <> nil then
+      begin
+        // we split the border width among two neighbor cells
+        Width := Cell.BlockStyle.BorderWidths.Top;
+        Part := DivUp(Width, 2);
+        Cell.BlockStyle.BorderWidths.Top := Part;
+        PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part;
+      end;
+{      if LastCol then
+        Cell.BlockStyle.BorderWidths.Right := Table.CellStyle.BorderWidth;
+      if LastRow then
+        Cell.BlockStyle.BorderWidths.Bottom := Table.CellStyle.BorderWidth;}
+    end;
+  end;
 end;
 
 procedure TKMemoTableRow.ApplyDefaultCellStyle;
@@ -5868,9 +5924,12 @@ begin
   OldWidth := FBlocks.Width;
   if OldWidth <= 0 then
   begin
-    CellWidth := RequiredWidth div CellCount;
-    for I := 0 to CellCount - 1 do
-      Cells[I].RequiredWidth := CellWidth;
+    if CellCount > 0 then
+    begin
+      CellWidth := RequiredWidth div CellCount;
+      for I := 0 to CellCount - 1 do
+        Cells[I].RequiredWidth := CellWidth;
+    end;
   end else
   begin
     Ratio := RequiredWidth / OldWidth;
@@ -5894,6 +5953,14 @@ begin
   FCellStyle.Free;
   FColWidths.Free;
   inherited;
+end;
+
+procedure TKMemoTable.FixupBorders;
+var
+  I: Integer;
+begin
+  for I := 0 to RowCount - 1 do
+    Rows[I].FixupBorders;
 end;
 
 procedure TKMemoTable.ApplyDefaultCellStyle;
@@ -5964,7 +6031,7 @@ begin
   begin
     UndefColCount := FColCount - DefColCount;
     UndefSpace := Max(ARequiredWidth - DefSpace, UndefColCount * cMinColSize);
-    UndefColWidth := DivUp(UndefColCount, UndefSpace);
+    UndefColWidth := DivUp(UndefSpace, UndefColCount);
   end else
     UndefSpace := 0;
   TotalSpace := DefSpace + UndefSpace;
@@ -6031,7 +6098,7 @@ begin
       for J := 0 to Row.CellCount - 1 do
       begin
         Cell := Row.Cells[J];
-        if (J > FColCount) or (MeasHorzExtents[J].Index <> Cell.Width) then
+        if (J >= FColCount) or (MeasHorzExtents[J].Index <> Cell.Width) then
         begin
           if J < FColCount then
             ColWidth := MeasHorzExtents[J].Index

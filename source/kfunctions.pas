@@ -408,11 +408,9 @@ type
 { Replaces possible decimal separators in S with DecimalSeparator variable.}
 function AdjustDecimalSeparator(const S: string): string;
 
-{$IFNDEF FPC}
-{ Converts an AnsiString into a WideString. If CodePage is not set
+{ Converts an AnsiString into a TKString. If CodePage is not set
   the current system code page for ANSI-UTFx translations will be used. }
-function AnsiStringToWideString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): WideString;
-{$ENDIF}
+function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): TKString;
 
 type
   { Callback for binary search data item comparison. }
@@ -725,17 +723,20 @@ procedure TrimWhiteSpaces(var AText: TKString; const ASet: TKSysCharSet); overlo
 {$IFNDEF FPC}
 { Trims characters specified by ASet from the beginning and end of AText. }
 procedure TrimWhiteSpaces(var AText: AnsiString; const ASet: TKSysCharSet); overload;
-
-{ Converts a PWideChar string into AnsiString. If CodePage is not set
-  the current system code page for ANSI-UTFx translations will be used. }
-function WideCharToAnsiString(Text: PWideChar; CodePage: Cardinal = CP_ACP): AnsiString;
 {$ENDIF}
+
+{ Converts a TKString into AnsiString. If CodePage is not set
+  the current system code page for ANSI-UTFx translations will be used. }
+function StringToAnsiString(const AText: TKString; CodePage: Cardinal = CP_ACP): AnsiString;
 
 {$IFDEF USE_WINAPI}
 function GetWindowsFolder(CSIDL: Cardinal; var APath: string): Boolean;
 
 function RunExecutable(const AFileName: string; AWaitForIt: Boolean): DWORD;
 {$ENDIF}
+
+function UnicodeUpperCase(const AText: TKString): TKString;
+function UnicodeLowerCase(const AText: TKString): TKString;
 
 implementation
 
@@ -749,6 +750,9 @@ uses
 {$IFDEF USE_WIDEWINPROCS}
   , KWideWinProcs
 {$ENDIF}
+{$IFDEF FPC}
+  , LConvEncoding
+{$ENDIF}
 ;
 
 function AdjustDecimalSeparator(const S: string): string;
@@ -761,8 +765,19 @@ begin
       Result[I] := GetFormatSettings.DecimalSeparator;
 end;
 
-{$IFNDEF FPC}
-function AnsiStringToWideString(const Text: AnsiString; CodePage: Cardinal): WideString;
+{$IFDEF FPC}
+function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): TKString;
+var
+  CP: string;
+begin
+  if CodePage = 0 then
+    CP := 'ansi'
+  else
+    CP := Format('cp%d', [Codepage]);
+  Result := LConvEncoding.ConvertEncoding(Text, CP, 'utf8');
+end;
+{$ELSE}
+function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): TKString;
 var
   Len: Integer;
 begin
@@ -2124,16 +2139,30 @@ begin
   while (Length(AText) > 0) and CharInSetEx(AText[Length(AText)], ASet) do
     Delete(AText, Length(AText), 1);
 end;
-
-function WideCharToAnsiString(Text: PWideChar; CodePage: Cardinal): AnsiString;
-var
-  Len: Integer;
-begin
-  Len := WideCharToMultiByte(CodePage, 0, Text, -1, nil, 0, nil, nil);
-  SetLength(Result, Len);
-  WideCharToMultiByte(CodePage, 0, Text, -1, PAnsiChar(Result), Len, nil, nil);
-end;
 {$ENDIF}
+
+function StringToAnsiString(const AText: TKString; CodePage: Cardinal = CP_ACP): AnsiString;
+var
+{$IFDEF FPC}
+  CP: string;
+{$ELSE}
+  Len: Integer;
+  W: WideString;
+{$ENDIF}
+begin
+{$IFDEF FPC}
+  if CodePage = 0 then
+    CP := 'ansi'
+  else
+    CP := Format('cp%d', [Codepage]);
+  Result := LConvEncoding.ConvertEncoding(AText, 'utf8', CP);
+{$ELSE}
+  W := WideString(AText);
+  Len := WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, nil, 0, nil, nil);
+  SetLength(Result, Len);
+  WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, PAnsiChar(Result), Len, nil, nil);
+{$ENDIF}
+end;
 
 {$IFDEF USE_WINAPI}
 function GetWindowsFolder(CSIDL: Cardinal; var APath: string): Boolean;
@@ -2199,5 +2228,23 @@ begin
   end;
 end;
 {$ENDIF}
+
+function UnicodeUpperCase(const AText: TKString): TKString;
+begin
+{$IFDEF FPC}
+  Result := LCLProc.UTF8UpperCase(AText);
+{$ELSE}
+  Result := AnsiUpperCase(AText);
+{$ENDIF}
+end;
+
+function UnicodeLowerCase(const AText: TKString): TKString;
+begin
+{$IFDEF FPC}
+  Result := LCLProc.UTF8LowerCase(AText);
+{$ELSE}
+  Result := AnsiLowerCase(AText);
+{$ENDIF}
+end;
 
 end.
