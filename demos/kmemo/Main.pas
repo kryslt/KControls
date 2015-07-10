@@ -235,8 +235,8 @@ begin
   end;
 
 //  Memo.LoadFromRTF('test_no_img.rtf');
-  Memo.LoadFromRTF('test.rtf');
-//  Memo.LoadFromRTF('kgrid_manual.rtf');
+//  Memo.LoadFromRTF('test.rtf');
+  Memo.LoadFromRTF('kgrid_manual.rtf');
 //  Memo.LoadFromRTF('Word2007RTFSpec9.rtf');
 
 {

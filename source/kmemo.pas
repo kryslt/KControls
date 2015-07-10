@@ -444,6 +444,7 @@ type
     property SelLength: Integer read GetSelLength;
     property SelStart: Integer read GetSelStart;
     property SelText: TKString read GetSelText;
+    property ShowFormatting: Boolean read GetShowFormatting;
     property Text: TKString read GetText;
     property Top: Integer read GetTop;
     property TopOffset: Integer read FOffset.Y write SetTopOffset;
@@ -591,7 +592,6 @@ type
     procedure SetWordLeft(Index: Integer; const Value: Integer); override;
     procedure SetWordTop(Index: Integer; const Value: Integer); override;
     procedure SetWordTopPadding(Index: Integer; const Value: Integer); override;
-    procedure UpdateExtent;
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
@@ -614,11 +614,11 @@ type
   private
     FBlocks: TKMemoBlocks;
     FBlockStyle: TKMemoBlockStyle;
-    FFixedWidth: Boolean;
-    FPosition: TPoint;
     FClip: Boolean;
     FCurrentRequiredWidth: Integer;
     FCurrentRequiredHeight: Integer;
+    FFixedWidth: Boolean;
+    FPosition: TPoint;
     procedure SetFixedWidth(const Value: Boolean);
     procedure SetRequiredWidth(const Value: Integer);
     procedure SetRequiredHeight(const Value: Integer);
@@ -637,6 +637,7 @@ type
     function GetSelLength: Integer; override;
     function GetSelStart: Integer; override;
     function GetTopPadding: Integer; override;
+    function GetWordBottomPadding(Index: Integer): Integer; override;
     function GetWordBoundsRect(Index: Integer): TRect; override;
     function GetWordCount: Integer; override;
     function GetWordHeight(Index: Integer): Integer; override;
@@ -644,12 +645,15 @@ type
     function GetWordLength(Index: Integer): Integer; override;
     function GetWords(Index: Integer): TKString; override;
     function GetWordTop(Index: Integer): Integer; override;
+    function GetWordTopPadding(Index: Integer): Integer; override;
     function GetWordWidth(Index: Integer): Integer; override;
     procedure RequiredHeightChanged; virtual;
     procedure RequiredWidthChanged; virtual;
+    procedure SetWordBottomPadding(Index: Integer; const Value: Integer); override;
     procedure SetWordHeight(Index: Integer; const Value: Integer); override;
     procedure SetWordLeft(Index: Integer; const Value: Integer); override;
     procedure SetWordTop(Index: Integer; const Value: Integer); override;
+    procedure SetWordTopPadding(Index: Integer; const Value: Integer); override;
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
@@ -793,6 +797,7 @@ type
     function GetLineTop(ALineIndex: Integer): Integer; virtual;
     function GetLineWidth(ALineIndex: Integer): Integer; virtual;
     function GetSelText: TKString; virtual;
+    function GetShowFormatting: Boolean; virtual;
     function GetText: TKString; virtual;
     procedure GetWordIndexes(const ABlockIndex, ALineIndex: Integer; out AStart, AEnd: Integer); virtual;
     function LineToRect(ACanvas: TCanvas; AIndex, ALineIndex: Integer; ACaret: Boolean): TRect; virtual;
@@ -821,7 +826,6 @@ type
     procedure FixEOL(AIndex: Integer; AAdjust: Boolean; var ALinePos: TKMemoLinePosition); virtual;
     function GetNearestAnchorIndex(AIndex: Integer): Integer; virtual;
     function GetNearestParagraph(AIndex: Integer): TKMemoParagraph; virtual;
-    function GetShowFormatting: Boolean; virtual;
     function GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     procedure GetSelColors(out TextColor, Background: TColor); virtual;
@@ -884,6 +888,7 @@ type
     property SelLength: Integer read GetSelLength;
     property SelStart: Integer read FSelStart;
     property SelText: TKString read GetSelText;
+    property ShowFormatting: Boolean read GetShowFormatting;
     property Text: TKString read GetText write SetText;
     property Width: Integer read FExtent.X;
     property OnUpdate: TKMemoUpdateEvent read FOnUpdate write FOnUpdate;
@@ -1778,6 +1783,7 @@ begin
     BorderColor := TKMemoBlockStyle(ASource).BorderColor;
     BorderRadius := TKMemoBlockStyle(ASource).BorderRadius;
     BorderWidth := TKMemoBlockStyle(ASource).BorderWidth;
+    BorderWidths.Assign(TKMemoBlockStyle(ASource).BorderWidths);
     Brush.Assign(TKMemoBlockStyle(ASource).Brush);
     CancelFloat := TKMemoParaStyle(ASource).CancelFloat;
     ContentPadding.Assign(TKMemoBlockStyle(ASource).ContentPadding);
@@ -4053,7 +4059,7 @@ end;
 function TKMemoBlock.GetDefaultTextStyle: TKMemoTextStyle;
 begin
   if FParent <> nil then
-    Result := FParent.GetDefaultTextStyle
+    Result := FParent.DefaultTextStyle
   else
     Result := nil;
 end;
@@ -4107,7 +4113,7 @@ end;
 function TKMemoBlock.GetShowFormatting: Boolean;
 begin
   if FParent <> nil then
-    Result := FParent.GetShowFormatting
+    Result := FParent.ShowFormatting
   else
     Result := False;
 end;
@@ -5158,7 +5164,6 @@ begin
     FImage.Assign(TKMemoImageBlock(AItem).Image);
     ScaleHeight := TKMemoImageBlock(AItem).ScaleHeight;
     ScaleWidth := TKMemoImageBlock(AItem).ScaleWidth;
-    UpdateExtent;
   end;
 end;
 
@@ -5264,14 +5269,12 @@ end;
 procedure TKMemoImageBlock.SetImage(const Value: TPicture);
 begin
   FImage.Assign(Value);
-//  UpdateExtent;
   Update([muContent]);
 end;
 
 procedure TKMemoImageBlock.SetImagePath(const Value: TKString);
 begin
   FImage.LoadFromFile(Value);
-//  UpdateExtent;
   Update([muContent]);
 end;
 
@@ -5317,18 +5320,6 @@ procedure TKMemoImageBlock.SetWordTopPadding(Index: Integer; const Value: Intege
 begin
   FTopPadding := Value;
 end;
-
-procedure TKMemoImageBlock.UpdateExtent;
-begin
-
-end;
-
-{procedure TKMemoImageBlock.UpdateExtent;
-begin
-  FExtent := Point(
-    FImage.Width + FImageStyle.ContentPadding.Left + FImageStyle.ContentPadding.Right,
-    FImage.Height + FImageStyle.ContentPadding.Top + FImageStyle.ContentPadding.Bottom);
-end;}
 
 function TKMemoImageBlock.WordIndexToRect(ACanvas: TCanvas; AWordIndex,
   AIndex: Integer; ACaret: Boolean): TRect;
@@ -5505,6 +5496,11 @@ begin
   Result := FBlockStyle.TopPadding;
 end;
 
+function TKMemoContainer.GetWordBottomPadding(Index: Integer): Integer;
+begin
+  Result := FBlockStyle.BottomPadding;
+end;
+
 function TKMemoContainer.GetWordBoundsRect(Index: Integer): TRect;
 begin
   Result := Rect(0, 0, Width, Height);
@@ -5539,6 +5535,11 @@ end;
 function TKMemoContainer.GetWordTop(Index: Integer): Integer;
 begin
   Result := FPosition.Y;
+end;
+
+function TKMemoContainer.GetWordTopPadding(Index: Integer): Integer;
+begin
+  Result := FBlockStyle.TopPadding;
 end;
 
 function TKMemoContainer.GetWordWidth(Index: Integer): Integer;
@@ -5635,6 +5636,11 @@ begin
   end;
 end;
 
+procedure TKMemoContainer.SetWordBottomPadding(Index: Integer; const Value: Integer);
+begin
+  FBlockStyle.BottomPadding := Value;
+end;
+
 procedure TKMemoContainer.SetWordHeight(Index: Integer; const Value: Integer);
 begin
   FCurrentRequiredHeight := Value;
@@ -5648,6 +5654,11 @@ end;
 procedure TKMemoContainer.SetWordTop(Index: Integer; const Value: Integer);
 begin
   FPosition.Y := Value;
+end;
+
+procedure TKMemoContainer.SetWordTopPadding(Index: Integer; const Value: Integer);
+begin
+  FBlockStyle.TopPadding := Value;
 end;
 
 function TKMemoContainer.WordIndexToRect(ACanvas: TCanvas; AWordIndex, AIndex: Integer; ACaret: Boolean): TRect;
@@ -5814,10 +5825,6 @@ begin
         Cell.BlockStyle.BorderWidths.Top := Part;
         PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part;
       end;
-{      if LastCol then
-        Cell.BlockStyle.BorderWidths.Right := Table.CellStyle.BorderWidth;
-      if LastRow then
-        Cell.BlockStyle.BorderWidths.Bottom := Table.CellStyle.BorderWidth;}
     end;
   end;
 end;
@@ -6306,12 +6313,20 @@ begin
 end;
 
 function TKMemoBlocks.AddParagraph(At: Integer): TKMemoParagraph;
+var
+  PA: TKMemoParagraph;
 begin
   LockUpdate;
   try
     Result := TKMemoParagraph.Create(Self);
-    Result.TextStyle.Assign(GetDefaultTextStyle);
-    Result.ParaStyle.Assign(GetDefaultParaStyle);
+    PA := GetNearestParagraph(At);
+    if PA <> nil then
+      Result.AssignAttributes(PA)
+    else
+    begin
+      Result.TextStyle.Assign(GetDefaultTextStyle);
+      Result.ParaStyle.Assign(GetDefaultParaStyle);
+    end;
     AddAt(Result, At);
   finally
     UnlockUpdate;
@@ -6515,7 +6530,7 @@ end;
 function TKMemoBlocks.GetDefaultTextStyle: TKMemoTextStyle;
 begin
   if FParent <> nil then
-    Result := FParent.GetDefaultTextStyle
+    Result := FParent.DefaultTextStyle
   else if FMemoNotifier <> nil then
     Result := FMemoNotifier.GetDefaultTextStyle
   else
@@ -6524,10 +6539,10 @@ end;
 
 function TKMemoBlocks.GetDefaultParaStyle: TKMemoParaStyle;
 begin
-  if FMemoNotifier <> nil then
-    Result := FMemoNotifier.GetDefaultParaStyle
-  else if FParent <> nil then
+  if FParent <> nil then
     Result := FParent.DefaultParaStyle
+  else if FMemoNotifier <> nil then
+    Result := FMemoNotifier.GetDefaultParaStyle
   else
     Result := nil;
 end;
@@ -7290,9 +7305,9 @@ var
   function AddLine: Boolean;
   var
     Line, LastLine: TKMemoLine;
-    Item: TKMemoBlock;
+    EndItem, Item: TKMemoBlock;
     I, J, W, CurWordCopy, CurBlockCopy, CurIndexCopy, Delta, FirstIndent, LineIndex, LineLeft, LineRight, BaseLine, StPosX, St, En, ParaMarkWidth, BottomPadding, TopPadding: Integer;
-    IsParagraph, WasParagraph: Boolean;
+    WasParagraph: Boolean;
     R, RW: TRect;
   begin
     Result := False;
@@ -7330,8 +7345,8 @@ var
       Line.StartWord := LastWord;
       Line.EndWord := CurWordCopy;
 
+      EndItem := Items[Line.EndBlock];
       // get vertical paddings for this line and width of the paragraph mark (this cannot be included into line width)
-      IsParagraph := Items[Line.EndBlock] is TKMemoParagraph;
       WasParagraph := (LastLine = nil) or (Items[LastLine.EndBlock] is TKMemoParagraph);
       if WasParagraph then
       begin
@@ -7342,11 +7357,10 @@ var
         FirstIndent := 0;
         TopPadding := 0;
       end;
-      if IsParagraph then
+      if EndItem is TKMemoParagraph then
       begin
-        Item := Items[Line.EndBlock];
         BottomPadding := CurParaStyle.BottomPadding;
-        ParaMarkWidth := Item.WordWidth[Item.WordCount - 1];
+        ParaMarkWidth := EndItem.WordWidth[EndItem.WordCount - 1];
       end else
       begin
         BottomPadding := 0;
@@ -7433,12 +7447,12 @@ var
       if LineRight > ARequiredWidth then
         Dec(LineRight, ParaMarkWidth);
       ParaWidth := Max(ParaWidth, LineRight - LineLeft);
-      Item := Items[Line.EndBlock];
-      if Item is TKMemoParagraph then
+      if EndItem is TKMemoParagraph then
       begin
-        TKMemoParagraph(Item).Top := ParaPosY;
-        TKmemoParagraph(Item).Width := ParaWidth;
-        TKmemoParagraph(Item).Height := PosY + LineHeight - ParaPosY - CurParaStyle.BottomPadding;
+        TKMemoParagraph(EndItem).Top := ParaPosY;
+        TKmemoParagraph(EndItem).Width := ParaWidth;
+        TKmemoParagraph(EndItem).Height := PosY + LineHeight - ParaPosY - CurParaStyle.BottomPadding;
+        CurParaStyle := GetParaStyle(CurBlock);
         ParaWidth := 0;
         ParaPosY := PosY + LineHeight + CurParaStyle.TopPadding;
       end;
@@ -7447,10 +7461,11 @@ var
       Line.Position := Point(LineLeft, PosY);
       // other tasks
       FExtent.X := Max(FExtent.X, LineRight);
-      CurParaStyle := GetParaStyle(CurBlock);
       PosX := CurParaStyle.LeftPadding;
-      if IsParagraph then
+      if EndItem is TKMemoParagraph then
+      begin
         Inc(PosX, CurParaStyle.FirstIndent);
+      end;
       Right := ARequiredWidth - CurParaStyle.RightPadding;
       Inc(PosY, LineHeight);
       LastBlock := CurBlock;
@@ -7548,7 +7563,10 @@ begin
       mbpRelative:
       begin
         if IsParagraph then
+        begin
           AddLine;
+          IsParagraph := False;
+        end;
         MoveWordToFreeSpace(Item.Width, Item.Height);
         Item.WordLeft[0] := PosX;
         Item.WordTop[0] := PosY;
@@ -7655,9 +7673,8 @@ var
   I, J, K, St, En: Integer;
   R: TRect;
   Item: TKMemoBlock;
-  PA, OldPA: TKMemoParagraph;
+  PA: TKMemoParagraph;
 begin
-  OldPa := nil;
   // paint text blocks
   for I := 0 to LineCount - 1 do
   begin
@@ -7665,12 +7682,16 @@ begin
     begin
       // fill areas under paragraphs
       PA := GetNearestParagraph(FLines[I].StartBlock);
-      if (PA <> nil) and (PA <> OldPA) then
+      if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
       begin
-        R := Rect(ALeft, PA.Top + ATop, ALeft + Max(FRequiredWidth, PA.Width), PA.Top + PA.Height + ATop);
+        R := Rect(0, 0, Max(FRequiredWidth, PA.Width), PA.Height);
+        OffsetRect(R, PA.Left, PA.Top);
+        R.Top := Max(R.Top, LineTop[I]);
+        R.Bottom := Min(R.Bottom, LineBottom[I]);
+        OffsetRect(R, ALeft, ATop);
         PA.ParaStyle.PaintBox(ACanvas, R);
-        OldPA := PA;
       end;
+      // then paint text blocks
       for J := FLines[I].StartBlock to FLines[I].EndBlock do
       begin
         Item := Items[J];
@@ -7681,9 +7702,6 @@ begin
             Item.WordPaintToCanvas(ACanvas, K, ALeft, ATop);
         end;
       end;
-    end else
-    asm
-      nop
     end;
   end;
   // paint relative or absolute blocks
@@ -7939,7 +7957,7 @@ end;
 
 procedure TKMemoBlocks.UpdateAttributes;
 var
-  I, Anchor: Integer;
+  I: Integer;
   Item: TKMemoBlock;
 begin
   if FRelPos <> nil then
