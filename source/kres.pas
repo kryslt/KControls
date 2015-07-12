@@ -54,6 +54,7 @@ resourcestring
 
   // KGraphics texts
   sGDIError = 'GDI object could not be created.';
+  sErrGraphicsLoadFromResource = 'Graphics could not be loaded from resource.';
 
   // KHexEditor texts
   sHEAddressText = 'Address area text';
@@ -123,6 +124,10 @@ resourcestring
 
   // KDBGrids texts
   sDataSetUnidirectional = 'Cannot use KDBGrid with a unidirectional dataset.';
+
+  // KMemoXXX texts
+  sErrMemoLoadFromRTF = 'Error while reading RTF file.';
+  sErrMemoLoadImageFromRTF = 'Error while loading image from RTF file.';
 
 { Localize given resourcestring directly.
   Usage: ResMod(@sYourResourceString, 'New text');

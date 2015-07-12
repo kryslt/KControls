@@ -1,10 +1,11 @@
 object MainForm: TMainForm
-  Left = 380
+  Left = 525
   Height = 576
-  Top = 290
+  Top = 286
   Width = 713
   Caption = 'KMemoDemo'
   OnCreate = FormCreate
+  OnPaint = FormPaint
   LCLVersion = '1.2.2.0'
   Visible = True
 end

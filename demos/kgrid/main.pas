@@ -295,7 +295,7 @@ begin
   end;
   // Printing settings
   KGrid1.PageSetup.Title := 'KGridDemo table';
-  KGrid1.PageSetup.HeaderSpace := 1; //we want to print a custom header, cm is default
+  KGrid1.PageSetup.UnitHeaderSpace := 1; //we want to print a custom header, cm is default
 
   // Initialize KGrid2 - a design-time tool would be nice here
   KGrid2.DoubleBuffered := True;
@@ -876,7 +876,7 @@ begin
     Canvas.TextOut(PrinterMarginLeftMirrored, PrinterMarginTop, Title);
     Canvas.Brush.Style := bsSolid;
     Canvas.Brush.Color := clBlack;
-    Canvas.FillRect(Rect(PrinterMarginLeftMirrored, PrinterMarginTop + VMap(20), PageWidth - PrinterMarginRightMirrored, PrinterMarginTop + VMap(22)));
+    Canvas.FillRect(Rect(PrinterMarginLeftMirrored, PrinterMarginTop + VMap(20), PrinterPageWidth - PrinterMarginRightMirrored, PrinterMarginTop + VMap(22)));
   end;
 end;
 

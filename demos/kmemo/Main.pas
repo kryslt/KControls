@@ -1,4 +1,4 @@
-﻿unit Main;
+unit Main;
 
 interface
 
@@ -6,7 +6,7 @@ interface
 
 uses
   {$IFDEF FPC}
-    LCLIntf, LResources,
+    LCLIntf, LResources, LCLProc,
   {$ELSE}
     Windows, Messages,
   {$ENDIF}
@@ -19,9 +19,12 @@ type
 
   TMainForm = class(TForm)
     procedure FormCreate(Sender: TObject);
+    procedure FormPaint(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
     Memo: TKMemo;
+//    MF: TKMetafile;
   public
     { Public declarations }
   end;
@@ -87,6 +90,11 @@ var
   W: TKString;
   I: Integer;
 begin
+//  MF := TKMetafile.Create;
+//  MF.LoadFromFile('test.wmf');
+//  MF.Width := 4320;
+//  MF.Height := 992;
+
   Memo := TKMemo.Create(Self);
   Memo.ContentPadding.Top := 20;
   Memo.ContentPadding.Left := 20;
@@ -101,17 +109,17 @@ begin
   Memo.Blocks.LockUpdate;
   try
     Memo.Blocks.Clear;
-    IB := Memo.Blocks.AddImageBlock('label_wre.png');
+{    Memo.Blocks.AddTextBlock('This is test text 1.');
+    PA := Memo.Blocks.AddParagraph;
+    IB := Memo.Blocks.AddImageBlock('label_wre.png');}
 //    IB.ImageStyle.BorderWidth := 1;
 //    IB.ImageStyle.BorderRadius := 10;
 //    IB.ImageStyle.Brush.Color := clLime;
-    IB.LeftOffset := 0;
-    IB.TopOffset := 0;
-    IB.Position := mbpRelative;
-    Memo.Blocks.AddTextBlock('This is test text 1.');
-    PA := Memo.Blocks.AddParagraph;
-    TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
-    PA := Memo.Blocks.AddParagraph;
+//    IB.LeftOffset := 0;
+//    IB.TopOffset := 0;
+//    IB.Position := mbpRelative;
+{    TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
+    PA := Memo.Blocks.AddParagraph;}
    {    Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_info.png');
     IB := Memo.Blocks.AddImageBlock('label_wre.png');
     IB.LeftOffset := 20;
@@ -144,7 +152,8 @@ begin
     Memo.Blocks.AddParagraph;}
     //AddTextField;
     //AddTextField;
-    TBL := Memo.Blocks.AddTable;
+
+{    TBL := Memo.Blocks.AddTable;
     TBL.BlockStyle.TopPadding := 20;
     TBL.BlockStyle.BottomPadding := 30;
     TBL.CellStyle.BorderWidth := 2;
@@ -161,27 +170,28 @@ begin
     AddTextField(TBL.Rows[0].Cells[1], True);
     AddTextField(TBL.Rows[1].Cells[0], False);
     AddTextField(TBL.Rows[1].Cells[1], False);
-    PA := Memo.Blocks.AddParagraph;
-    PA.ParaStyle.FirstIndent := 0;
-    PA.ParaStyle.HAlign := halCenter;
-    PA.ParaStyle.CancelFloat := True;
     TBL.RequiredWidth := 600;
     TBL.FixedWidth := True;
     TBL.ApplyDefaultCellStyle;
 
+    PA := Memo.Blocks.AddParagraph;
+    PA.ParaStyle.FirstIndent := 0;
+    PA.ParaStyle.HAlign := halCenter;
+    PA.ParaStyle.CancelFloat := True;}
+
 //    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
 
-    IB := Memo.Blocks.AddImageBlock('label_wre.png');
+//    IB := Memo.Blocks.AddImageBlock('label_wre.png');
 //    IB.ImageStyle.BorderWidth := 1;
 //    IB.ImageStyle.BorderRadius := 10;
 //    IB.ImageStyle.Brush.Color := clLime;
-    IB.LeftOffset := 0;
-    IB.TopOffset := 0;
-    IB.Position := mbpRelative;
+//    IB.LeftOffset := 0;
+//    IB.TopOffset := 0;
+//    IB.Position := mbpRelative;
 
-    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
+{    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
     TB.TextStyle.Font.Style := [fsBold];
-    TB.TextStyle.Font.Size := 15;
+    TB.TextStyle.Font.Size := 15;}
 {    TB := Memo.Blocks.AddTextBlock(' This is small bold text.');
     TB.Font.Style := [fsBold];
     Memo.Blocks.AddNewLineBlock;
@@ -196,7 +206,7 @@ begin
     Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_info.png');
     Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_stop.png');
     Memo.Blocks.AddNewLineBlock;
-    TB := Memo.Blocks.AddTextBlock('This is vertically aligned text.');
+    TB := Memo.Blocks4.AddTextBlock('This is vertically aligned text.');
     TB.Font.Size := 12;
     TB.VAlign := valCenter;
     Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_warning.png');
@@ -210,6 +220,9 @@ begin
     TB.Font.Size := 15;
     TB.Font.Color := clRed;
     Memo.Blocks.AddNewLineBlock;}
+
+    {
+    Memo.Clear;
     MS := TMemoryStream.Create;
     try
       MS.LoadFromFile('../../kgrid_readme.txt');
@@ -217,16 +230,19 @@ begin
       Memo.Blocks.Text := S;
     finally
       MS.Free;
-    end;
+    end;}
 
   {  Memo.Blocks[15].Position := mbpRelative;}
-    Memo.Font.Size := 15;
+    //Memo.Font.Size := 15;
 //    Memo.Blocks[15].TopOffset := 50;
 
-{    IB := Memo.Blocks.AddImageBlock('label_wre.png', 15);
-    IB.LeftOffset := 350;
-    IB.TopOffset := 260;
-    IB.Position := mbpRelative;}
+//    IB := Memo.Blocks.AddImageBlock('label_wre.png', 15);
+    //    IB.LeftOffset := 350;
+    //    IB.TopOffset := 260;
+    //    IB.Position := mbpRelative;
+//    IB.ScaleWidth := 600;
+//    IB.ScaleHeight := 400;
+//    PA := Memo.Blocks.AddParagraph;
 
     Memo.BackgroundImage.LoadFromFile('../../resource_src/clouds.jpg');
   finally
@@ -236,8 +252,10 @@ begin
 
 //  Memo.LoadFromRTF('test_no_img.rtf');
 //  Memo.LoadFromRTF('test.rtf');
-  Memo.LoadFromRTF('kgrid_manual.rtf');
+//  Memo.LoadFromRTF('test1.rtf');
+//  Memo.LoadFromRTF('kgrid_manual.rtf');
 //  Memo.LoadFromRTF('Word2007RTFSpec9.rtf');
+  Memo.LoadFromRTF('WATTrouterECO_CZ.rtf');
 
 {
   Memo.ContentPadding.Left := 50;
@@ -250,7 +268,8 @@ begin
   W := Memo.Text;
   Memo.Text := W;}
   Memo.Parent := Self;
-  Memo.Select(2, 10);
+//  Memo.Select(2, 10);
+//  Mainform.Canvas.StretchDraw(ClientRect, MF);
 end;
 
 {$IFDEF FPC}
@@ -258,4 +277,23 @@ end;
 {$ELSE}
   {$R *.dfm}
 {$ENDIF}
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+//  MF.Free;
+end;
+
+procedure TMainForm.FormPaint(Sender: TObject);
+const
+  cTabChar = #$AE; // right arrow but valid only for Symbol font!
+var
+  S, TabAsUTF8: string;
+begin
+  S := 'A'#9'B'#9'C';
+  TabAsUTF8 := UnicodeToNativeUTF(cTabChar);
+  Canvas.Font.Color := clBlack;
+  Canvas.Font.Name := 'Symbol';
+  S := StringReplace(S, #9, TabAsUTF8, [rfReplaceAll]);
+  Canvas.TextOut(10, 10, S);
+end;
+
 end.

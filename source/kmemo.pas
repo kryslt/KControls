@@ -1,7 +1,7 @@
 { @abstract(This unit contains native replacement for TMemo/TRichEdit components)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(28 Apr 2009)
-  @lastmod(6 Jul 2014)
+  @lastmod(30 July 2015)
 
   Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
@@ -108,7 +108,7 @@ const
   { This is the character for space visualisation. }
   cSpaceChar = #$B7;
   { This is the character for tab visualisation. }
-  cTabChar = #$2192;
+  cTabChar = #$AE; // valid only for Symbol font!
 
 type
   TKCustomMemo = class;
@@ -479,10 +479,10 @@ type
   private
     FText: TKString;
     FTextStyle: TKMemoTextStyle;
-    FWords: TKMemoWordList;
   protected
     { Because of time optimization. }
     FTextLength: Integer;
+    FWords: TKMemoWordList;
     function ApplyFormatting(const AText: TKString): TKString;
     procedure ApplyTextStyle(ACanvas: TCanvas); virtual;
     function ContentLength: Integer; override;
@@ -523,6 +523,7 @@ type
     procedure Assign(AItem: TKMemoBlock); override;
     procedure AssignAttributes(AItem: TKMemoBlock); override;
     function CalcBaseLine(ACanvas: TCanvas): Integer; override;
+    function CalcDescent(ACanvas: TCanvas): Integer; virtual;
     procedure ClearSelection(ATextOnly: Boolean); override;
     function Concat(AItem: TKMemoBlock): Boolean; override;
     function InsertString(const AText: TKString; At: Integer = -1): Boolean; override;
@@ -561,21 +562,27 @@ type
 
   TKMemoImageBlock = class(TKMemoSingleton)
   private
+    FBaseLine: Integer;
     FBottomPadding: Integer;
+    FCrop: TKRect;
     FImage: TPicture;
     FImageStyle: TKMemoBlockStyle;
     FExtent: TPoint;
     FPosition: TPoint;
     FScaleExtent: TPoint;
+    FScaledImage: TKAlphaBitmap;
     FTopPadding: Integer;
+    procedure SetCrop(const Value: TKRect);
     procedure SetImage(const Value: TPicture);
     procedure SetImagePath(const Value: TKString);
     procedure SetScaleHeight(const Value: Integer);
     procedure SetScaleWidth(const Value: Integer);
-    function GetImageHeight: Integer;
-    function GetImageWidth: Integer;
   protected
+    FCalcBaseLine: Integer;
+    function CalcBaseLine(ACanvas: TCanvas): Integer; override;
     function ContentLength: Integer; override;
+    function GetImageHeight: Integer; virtual;
+    function GetImageWidth: Integer; virtual;
     function GetWordBottomPadding(Index: Integer): Integer; override;
     function GetWordBoundsRect(Index: Integer): TRect; override;
     function GetWordCount: Integer; override;
@@ -587,6 +594,8 @@ type
     function GetWordTopPadding(Index: Integer): Integer; override;
     function GetWordWidth(Index: Integer): Integer; override;
     procedure ImageStyleChanged(Sender: TObject);
+    function ScaledImage: TKAlphaBitmap; virtual;
+    procedure SetWordBaseLine(Index: Integer; const Value: Integer); override;
     procedure SetWordBottomPadding(Index: Integer; const Value: Integer); override;
     procedure SetWordHeight(Index: Integer; const Value: Integer); override;
     procedure SetWordLeft(Index: Integer; const Value: Integer); override;
@@ -601,6 +610,7 @@ type
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
+    property Crop: TKRect read FCrop write SetCrop;
     property Image: TPicture read FImage write SetImage;
     property ImageStyle: TKMemoBlockStyle read FImageStyle;
     property ImageHeight: Integer read GetImageHeight;
@@ -614,11 +624,13 @@ type
   private
     FBlocks: TKMemoBlocks;
     FBlockStyle: TKMemoBlockStyle;
+    FBottomPadding: Integer;
     FClip: Boolean;
     FCurrentRequiredWidth: Integer;
     FCurrentRequiredHeight: Integer;
     FFixedWidth: Boolean;
     FPosition: TPoint;
+    FTopPadding: Integer;
     procedure SetFixedWidth(const Value: Boolean);
     procedure SetRequiredWidth(const Value: Integer);
     procedure SetRequiredHeight(const Value: Integer);
@@ -630,6 +642,7 @@ type
     procedure AddBlockLine(AStartBlock, AStartIndex, AEndBlock, AEndIndex,
       ALeft, ATop, AWidth, AHeight: Integer); virtual;
     procedure BlockStyleChanged(Sender: TObject);
+    function CalcBaseLine(ACanvas: TCanvas): Integer; override;
     procedure ClearLines; virtual;
     function ContentLength: Integer; override;
     function GetBottomPadding: Integer; override;
@@ -1606,29 +1619,17 @@ end;
 
 function NewLineChar: TKString;
 begin
-{$IFDEF FPC}
-  Result := UnicodeToUTF8(Cardinal(cNewLineChar));
-{$ELSE}
-  Result := cNewLineChar;
-{$ENDIF}
+  Result := UnicodeToNativeUTF(cNewlineChar);
 end;
 
 function SpaceChar: TKString;
 begin
-{$IFDEF FPC}
-  Result := UnicodeToUTF8(Cardinal(cSpaceChar));
-{$ELSE}
-  Result := cSpaceChar;
-{$ENDIF}
+  Result := UnicodeToNativeUTF(cSpaceChar);
 end;
 
 function TabChar: TKString;
 begin
-{$IFDEF FPC}
-  Result := UnicodeToUTF8(Cardinal(cTabChar));
-{$ELSE}
-  Result := cTabChar;
-{$ENDIF}
+  Result := UnicodeToNativeUTF(cTabChar);
 end;
 
 { TKMemoTextStyle }
@@ -1748,9 +1749,11 @@ constructor TKMemoBlockStyle.Create;
 begin
   inherited;
   FBorderWidths := TKRect.Create;
+  FBorderWidths.OnChanged := BrushChanged;
   FBrush := TBrush.Create;
   FBrush.OnChange := BrushChanged;
   FContentPadding := TKRect.Create;
+  FContentPadding.OnChanged := BrushChanged;
   FOnChanged := nil;
   FLocked := False;
   Defaults;
@@ -1923,7 +1926,7 @@ begin
     begin
       Brush.Assign(FBrush);
       if FBorderRadius > 0 then
-        RoundRect(ARect, FBorderRadius, FBorderRadius)
+        RoundRectangle(ACanvas, ARect, FBorderRadius, FBorderRadius)
       else if FBorderWidth > 0 then
         Rectangle(ARect)
       else
@@ -1961,11 +1964,7 @@ end;
 
 procedure TKMemoBlockStyle.SetBorderWidths(const Value: TKRect);
 begin
-  if not FBorderWidths.EqualProperties(Value) then
-  begin
-    FBorderWidths.Assign(Value);
-    Changed;
-  end;
+  FBorderWidths.Assign(Value);
 end;
 
 procedure TKMemoBlockStyle.SetBottomPadding(const Value: Integer);
@@ -1993,11 +1992,7 @@ end;
 
 procedure TKMemoBlockStyle.SetContentPadding(const Value: TKRect);
 begin
-  if not FContentPadding.EqualProperties(Value) then
-  begin
-    FContentPadding.Assign(Value);
-    Changed;
-  end;
+  FContentPadding.Assign(Value);
 end;
 
 procedure TKMemoBlockStyle.SetLeftPadding(const Value: Integer);
@@ -4475,10 +4470,8 @@ begin
   if GetShowFormatting then
   begin
     Result := StringReplace(AText, ' ', SpaceChar, [rfReplaceAll]);
-    Result := StringReplace(AText, #9, TabChar, [rfReplaceAll]);
   end else
   begin
-    Result := StringReplace(AText, #9, ' ', [rfReplaceAll]);
     Result := StringReplace(AText, NewLineChar, ' ', [rfReplaceAll]);
   end;
 end;
@@ -4519,6 +4512,15 @@ begin
   ApplyTextStyle(ACanvas);
   GetTextMetrics(ACanvas.Handle, TM);
   Result := TM.tmAscent;
+end;
+
+function TKMemoTextBlock.CalcDescent(ACanvas: TCanvas): Integer;
+var
+  TM: TTextMetric;
+begin
+  ApplyTextStyle(ACanvas);
+  GetTextMetrics(ACanvas.Handle, TM);
+  Result := TM.tmDescent;
 end;
 
 procedure TKMemoTextBlock.ClearSelection(ATextOnly: Boolean);
@@ -4694,7 +4696,14 @@ var
   SU: TKString;
   I, SmallFontSize, X, Y: Integer;
 begin
-  if FTextStyle.Capitals = tcaNone then
+  if Pos(#9, AText) <> 0 then
+  begin
+    ACanvas.Font.Name := 'Symbol';
+    SU := StringReplace(AText, #9, TabChar, [rfReplaceAll]);
+    Size := ACanvas.TextExtent(SU);
+    Result := Point(Size.cx, Size.cy);
+  end
+  else if FTextStyle.Capitals = tcaNone then
   begin
     Size := ACanvas.TextExtent(AText);
     Result := Point(Size.cx, Size.cy);
@@ -4867,10 +4876,10 @@ procedure TKMemoTextBlock.UpdateWords;
   end;
 
 const
-  cMemoWordBreaks = [cNULL, cTAB, cSPACE, '/', '\'];
+  cMemoWordBreaks = [cNULL, cSPACE, '/', '\'];
 var
   Index, PrevIndex, CharIndex: Integer;
-  WasBreak: Boolean;
+  WasBreak, IsTab, WasTab: Boolean;
 begin
   FWords.Clear;
   if FText <> '' then
@@ -4878,16 +4887,22 @@ begin
     CharIndex := 1;
     Index := 1;
     PrevIndex := 1;
+    IsTab := False;
     WasBreak := False;
     while Index <= FTextLength do
     begin
       if CharInSetEx(FText[CharIndex], cMemoWordBreaks) then
         WasBreak := True
-      else if WasBreak then
+      else
       begin
-        AddWord(PrevIndex, Index - 1);
-        PrevIndex := Index;
-        WasBreak := False;
+        WasTab := IsTab;
+        IsTab := CharInSetEx(FText[CharIndex], [cTab]);
+        if WasBreak or (WasTab and not IsTab) or (IsTab and not WasTab) then
+        begin
+          AddWord(PrevIndex, Index - 1);
+          PrevIndex := Index;
+          WasBreak := False;
+        end;
       end;
       Inc(Index);
       CharIndex := StrNextCharIndex(FText, CharIndex);
@@ -4954,9 +4969,16 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
       SetTextAlign(Handle, TA_BASELINE);
     {$ENDIF}
       SetBkMode(Handle, TRANSPARENT);
-      if FTextStyle.Capitals = tcaNone then
+      if (Pos(#9, AText) <> 0) and ShowFormatting then
+      begin
+        Font.Name := 'Symbol';
+        SU := StringReplace(AText, #9, TabChar, [rfReplaceAll]);
+        TextOut(ARect.Left, ABaseLine, SU)
+      end
+      else if FTextStyle.Capitals = tcaNone then
+      begin
         TextOut(ARect.Left, ABaseLine, AText)
-      else
+      end else
       begin
         SU := UnicodeUpperCase(AText);
         if FTextStyle.Capitals = tcaNormal then
@@ -5138,21 +5160,27 @@ end;
 constructor TKMemoImageBlock.Create(AParent: TKMemoBlocks);
 begin
   inherited;
+  FBaseLine := 0;
+  FBottomPadding := 0;
+  FCrop := TKRect.Create;
+  FCalcBaseLine := 0;
+  FExtent := CreateEmptyPoint;
+  FImage := TPicture.Create;
   FImageStyle := TKMemoBlockStyle.Create;
   FImageStyle.ContentPadding.AssignFromValues(10, 10, 10, 10);
   FImageStyle.OnChanged := ImageStyleChanged;
-  FBottomPadding := 0;
-  FImage := TPicture.Create;
-  FExtent := CreateEmptyPoint;
   FPosition := CreateEmptyPoint;
   FScaleExtent := CreateEmptyPoint;
+  FScaledImage := nil;
   FTopPadding := 0;
 end;
 
 destructor TKMemoImageBlock.Destroy;
 begin
+  FCrop.Free;
   FImageStyle.Free;
   FImage.Free;
+  FScaledImage.Free;
   inherited;
 end;
 
@@ -5161,10 +5189,45 @@ begin
   inherited;
   if AItem is TKMemoImageBlock then
   begin
+    FCrop.Assign(TKMemoImageBlock(AItem).Crop);
     FImage.Assign(TKMemoImageBlock(AItem).Image);
     ScaleHeight := TKMemoImageBlock(AItem).ScaleHeight;
     ScaleWidth := TKMemoImageBlock(AItem).ScaleWidth;
   end;
+end;
+
+function TKMemoImageBlock.CalcBaseLine(ACanvas: TCanvas): Integer;
+var
+  Item: TKMemoBlock;
+  Index, Ascent, Descent: Integer;
+begin
+  if (FParent <> nil) and (Position = mbpText) then
+  begin
+    Result := FExtent.Y div 2;
+    Index := FParent.IndexOf(Self);
+    if Index >= 0 then
+    begin
+      Item := FParent.GetLastItemByClass(Index, TKMemoTextBlock);
+      if Item = nil then
+        Item := FParent.GetNextItemByClass(Index, TKMemoTextBlock);
+      if Item <> nil then
+      begin
+        Ascent := TKMemoTextBlock(Item).CalcBaseLine(ACanvas);
+        Descent := TKMemoTextBlock(Item).CalcDescent(ACanvas);
+        Result := (FExtent.Y - (Ascent + Descent)) div 2 + Ascent;
+      end else
+      begin
+        Item := FParent.GetNearestParagraph(Index);
+        if Item <> nil then
+        begin
+          Descent := TKMemoTextBlock(Item).CalcDescent(ACanvas);
+          Result := FExtent.Y - Descent;
+        end;
+      end;
+    end;
+  end else
+    Result := 0;
+  FCalcBaseLine := Result;
 end;
 
 function TKMemoImageBlock.ContentLength: Integer;
@@ -5177,7 +5240,8 @@ begin
   if FScaleExtent.Y <> 0 then
     Result := FScaleExtent.Y
   else
-    Result := FImage.Height
+    Result := FImage.Height;
+  Dec(Result, FCrop.Top + FCrop.Bottom);
 end;
 
 function TKMemoImageBlock.GetImageWidth: Integer;
@@ -5185,7 +5249,8 @@ begin
   if FScaleExtent.X <> 0 then
     Result := FScaleExtent.X
   else
-    Result := FImage.Width
+    Result := FImage.Width;
+  Dec(Result, FCrop.Left + FCrop.Right);
 end;
 
 function TKMemoImageBlock.GetWordBottomPadding(Index: Integer): Integer;
@@ -5247,9 +5312,16 @@ end;
 
 function TKMemoImageBlock.MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint;
 begin
+  FreeAndNil(FScaledImage);
   Result := Point(
     ImageWidth + FImageStyle.ContentPadding.Left + FImageStyle.ContentPadding.Right,
     ImageHeight + FImageStyle.ContentPadding.Top + FImageStyle.ContentPadding.Bottom);
+  if (Position = mbpText) and (Result.X > ARequiredWidth) then
+  begin
+    // when image is placed in text it should be adjusted to page width
+    Result.Y := MulDiv(Result.Y, ARequiredWidth, Result.X);
+    Result.X := ARequiredWidth;
+  end;
   FExtent := Result;
 end;
 
@@ -5266,15 +5338,83 @@ begin
   OffsetRect(Result, InternalLeftOffset, InternalTopOffset);
 end;
 
+function TKMemoImageBlock.ScaledImage: TKAlphaBitmap;
+var
+  BM: TKAlphaBitmap;
+  ExtentX, ExtentY, NewExtentX: Integer;
+  RatioX, RatioY: Double;
+  OrigCrop: TRect;
+begin
+  if FScaledImage = nil then
+  begin
+    // get scaled image only on demand
+    ExtentX := FScaleExtent.X;
+    if ExtentX = 0 then
+      ExtentX := FImage.Width;
+    ExtentY := FScaleExtent.Y;
+    if ExtentY = 0 then
+      ExtentY := FImage.Height;
+    RatioX := ExtentX / FImage.Width;
+    RatioY := ExtentY / FImage.Height;
+    // crop in original units
+    OrigCrop := Rect(Round(FCrop.Left / RatioX), Round(FCrop.Top / RatioY), Round(FCrop.Right / RatioX), Round(FCrop.Bottom / RatioY));
+    // handle desired image size differently with respect to its position mode
+    if Position = mbpText then
+    begin
+      // when image is placed in text it should be adjusted to page width
+      NewExtentX := FExtent.X - FImageStyle.ContentPadding.Left - FImageStyle.ContentPadding.Right;
+      ExtentY := Min(MulDiv(NewExtentX, ExtentY, ExtentX), FExtent.Y - FImageStyle.ContentPadding.Top - FImageStyle.ContentPadding.Bottom - FTopPadding - FBottomPadding);
+      ExtentX := NewExtentX;
+    end else
+    begin
+      // otherwise respect desired size
+      Dec(ExtentX, FCrop.Left + FCrop.Right);
+      Dec(ExtentY, FCrop.Top + FCrop.Bottom);
+    end;
+    if (ExtentX * ExtentY <> 0) and (FImage.Width * FImage.Height <> 0) then
+    begin
+      FScaledImage := TKAlphaBitmap.Create;
+      FScaledImage.DirectCopy := True;
+      FScaledImage.SetSize(ExtentX, ExtentY);
+      FScaledImage.Fill(MakeColorRec(255,255,255,255));
+    {$IFDEF FPC}
+      FScaledImage.UpdateHandle;
+    {$ENDIF}
+      SetStretchBltMode(FScaledImage.Canvas.Handle, HALFTONE);
+      // we must scale bitmap to bitmap to use HALFTONE effect
+      BM := TKAlphaBitmap.Create;
+      try
+        BM.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
+        BM.Fill(MakeColorRec(255,255,255,255));
+        BM.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Right);
+        BM.DrawTo(FScaledImage.Canvas, Rect(0, 0, FScaledImage.Width, FScaledImage.Height));
+      finally
+        BM.Free;
+      end;
+    {$IFDEF FPC}
+      FScaledImage.UpdatePixels;
+    {$ENDIF}
+    end;
+  end;
+  Result := FScaledImage;
+end;
+
+procedure TKMemoImageBlock.SetCrop(const Value: TKRect);
+begin
+  FCrop.Assign(Value);
+end;
+
 procedure TKMemoImageBlock.SetImage(const Value: TPicture);
 begin
   FImage.Assign(Value);
+  FreeAndNil(FScaledImage);
   Update([muContent]);
 end;
 
 procedure TKMemoImageBlock.SetImagePath(const Value: TKString);
 begin
   FImage.LoadFromFile(Value);
+  FreeAndNil(FScaledImage);
   Update([muContent]);
 end;
 
@@ -5283,6 +5423,7 @@ begin
   if Value <> FScaleExtent.Y then
   begin
     FScaleExtent.Y := Value;
+    FreeAndNil(FScaledImage);
     Update([muExtent]);
   end;
 end;
@@ -5292,8 +5433,14 @@ begin
   if Value <> FScaleExtent.X then
   begin
     FScaleExtent.X := Value;
+    FreeAndNil(FScaledImage);
     Update([muExtent]);
   end;
+end;
+
+procedure TKMemoImageBlock.SetWordBaseLine(Index: Integer; const Value: Integer);
+begin
+  FBaseLine := Value;
 end;
 
 procedure TKMemoImageBlock.SetWordBottomPadding(Index: Integer; const Value: Integer);
@@ -5338,33 +5485,37 @@ begin
   ROuter := OuterRect(False);
   OffsetRect(ROuter, ALeft, ATop);
   X := ROuter.Left + FImageStyle.ContentPadding.Left;
-  Y := ROuter.Top + FImageStyle.ContentPadding.Top + FTopPadding;
+  Y := ROuter.Top + FImageStyle.ContentPadding.Top + FTopPadding + FBaseLine - FCalcBaseLine;
   if SelLength > 0 then
   begin
     GetSelColors(Color, BkGnd);
     ACanvas.Brush.Color := BkGnd;
     ACanvas.FillRect(ROuter);
-    Bitmap := TKAlphaBitmap.Create;
-    try
-      Bitmap.SetSize(ImageWidth, ImageHeight);
-    {$IFDEF FPC}
-      Bitmap.UpdateHandle;
-    {$ENDIF}
-      Bitmap.Canvas.Brush.Color := BkGnd;
-      Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
-      Bitmap.Canvas.StretchDraw(Rect(0, 0, ImageWidth, ImageHeight), FImage.Graphic);
-    {$IFDEF FPC}
-      Bitmap.UpdatePixels;
-    {$ENDIF}
-      Bitmap.AlphaFillPercent(50, True);
-      Bitmap.AlphaDrawTo(ACanvas, X, Y);
-    finally
-      Bitmap.Free;
+    if ScaledImage <> nil then
+    begin
+      Bitmap := TKAlphaBitmap.Create;
+      try
+        Bitmap.SetSize(ScaledImage.Width, ScaledImage.Height);
+      {$IFDEF FPC}
+        Bitmap.UpdateHandle;
+      {$ENDIF}
+        Bitmap.Canvas.Brush.Color := BkGnd;
+        Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
+        Bitmap.Canvas.Draw(0, 0, ScaledImage);
+      {$IFDEF FPC}
+        Bitmap.UpdatePixels;
+      {$ENDIF}
+        Bitmap.AlphaFillPercent(50, True);
+        Bitmap.AlphaDrawTo(ACanvas, X, Y);
+      finally
+        Bitmap.Free;
+      end;
     end;
   end else
   begin
     FImageStyle.PaintBox(ACanvas, ROuter);
-    ACanvas.StretchDraw(Rect(X, Y, X + ImageWidth, Y + ImageHeight), FImage.Graphic);
+    if ScaledImage <> nil then
+      ACanvas.Draw(X, Y, ScaledImage);
   end;
 end;
 
@@ -5387,6 +5538,7 @@ begin
   FBlocks.OnUpdate := Update;
   FBlockStyle := TKMemoBlockStyle.Create;
   FBlockStyle.OnChanged := BlockStyleChanged;
+  FBottomPadding := 0;
   FClip := False;
   FCurrentRequiredHeight := 0;
   FCurrentRequiredWidth := 0;
@@ -5394,6 +5546,7 @@ begin
   FPosition := CreateEmptyPoint;
   FRequiredHeight := 0;
   FRequiredWidth := 0;
+  FTopPadding := 0;
 end;
 
 destructor TKMemoContainer.Destroy;
@@ -5447,6 +5600,23 @@ begin
   Update([muExtent]);
 end;
 
+function TKMemoContainer.CalcBaseLine(ACanvas: TCanvas): Integer;
+var
+  PA: TKMemoParagraph;
+  ParaDescent: Integer;
+begin
+  Result := 0;
+  if (FParent <> nil) and (Position = mbpText) then
+  begin
+    PA := FParent.GetNearestParagraph(FParent.IndexOf(Self));
+    if PA <> nil then
+    begin
+      ParaDescent := PA.CalcDescent(ACanvas);
+      Result := FBlocks.Height - ParaDescent;
+    end;
+  end;
+end;
+
 function TKMemoContainer.CanAdd(AItem: TKMemoBlock): Boolean;
 begin
   // generic container cannot accept some kinds of subblocks
@@ -5498,7 +5668,7 @@ end;
 
 function TKMemoContainer.GetWordBottomPadding(Index: Integer): Integer;
 begin
-  Result := FBlockStyle.BottomPadding;
+  Result := FBottomPadding;
 end;
 
 function TKMemoContainer.GetWordBoundsRect(Index: Integer): TRect;
@@ -5539,7 +5709,7 @@ end;
 
 function TKMemoContainer.GetWordTopPadding(Index: Integer): Integer;
 begin
-  Result := FBlockStyle.TopPadding;
+  Result := FTopPadding;
 end;
 
 function TKMemoContainer.GetWordWidth(Index: Integer): Integer;
@@ -5638,7 +5808,7 @@ end;
 
 procedure TKMemoContainer.SetWordBottomPadding(Index: Integer; const Value: Integer);
 begin
-  FBlockStyle.BottomPadding := Value;
+  FBottomPadding := Value;
 end;
 
 procedure TKMemoContainer.SetWordHeight(Index: Integer; const Value: Integer);
@@ -5658,7 +5828,7 @@ end;
 
 procedure TKMemoContainer.SetWordTopPadding(Index: Integer; const Value: Integer);
 begin
-  FBlockStyle.TopPadding := Value;
+  FTopPadding := Value;
 end;
 
 function TKMemoContainer.WordIndexToRect(ACanvas: TCanvas; AWordIndex, AIndex: Integer; ACaret: Boolean): TRect;
@@ -5668,11 +5838,11 @@ begin
   begin
     // expand rect to enable vertical caret movement
     if Result.Top = 0 then
-      Dec(Result.Top, FBlockStyle.TopPadding);
+      Dec(Result.Top, FBlockStyle.TopPadding + FTopPadding);
     if Result.Bottom = FBlocks.Height then
-      Inc(Result.Bottom, Height - FBlocks.Height - FBlockStyle.TopPadding);
+      Inc(Result.Bottom, Height - FBlocks.Height - FBlockStyle.TopPadding - FTopPadding);
   end;
-  KFunctions.OffsetRect(Result, Left + InternalLeftOffset + FBlockStyle.LeftPadding, Top + InternalTopOffset + FBlockStyle.TopPadding);
+  KFunctions.OffsetRect(Result, Left + InternalLeftOffset + FBlockStyle.LeftPadding, Top + InternalTopOffset + FBlockStyle.TopPadding + FTopPadding);
 end;
 
 procedure TKMemoContainer.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
@@ -5682,10 +5852,10 @@ var
   SaveIndex: Integer;
 begin
   R := Rect(0, 0, Width, Height);
-  OffsetRect(R, Left + ALeft + InternalLeftOffset, Top + ATop + InternalTopOffset);
+  OffsetRect(R, Left + ALeft + InternalLeftOffset, Top + ATop + InternalTopOffset + FTopPadding);
   FBlockStyle.PaintBox(ACanvas, R);
   Inc(ALeft, Left + FBlockStyle.LeftPadding + InternalLeftOffset);
-  Inc(ATop, Top + FBlockStyle.TopPadding + InternalTopOffset);
+  Inc(ATop, Top + FBlockStyle.TopPadding + InternalTopOffset + FTopPadding);
   if FClip then
   begin
     ClipRect := FBlockStyle.BorderRect(R);
@@ -5717,7 +5887,7 @@ var
 begin
   P := APoint;
   R := Rect(0, 0, Width, Height);
-  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset);
+  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FTopPadding);
   if PtInRect(R, P) or (AOutOfArea and (P.X >= R.Left) and (P.X < R.Right)) then
   begin
     OffsetPoint(P, -FBlockStyle.LeftPadding, -FBlockStyle.TopPadding);
@@ -6370,25 +6540,28 @@ begin
     while I < Count do
     begin
       Item := Items[I];
-      if ATextOnly and (Item is TKMemoContainer) then
+      if (Item.SelStart >= 0) and (Item.SelLength > 0) then
       begin
-        TKMemoContainer(Item).ClearSelection(ATextOnly);
-      end else
-      begin
-        if Item.ContentLength = 0 then
-          Delete(I)
-        else if (Item.SelStart >= 0) and (Item.SelLength > 0) then
+        if ATextOnly and (Item is TKMemoContainer) then
         begin
-          if Item.SelLength = Item.SelectableLength(True) then
+          TKMemoContainer(Item).ClearSelection(ATextOnly);
+        end else
+        begin
+          if Item.ContentLength = 0 then
+            Delete(I)
+          else
           begin
-            Delete(I);
-            Dec(I);
-          end else
-          begin
-            if First < 0 then
-              First := I
-            else
-              Last := I;
+            if Item.SelLength = Item.SelectableLength(True) then
+            begin
+              Delete(I);
+              Dec(I);
+            end else
+            begin
+              if First < 0 then
+                First := I
+              else
+                Last := I;
+            end;
           end;
         end;
       end;
@@ -7909,18 +8082,17 @@ begin
     Ln := Length(Avalue);
     while I < Ln do
     begin
-      if AValue[I] = cFirstEOL then
+      if AValue[I] = cLF then
       begin
         if I > St then
         begin
           S := Copy(AValue, St, I - St);
+          S := StringReplace(S, cCR, '', [rfReplaceAll]); // on Unix systems
           AddTextBlock(S);
         end;
         AddParagraph;
         St := I + 1;
-      end
-      else if CharInSetEx(AValue[I], cLineBreaks) then
-        Inc(St);
+      end;
       Inc(I);
     end;
     if I > St then

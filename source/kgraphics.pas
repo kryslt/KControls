@@ -203,9 +203,6 @@ type
 
   { A simple platform independent encapsulation for a 32bpp bitmap with
     alpha channel with the ability to modify it's pixels directly. }
-
-  { TKAlphaBitmap }
-
   TKAlphaBitmap = class(TKGraphic)
   private
     FAutoMirror: Boolean;
@@ -293,6 +290,8 @@ type
     procedure DrawFrom(AGraphic: TGraphic; X, Y: Integer); overload;
     { Calls @link(TKAlphaBitmap.Draw). }
     procedure DrawTo(ACanvas: TCanvas; const ARect: TRect);
+    { Fill with Color. }
+    procedure Fill(Color: TKColorRec);
     { Convert to grayscale. }
     procedure GrayScale;
   {$IFNDEF FPC}
@@ -344,6 +343,40 @@ type
     { Returns the pointer to a bitmap scan line. }
     property ScanLine[Index: Integer]: PKColorRecs read GetScanLine;
   end;
+
+{$IFDEF USE_WINAPI}
+  { A simple encapsulation for a Windows metafile. It runs only under Windows and does not use shared images. }
+  TKMetafile = class(TGraphic)
+  private
+    FWmfHandle: HMETAFILE;
+    FEmfHandle: HENHMETAFILE;
+    FEnhanced: Boolean;
+    procedure SetEMFHandle(const Value: HENHMETAFILE);
+    procedure SetEnhanced(const Value: Boolean);
+    procedure SetWMFHandle(const Value: HMETAFILE);
+  protected
+    FRequiredHeight,
+    FRequiredWidth: Integer;
+    procedure Draw(ACanvas: TCanvas; const Rect: TRect); override;
+    function GetEmpty: Boolean; override;
+    function GetHeight: Integer; override;
+    function GetTransparent: Boolean; override;
+    function GetWidth: Integer; override;
+    procedure SetHeight(Value: Integer); override;
+    procedure SetWidth(Value: Integer); override;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Clear; virtual;
+    procedure LoadFromStream(Stream: TStream); override;
+    procedure Release(out AWmfHandle: HMETAFILE; out AEmfHandle: HENHMETAFILE);
+    procedure SaveToStream(Stream: TStream); override;
+    property Enhanced: Boolean read FEnhanced write SetEnhanced;
+    property WMFHandle: HMETAFILE read FWMFHandle write SetWMFHandle;
+    property EMFHandle: HENHMETAFILE read FEMFHandle write SetEMFHandle;
+  end;
+{$ENDIF}
 
   { Declares possible values for the AFunction parameter in the @link(TKTextBox.Process) function. }
   TKTextBoxFunction = (
@@ -657,6 +690,9 @@ function RgnCreateAndGet(DC: HDC): HRGN;
 
 { Selects the region into given device context and deletes the region. }
 procedure RgnSelectAndDelete(DC: HDC; Rgn: HRGN);
+
+{ Paints rectangle with rounded corners. }
+procedure RoundRectangle(ACanvas: TCanvas; const ARect: TRect; AXRadius, AYRadius: Integer);
 
 { Paints an image so that it fits in ARect. Performs double buffering and fills
   the background with current brush for mapped device contexts. }
@@ -1289,6 +1325,7 @@ begin
     end;
   {$ENDIF}
   except
+    Error(sErrGraphicsLoadFromResource);
   end;
 end;
 
@@ -1337,6 +1374,15 @@ procedure RgnSelectAndDelete(DC: HDC; Rgn: HRGN);
 begin
   SelectClipRgn(DC, Rgn);
   DeleteObject(Rgn);
+end;
+
+procedure RoundRectangle(ACanvas: TCanvas; const ARect: TRect; AXRadius, AYRadius: Integer);
+begin
+{$IF DEFINED(COMPILER12_UP) OR DEFINED(FPC)}
+  ACanvas.RoundRect(ARect, AXRadius, AYRadius)
+{$ELSE}
+  ACanvas.RoundRect(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, AXRadius, AYRadius)
+{$IFEND}
 end;
 
 procedure SafeStretchDraw(ACanvas: TCanvas; ARect: TRect; AGraphic: TGraphic; ABackColor: TColor);
@@ -1498,6 +1544,7 @@ begin
       Stream.Free;
     end;
   except
+    Error(sErrGraphicsLoadFromResource);
   end;
 end;
 
@@ -1838,6 +1885,19 @@ begin
   begin
     UpdateHandle;
     StretchBitmap(ACanvas.Handle, ARect, FCanvas.Handle, Rect(0, 0, FWidth, FHeight))
+  end;
+end;
+
+procedure TKAlphaBitmap.Fill(Color: TKColorRec);
+var
+  I: Integer;
+begin
+  LockUpdate;
+  try
+    for I := 0 to FWidth * FHeight - 1 do
+      FPixels[I].Value := Color.Value;
+  finally
+    UnlockUpdate;
   end;
 end;
 
@@ -2195,6 +2255,219 @@ begin
   UpdateHandle;
 {$ENDIF}
 end;
+
+{ TKMetafile }
+
+{$IFDEF USE_WINAPI}
+
+constructor TKMetafile.Create;
+begin
+  inherited;
+  FEmfHandle := 0;
+  FRequiredHeight := 0;
+  FRequiredWidth := 0;
+  FWmfHandle := 0;
+end;
+
+destructor TKMetafile.Destroy;
+begin
+  Clear;
+  inherited;
+end;
+
+procedure TKMetafile.Assign(Source: TPersistent);
+var
+  Stream: TMemoryStream;
+begin
+  if Source is TKMetafile then
+  begin
+    Clear;
+    FEnhanced := TKMetafile(Source).Enhanced;
+    Stream := TMemoryStream.Create;
+    try
+      TKMetafile(Source).SaveToStream(Stream);
+      Stream.Seek(0, soFromBeginning);
+      LoadFromStream(Stream);
+    finally
+      Stream.Free;
+    end;
+    FRequiredHeight := TKMetafile(Source).Height;
+    FRequiredWidth := TKMetafile(Source).Width;
+  end;
+end;
+
+procedure TKMetafile.Clear;
+begin
+  if FWmfHandle <> 0 then
+  begin
+    DeleteMetafile(FWmfHandle);
+    FWmfHandle := 0;
+  end;
+  if FEmfHandle <> 0 then
+  begin
+    DeleteEnhMetafile(FEmfHandle);
+    FEmfHandle := 0;
+  end;
+end;
+
+procedure TKMetafile.Draw(ACanvas: TCanvas; const Rect: TRect);
+var
+  BM: TKAlphaBitmap;
+begin
+  inherited;
+  if FWMfHandle <> 0 then
+  begin
+    if FRequiredWidth * FRequiredHeight > 0 then
+    begin
+      BM := TKAlphaBitmap.Create;
+      try
+        BM.DirectCopy := True;
+        BM.SetSize(FRequiredWidth, FRequiredHeight);
+        BM.Fill(MakeColorRec(255,255,255,255));
+        PlayMetafile(BM.Canvas.Handle, FWmfHandle);
+        BM.DirectCopy := False;
+        BM.DrawTo(ACanvas, Rect);
+      finally
+        BM.Free;
+      end;
+    end;
+  end
+  else if FEMFHandle <> 0 then
+  begin
+    PlayEnhMetafile(ACanvas.Handle, FEmfHandle, Rect);
+  end;
+end;
+
+function TKMetafile.GetEmpty: Boolean;
+begin
+  Result := (FWmfHandle = 0) and (FEmfHandle = 0);
+end;
+
+function TKMetafile.GetHeight: Integer;
+begin
+  Result := FRequiredHeight;
+end;
+
+function TKMetafile.GetTransparent: Boolean;
+begin
+  Result := False;
+end;
+
+function TKMetafile.GetWidth: Integer;
+begin
+  Result := FRequiredWidth;
+end;
+
+procedure TKMetafile.LoadFromStream(Stream: TStream);
+var
+  S: AnsiString;
+  EHDR: TEnhMetaheader;
+  MFP: TMetaFilePict;
+begin
+  SetLength(S, Stream.Size - Stream.Position);
+  if S <> '' then
+  begin
+    Stream.Read(EHDR, SizeOf(TEnhMetaHeader));
+    Stream.Seek(-SizeOf(TEnhMetaHeader), soFromCurrent);
+    Stream.Read(S[1], Length(S));
+    if FEnhanced and (EHDR.iType = EMR_HEADER) then
+    begin
+      FEmfHandle := SetEnhMetafileBits(Length(S), @S[1]);
+      FRequiredWidth := EHDR.rclBounds.Right - EHDR.rclBounds.Left;
+      FRequiredHeight := EHDR.rclBounds.Bottom - EHDR.rclBounds.Top;
+    end else
+    begin
+      FWmfHandle := SetMetafileBitsEx(Length(S), @S[1]);
+      if FWmfHandle <> 0 then
+      begin
+        // obtain width and height
+        with MFP do
+        begin
+          MM := MM_ANISOTROPIC;
+          xExt := 0;
+          yExt := 0;
+          hmf := 0;
+        end;
+        FEmfHandle := SetWinMetaFileBits(Length(S), @S[1], 0, MFP);
+        if FEmfHandle <> 0 then
+        begin
+          if GetEnhMetaFileHeader(FEmfHandle, SizeOf(TEnhMetaHeader), @EHDR) > 0 then
+          begin
+            FRequiredWidth := EHDR.rclBounds.Right - EHDR.rclBounds.Left;
+            FRequiredHeight := EHDR.rclBounds.Bottom - EHDR.rclBounds.Top;
+          end;
+          DeleteEnhMetafile(FEmfHandle);
+          FEmfHandle := 0;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TKMetafile.Release(out AWmfHandle: HMETAFILE; out AEmfHandle: HENHMETAFILE);
+begin
+  AWmfHandle := FWmfHandle;
+  FWmfHandle := 0;
+  AEmfHandle := FEmfHandle;
+  FEmfHandle := 0;
+end;
+
+procedure TKMetafile.SaveToStream(Stream: TStream);
+var
+  S: AnsiString;
+  Size: Integer;
+begin
+  S := '';
+  if FWmfHandle <> 0 then
+  begin
+    Size := GetMetaFileBitsEx(FWmfHandle, 0, nil);
+    if Size > 0 then
+    begin
+      SetLength(S, Size);
+      GetMetafileBitsEx(FWmfHandle, Size, @S[1]);
+    end;
+  end
+  else if FEmfHandle <> 0 then
+  begin
+    Size := GetEnhMetaFileBits(FEmfHandle, 0, nil);
+    if Size > 0 then
+    begin
+      SetLength(S, Size);
+      GetEnhMetafileBits(FEmfHandle, Size, @S[1]);
+    end;
+  end;
+  if S <> '' then
+    Stream.Write(S[1], Length(S));
+end;
+
+procedure TKMetafile.SetEMFHandle(const Value: HENHMETAFILE);
+begin
+  Clear;
+  FEMFHandle := Value;
+end;
+
+procedure TKMetafile.SetEnhanced(const Value: Boolean);
+begin
+  FEnhanced := Value;
+end;
+
+procedure TKMetafile.SetHeight(Value: Integer);
+begin
+  FRequiredHeight := Value;
+end;
+
+procedure TKMetafile.SetWidth(Value: Integer);
+begin
+  FRequiredWidth := Value;
+end;
+
+procedure TKMetafile.SetWMFHandle(const Value: HMETAFILE);
+begin
+  Clear;
+  FWMFHandle := Value;
+end;
+
+{$ENDIF}
 
 { TKTextBox }
 
@@ -3156,4 +3429,4 @@ finalization
   //not necessary, but...
   UnregisterAlphaBitmap;
 {$ENDIF}
-end.
+end.

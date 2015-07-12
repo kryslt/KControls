@@ -410,7 +410,7 @@ function AdjustDecimalSeparator(const S: string): string;
 
 { Converts an AnsiString into a TKString. If CodePage is not set
   the current system code page for ANSI-UTFx translations will be used. }
-function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): TKString;
+function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = 0): TKString;
 
 type
   { Callback for binary search data item comparison. }
@@ -727,7 +727,7 @@ procedure TrimWhiteSpaces(var AText: AnsiString; const ASet: TKSysCharSet); over
 
 { Converts a TKString into AnsiString. If CodePage is not set
   the current system code page for ANSI-UTFx translations will be used. }
-function StringToAnsiString(const AText: TKString; CodePage: Cardinal = CP_ACP): AnsiString;
+function StringToAnsiString(const AText: TKString; CodePage: Cardinal = 0): AnsiString;
 
 {$IFDEF USE_WINAPI}
 function GetWindowsFolder(CSIDL: Cardinal; var APath: string): Boolean;
@@ -737,6 +737,7 @@ function RunExecutable(const AFileName: string; AWaitForIt: Boolean): DWORD;
 
 function UnicodeUpperCase(const AText: TKString): TKString;
 function UnicodeLowerCase(const AText: TKString): TKString;
+function UnicodeToNativeUTF(const AParam: WideChar): TKString;
 
 implementation
 
@@ -765,27 +766,26 @@ begin
       Result[I] := GetFormatSettings.DecimalSeparator;
 end;
 
-{$IFDEF FPC}
-function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): TKString;
+function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal): TKString;
 var
+{$IFDEF FPC}
   CP: string;
+{$ELSE}
+  Len: Integer;
+{$ENDIF}
 begin
+{$IFDEF FPC}
   if CodePage = 0 then
     CP := 'ansi'
   else
     CP := Format('cp%d', [Codepage]);
   Result := LConvEncoding.ConvertEncoding(Text, CP, 'utf8');
-end;
 {$ELSE}
-function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = CP_ACP): TKString;
-var
-  Len: Integer;
-begin
   Len := MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, nil, 0);
   SetLength(Result, Len shr 1);
   MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, PWideChar(Result), Len);
-end;
 {$ENDIF}
+end;
 
 function BinarySearch(AData: Pointer; ACount: Integer; KeyPtr: Pointer;
   ACompareProc: TBsCompareProc; ASortedDown: Boolean): Integer;
@@ -2141,7 +2141,7 @@ begin
 end;
 {$ENDIF}
 
-function StringToAnsiString(const AText: TKString; CodePage: Cardinal = CP_ACP): AnsiString;
+function StringToAnsiString(const AText: TKString; CodePage: Cardinal): AnsiString;
 var
 {$IFDEF FPC}
   CP: string;
@@ -2244,6 +2244,15 @@ begin
   Result := LCLProc.UTF8LowerCase(AText);
 {$ELSE}
   Result := AnsiLowerCase(AText);
+{$ENDIF}
+end;
+
+function UnicodeToNativeUTF(const AParam: WideChar): TKString;
+begin
+{$IFDEF FPC}
+  Result := UnicodeToUTF8(Cardinal(AParam));
+{$ELSE}
+  Result := AParam;
 {$ENDIF}
 end;
 

@@ -12,7 +12,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
-  LCLVersion = '1.2.2.0'
+  LCLVersion = '1.3'
   object PCMain: TPageControl
     Left = 0
     Height = 603
@@ -24,7 +24,7 @@ object Form1: TForm1
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Main demo'
-      ClientHeight = 577
+      ClientHeight = 567
       ClientWidth = 830
       object GBSpecial: TGroupBox
         Left = 545
@@ -33,14 +33,14 @@ object Form1: TForm1
         Width = 280
         Anchors = [akTop, akRight]
         Caption = 'Special features'
-        ClientHeight = 49
+        ClientHeight = 37
         ClientWidth = 276
         TabOrder = 0
         object CBEnabled: TCheckBox
           Left = 141
-          Height = 19
+          Height = 26
           Top = 2
-          Width = 90
+          Width = 110
           Caption = 'Grid is enabled'
           Checked = True
           OnClick = CBEnabledClick
@@ -49,18 +49,18 @@ object Form1: TForm1
         end
         object CBAlignLastCol: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 99
+          Width = 124
           Caption = 'Align last column'
           OnClick = CBAlignLastColCLick
           TabOrder = 0
         end
         object CBAutosizeGrid: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 27
-          Width = 205
+          Width = 248
           Caption = 'Autosize rows on column width change'
           OnClick = CBAutosizeGridClick
           TabOrder = 2
@@ -73,23 +73,23 @@ object Form1: TForm1
         Width = 280
         Anchors = [akTop, akRight]
         Caption = 'Selection'
-        ClientHeight = 27
+        ClientHeight = 15
         ClientWidth = 276
         TabOrder = 1
         object CBRowSelect: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 86
+          Width = 108
           Caption = 'Row selection'
           OnClick = CBRowSelectClick
           TabOrder = 0
         end
         object CBRangeSelect: TCheckBox
           Left = 141
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 96
+          Width = 119
           Caption = 'Range selection'
           Checked = True
           OnClick = CBRangeSelectClick
@@ -104,14 +104,14 @@ object Form1: TForm1
         Width = 280
         Anchors = [akTop, akRight]
         Caption = 'Editing cells'
-        ClientHeight = 27
+        ClientHeight = 15
         ClientWidth = 276
         TabOrder = 2
         object CBEditing: TCheckBox
           Left = 5
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 52
+          Width = 68
           Caption = 'Editing'
           Checked = True
           OnClick = CBEditingClick
@@ -120,9 +120,9 @@ object Form1: TForm1
         end
         object CBNoSelEditedText: TCheckBox
           Left = 141
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 105
+          Width = 132
           Caption = 'Select edited text'
           Checked = True
           OnClick = CBNoSelEditedTextClick
@@ -137,14 +137,14 @@ object Form1: TForm1
         Width = 280
         Anchors = [akTop, akRight]
         Caption = 'Column/row related features'
-        ClientHeight = 73
+        ClientHeight = 61
         ClientWidth = 276
         TabOrder = 3
         object CBColMoving: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 101
+          Width = 125
           Caption = 'Movable columns'
           Checked = True
           OnClick = CBColMovingClick
@@ -153,9 +153,9 @@ object Form1: TForm1
         end
         object CBRowMoving: TCheckBox
           Left = 141
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 86
+          Width = 104
           Caption = 'Movable rows'
           Checked = True
           OnClick = CBRowMovingClick
@@ -164,9 +164,9 @@ object Form1: TForm1
         end
         object CBColSizing: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 26
-          Width = 100
+          Width = 124
           Caption = 'Sizeable columns'
           Checked = True
           OnClick = CBColSizingClick
@@ -175,27 +175,27 @@ object Form1: TForm1
         end
         object CBRowSizing: TCheckBox
           Left = 141
-          Height = 19
+          Height = 26
           Top = 26
-          Width = 85
+          Width = 103
           Caption = 'Sizeable rows'
           OnClick = CBRowSizingClick
           TabOrder = 3
         end
         object CBColSorting: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 49
-          Width = 101
+          Width = 126
           Caption = 'Sortable columns'
           OnClick = CBColSortingClick
           TabOrder = 4
         end
         object CBRowSorting: TCheckBox
           Left = 141
-          Height = 19
+          Height = 26
           Top = 49
-          Width = 86
+          Width = 105
           Caption = 'Sortable rows'
           Checked = True
           OnClick = CBRowSortingClick
@@ -302,14 +302,14 @@ object Form1: TForm1
         Width = 280
         Anchors = [akTop, akRight]
         Caption = 'Cell appearance'
-        ClientHeight = 53
+        ClientHeight = 41
         ClientWidth = 276
         TabOrder = 14
         object CBThemedCells: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 106
+          Width = 132
           Caption = 'OS themes in cells'
           Checked = True
           OnClick = CBThemedCellsClick
@@ -318,9 +318,9 @@ object Form1: TForm1
         end
         object CBMouseOverCells: TCheckBox
           Left = 4
-          Height = 19
+          Height = 26
           Top = 27
-          Width = 94
+          Width = 119
           Caption = 'Cell highlighting'
           Checked = True
           OnClick = CBMouseOverCellsClick
@@ -329,9 +329,9 @@ object Form1: TForm1
         end
         object CBClippedCells: TCheckBox
           Left = 141
-          Height = 19
+          Height = 26
           Top = 3
-          Width = 78
+          Width = 99
           Caption = 'Clipped cells'
           OnClick = CBClippedCellsClick
           TabOrder = 1
@@ -339,7 +339,7 @@ object Form1: TForm1
       end
       object KGrid1: TKGrid
         Left = 0
-        Height = 577
+        Height = 567
         Top = 0
         Width = 537
         Align = alLeft
@@ -426,7 +426,7 @@ object Form1: TForm1
     end
     object TabSheet2: TTabSheet
       Caption = 'Merged header cells demo'
-      ClientHeight = 577
+      ClientHeight = 567
       ClientWidth = 830
       ImageIndex = 1
       object KGrid2: TKGrid
@@ -483,7 +483,7 @@ object Form1: TForm1
     end
     object TabSheet3: TTabSheet
       Caption = 'Virtual grid demo'
-      ClientHeight = 577
+      ClientHeight = 567
       ClientWidth = 830
       ImageIndex = 2
       object KGrid3: TKGrid
@@ -595,4 +595,4 @@ object Form1: TForm1
     left = 504
     top = 16
   end
-end
+end
