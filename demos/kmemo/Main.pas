@@ -10,14 +10,15 @@ uses
   {$ELSE}
     Windows, Messages,
   {$ENDIF}
-    SysUtils, Variants, Classes, Graphics, Controls, Forms,
-    Dialogs, KGrids, KMemo, KGraphics, KFunctions, ExtCtrls, Grids, KEditCommon;
+    SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs, KGrids,
+    KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon;
 
 type
 
   { TMainForm }
 
   TMainForm = class(TForm)
+    Edit1: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -251,11 +252,12 @@ begin
   end;
 
 //  Memo.LoadFromRTF('test_no_img.rtf');
-//  Memo.LoadFromRTF('test.rtf');
+  Memo.LoadFromRTF('test.rtf');
+  Memo.SaveToRTF('test_save.rtf');
 //  Memo.LoadFromRTF('test1.rtf');
 //  Memo.LoadFromRTF('kgrid_manual.rtf');
 //  Memo.LoadFromRTF('Word2007RTFSpec9.rtf');
-  Memo.LoadFromRTF('WATTrouterECO_CZ.rtf');
+//  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
 
 {
   Memo.ContentPadding.Left := 50;
@@ -278,6 +280,8 @@ end;
   {$R *.dfm}
 {$ENDIF}
 procedure TMainForm.FormDestroy(Sender: TObject);
+var
+  S: string;
 begin
 //  MF.Free;
 end;
@@ -285,6 +289,7 @@ end;
 procedure TMainForm.FormPaint(Sender: TObject);
 const
   cTabChar = #$AE; // right arrow but valid only for Symbol font!
+//  cTabChar = #$2192; // right arrow in unicode!
 var
   S, TabAsUTF8: string;
 begin
@@ -296,4 +301,4 @@ begin
   Canvas.TextOut(10, 10, S);
 end;
 
-end.
+end.

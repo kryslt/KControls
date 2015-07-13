@@ -108,7 +108,7 @@ const
   { This is the character for space visualisation. }
   cSpaceChar = #$B7;
   { This is the character for tab visualisation. }
-  cTabChar = #$AE; // valid only for Symbol font!
+  cTabChar = #$2192;
 
 type
   TKCustomMemo = class;
@@ -579,7 +579,6 @@ type
     procedure SetScaleWidth(const Value: Integer);
   protected
     FCalcBaseLine: Integer;
-    function CalcBaseLine(ACanvas: TCanvas): Integer; override;
     function ContentLength: Integer; override;
     function GetImageHeight: Integer; virtual;
     function GetImageWidth: Integer; virtual;
@@ -605,6 +604,7 @@ type
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
     procedure Assign(AItem: TKMemoBlock); override;
+    function CalcBaseLine(ACanvas: TCanvas): Integer; override;
     function MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
     function OuterRect(ACaret: Boolean): TRect; virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
@@ -642,7 +642,6 @@ type
     procedure AddBlockLine(AStartBlock, AStartIndex, AEndBlock, AEndIndex,
       ALeft, ATop, AWidth, AHeight: Integer); virtual;
     procedure BlockStyleChanged(Sender: TObject);
-    function CalcBaseLine(ACanvas: TCanvas): Integer; override;
     procedure ClearLines; virtual;
     function ContentLength: Integer; override;
     function GetBottomPadding: Integer; override;
@@ -670,6 +669,7 @@ type
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
+    function CalcBaseLine(ACanvas: TCanvas): Integer; override;
     function CanAdd(AItem: TKMemoBlock): Boolean; override;
     procedure ClearSelection(ATextOnly: Boolean); override;
     function InsertParagraph(AIndex: Integer): Boolean; override;
@@ -1374,6 +1374,7 @@ type
       the supplied coordinates are outside of the text space</LI>
       </UL> }
     function PointToIndex(APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
+    procedure SaveToRTF(const AFileName: TKString); virtual;
     { Determines whether a selection is available. }
     function SelAvail: Boolean;
     { Specifies the current selection. This is faster than combination of SelStart and SelLength. }
@@ -3447,6 +3448,18 @@ begin
   if not Focused and CanFocus and not (csDesigning in ComponentState) then SetFocus;
 end;
 
+procedure TKCustomMemo.SaveToRTF(const AFileName: TKString);
+var
+  Writer: TKMemoRTFWriter;
+begin
+  Writer := TKMemoRTFWriter.Create(Self);
+  try
+    Writer.Save(AFileName);
+  finally
+    Writer.Free;
+  end;
+end;
+
 function TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; ACallScrollWindow: Boolean): Boolean;
 
   function Axis(Code: Cardinal; HasScrollBar: Boolean;
@@ -4698,7 +4711,6 @@ var
 begin
   if Pos(#9, AText) <> 0 then
   begin
-    ACanvas.Font.Name := 'Symbol';
     SU := StringReplace(AText, #9, TabChar, [rfReplaceAll]);
     Size := ACanvas.TextExtent(SU);
     Result := Point(Size.cx, Size.cy);
@@ -4971,7 +4983,6 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
       SetBkMode(Handle, TRANSPARENT);
       if (Pos(#9, AText) <> 0) and ShowFormatting then
       begin
-        Font.Name := 'Symbol';
         SU := StringReplace(AText, #9, TabChar, [rfReplaceAll]);
         TextOut(ARect.Left, ABaseLine, SU)
       end

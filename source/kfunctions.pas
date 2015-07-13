@@ -735,6 +735,8 @@ function GetWindowsFolder(CSIDL: Cardinal; var APath: string): Boolean;
 function RunExecutable(const AFileName: string; AWaitForIt: Boolean): DWORD;
 {$ENDIF}
 
+function SystemCodePage: Integer;
+
 function UnicodeUpperCase(const AText: TKString): TKString;
 function UnicodeLowerCase(const AText: TKString): TKString;
 function UnicodeToNativeUTF(const AParam: WideChar): TKString;
@@ -2148,6 +2150,7 @@ var
 {$ELSE}
   Len: Integer;
   W: WideString;
+  DefaultChar: AnsiChar;
 {$ENDIF}
 begin
 {$IFDEF FPC}
@@ -2157,10 +2160,11 @@ begin
     CP := Format('cp%d', [Codepage]);
   Result := LConvEncoding.ConvertEncoding(AText, 'utf8', CP);
 {$ELSE}
+  DefaultChar := #0;
   W := WideString(AText);
-  Len := WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, nil, 0, nil, nil);
-  SetLength(Result, Len);
-  WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, PAnsiChar(Result), Len, nil, nil);
+  Len := WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, nil, 0, @DefaultChar, nil);
+  SetLength(Result, Len - 1);
+  WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, PAnsiChar(Result), Len, @DefaultChar, nil);
 {$ENDIF}
 end;
 
@@ -2228,6 +2232,15 @@ begin
   end;
 end;
 {$ENDIF}
+
+function SystemCodePage: Integer;
+begin
+{$IFDEF USE_WINAPI}
+  Result := getACP;
+{$ELSE}
+  Result := 0;
+{$ENDIF}
+end;
 
 function UnicodeUpperCase(const AText: TKString): TKString;
 begin

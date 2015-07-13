@@ -345,12 +345,14 @@ type
   end;
 
 {$IFDEF USE_WINAPI}
-  { A simple encapsulation for a Windows metafile. It runs only under Windows and does not use shared images. }
+  { A simple encapsulation for a Windows or Enhanced metafile. It runs only under Windows and does not use shared images.
+    However, it is possible to release metafile handles on assigning to another TKMetafile. }
   TKMetafile = class(TGraphic)
   private
-    FWmfHandle: HMETAFILE;
+    FCopyOnAssign: Boolean;
     FEmfHandle: HENHMETAFILE;
     FEnhanced: Boolean;
+    FWmfHandle: HMETAFILE;
     procedure SetEMFHandle(const Value: HENHMETAFILE);
     procedure SetEnhanced(const Value: Boolean);
     procedure SetWMFHandle(const Value: HMETAFILE);
@@ -372,9 +374,10 @@ type
     procedure LoadFromStream(Stream: TStream); override;
     procedure Release(out AWmfHandle: HMETAFILE; out AEmfHandle: HENHMETAFILE);
     procedure SaveToStream(Stream: TStream); override;
+    property CopyOnAssign: Boolean read FCopyOnAssign write FCopyOnAssign;
+    property EMFHandle: HENHMETAFILE read FEMFHandle write SetEMFHandle;
     property Enhanced: Boolean read FEnhanced write SetEnhanced;
     property WMFHandle: HMETAFILE read FWMFHandle write SetWMFHandle;
-    property EMFHandle: HENHMETAFILE read FEMFHandle write SetEMFHandle;
   end;
 {$ENDIF}
 
@@ -2263,6 +2266,7 @@ end;
 constructor TKMetafile.Create;
 begin
   inherited;
+  FCopyOnAssign := True;
   FEmfHandle := 0;
   FRequiredHeight := 0;
   FRequiredWidth := 0;
@@ -2283,13 +2287,20 @@ begin
   begin
     Clear;
     FEnhanced := TKMetafile(Source).Enhanced;
-    Stream := TMemoryStream.Create;
-    try
-      TKMetafile(Source).SaveToStream(Stream);
-      Stream.Seek(0, soFromBeginning);
-      LoadFromStream(Stream);
-    finally
-      Stream.Free;
+    if TKMetafile(Source).CopyOnAssign then
+    begin
+      Stream := TMemoryStream.Create;
+      try
+        TKMetafile(Source).SaveToStream(Stream);
+        Stream.Seek(0, soFromBeginning);
+        LoadFromStream(Stream);
+      finally
+        Stream.Free;
+      end;
+    end else
+    begin
+      // here, the source loses the images!
+      TKMetafile(Source).Release(FWmfHandle, FEmfHandle);
     end;
     FRequiredHeight := TKMetafile(Source).Height;
     FRequiredWidth := TKMetafile(Source).Width;

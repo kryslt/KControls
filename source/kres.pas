@@ -128,6 +128,7 @@ resourcestring
   // KMemoXXX texts
   sErrMemoLoadFromRTF = 'Error while reading RTF file.';
   sErrMemoLoadImageFromRTF = 'Error while loading image from RTF file.';
+  sErrMemoSaveToRTF = 'Error while saving RTF file.';
 
 { Localize given resourcestring directly.
   Usage: ResMod(@sYourResourceString, 'New text');

@@ -45,8 +45,9 @@ type
     function GetItem(Index: Integer): TKMemoRTFColor;
     procedure SetItem(Index: Integer; const Value: TKMemoRTFColor);
   public
-    procedure AddColor(const AColor: TKColorRec);
+    procedure AddColor(AColor: TColor); virtual;
     function GetColor(AIndex: Integer): TColor; virtual;
+    function GetIndex(AColor: TColor): Integer; virtual;
     property Items[Index: Integer]: TKMemoRTFColor read GetItem write SetItem; default;
   end;
 
@@ -66,7 +67,9 @@ type
     function GetItem(Index: Integer): TKMemoRTFFont;
     procedure SetItem(Index: Integer; const Value: TKMemoRTFFont);
   public
-    function GetFont(AFontIndex: Integer): TFont;
+    procedure AddFont(AFont: TFont); virtual;
+    function GetFont(AFontIndex: Integer): TFont; virtual;
+    function GetIndex(AFont: TFont): Integer; virtual;
     property Items[Index: Integer]: TKMemoRTFFont read GetItem write SetItem; default;
   end;
 
@@ -132,7 +135,6 @@ type
     procedure AddText(const APart: TKString; ATextStyle: TKMemoTextStyle); virtual;
     procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer; var CodePage: Integer); virtual;
     procedure ApplyHighlight(ATextStyle: TKMemoTextStyle; AHighlightCode: Integer); virtual;
-    function CharSetToCP(ACharSet: TFontCharSet): Integer; virtual;
     function DirectBool(const AValue: AnsiString): Boolean; virtual;
     function DirectColor(const AValue: AnsiString): TColor; virtual;
     function DirectEMU(const AValue: AnsiString): Integer; virtual;
@@ -169,139 +171,52 @@ type
     procedure Load(const AFileName: TKString); virtual;
   end;
 
+  { TKMemoRTFWriter }
+
   TKMemoRTFWriter = class(TObject)
+  private
+  protected
+    FCodePage: Integer;
+    FColorTable: TKMemoRTFColorTable;
+    FFontTable: TKMemoRTFFontTable;
+    FMemo: TKCustomMemo;
+    FStream: TMemoryStream;
+    function ColorToHighlightCode(AValue: TColor): Integer; virtual;
+    procedure FillColorTable(ABlocks: TKMemoBlocks); virtual;
+    procedure FillFontTable(ABlocks: TKMemoBlocks); virtual;
+    procedure WriteBody(ABlocks: TKMemoBlocks; var AGroup: Integer); virtual;
+    procedure WriteColorTable(var AGroup: Integer); virtual;
+    procedure WriteCtrl(const ACtrl: AnsiString);
+    procedure WriteCtrlParam(const ACtrl: AnsiString; AParam: Integer);
+    procedure WriteFontTable(var AGroup: Integer); virtual;
+    procedure WriteGroupBegin(var AGroup: Integer);
+    procedure WriteGroupEnd(var AGroup: Integer);
+    procedure WriteHeader(AGroup: Integer); virtual;
+    procedure WriteParagraph(AItem: TKMemoParagraph; var AGroup: Integer); virtual;
+    procedure WriteSemiColon;
+    procedure WriteSpace;
+    procedure WriteString(const AText: AnsiString);
+    procedure WriteTextBlock(AItem: TKMemoTextBlock; var AGroup: Integer); virtual;
+    procedure WriteTextStyle(ATextStyle: TKMemoTextStyle); virtual;
+    procedure WriteUnicodeString(const AText: TKString); virtual;
+  public
+    constructor Create(AMemo: TKCustomMemo); virtual;
+    destructor Destroy; override;
+    procedure Save(const AFileName: TKString); virtual;
   end;
 
 implementation
 
 uses
   Math, SysUtils, KHexEditor, KRes
-{$IFnDEF FPC}
+{$IFDEF FPC}
+  , LCLProc, LConvEncoding
+{$ELSE}
   , JPeg, Windows
 {$ENDIF}
   ;
 
-{ TKMemoRTFColor }
-
-constructor TKMemoRTFColor.Create;
-begin
-  FColorRec.Value := 0;
-end;
-
-{ TKMemoRTFColorTable }
-
-procedure TKMemoRTFColorTable.AddColor(const AColor: TKColorRec);
-var
-  Value: TKMemoRTFColor;
-begin
-  Value := TKMemoRTFColor.Create;
-  Value.ColorRec := AColor;
-  Add(Value);
-end;
-
-function TKMemoRTFColorTable.getColor(AIndex: Integer): TColor;
-begin
-  if (AIndex >= 0) and (AIndex < Count) then
-    Result := ColorRecToColor(Items[AIndex].ColorRec)
-  else
-    Result := clNone;
-end;
-
-function TKMemoRTFColorTable.GetItem(Index: Integer): TKMemoRTFColor;
-begin
-  Result := TKMemoRTFColor(inherited GetItem(Index));
-end;
-
-procedure TKMemoRTFColorTable.SetItem(Index: Integer; const Value: TKMemoRTFColor);
-begin
-  inherited SetItem(Index, Value);
-end;
-
-{ TKMemoRTFFont }
-
-constructor TKMemoRTFFont.Create;
-begin
-  FFont := TFont.Create;
-end;
-
-destructor TKMemoRTFFont.Destroy;
-begin
-  FFont.Free;
-  inherited;
-end;
-
-{ TKMemoRTFFontTable }
-
-function TKMemoRTFFontTable.GetFont(AFontIndex: Integer): TFont;
-var
-  I: Integer;
-  Item: TKMemoRTFFont;
-begin
-  Result := nil;
-  for I := 0 to Count - 1 do
-  begin
-    Item := Items[I];
-    if Item.FontIndex = AFontIndex then
-    begin
-      Result := Item.Font;
-      Exit;
-    end;
-  end;
-end;
-
-function TKMemoRTFFontTable.GetItem(Index: Integer): TKMemoRTFFont;
-begin
-  Result := TKMemoRTFFont(inherited GetItem(Index));
-end;
-
-procedure TKMemoRTFFontTable.SetItem(Index: Integer;
-  const Value: TKMemoRTFFont);
-begin
-  inherited SetItem(Index, Value);
-end;
-
-{ TKMemoRTFShape }
-
-constructor TKMemoRTFShape.Create;
-begin
-  FContentPosition := TKRect.Create;
-  FContentType := sctUnknown;
-  FStyle := TKMemoBlockStyle.Create;
-  FStyle.Brush.Color := clWhite;
-  FStyle.BorderWidth := 1;
-  FStyle.ContentPadding.AssignFromValues(2, 2, 2, 2);
-  FWrap := 0;
-end;
-
-destructor TKMemoRTFShape.Destroy;
-begin
-  FContentPosition.Free;
-  FStyle.Free;
-  inherited;
-end;
-
-{ TKMemoRTFReader }
-
-constructor TKMemoRTFReader.Create(AMemo: TKCustomMemo);
-begin
-  FBlocks := AMemo.Blocks;
-  FColorTable := TKMemoRTFColorTable.Create;
-  FFontTable := TKMemoRTFFontTable.Create;
-  FMemo := AMemo;
-  FStream := TMemoryStream.Create;
-  FTextStyle := TKMemoTextStyle.Create;
-end;
-
-destructor TKMemoRTFReader.Destroy;
-begin
-  FColorTable.Free;
-  FFontTable.Free;
-  FStream.Free;
-  FTextStyle.Free;
-  inherited;
-end;
-
-function TKMemoRTFReader.CharSetToCP(ACharSet: TFontCharSet): Integer;
+function CharSetToCP(ACharSet: TFontCharSet): Integer;
 begin
   case ACharset of
     1: Result := 0; //Default
@@ -337,6 +252,419 @@ begin
   else
     Result := 1252; //ANSI
   end;
+end;
+
+function CPToCharSet(ACodePage: Integer): TFontCharSet;
+begin
+  case ACodePage of
+    0: Result := 1; //Default
+    42: Result := 2; //Symbol
+    10000: Result := 77; //Mac Roman
+    10001: Result := 78; //Mac Shift Jis
+    10003: Result := 79; //Mac Hangul
+    10008: Result := 80; //Mac GB2312
+    10002: Result := 81; //Mac Big5
+    10005: Result := 83; //Mac Hebrew
+    10004: Result := 84; //Mac Arabic
+    10006: Result := 85; //Mac Greek
+    10081: Result := 86; //Mac Turkish
+    10021: Result := 87; //Mac Thai
+    10029: Result := 88; //Mac East Europe
+    10007: Result := 89; //Mac Russian
+    932: Result := 128; //Shift JIS
+    949: Result := 129; //Hangul
+    1361: Result := 130; //Johab
+    936: Result := 134; //GB2312
+    950: Result := 136; //Big5
+    1253: Result := 161; //Greek
+    1254: Result := 162; //Turkish
+    1258: Result := 163; //Vietnamese
+    1255: Result := 177; //Hebrew
+    1256: Result := 178; //Arabic
+    1257: Result := 186; //Baltic
+    1251: Result := 204; //Russian
+    874: Result := 222; //Thai
+    1250: Result := 238; //Eastern European
+    437: Result := 254; //PC 437
+    850: Result := 255; //OEM
+  else
+    Result := 0; //ANSI
+  end;
+end;
+
+function AdobeSymbolToUTF16(AValue: Integer): Integer;
+begin
+  case AValue of
+    $20: Result := $0020;  //SPACE //space
+    {/$20: Result := $00A0;  //NO-BREAK SPACE	//space }
+    $21: Result := $0021;  //EXCLAMATION MARK //exclam
+    $22: Result := $2200;  //FOR ALL //universal
+    $23: Result := $0023;  //NUMBER SIGN //numbersign
+    $24: Result := $2203;  //THERE EXISTS //existential
+    $25: Result := $0025;  //PERCENT SIGN //percent
+    $26: Result := $0026;  //AMPERSAND //ampersand
+    $27: Result := $220B;  //CONTAINS AS MEMBER //suchthat
+    $28: Result := $0028;  //LEFT PARENTHESIS //parenleft
+    $29: Result := $0029;  //RIGHT PARENTHESIS //parenright
+    $2A: Result := $2217;  //ASTERISK OPERATOR //asteriskmath
+    $2B: Result := $002B;  //PLUS SIGN //plus
+    $2C: Result := $002C; //COMMA //comma
+    $2D: Result := $2212; //MINUS SIGN //minus
+    $2E: Result := $002E; //FULL STOP //period
+    $2F: Result := $002F; //SOLIDUS //slash
+    $30: Result := $0030; //DIGIT ZERO //zero
+    $31: Result := $0031; //DIGIT ONE //one
+    $32: Result := $0032; //DIGIT TWO //two
+    $33: Result := $0033; //DIGIT THREE //three
+    $34: Result := $0034; //DIGIT FOUR //four
+    $35: Result := $0035; //DIGIT FIVE //five
+    $36: Result := $0036; //DIGIT SIX //six
+    $37: Result := $0037; //DIGIT SEVEN //seven
+    $38: Result := $0038; //DIGIT EIGHT //eight
+    $39: Result := $0039; //DIGIT NINE //nine
+    $3A: Result := $003A; //COLON //colon
+    $3B: Result := $003B; //SEMICOLON //semicolon
+    $3C: Result := $003C; //LESS-THAN SIGN //less
+    $3D: Result := $003D; //EQUALS SIGN //equal
+    $3E: Result := $003E; //GREATER-THAN SIGN //greater
+    $3F: Result := $003F; //QUESTION MARK //question
+    $40: Result := $2245; //APPROXIMATELY EQUAL TO //congruent
+    $41: Result := $0391; //GREEK CAPITAL LETTER ALPHA //Alpha
+    $42: Result := $0392; //GREEK CAPITAL LETTER BETA //Beta
+    $43: Result := $03A7; //GREEK CAPITAL LETTER CHI //Chi
+    $44: Result := $0394; //GREEK CAPITAL LETTER DELTA //Delta
+    {/$44: Result := $2206; //INCREMENT //Delta}
+    $45: Result := $0395; //GREEK CAPITAL LETTER EPSILON //Epsilon
+    $46: Result := $03A6; //GREEK CAPITAL LETTER PHI //Phi
+    $47: Result := $0393; //GREEK CAPITAL LETTER GAMMA //Gamma
+    $48: Result := $0397; //GREEK CAPITAL LETTER ETA //Eta
+    $49: Result := $0399; //GREEK CAPITAL LETTER IOTA //Iota
+    $4A: Result := $03D1; //GREEK THETA SYMBOL //theta1
+    $4B: Result := $039A; //GREEK CAPITAL LETTER KAPPA //Kappa
+    $4C: Result := $039B; //GREEK CAPITAL LETTER LAMDA //Lambda
+    $4D: Result := $039C; //GREEK CAPITAL LETTER MU //Mu
+    $4E: Result := $039D; //GREEK CAPITAL LETTER NU //Nu
+    $4F: Result := $039F; //GREEK CAPITAL LETTER OMICRON //Omicron
+    $50: Result := $03A0; //GREEK CAPITAL LETTER PI //Pi
+    $51: Result := $0398; //GREEK CAPITAL LETTER THETA //Theta
+    $52: Result := $03A1; //GREEK CAPITAL LETTER RHO //Rho
+    $53: Result := $03A3; //GREEK CAPITAL LETTER SIGMA //Sigma
+    $54: Result := $03A4; //GREEK CAPITAL LETTER TAU //Tau
+    $55: Result := $03A5; //GREEK CAPITAL LETTER UPSILON //Upsilon
+    $56: Result := $03C2; //GREEK SMALL LETTER FINAL SIGMA //sigma1
+    $57: Result := $03A9; //GREEK CAPITAL LETTER OMEGA //Omega
+    {/$57: Result := $2126; //OHM SIGN //Omega}
+    $58: Result := $039E; //GREEK CAPITAL LETTER XI //Xi
+    $59: Result := $03A8; //GREEK CAPITAL LETTER PSI //Psi
+    $5A: Result := $0396; //GREEK CAPITAL LETTER ZETA //Zeta
+    $5B: Result := $005B; //LEFT SQUARE BRACKET //bracketleft
+    $5C: Result := $2234; //THEREFORE //therefore
+    $5D: Result := $005D; //RIGHT SQUARE BRACKET //bracketright
+    $5E: Result := $22A5; //UP TACK //perpendicular
+    $5F: Result := $005F; //LOW LINE //underscore
+    $60: Result := $F8E5; //RADICAL EXTENDER //radicalex (CUS)
+    $61: Result := $03B1; //GREEK SMALL LETTER ALPHA //alpha
+    $62: Result := $03B2; //GREEK SMALL LETTER BETA //beta
+    $63: Result := $03C7; //GREEK SMALL LETTER CHI //chi
+    $64: Result := $03B4; //GREEK SMALL LETTER DELTA //delta
+    $65: Result := $03B5; //GREEK SMALL LETTER EPSILON //epsilon
+    $66: Result := $03C6; //GREEK SMALL LETTER PHI //phi
+    $67: Result := $03B3; //GREEK SMALL LETTER GAMMA //gamma
+    $68: Result := $03B7; //GREEK SMALL LETTER ETA //eta
+    $69: Result := $03B9; //GREEK SMALL LETTER IOTA //iota
+    $6A: Result := $03D5; //GREEK PHI SYMBOL //phi1
+    $6B: Result := $03BA; //GREEK SMALL LETTER KAPPA //kappa
+    $6C: Result := $03BB; //GREEK SMALL LETTER LAMDA //lambda
+    $6D: Result := $00B5; //MICRO SIGN //mu
+    {/$6D: Result := $03BC; //GREEK SMALL LETTER MU //mu}
+    $6E: Result := $03BD; //GREEK SMALL LETTER NU //nu
+    $6F: Result := $03BF; //GREEK SMALL LETTER OMICRON //omicron
+    $70: Result := $03C0; //GREEK SMALL LETTER PI //pi
+    $71: Result := $03B8; //GREEK SMALL LETTER THETA //theta
+    $72: Result := $03C1; //GREEK SMALL LETTER RHO //rho
+    $73: Result := $03C3; //GREEK SMALL LETTER SIGMA //sigma
+    $74: Result := $03C4; //GREEK SMALL LETTER TAU //tau
+    $75: Result := $03C5; //GREEK SMALL LETTER UPSILON //upsilon
+    $76: Result := $03D6; //GREEK PI SYMBOL //omega1
+    $77: Result := $03C9; //GREEK SMALL LETTER OMEGA //omega
+    $78: Result := $03BE; //GREEK SMALL LETTER XI //xi
+    $79: Result := $03C8; //GREEK SMALL LETTER PSI //psi
+    $7A: Result := $03B6; //GREEK SMALL LETTER ZETA //zeta
+    $7B: Result := $007B; //LEFT CURLY BRACKET //braceleft
+    $7C: Result := $007C; //VERTICAL LINE //bar
+    $7D: Result := $007D; //RIGHT CURLY BRACKET //braceright
+    $7E: Result := $223C; //TILDE OPERATOR //similar
+    $A0: Result := $20AC; //EURO SIGN //Euro
+    $A1: Result := $03D2; //GREEK UPSILON WITH HOOK SYMBOL //Upsilon1
+    $A2: Result := $2032; //PRIME //minute
+    $A3: Result := $2264; //LESS-THAN OR EQUAL TO //lessequal
+    $A4: Result := $2044; //FRACTION SLASH //fraction
+    {/$A4: Result := $2215; //DIVISION SLASH //fraction}
+    $A5: Result := $221E; //INFINITY //infinity
+    $A6: Result := $0192; //LATIN SMALL LETTER F WITH HOOK //florin
+    $A7: Result := $2663; //BLACK CLUB SUIT //club
+    $A8: Result := $2666; //BLACK DIAMOND SUIT //diamond
+    $A9: Result := $2665; //BLACK HEART SUIT //heart
+    $AA: Result := $2660; //BLACK SPADE SUIT //spade
+    $AB: Result := $2194; //LEFT RIGHT ARROW //arrowboth
+    $AC: Result := $2190; //LEFTWARDS ARROW //arrowleft
+    $AD: Result := $2191; //UPWARDS ARROW //arrowup
+    $AE: Result := $2192; //RIGHTWARDS ARROW //arrowright
+    $AF: Result := $2193; //DOWNWARDS ARROW //arrowdown
+    $B0: Result := $00B0; //DEGREE SIGN //degree
+    $B1: Result := $00B1; //PLUS-MINUS SIGN //plusminus
+    $B2: Result := $2033; //DOUBLE PRIME //second
+    $B3: Result := $2265; //GREATER-THAN OR EQUAL TO //greaterequal
+    $B4: Result := $00D7; //MULTIPLICATION SIGN //multiply
+    $B5: Result := $221D; //PROPORTIONAL TO //proportional
+    $B6: Result := $2202; //PARTIAL DIFFERENTIAL //partialdiff
+    $B7: Result := $2022; //BULLET //bullet
+    $B8: Result := $00F7; //DIVISION SIGN //divide
+    $B9: Result := $2260; //NOT EQUAL TO //notequal
+    $BA: Result := $2261; //IDENTICAL TO //equivalence
+    $BB: Result := $2248; //ALMOST EQUAL TO //approxequal
+    $BC: Result := $2026; //HORIZONTAL ELLIPSIS //ellipsis
+    $BD: Result := $F8E6; //VERTICAL ARROW EXTENDER //arrowvertex (CUS)
+    $BE: Result := $F8E7; //HORIZONTAL ARROW EXTENDER //arrowhorizex (CUS)
+    $BF: Result := $21B5; //DOWNWARDS ARROW WITH CORNER LEFTWARDS //carriagereturn
+    $C0: Result := $2135; //ALEF SYMBOL //aleph
+    $C1: Result := $2111; //BLACK-LETTER CAPITAL I //Ifraktur
+    $C2: Result := $211C; //BLACK-LETTER CAPITAL R //Rfraktur
+    $C3: Result := $2118; //SCRIPT CAPITAL P //weierstrass
+    $C4: Result := $2297; //CIRCLED TIMES //circlemultiply
+    $C5: Result := $2295; //CIRCLED PLUS //circleplus
+    $C6: Result := $2205; //EMPTY SET //emptyset
+    $C7: Result := $2229; //INTERSECTION //intersection
+    $C8: Result := $222A; //UNION //union
+    $C9: Result := $2283; //SUPERSET OF //propersuperset
+    $CA: Result := $2287; //SUPERSET OF OR EQUAL TO //reflexsuperset
+    $CB: Result := $2284; //NOT A SUBSET OF //notsubset
+    $CC: Result := $2282; //SUBSET OF //propersubset
+    $CD: Result := $2286; //SUBSET OF OR EQUAL TO //reflexsubset
+    $CE: Result := $2208; //ELEMENT OF //element
+    $CF: Result := $2209; //NOT AN ELEMENT OF //notelement
+    $D0: Result := $2220; //ANGLE //angle
+    $D1: Result := $2207; //NABLA //gradient
+    $D2: Result := $F6DA; //REGISTERED SIGN SERIF //registerserif (CUS)
+    $D3: Result := $F6D9; //COPYRIGHT SIGN SERIF //copyrightserif (CUS)
+    $D4: Result := $F6DB; //TRADE MARK SIGN SERIF //trademarkserif (CUS)
+    $D5: Result := $220F; //N-ARY PRODUCT //product
+    $D6: Result := $221A; //SQUARE ROOT //radical
+    $D7: Result := $22C5; //DOT OPERATOR //dotmath
+    $D8: Result := $00AC; //NOT SIGN //logicalnot
+    $D9: Result := $2227; //LOGICAL AND //logicaland
+    $DA: Result := $2228; //LOGICAL OR //logicalor
+    $DB: Result := $21D4; //LEFT RIGHT DOUBLE ARROW //arrowdblboth
+    $DC: Result := $21D0; //LEFTWARDS DOUBLE ARROW //arrowdblleft
+    $DD: Result := $21D1; //UPWARDS DOUBLE ARROW //arrowdblup
+    $DE: Result := $21D2; //RIGHTWARDS DOUBLE ARROW //arrowdblright
+    $DF: Result := $21D3; //DOWNWARDS DOUBLE ARROW //arrowdbldown
+    $E0: Result := $25CA; //LOZENGE //lozenge
+    $E1: Result := $2329; //LEFT-POINTING ANGLE BRACKET //angleleft
+    $E2: Result := $F8E8; //REGISTERED SIGN SANS SERIF //registersans (CUS)
+    $E3: Result := $F8E9; //COPYRIGHT SIGN SANS SERIF //copyrightsans (CUS)
+    $E4: Result := $F8EA; //TRADE MARK SIGN SANS SERIF //trademarksans (CUS)
+    $E5: Result := $2211; //N-ARY SUMMATION //summation
+    $E6: Result := $F8EB; //LEFT PAREN TOP //parenlefttp (CUS)
+    $E7: Result := $F8EC; //LEFT PAREN EXTENDER //parenleftex (CUS)
+    $E8: Result := $F8ED; //LEFT PAREN BOTTOM //parenleftbt (CUS)
+    $E9: Result := $F8EE; //LEFT SQUARE BRACKET TOP //bracketlefttp (CUS)
+    $EA: Result := $F8EF; //LEFT SQUARE BRACKET EXTENDER //bracketleftex (CUS)
+    $EB: Result := $F8F0; //LEFT SQUARE BRACKET BOTTOM //bracketleftbt (CUS)
+    $EC: Result := $F8F1; //LEFT CURLY BRACKET TOP //bracelefttp (CUS)
+    $ED: Result := $F8F2; //LEFT CURLY BRACKET MID //braceleftmid (CUS)
+    $EE: Result := $F8F3; //LEFT CURLY BRACKET BOTTOM //braceleftbt (CUS)
+    $EF: Result := $F8F4; //CURLY BRACKET EXTENDER //braceex (CUS)
+    $F1: Result := $232A; //RIGHT-POINTING ANGLE BRACKET //angleright
+    $F2: Result := $222B; //INTEGRAL //integral
+    $F3: Result := $2320; //TOP HALF INTEGRAL //integraltp
+    $F4: Result := $F8F5; //INTEGRAL EXTENDER //integralex (CUS)
+    $F5: Result := $2321; //BOTTOM HALF INTEGRAL //integralbt
+    $F6: Result := $F8F6; //RIGHT PAREN TOP //parenrighttp (CUS)
+    $F7: Result := $F8F7; //RIGHT PAREN EXTENDER //parenrightex (CUS)
+    $F8: Result := $F8F8; //RIGHT PAREN BOTTOM //parenrightbt (CUS)
+    $F9: Result := $F8F9; //RIGHT SQUARE BRACKET TOP //bracketrighttp (CUS)
+    $FA: Result := $F8FA; //RIGHT SQUARE BRACKET EXTENDER //bracketrightex (CUS)
+    $FB: Result := $F8FB; //RIGHT SQUARE BRACKET BOTTOM //bracketrightbt (CUS)
+    $FC: Result := $F8FC; //RIGHT CURLY BRACKET TOP //bracerighttp (CUS)
+    $FD: Result := $F8FD; //RIGHT CURLY BRACKET MID //bracerightmid (CUS)
+    $FE: Result := $F8FE; //RIGHT CURLY BRACKET BOTTOM //bracerightbt (CUS)
+  else
+    Result := AValue;
+  end;
+end;
+
+{ TKMemoRTFColor }
+
+constructor TKMemoRTFColor.Create;
+begin
+  FColorRec.Value := 0;
+end;
+
+{ TKMemoRTFColorTable }
+
+procedure TKMemoRTFColorTable.AddColor(AColor: TColor);
+var
+  RTFColor: TKMemoRTFColor;
+begin
+  if AColor <> clNone then
+  begin
+    if GetIndex(AColor) < 0 then
+    begin
+      RTFColor := TKMemoRTFColor.Create;
+      RTFColor.ColorRec := ColorToColorRec(AColor);
+      Add(RTFColor);
+    end;
+  end;
+end;
+
+function TKMemoRTFColorTable.getColor(AIndex: Integer): TColor;
+begin
+  if (AIndex >= 0) and (AIndex < Count) then
+    Result := ColorRecToColor(Items[AIndex].ColorRec)
+  else
+    Result := clNone;
+end;
+
+function TKMemoRTFColorTable.GetIndex(AColor: TColor): Integer;
+var
+  I: Integer;
+  Color, ColorRec: TKColorRec;
+begin
+  Color := ColorToColorRec(AColor);
+  Result := -1;
+  for I := 0 to Count - 1 do
+  begin
+    ColorRec := Items[I].ColorRec;
+    if ColorRec.Value = Color.Value then
+    begin
+      Result := I;
+      Break;
+    end;
+  end;
+end;
+
+function TKMemoRTFColorTable.GetItem(Index: Integer): TKMemoRTFColor;
+begin
+  Result := TKMemoRTFColor(inherited GetItem(Index));
+end;
+
+procedure TKMemoRTFColorTable.SetItem(Index: Integer; const Value: TKMemoRTFColor);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+{ TKMemoRTFFont }
+
+constructor TKMemoRTFFont.Create;
+begin
+  FFont := TFont.Create;
+end;
+
+destructor TKMemoRTFFont.Destroy;
+begin
+  FFont.Free;
+  inherited;
+end;
+
+{ TKMemoRTFFontTable }
+
+procedure TKMemoRTFFontTable.AddFont(AFont: TFont);
+var
+  RTFFont: TKMemoRTFFont;
+begin
+  if GetIndex(AFont) < 0 then
+  begin
+    RTFFont := TKmemoRTFFont.Create;
+    RTFFont.Font.Assign(AFont);
+    RTFFont.FontIndex := Count;
+    Add(RTFFont);
+  end;
+end;
+
+function TKMemoRTFFontTable.GetFont(AFontIndex: Integer): TFont;
+var
+  I: Integer;
+  Item: TKMemoRTFFont;
+begin
+  Result := nil;
+  for I := 0 to Count - 1 do
+  begin
+    Item := Items[I];
+    if Item.FontIndex = AFontIndex then
+    begin
+      Result := Item.Font;
+      Exit;
+    end;
+  end;
+end;
+
+function TKMemoRTFFontTable.GetIndex(AFont: TFont): Integer;
+var
+  I: Integer;
+  Font: TFont;
+begin
+  Result := -1;
+  for I := 0 to Count - 1 do
+  begin
+    Font := Items[I].Font;
+    if (Font.Name = AFont.Name) and (Font.Charset = AFont.Charset) and (Font.Pitch = AFont.Pitch) then
+    begin
+      Result := I;
+      Break;
+    end;
+  end;
+end;
+
+function TKMemoRTFFontTable.GetItem(Index: Integer): TKMemoRTFFont;
+begin
+  Result := TKMemoRTFFont(inherited GetItem(Index));
+end;
+
+procedure TKMemoRTFFontTable.SetItem(Index: Integer;
+  const Value: TKMemoRTFFont);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+{ TKMemoRTFShape }
+
+constructor TKMemoRTFShape.Create;
+begin
+  FContentPosition := TKRect.Create;
+  FContentType := sctUnknown;
+  FStyle := TKMemoBlockStyle.Create;
+  FStyle.Brush.Color := clWhite;
+  FStyle.ContentPadding.AssignFromValues(2, 2, 2, 2);
+  FWrap := 0;
+end;
+
+destructor TKMemoRTFShape.Destroy;
+begin
+  FContentPosition.Free;
+  FStyle.Free;
+  inherited;
+end;
+
+{ TKMemoRTFReader }
+
+constructor TKMemoRTFReader.Create(AMemo: TKCustomMemo);
+begin
+  FBlocks := AMemo.Blocks;
+  FColorTable := TKMemoRTFColorTable.Create;
+  FFontTable := TKMemoRTFFontTable.Create;
+  FMemo := AMemo;
+  FStream := TMemoryStream.Create;
+  FTextStyle := TKMemoTextStyle.Create;
+end;
+
+destructor TKMemoRTFReader.Destroy;
+begin
+  FColorTable.Free;
+  FFontTable.Free;
+  FStream.Free;
+  FTextStyle.Free;
+  inherited;
 end;
 
 function TKMemoRTFReader.DirectBool(const AValue: AnsiString): Boolean;
@@ -529,6 +857,11 @@ begin
     begin
       FActiveText.InsertString(FActiveString);
       FActiveString := '';
+    end;
+    if FActiveText.TextStyle.Font.Name = 'Symbol' then
+    begin
+      FActiveText.TextStyle.Font.Name := 'Arial';
+      FActiveText.TextStyle.Font.Charset := 0;
     end;
     if FBlocks <> nil then
       FBlocks.AddAt(FActiveText);
@@ -735,7 +1068,7 @@ end;
 procedure TKMemoRTFReader.ReadFontGroup(const ACtrl, AText: AnsiString; AParam: Integer);
 var
   I: Integer;
-  S: string;
+  S: TKString;
 begin
   if ACtrl = 'f' then
     ActiveFont.FFontIndex := AParam
@@ -752,7 +1085,7 @@ begin
   end;
   if AText <> '' then
   begin
-    S := string(AText);
+    S := TKString(AText);
     I := Pos(';', S);
     if I > 0 then
       Delete(S, I, 1);
@@ -1076,6 +1409,7 @@ begin
               if Image is TKMetafile then
               begin
                 //if not FImageEnhMetafile then MS.SaveToFile('test.wmf');
+                TKMetafile(Image).CopyOnAssign := False; // we will destroy this instance anyway...
                 TKMetafile(Image).Enhanced := FImageEnhMetafile;
                 TKmetafile(Image).LoadFromStream(MS);
                 if not FImageEnhMetafile then
@@ -1143,7 +1477,7 @@ begin
     else if ActiveShape.CtrlName = 'shapeType' then
     begin
       // supported shape types
-      case StrToIntDef(ActiveShape.CtrlValue, 0) of
+      case StrToIntDef(string(ActiveShape.CtrlValue), 0) of
         1: ActiveShape.ContentType := sctRectangle;
         75: ActiveShape.ContentType := sctImage;
       end;
@@ -1154,11 +1488,13 @@ begin
 end;
 
 function TKMemoRTFReader.ReadSpecialCharacter(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle; ACodePage, AIgnoreUnicodeChars: Integer): Boolean;
+var
+  S: TKString;
 begin
   Result := True;
   if ACtrl = 'tab' then
   begin
-    // tab is rendered by Symbol font
+    // tab is rendered with an arrow symbol
     AddText(#9, ATextStyle);
   end
   else if ACtrl = 'lquote' then
@@ -1187,12 +1523,16 @@ begin
   end
   else if ACtrl = '''' then
   begin
-    AddText(AnsiStringToString(AnsiChar(AParam), ACodePage), ATextStyle);
+    if ATextStyle.Font.Name = 'Symbol' then
+      S := UnicodeToNativeUTF(WideChar(AdobeSymbolToUTF16(AParam)))
+    else
+      S := AnsiStringToString(AnsiChar(AParam), ACodePage);
+    AddText(S, ATextStyle);
   end
   else if ACtrl = 'u' then
   begin
-    if AParam < 0 then
-      AParam := 65536 - AParam;
+    if ATextStyle.Font.Name = 'Symbol' then
+      AParam := AdobeSymbolToUTF16(AParam);
     AddText(UnicodeToNativeUTF(WideChar(AParam)), ATextStyle);
     FIgnoreChars := AIgnoreUnicodeChars;
   end
@@ -1417,7 +1757,8 @@ begin
   end
   else if ACtrl = 'highlight' then
   begin
-    ApplyHighlight(ATextStyle, AParam);
+    ATextStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+//    ApplyHighlight(ATextStyle, AParam);
   end
   else
     Result := False;
@@ -1428,4 +1769,333 @@ begin
   Result := DivUp(AValue, 20);
 end;
 
+{ TKMemoRTFWriter }
+
+constructor TKMemoRTFWriter.Create(AMemo: TKCustomMemo);
+begin
+  FMemo := AMemo;
+  FColorTable := TKMemoRTFColorTable.Create;
+  FFontTable := TKMemoRTFFontTable.Create;
+  FStream := TMemoryStream.Create;
+end;
+
+destructor TKMemoRTFWriter.Destroy;
+begin
+  FColorTable.Free;
+  FFontTable.Free;
+  FStream.Free;
+  inherited;
+end;
+
+function TKMemoRTFWriter.ColorToHighlightCode(AValue: TColor): Integer;
+begin
+  case AValue of
+    clBlack: Result := 1;
+    clBlue: Result := 2;
+    clAqua: Result := 3; // cyan
+    clLime: Result := 4; // green
+    clFuchsia: Result := 5; // magenta
+    clRed: Result := 6;
+    clYellow: Result := 7;
+    clNavy: Result := 9;
+    clTeal: Result := 10; // dark cyan
+    clGreen: Result := 11; // dark green
+    clPurple: Result := 12; // dark magenta
+    clMaroon: Result := 13; // dark red
+    clOlive: Result := 14; // dark yellow
+    clGray: Result := 15; // dark gray
+    clSilver: Result := 16; // light gray
+  else
+    Result := 0;
+  end;
+end;
+
+procedure TKMemoRTFWriter.FillColorTable(ABlocks: TKMemoBlocks);
+var
+  I: Integer;
+  Item: TKmemoBlock;
+begin
+  if ABlocks <> nil then
+  begin
+    for I := 0 to ABlocks.Count - 1 do
+    begin
+      Item := Ablocks[I];
+      if Item is TKMemoTextBlock then
+      begin
+        FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Brush.Color);
+        FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Font.Color)
+      end
+      else if Item is TKMemoContainer then
+      begin
+        FColorTable.AddColor(TKmemoContainer(Item).BlockStyle.Brush.Color);
+        FColorTable.AddColor(TKmemoContainer(Item).BlockStyle.BorderColor);
+        if Item is TKMemoTable then
+        begin
+          FColorTable.AddColor(TKmemoTable(Item).CellStyle.Brush.Color);
+          FColorTable.AddColor(TKmemoTable(Item).CellStyle.BorderColor);
+        end;
+        FillColorTable(TKmemoContainer(Item).Blocks);
+      end;
+    end;
+  end;
+end;
+
+procedure TKMemoRTFWriter.FillFontTable(ABlocks: TKMemoBlocks);
+var
+  I: Integer;
+  Item: TKmemoBlock;
+begin
+  if ABlocks <> nil then
+  begin
+    for I := 0 to ABlocks.Count - 1 do
+    begin
+      Item := Ablocks[I];
+      if Item is TKMemoTextBlock then
+        FFontTable.AddFont(TKmemoTextBlock(Item).TextStyle.Font)
+      else if Item is TKmemoContainer then
+        FillFontTable(TKmemoContainer(Item).Blocks);
+    end;
+  end;
+end;
+
+procedure TKMemoRTFWriter.Save(const AFileName: TKString);
+var
+  Group: Integer;
+begin
+  try
+    FCodePage := SystemCodepage;
+    Group := 0;
+    WriteGroupBegin(Group);
+    try
+      WriteHeader(Group);
+      WriteBody(FMemo.Blocks, Group);
+    finally
+      WriteGroupEnd(Group);
+    end;
+    FStream.SaveToFile(AFileName);
+  except
+    KFunctions.Error(sErrMemoSaveToRTF);
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteBody(ABlocks: TKMemoBlocks; var AGroup: Integer);
+var
+  I: Integer;
+  Item: TKMemoBlock;
+begin
+  if ABlocks <> nil then
+  begin
+    for I := 0 to ABlocks.Count - 1 do
+    begin
+      Item := ABlocks[I];
+      if Item is TKMemoParagraph then
+        WriteParagraph(TKMemoParagraph(Item), AGroup)
+      else if Item is TKMemoTextBlock then
+        WriteTextBlock(TKMemoTextBlock(Item), AGroup)
+      else if Item is TKMemoContainer then
+      begin
+        if Item is TKMemoTable then
+        begin
+
+        end else
+          WriteBody(TKMemoContainer(Item).Blocks, AGroup);
+      end;
+    end;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteColorTable(var AGroup: Integer);
+var
+  I: Integer;
+  ColorRec: TKColorRec;
+begin
+  WriteGroupBegin(AGroup);
+  try
+    WriteCtrl('colortbl');
+    WriteSemicolon;
+    for I := 0 to FColorTable.Count - 1 do
+    begin
+      ColorRec := FColorTable[I].ColorRec;
+      WriteCtrlParam('red', ColorRec.R);
+      WriteCtrlParam('green', ColorRec.G);
+      WriteCtrlParam('blue', ColorRec.B);
+      WriteSemiColon;
+    end;
+  finally
+    WriteGroupEnd(AGroup);
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteCtrl(const ACtrl: AnsiString);
+begin
+  WriteString('\' + ACtrl);
+end;
+
+procedure TKMemoRTFWriter.WriteCtrlParam(const ACtrl: AnsiString;
+  AParam: Integer);
+begin
+  WriteString(AnsiString(Format('\%s%d', [ACtrl, AParam])));
+end;
+
+procedure TKMemoRTFWriter.WriteFontTable(var AGroup: Integer);
+var
+  I, Pitch, Charset: Integer;
+begin
+  WriteGroupBegin(AGroup);
+  try
+    WriteCtrl('fonttbl');
+    for I := 0 to FFontTable.Count - 1 do
+    begin
+      WriteGroupBegin(AGroup);
+      try
+        WriteCtrlParam('f', I);
+        Charset := FFontTable[I].Font.Charset;
+        if Charset = 0 then
+          Charset := CPToCharset(FCodePage);
+        WriteCtrlParam('fcharset', Charset);
+        case FFontTable[I].Font.Pitch of
+          fpFixed: Pitch := 1;
+          fpVariable: Pitch := 2;
+        else
+          Pitch := 0;
+        end;
+        WriteCtrlParam('fprq', Pitch);
+        WriteSpace;
+        WriteString(AnsiString(FFontTable[I].Font.Name));
+        WriteSemiColon;
+      finally
+        WriteGroupEnd(AGroup);
+      end;
+    end;
+  finally
+    WriteGroupEnd(AGroup);
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteGroupBegin(var AGroup: Integer);
+begin
+  WriteString('{');
+  Inc(AGroup);
+end;
+
+procedure TKMemoRTFWriter.WriteGroupEnd(var AGroup: Integer);
+begin
+  WriteString('}');
+  Dec(AGroup);
+end;
+
+procedure TKMemoRTFWriter.WriteHeader(AGroup: Integer);
+begin
+  FFontTable.AddFont(FMemo.TextStyle.Font);
+  FillFontTable(FMemo.Blocks);
+  FillColorTable(FMemo.Blocks);
+  WriteCtrl('rtf1');
+  WriteCtrl('ansi');
+  WriteCtrlParam('ansicpg', FCodePage);
+  if FFontTable.Count > 0 then
+    WriteCtrlParam('deff', 0);
+  WriteFontTable(AGroup);
+  WriteColorTable(AGroup);
+end;
+
+procedure TKMemoRTFWriter.WriteParagraph(AItem: TKMemoParagraph;
+  var AGroup: Integer);
+begin
+  WriteCtrl('par');
+end;
+
+procedure TKMemoRTFWriter.WriteSemiColon;
+begin
+  WriteString(';');
+end;
+
+procedure TKMemoRTFWriter.WriteSpace;
+begin
+  WriteString(' ');
+end;
+
+procedure TKMemoRTFWriter.WriteString(const AText: AnsiString);
+begin
+  FStream.Write(AText[1], Length(AText));
+end;
+
+procedure TKMemoRTFWriter.WriteTextBlock(AItem: TKMemoTextBlock;
+  var AGroup: Integer);
+begin
+  WriteGroupBegin(AGroup);
+  try
+    WriteTextStyle(AItem.TextStyle);
+    WriteSpace;
+    WriteUnicodeString(AItem.Text);
+  finally
+    WriteGroupEnd(AGroup);
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteTextStyle(ATextStyle: TKMemoTextStyle);
+var
+  Highlight: Integer;
+begin
+  WriteCtrlParam('f', FFontTable.GetIndex(ATextStyle.Font));
+  if fsBold in ATextStyle.Font.Style then
+    WriteCtrl('b');
+  if fsItalic in ATextStyle.Font.Style then
+    WriteCtrl('i');
+  if fsUnderline in ATextStyle.Font.Style then
+    WriteCtrl('u');
+  if fsStrikeout in ATextStyle.Font.Style then
+    WriteCtrl('strike');
+  case ATextStyle.Capitals of
+    tcaNormal: WriteCtrl('caps');
+    tcaSmall: WriteCtrl('scaps');
+  end;
+  WriteCtrlParam('fs', ATextStyle.Font.Size * 2);
+  if ATextStyle.Font.Color <> clNone then
+    WriteCtrlParam('cf', FColorTable.GetIndex(ATextStyle.Font.Color) + 1);
+  if ATextStyle.Brush.Color <> clNone then
+    WriteCtrlParam('highlight', FColorTable.GetIndex(ATextStyle.Brush.Color) + 1);
+end;
+
+procedure TKMemoRTFWriter.WriteUnicodeString(const AText: TKString);
+var
+  I, CharLen: Integer;
+  UnicodeValue: Cardinal;
+  S, Ansi: AnsiString;
+  C: TKChar;
+begin
+  S := '';
+  for I := 1 to {$IFDEF FPC}UTF8Length(AText){$ELSE}Length(AText){$ENDIF} do
+  begin
+  {$IFDEF FPC}
+    C := UTF8Copy(AText, I, 1);
+    if Length(C) = 1 then
+  {$ELSE}
+    C := AText[I];
+    if Ord(C) < $80 then
+  {$ENDIF}
+    begin
+      if C = #9 then
+        S := AnsiString(Format('%s\tab ', [S]))
+      else
+        S := S + C
+    end else
+    begin
+      Ansi := StringToAnsiString(C, FCodePage);
+      if (Ansi <> '') and (Ansi <> #0) then
+        S := AnsiString(Format('%s\''%x', [S, Ord(Ansi[1])]))
+      else
+      begin
+      {$IFDEF FPC}
+        UnicodeValue := UTF8CharacterToUnicode(@C[1], CharLen);
+      {$ELSE}
+        UnicodeValue := Ord(C);
+      {$ENDIF}
+        S := AnsiString(Format('%s\u%d\''3F', [S, UnicodeValue]));
+      end;
+    end;
+  end;
+  WriteString(S);
+end;
+
 end.
+
