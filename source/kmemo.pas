@@ -486,8 +486,6 @@ type
     function ApplyFormatting(const AText: TKString): TKString;
     procedure ApplyTextStyle(ACanvas: TCanvas); virtual;
     function ContentLength: Integer; override;
-    class function CopyText(const ASource: TKString; At, Count: Integer): TKString;
-    class procedure DeleteText(var ASource: TKString; At, Count: Integer);
     function GetCanAddText: Boolean; override;
     function GetSelText: TKString; override;
     function GetText: TKString; override;
@@ -514,7 +512,6 @@ type
     procedure SetWordTopPadding(Index: Integer; const Value: Integer); override;
     class procedure SplitText(const ASource: TKString; At: Integer; out APart1, APart2: TKString);
     function TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer; virtual;
-    class function TextLength(const ASource: TKString): Integer; virtual;
     procedure TextStyleChanged(Sender: TObject);
     procedure UpdateWords; virtual;
   public
@@ -4482,10 +4479,10 @@ function TKMemoTextBlock.ApplyFormatting(const AText: TKString): TKString;
 begin
   if GetShowFormatting then
   begin
-    Result := StringReplace(AText, ' ', SpaceChar, [rfReplaceAll]);
+    Result := UnicodeStringReplace(AText, ' ', SpaceChar, [rfReplaceAll]);
   end else
   begin
-    Result := StringReplace(AText, NewLineChar, ' ', [rfReplaceAll]);
+    Result := UnicodeStringReplace(AText, NewLineChar, ' ', [rfReplaceAll]);
   end;
 end;
 
@@ -4544,7 +4541,7 @@ begin
   if SelLength <> 0 then
   begin
     S := Text;
-    DeleteText(S, FSelStart + 1, FSelEnd - FSelStart);
+    StringDelete(S, FSelStart + 1, FSelEnd - FSelStart);
     FSelEnd := FSelStart;
     Text := S;
   end;
@@ -4562,26 +4559,6 @@ begin
   Result := FTextLength;
 end;
 
-class function TKMemoTextBlock.CopyText(const ASource: TKString; At,
-  Count: Integer): TKString;
-begin
-{$IFDEF FPC}
-  Result := UTF8Copy(ASource, At, Count);
-{$ELSE}
-  Result := Copy(ASource, At, Count);
-{$ENDIF}
-end;
-
-class procedure TKMemoTextBlock.DeleteText(var ASource: TKString; At,
-  Count: Integer);
-begin
-{$IFDEF FPC}
-  UTF8Delete(ASource, At, Count);
-{$ELSE}
-  Delete(ASource, At, Count);
-{$ENDIF}
-end;
-
 function TKMemoTextBlock.GetCanAddText: Boolean;
 begin
   Result := Position = mbpText;
@@ -4589,7 +4566,7 @@ end;
 
 function TKMemoTextBlock.GetSelText: TKString;
 begin
-  Result := CopyText(Text, FSelStart + 1, FSelEnd - FSelStart);
+  Result := StringCopy(Text, FSelStart + 1, FSelEnd - FSelStart);
 end;
 
 function TKMemoTextBlock.GetText: TKString;
@@ -4636,7 +4613,7 @@ end;
 
 function TKMemoTextBlock.GetWords(Index: Integer): TKString;
 begin
-  Result := CopyText(Text, FWords[Index].StartIndex + 1, FWords[Index].EndIndex - FWords[Index].StartIndex + 1);
+  Result := StringCopy(Text, FWords[Index].StartIndex + 1, FWords[Index].EndIndex - FWords[Index].StartIndex + 1);
 end;
 
 function TKMemoTextBlock.GetWordTop(Index: Integer): Integer;
@@ -4706,37 +4683,39 @@ end;
 function TKMemoTextBlock.ModifiedTextExtent(ACanvas: TCanvas; const AText: TKString): TPoint;
 var
   Size: TSize;
-  SU: TKString;
+  C, CU, SU: TKString;
   I, SmallFontSize, X, Y: Integer;
 begin
   if Pos(#9, AText) <> 0 then
   begin
-    SU := StringReplace(AText, #9, TabChar, [rfReplaceAll]);
-    Size := ACanvas.TextExtent(SU);
+    SU := UnicodeStringReplace(AText, #9, TabChar, [rfReplaceAll]);
+    Size := TKTextBox.TextExtent(ACanvas, SU, 1, Length(SU));
     Result := Point(Size.cx, Size.cy);
   end
   else if FTextStyle.Capitals = tcaNone then
   begin
-    Size := ACanvas.TextExtent(AText);
+    Size := TKTextBox.TextExtent(ACanvas, AText, 1, Length(AText));
     Result := Point(Size.cx, Size.cy);
   end else
   begin
     SU := UnicodeUpperCase(AText);
     if FTextStyle.Capitals = tcaNormal then
     begin
-      Size := ACanvas.TextExtent(SU);
+      Size := TKTextBox.TextExtent(ACanvas, SU, 1, Length(SU));
       Result := Point(Size.cx, Size.cy);
     end else
     begin
       SmallFontSize := MulDiv(FTextStyle.Font.Size, 4, 5);
       X := 0; Y := 0;
-      for I := 1 to Length(SU) do
+      for I := 1 to StringLength(SU) do
       begin
-        if SU[I] <> AText[I] then
+        C := StringCopy(AText, I, 1);
+        CU := StringCopy(SU, I, 1);
+        if C <> CU then
           ACanvas.Font.Size := SmallFontSize
         else
           ACanvas.Font.Size := FTextStyle.Font.Size;
-        Size := ACanvas.TextExtent(SU[I]);
+        Size := TKTextBox.TextExtent(ACanvas, CU, 1, Length(CU));
         Inc(X, Size.cx);
         Y := Max(Y, Size.cy);
       end;
@@ -4761,7 +4740,7 @@ begin
   if FText <> Value then
   begin
     FText := Value;
-    FTextLength := TextLength(Value);
+    FTextLength := StringLength(Value);
     UpdateWords;
     Update([muContent]);
   end;
@@ -4829,13 +4808,8 @@ end;
 
 class procedure TKMemoTextBlock.SplitText(const ASource: TKString; At: Integer; out APart1, APart2: TKString);
 begin
-{$IFDEF FPC}
-  APart1 := UTF8Copy(ASource, 1, At - 1);
-  APart2 := UTF8Copy(ASource, At, Length(ASource) - At + 1);
-{$ELSE}
-  APart1 := Copy(ASource, 1, At - 1);
-  APart2 := Copy(ASource, At, Length(ASource) - At + 1);
-{$ENDIF}
+  APart1 := StringCopy(ASource, 1, At - 1);
+  APart2 := StringCopy(ASource, At, Length(ASource) - At + 1);
 end;
 
 function TKMemoTextBlock.TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer;
@@ -4859,15 +4833,6 @@ begin
   {$ENDIF}
   end else
     Result := -1;
-end;
-
-class function TKMemoTextBlock.TextLength(const ASource: TKString): Integer;
-begin
-{$IFDEF FPC}
-  Result := UTF8Length(ASource);
-{$ELSE}
-  Result := Length(ASource);
-{$ENDIF}
 end;
 
 procedure TKMemoTextBlock.TextStyleChanged(Sender: TObject);
@@ -4935,8 +4900,8 @@ begin
   Word := FWords[AWordIndex];
   if (AIndex >= 0) and (AIndex <= WordLength[AWordIndex]) then
   begin
-    S := CopyText(FText, Word.StartIndex + 1, AIndex);
-    T := CopyText(FText, Word.StartIndex + AIndex + 1, 1);
+    S := StringCopy(FText, Word.StartIndex + 1, AIndex);
+    T := StringCopy(FText, Word.StartIndex + AIndex + 1, 1);
     ApplyTextStyle(ACanvas);
     with ACanvas do
     begin
@@ -4963,7 +4928,7 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
 
   procedure TextDraw(const ARect: TRect; ABaseLine: Integer; const AText: TKString);
   var
-    SU: TKString;
+    C, CU, SU: TKString;
     I, SmallFontSize, X: Integer;
     Size: TSize;
   {$IFDEF FPC}
@@ -4983,29 +4948,31 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
       SetBkMode(Handle, TRANSPARENT);
       if (Pos(#9, AText) <> 0) and ShowFormatting then
       begin
-        SU := StringReplace(AText, #9, TabChar, [rfReplaceAll]);
-        TextOut(ARect.Left, ABaseLine, SU)
+        SU := UnicodeStringReplace(AText, #9, TabChar, [rfReplaceAll]);
+        TKTextBox.TextOutput(ACanvas, ARect.Left, ABaseLine, SU, 1, Length(SU));
       end
       else if FTextStyle.Capitals = tcaNone then
       begin
-        TextOut(ARect.Left, ABaseLine, AText)
+        TKTextBox.TextOutput(ACanvas, ARect.Left, ABaseLine, AText, 1, Length(AText));
       end else
       begin
         SU := UnicodeUpperCase(AText);
         if FTextStyle.Capitals = tcaNormal then
-          TextOut(ARect.Left, ABaseLine, SU)
+          TKTextBox.TextOutput(ACanvas, ARect.Left, ABaseLine, SU, 1, Length(SU))
         else
         begin
           SmallFontSize := MulDiv(FTextStyle.Font.Size, 4, 5);
           X := ARect.Left;
-          for I := 1 to Length(SU) do
+          for I := 1 to StringLength(SU) do
           begin
-            if SU[I] <> AText[I] then
+            C := StringCopy(AText, I, 1);
+            CU := StringCopy(SU, I, 1);
+            if C <> CU then
               Font.Size := SmallFontSize
             else
               Font.Size := FTextStyle.Font.Size;
-            TextOut(X, ABaseLine, SU[I]);
-            Size := TextExtent(SU[I]);
+            TKTextBox.TextOutput(ACanvas, X, ABaseLine, CU, 1, Length(CU));
+            Size := TKTextBox.TextExtent(ACanvas, CU, 1, Length(CU));
             Inc(X, Size.cx);
           end;
         end;
@@ -5097,7 +5064,7 @@ begin
       WPos := Word.Position.X;
       for I := Word.StartIndex to Word.EndIndex do
       begin
-        S := ApplyFormatting(CopyText(FText, I + 1, 1));
+        S := ApplyFormatting(StringCopy(FText, I + 1, 1));
         Size := ModifiedTextExtent(ACanvas, S);
         R := Rect(WPos, Word.Position.Y, WPos + Size.X, Word.Position.Y + Word.Extent.Y);
         if PtInRect(R, APoint) or (AOutOfArea and (APoint.X >= R.Left) and (APoint.X < R.Right)) then
@@ -6221,7 +6188,10 @@ begin
     UndefSpace := Max(ARequiredWidth - DefSpace, UndefColCount * cMinColSize);
     UndefColWidth := DivUp(UndefSpace, UndefColCount);
   end else
+  begin
     UndefSpace := 0;
+    UndefColWidth := 0;
+  end;
   TotalSpace := DefSpace + UndefSpace;
   // now measure cells
   CalcHorzExtents := TKMemoSparseList.Create;
@@ -8098,7 +8068,7 @@ begin
         if I > St then
         begin
           S := Copy(AValue, St, I - St);
-          S := StringReplace(S, cCR, '', [rfReplaceAll]); // on Unix systems
+          S := UnicodeStringReplace(S, cCR, '', [rfReplaceAll]); // on Unix systems
           AddTextBlock(S);
         end;
         AddParagraph;

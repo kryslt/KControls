@@ -16,18 +16,4 @@ object MainForm: TMainForm
   OnPaint = FormPaint
   PixelsPerInch = 96
   TextHeight = 13
-  object Edit1: TEdit
-    Left = 120
-    Top = 64
-    Width = 121
-    Height = 21
-    Font.Charset = ANSI_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -11
-    Font.Name = 'Tahoma'
-    Font.Style = []
-    ParentFont = False
-    TabOrder = 0
-    Text = 'Edit1'
-  end
 end

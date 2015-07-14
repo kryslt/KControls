@@ -18,7 +18,6 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    Edit1: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -297,7 +296,7 @@ begin
   TabAsUTF8 := UnicodeToNativeUTF(cTabChar);
   Canvas.Font.Color := clBlack;
   Canvas.Font.Name := 'Symbol';
-  S := StringReplace(S, #9, TabAsUTF8, [rfReplaceAll]);
+  S := UnicodeStringReplace(S, #9, TabAsUTF8, [rfReplaceAll]);
   Canvas.TextOut(10, 10, S);
 end;
 

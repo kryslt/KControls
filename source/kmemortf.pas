@@ -1037,6 +1037,11 @@ begin
         Result := FStream.Read(ParamStr[1], 2) = 2;
         if Result then
           AParam := HexStrToInt(string(ParamStr), Length(ParamStr), False, Code);
+      end
+      else if CharInSetEx(C, ['{', '}', '\'])  then
+      begin
+        AText := C; // control symbol is printable character
+        ACtrl := '';
       end;
     end;
     if FStream.Read(C, 1) > 0 then
@@ -1517,9 +1522,21 @@ begin
     // we must suppose selected font supports this
     AddText(UnicodeToNativeUTF(#$201D), ATextStyle);
   end
-  else if ACtrl = '~' then
+  else if ACtrl = 'endash' then
   begin
-    AddText(' ', ATextStyle); // nonbreaking spaces not supported yet
+    AddText(UnicodeToNativeUTF(#$2013), ATextStyle);
+  end
+  else if ACtrl = 'emdash' then
+  begin
+    AddText(UnicodeToNativeUTF(#$2014), ATextStyle);
+  end
+  else if ACtrl = 'bullet' then
+  begin
+    AddText(UnicodeToNativeUTF(#$2022), ATextStyle);
+  end
+  else if (ACtrl = '~') or (ACtrl = 'emspace') or (ACtrl = 'enspace') then
+  begin
+    AddText(' ', ATextStyle); // nonbreaking spaces not supported
   end
   else if ACtrl = '''' then
   begin
@@ -1533,12 +1550,9 @@ begin
   begin
     if ATextStyle.Font.Name = 'Symbol' then
       AParam := AdobeSymbolToUTF16(AParam);
-    AddText(UnicodeToNativeUTF(WideChar(AParam)), ATextStyle);
+    S := UnicodeToNativeUTF(WideChar(AParam));
+    AddText(S, ATextStyle);
     FIgnoreChars := AIgnoreUnicodeChars;
-  end
-  else if (ACtrl = '\') or (ACtrl = '{') or (ACtrl = '}') then
-  begin
-    AddText(TKString(ACtrl), ATextStyle)
   end else
     Result := False;
 end;
@@ -2033,8 +2047,6 @@ begin
 end;
 
 procedure TKMemoRTFWriter.WriteTextStyle(ATextStyle: TKMemoTextStyle);
-var
-  Highlight: Integer;
 begin
   WriteCtrlParam('f', FFontTable.GetIndex(ATextStyle.Font));
   if fsBold in ATextStyle.Font.Style then
@@ -2058,13 +2070,16 @@ end;
 
 procedure TKMemoRTFWriter.WriteUnicodeString(const AText: TKString);
 var
-  I, CharLen: Integer;
+  I: Integer;
   UnicodeValue: Cardinal;
   S, Ansi: AnsiString;
   C: TKChar;
+{$IFDEF FPC}
+  CharLen: Integer;
+{$ENDIF}
 begin
   S := '';
-  for I := 1 to {$IFDEF FPC}UTF8Length(AText){$ELSE}Length(AText){$ENDIF} do
+  for I := 1 to StringLength(AText) do
   begin
   {$IFDEF FPC}
     C := UTF8Copy(AText, I, 1);
@@ -2076,6 +2091,8 @@ begin
     begin
       if C = #9 then
         S := AnsiString(Format('%s\tab ', [S]))
+      else if (C = '\') or (C = '{') or (C = '}') then
+        S := AnsiString(Format('%s\%s', [S, TKString(C)]))
       else
         S := S + C
     end else

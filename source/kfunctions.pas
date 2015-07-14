@@ -713,6 +713,12 @@ function StringLength(const AText: TKString): Integer;
   Takes MBCS (UTF8 in Lazarus) into account. }
 function StringNextCharIndex(const AText: TKString; Index: Integer): Integer;
 
+{ Performs standard Copy operation. Takes MBCS (UTF8 in Lazarus) into account. }
+function StringCopy(const ASource: TKString; At, Count: Integer): TKString;
+
+{ Performs standard Delete operation. Takes MBCS (UTF8 in Lazarus) into account. }
+procedure StringDelete(var ASource: TKString; At, Count: Integer);
+
 { Trims characters specified by ASet from the beginning and end of AText.
   New text length is returned by ALen. }
 procedure TrimWhiteSpaces(const AText: TKString; var AStart, ALen: Integer; const ASet: TKSysCharSet); overload;
@@ -740,6 +746,8 @@ function SystemCodePage: Integer;
 function UnicodeUpperCase(const AText: TKString): TKString;
 function UnicodeLowerCase(const AText: TKString): TKString;
 function UnicodeToNativeUTF(const AParam: WideChar): TKString;
+function UnicodeStringReplace(const AText, AOldPattern, ANewPattern: TKString;
+  AFlags: TReplaceFlags): TKString;
 
 implementation
 
@@ -2114,6 +2122,24 @@ begin
 {$ENDIF}
 end;
 
+function StringCopy(const ASource: TKString; At, Count: Integer): TKString;
+begin
+{$IFDEF FPC}
+  Result := UTF8Copy(ASource, At, Count);
+{$ELSE}
+  Result := Copy(ASource, At, Count);
+{$ENDIF}
+end;
+
+procedure StringDelete(var ASource: TKString; At, Count: Integer);
+begin
+{$IFDEF FPC}
+  UTF8Delete(ASource, At, Count);
+{$ELSE}
+  Delete(ASource, At, Count);
+{$ENDIF}
+end;
+
 procedure TrimWhiteSpaces(const AText: TKString; var AStart, ALen: Integer; const ASet: TKSysCharSet);
 begin
   while (ALen > 0) and CharInSetEx(AText[AStart], ASet) do
@@ -2247,8 +2273,12 @@ begin
 {$IFDEF FPC}
   Result := LCLProc.UTF8UpperCase(AText);
 {$ELSE}
+ {$IFDEF STRING_IS_UNICODE}
   Result := AnsiUpperCase(AText);
-{$ENDIF}
+ {$ELSE}
+  Result := WideUpperCase(AText);
+ {$ENDIF}
+{$ENDIF} 
 end;
 
 function UnicodeLowerCase(const AText: TKString): TKString;
@@ -2256,7 +2286,11 @@ begin
 {$IFDEF FPC}
   Result := LCLProc.UTF8LowerCase(AText);
 {$ELSE}
+ {$IFDEF STRING_IS_UNICODE}
   Result := AnsiLowerCase(AText);
+ {$ELSE}
+  Result := WideLowerCase(AText);
+ {$ENDIF}
 {$ENDIF}
 end;
 
@@ -2267,6 +2301,54 @@ begin
 {$ELSE}
   Result := AParam;
 {$ENDIF}
+end;
+
+function UnicodeStringReplace(const AText, AOldPattern, ANewPattern: TKString;
+  AFlags: TReplaceFlags): TKString;
+var
+  SearchStr, Pattern, Candidate: TKString;
+  I, NewI, PatternLen, SearchLen: Integer;
+  DoInc, Found: Boolean;
+  C: TKChar;
+begin
+  Result := '';
+  if rfIgnoreCase in AFlags then
+  begin
+    SearchStr := UnicodeUpperCase(AText);
+    Pattern := UnicodeUpperCase(AOldPattern);
+  end else
+  begin
+    SearchStr := AText;
+    Pattern := AOldPattern;
+  end;
+  PatternLen := Length(Pattern);
+  SearchLen := Length(SearchStr);
+  Found := False;
+  I := 1;
+  while (I <= SearchLen) do
+  begin
+    DoInc := True;
+    if (rfReplaceAll in AFlags) or not Found then
+    begin
+      if SearchStr[I] = Pattern[1] then
+      begin
+        Candidate := Copy(SearchStr, I, PatternLen);
+        if Candidate = Pattern then
+        begin
+          Result := Result + ANewPattern;
+          Inc(I, PatternLen);
+          DoInc := False;
+          Found := True;
+        end;
+      end;
+    end;
+    if DoInc then
+    begin
+      NewI := StrNextCharIndex(SearchStr, I);
+      Result := Result + Copy(SearchStr, I, NewI - I);
+      I := NewI;
+    end;
+  end;
 end;
 
 end.
