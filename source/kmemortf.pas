@@ -124,6 +124,7 @@ type
     FIgnoreChars: Integer;
     FGraphicClass: TGraphicClass;
     FMemo: TKCustomMemo;
+    FParaBorder: TAlign;
     FStream: TMemoryStream;
     FTableBorder: TAlign;
     FTableCell: TKMemoTableCell;
@@ -158,7 +159,7 @@ type
     function ReadSpecialCharacter(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle; ACodePage, AIgnoreUnicodeChars: Integer): Boolean; virtual;
     function ReadTableFormatting(const ACtrl: AnsiString; AParam: Integer): Boolean; virtual;
     function ReadTextFormatting(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle; var ACodePage: Integer): Boolean; virtual;
-    function TwipsToPoints(AValue: Integer): Integer;
+    function TwipsToPoints(AValue: Integer): Integer; virtual;
     property ActiveColor: TKMemoRTFColor read GetActiveColor;
     property ActiveContainer: TKMemoContainer read GetActiveContainer;
     property ActiveFont: TKMemoRTFFont read GetActiveFont;
@@ -184,6 +185,7 @@ type
     function ColorToHighlightCode(AValue: TColor): Integer; virtual;
     procedure FillColorTable(ABlocks: TKMemoBlocks); virtual;
     procedure FillFontTable(ABlocks: TKMemoBlocks); virtual;
+    function PointsToTwips(AValue: Integer): Integer; virtual;
     procedure WriteBody(ABlocks: TKMemoBlocks; var AGroup: Integer); virtual;
     procedure WriteColorTable(var AGroup: Integer); virtual;
     procedure WriteCtrl(const ACtrl: AnsiString);
@@ -193,6 +195,7 @@ type
     procedure WriteGroupEnd(var AGroup: Integer);
     procedure WriteHeader(AGroup: Integer); virtual;
     procedure WriteParagraph(AItem: TKMemoParagraph; var AGroup: Integer); virtual;
+    procedure WriteParaStyle(AParaStyle: TKMemoParaStyle); virtual;
     procedure WriteSemiColon;
     procedure WriteSpace;
     procedure WriteString(const AText: AnsiString);
@@ -960,6 +963,7 @@ begin
     FHeaderRead := False;
     FImageClass := nil;
     FIgnoreChars := 0;
+    FParaBorder := alNone;
     FTableBorder := alNone;
     FTableCell := nil;
     FTableCol := -1;
@@ -1200,6 +1204,7 @@ begin
                   PA := FBlocks.AddParagraph;
                   PA.TextStyle.Assign(LocalTextStyle);
                   PA.ParaStyle.Assign(LocalParaStyle);
+                  FParaBorder := alNone;
                 end
                 // supported text formatting
                 else if ReadTextFormatting(Ctrl, Param, LocalTextStyle, CodePage) then
@@ -1351,6 +1356,46 @@ begin
   begin
     AParaStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
   end
+  else if ACtrl = 'nowwrap' then
+  begin
+    AParaStyle.WordWrap := False;
+  end
+  else if ACtrl = 'brdrb' then
+    FParaBorder := alBottom
+  else if ACtrl = 'brdrl' then
+    FParaBorder := alLeft
+  else if ACtrl = 'brdrr' then
+    FParaBorder := alRight
+  else if ACtrl = 'brdrt' then
+    FParaBorder := alTop
+  else if ACtrl = 'box' then
+    FParaBorder := alClient
+  else if ACtrl = 'brdrw' then
+  begin
+    case FParaBorder of
+      alBottom: AParaStyle.BorderWidths.Bottom := TwipsToPoints(AParam);
+      alLeft: AParaStyle.BorderWidths.Left := TwipsToPoints(AParam);
+      alRight: AParaStyle.BorderWidths.Right := TwipsToPoints(AParam);
+      alTop: AParaStyle.BorderWidths.Top := TwipsToPoints(AParam);
+      alClient: AParaStyle.BorderWidth := TwipsToPoints(AParam);
+    else
+      Result := False;
+    end
+  end
+  else if ACtrl = 'brdrradius' then
+  begin
+    if FParaBorder <> alNone then
+      AParaStyle.BorderRadius := TwipsToPoints(AParam)
+    else
+      Result := False;
+  end
+  else if ACtrl = 'brdrcf' then
+  begin
+    if FParaBorder <> alNone then
+      AParaStyle.BorderColor := FColorTable.GetColor(AParam - 1)
+    else
+      Result := False;
+  end
   else
     Result := False;
 end;
@@ -1361,10 +1406,12 @@ var
   MS: TMemoryStream;
   Image: TGraphic;
 begin
-  if ACtrl = 'pngblip' then
-    FImageClass := TKPngImage
-  else if ACtrl = 'jpegblip' then
+  if ACtrl = 'jpegblip' then
     FImageClass := TJpegImage
+{$IFDEF USE_PNG_SUPPORT}
+  else if ACtrl = 'pngblip' then
+    FImageClass := TKPngImage
+{$ENDIF}    
 {$IFDEF USE_WINAPI}
   else if ACtrl = 'emfblip' then
   begin
@@ -1837,7 +1884,12 @@ begin
       if Item is TKMemoTextBlock then
       begin
         FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Brush.Color);
-        FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Font.Color)
+        FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Font.Color);
+        if Item is TKMemoParagraph then
+        begin
+          FColorTable.AddColor(TKMemoParagraph(Item).ParaStyle.Brush.Color);
+          FColorTable.AddColor(TKMemoParagraph(Item).ParaStyle.BorderColor);
+        end;
       end
       else if Item is TKMemoContainer then
       begin
@@ -1870,6 +1922,11 @@ begin
         FillFontTable(TKmemoContainer(Item).Blocks);
     end;
   end;
+end;
+
+function TKMemoRTFWriter.PointsToTwips(AValue: Integer): Integer;
+begin
+  Result := AValue * 20;
 end;
 
 procedure TKMemoRTFWriter.Save(const AFileName: TKString);
@@ -1964,8 +2021,8 @@ begin
       try
         WriteCtrlParam('f', I);
         Charset := FFontTable[I].Font.Charset;
-        if Charset = 0 then
-          Charset := CPToCharset(FCodePage);
+       {if Charset = 0 then
+          Charset := CPToCharset(FCodePage);}
         WriteCtrlParam('fcharset', Charset);
         case FFontTable[I].Font.Pitch of
           fpFixed: Pitch := 1;
@@ -2008,6 +2065,7 @@ begin
   WriteCtrlParam('ansicpg', FCodePage);
   if FFontTable.Count > 0 then
     WriteCtrlParam('deff', 0);
+  WriteCtrlParam('uc', 1);
   WriteFontTable(AGroup);
   WriteColorTable(AGroup);
 end;
@@ -2015,7 +2073,73 @@ end;
 procedure TKMemoRTFWriter.WriteParagraph(AItem: TKMemoParagraph;
   var AGroup: Integer);
 begin
-  WriteCtrl('par');
+  WriteGroupBegin(AGroup);
+  try
+    WriteParaStyle(AItem.ParaStyle);
+    WriteTextStyle(AItem.TextStyle);
+    WriteCtrl('par');
+  finally
+    WriteGroupEnd(AGroup);
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteParaStyle(AParaStyle: TKMemoParaStyle);
+begin
+  WriteCtrl('pard'); // always store complete paragraph properties
+  if AParaStyle.FirstIndent <> 0 then
+    WriteCtrlParam('fi', PointsToTwips(AParaStyle.FirstIndent));
+  if AParaStyle.LeftPadding <> 0 then
+    WriteCtrlParam('li', PointsToTwips(AParaStyle.LeftPadding));
+  if AParaStyle.RightPadding <> 0 then
+    WriteCtrlParam('ri', PointsToTwips(AParaStyle.RightPadding));
+  if AParaStyle.TopPadding <> 0 then
+    WriteCtrlParam('sb', PointsToTwips(AParaStyle.TopPadding));
+  if AParaStyle.BottomPadding <> 0 then
+    WriteCtrlParam('sa', PointsToTwips(AParaStyle.BottomPadding));
+  case AParaStyle.HAlign of
+    halLeft: WriteCtrl('ql');
+    halCenter: WriteCtrl('qc');
+    halRight: WriteCtrl('qr');
+    halJustify: WriteCtrl('qj');
+  end;
+  if AParaStyle.Brush.Style <> bsClear then
+    WriteCtrlParam('cbpat', FColorTable.GetIndex(AParaStyle.Brush.Color) + 1);
+  if not AParaStyle.WordWrap then
+    WriteCtrl('nowwrap');
+  if AParaStyle.BorderWidths.NonZero then
+  begin
+    if AParaStyle.BorderWidths.Bottom > 0 then
+    begin
+      WriteCtrl('brdrb');
+      WriteCtrlParam('brdrw', PointsToTwips(AParaStyle.BorderWidths.Bottom))
+    end;
+    if AParaStyle.BorderWidths.Left > 0 then
+    begin
+      WriteCtrl('brdrl');
+      WriteCtrlParam('brdrw', PointsToTwips(AParaStyle.BorderWidths.Left))
+    end;
+    if AParaStyle.BorderWidths.Right > 0 then
+    begin
+      WriteCtrl('brdrr');
+      WriteCtrlParam('brdrw', PointsToTwips(AParaStyle.BorderWidths.Right))
+    end;
+    if AParaStyle.BorderWidths.Top > 0 then
+    begin
+      WriteCtrl('brdrt');
+      WriteCtrlParam('brdrw', PointsToTwips(AParaStyle.BorderWidths.Top))
+    end;
+  end else
+  begin
+    if AParaStyle.BorderWidth > 0 then
+    begin
+      WriteCtrl('box');
+      WriteCtrlParam('brdrw', PointsToTwips(AParaStyle.BorderWidth))
+    end;
+    if AParaStyle.BorderRadius > 0 then
+      WriteCtrlParam('brdrradius', PointsToTwips(AParaStyle.BorderRadius))
+  end;
+  if AParaStyle.BorderColor <> clNone then
+    WriteCtrlParam('brdrcf', FColorTable.GetIndex(AParaStyle.BorderColor) + 1)
 end;
 
 procedure TKMemoRTFWriter.WriteSemiColon;
@@ -2064,7 +2188,7 @@ begin
   WriteCtrlParam('fs', ATextStyle.Font.Size * 2);
   if ATextStyle.Font.Color <> clNone then
     WriteCtrlParam('cf', FColorTable.GetIndex(ATextStyle.Font.Color) + 1);
-  if ATextStyle.Brush.Color <> clNone then
+  if ATextStyle.Brush.Style <> bsClear then
     WriteCtrlParam('highlight', FColorTable.GetIndex(ATextStyle.Brush.Color) + 1);
 end;
 
@@ -2072,6 +2196,7 @@ procedure TKMemoRTFWriter.WriteUnicodeString(const AText: TKString);
 var
   I: Integer;
   UnicodeValue: Cardinal;
+  WasAnsi: Boolean;
   S, Ansi: AnsiString;
   C: TKChar;
 {$IFDEF FPC}
@@ -2094,14 +2219,23 @@ begin
       else if (C = '\') or (C = '{') or (C = '}') then
         S := AnsiString(Format('%s\%s', [S, TKString(C)]))
       else
-        S := S + C
+        S := S + AnsiString(C)
     end else
     begin
-      Ansi := StringToAnsiString(C, FCodePage);
-      if (Ansi <> '') and (Ansi <> #0) then
-        S := AnsiString(Format('%s\''%x', [S, Ord(Ansi[1])]))
-      else
+      WasAnsi := False;
+      if FCodePage <> 0 then
       begin
+        // first try Ansi codepage conversion for better backward compatibility
+        Ansi := StringToAnsiString(C, FCodePage);
+        if (Ansi <> '') and (Ansi <> #0) then
+        begin
+          S := AnsiString(Format('%s\''%x', [S, Ord(Ansi[1])]));
+          WasAnsi := True;
+        end;
+      end;
+      if not WasAnsi then
+      begin
+        // next store as Unicode character
       {$IFDEF FPC}
         UnicodeValue := UTF8CharacterToUnicode(@C[1], CharLen);
       {$ELSE}
@@ -2116,3 +2250,4 @@ end;
 
 end.
 
+

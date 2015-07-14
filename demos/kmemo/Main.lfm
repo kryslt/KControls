@@ -1,12 +1,40 @@
 object MainForm: TMainForm
-  Left = 468
+  Left = 461
   Height = 576
-  Top = 299
-  Width = 713
+  Top = 277
+  Width = 1055
   Caption = 'KMemoDemo'
+  ClientHeight = 576
+  ClientWidth = 1055
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnPaint = FormPaint
-  LCLVersion = '1.3'
+  LCLVersion = '1.2.4.0'
   Visible = True
-end
+  object Panel1: TPanel
+    Left = 0
+    Height = 576
+    Top = 0
+    Width = 523
+    Align = alLeft
+    BevelOuter = bvNone
+    Caption = 'Panel1'
+    TabOrder = 0
+  end
+  object Panel2: TPanel
+    Left = 528
+    Height = 576
+    Top = 0
+    Width = 527
+    Align = alClient
+    BevelOuter = bvNone
+    Caption = 'Panel2'
+    TabOrder = 1
+  end
+  object Splitter1: TSplitter
+    Left = 523
+    Height = 576
+    Top = 0
+    Width = 5
+  end
+end

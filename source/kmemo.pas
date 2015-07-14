@@ -253,18 +253,15 @@ type
     FFirstIndent: Integer;
     FHAlign: TKHAlign;
     FWordWrap: Boolean;
-    FLineWrap: Boolean;
     procedure SetFirstIndent(const Value: Integer);
     procedure SetHAlign(const Value: TKHAlign);
     procedure SetWordWrap(const Value: Boolean);
-    procedure SetLineWrap(const Value: Boolean);
   public
     constructor Create; override;
     procedure Assign(ASource: TPersistent); override;
     procedure Defaults; override;
     property FirstIndent: Integer read FFirstIndent write SetFirstIndent;
     property HAlign: TKHAlign read FHAlign write SetHAlign;
-    property LineWrap: Boolean read FLineWrap write SetLineWrap;
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
   end;
 
@@ -2032,7 +2029,6 @@ begin
   inherited;
   FFirstIndent := 0;
   FHAlign := halLeft;
-  FLineWrap := False;
   FWordWrap := True;
 end;
 
@@ -2043,7 +2039,6 @@ begin
   begin
     FirstIndent := TKMemoParaStyle(ASource).FirstIndent;
     HAlign := TKMemoParaStyle(ASource).HAlign;
-    LineWrap := TKMemoParaStyle(ASource).LineWrap;
     WordWrap := TKMemoParaStyle(ASource).WordWrap;
   end;
 end;
@@ -2062,15 +2057,6 @@ begin
   if Value <> FHAlign then
   begin
     FHAlign := Value;
-    Changed;
-  end;
-end;
-
-procedure TKMemoParaStyle.SetLineWrap(const Value: Boolean);
-begin
-  if Value <> FLineWrap then
-  begin
-    FLineWrap := Value;
     Changed;
   end;
 end;
@@ -5919,7 +5905,6 @@ begin
   inherited;
   FParaStyle := TKMemoParaStyle.Create;
   FParaStyle.WordWrap := False;
-  FParaStyle.LineWrap := True;
 end;
 
 destructor TKMemoTableRow.Destroy;
@@ -6190,7 +6175,7 @@ begin
   end else
   begin
     UndefSpace := 0;
-    UndefColWidth := 0;
+    UndefColWidth := cMinColSize;
   end;
   TotalSpace := DefSpace + UndefSpace;
   // now measure cells
@@ -7701,7 +7686,7 @@ begin
             NextParaStyle := CurParaStyle;
           Extent := Item.MeasureWordExtent(ACanvas, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - NextParaStyle.FirstIndent);
           OutSide := CurParaStyle.WordWrap and not IsParagraph and (PosX + Extent.X > Right);
-          if OutSide or WasParagraph or CurParaStyle.LineWrap then
+          if OutSide or WasParagraph then
             AddLine;
           MoveWordToFreeSpace(Extent.X, Extent.Y);
           Item.WordLeft[CurWord] := PosX;

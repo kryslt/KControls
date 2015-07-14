@@ -26,6 +26,10 @@ uses
 {$IFDEF FPC}
  {$IFDEF USE_WINAPI}
   Windows,
+ {$ELSE}
+  {$IF DEFINED(UNIX) and (FPC_FULLVERSION>=20701)}
+    UnixCP,
+  {$IFEND}
  {$ENDIF}
  // use the LCL interface support whenever possible
   LCLType, LCLIntf, LMessages, LCLProc, LCLVersion, Interfaces, InterfaceBase,
@@ -2264,7 +2268,11 @@ begin
 {$IFDEF USE_WINAPI}
   Result := getACP;
 {$ELSE}
+ {$IF DEFINED(UNIX) and (FPC_FULLVERSION>=20701)}
+  Result := GetSystemCodepage;
+ {$ELSE}
   Result := 0;
+ {$IFEND}
 {$ENDIF}
 end;
 
@@ -2309,7 +2317,6 @@ var
   SearchStr, Pattern, Candidate: TKString;
   I, NewI, PatternLen, SearchLen: Integer;
   DoInc, Found: Boolean;
-  C: TKChar;
 begin
   Result := '';
   if rfIgnoreCase in AFlags then

@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 256
   Caption = 'KMemoDemo'
   ClientHeight = 406
-  ClientWidth = 554
+  ClientWidth = 980
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,6 +14,32 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnPaint = FormPaint
+  OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
+  object Splitter1: TSplitter
+    Left = 500
+    Top = 0
+    Height = 406
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 500
+    Height = 406
+    Align = alLeft
+    BevelOuter = bvNone
+    TabOrder = 0
+  end
+  object Panel2: TPanel
+    Left = 503
+    Top = 0
+    Width = 477
+    Height = 406
+    Align = alClient
+    BevelOuter = bvNone
+    TabOrder = 1
+    ExplicitLeft = 8
+    ExplicitWidth = 473
+  end
 end

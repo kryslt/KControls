@@ -11,19 +11,25 @@ uses
     Windows, Messages,
   {$ENDIF}
     SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs, KGrids,
-    KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon;
+    KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon,
+  KSplitter;
 
 type
 
   { TMainForm }
 
   TMainForm = class(TForm)
+    Panel1: TPanel;
+    Splitter1: TSplitter;
+    Panel2: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormResize(Sender: TObject);
   private
     { Private declarations }
     Memo: TKMemo;
+    MemoCopy: TKMemo;
 //    MF: TKMetafile;
   public
     { Public declarations }
@@ -101,10 +107,10 @@ begin
   Memo.ContentPadding.Right := 20;
   Memo.Align := alClient;
   Memo.Options := Memo.Options + [eoShowFormatting];
-  Memo.Colors.BkGnd := clWhite;
-  Memo.Font.Name := 'Arial';
-  Memo.Font.Size := 20;
-  Memo.ParaStyle.FirstIndent := 30;
+//  Memo.Colors.BkGnd := clWhite;
+//  Memo.Font.Name := 'Arial';
+//  Memo.Font.Size := 20;
+//  Memo.ParaStyle.FirstIndent := 30;
 //  Memo.ParaStyle.HAlign := halCenter;
   Memo.Blocks.LockUpdate;
   try
@@ -268,9 +274,17 @@ begin
   Memo.Text := W;
   W := Memo.Text;
   Memo.Text := W;}
-  Memo.Parent := Self;
+  Memo.Parent := Panel1;
 //  Memo.Select(2, 10);
 //  Mainform.Canvas.StretchDraw(ClientRect, MF);
+  MemoCopy := TKMemo.Create(Self);
+  MemoCopy.ContentPadding.Top := 20;
+  MemoCopy.ContentPadding.Left := 20;
+  MemoCopy.ContentPadding.Right := 20;
+  MemoCopy.Align := alClient;
+  MemoCopy.Options := MemoCopy.Options + [eoShowFormatting];
+  MemoCopy.LoadFromRTF('test_save.rtf');
+  MemoCopy.Parent := Panel2;
 end;
 
 {$IFDEF FPC}
@@ -298,6 +312,10 @@ begin
   Canvas.Font.Name := 'Symbol';
   S := UnicodeStringReplace(S, #9, TabAsUTF8, [rfReplaceAll]);
   Canvas.TextOut(10, 10, S);
+end;
+
+procedure TMainForm.FormResize(Sender: TObject);begin
+  Panel1.Width := ClientWidth div 2;
 end;
 
 end.
