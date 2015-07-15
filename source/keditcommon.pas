@@ -247,7 +247,9 @@ type
       has been set to False }
     eoUndoAfterSave,
     { TKMemo only: show formatting markers. }
-    eoShowFormatting
+    eoShowFormatting,
+    { TKMemo only: acquire TAB characters. }
+    eoWantTab
   );
 
   { Options can be arbitrary combined }

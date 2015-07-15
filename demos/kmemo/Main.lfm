@@ -9,7 +9,8 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnPaint = FormPaint
-  LCLVersion = '1.2.4.0'
+  OnResize = FormResize
+  LCLVersion = '1.2.2.0'
   Visible = True
   object Panel1: TPanel
     Left = 0

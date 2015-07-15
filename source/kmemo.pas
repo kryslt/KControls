@@ -195,31 +195,52 @@ type
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   end;
 
+  TKMemoBlockWrapMode = (
+    { Text wraps around block bounding rectangle on both sides. }
+    wrAround,
+    { Text wraps around block bounding rectangle only on left side. }
+    wrAroundLeft,
+    { Text wraps around block bounding rectangle only on right side. }
+    wrAroundRight,
+    { Text wraps tightly around block. }
+    wrTight,
+    { Text wraps tightly around block only on left side. }
+    wrTightLeft,
+    { Text wraps tightly around block only on right side. }
+    wrTightRight,
+    { Text does not wrap around block on left or right side. }
+    wrTopBottom,
+    { Text wraps as block was not present. }
+    wrNone
+  );
+
   TKMemoBlockStyle = class(TPersistent)
   private
     FBrush: TBrush;
     FBorderRadius: Integer;
     FBorderColor: TColor;
     FBorderWidth: Integer;
-    FCancelFloat: Boolean;
-    FContentPadding: TKRect;
-    FOnChanged: TNotifyEvent;
     FBorderWidths: TKRect;
+    FContentPadding: TKRect;
+    FHAlign: TKHAlign;
+    FWrapMode: TKMemoBlockWrapMode;
+    FOnChanged: TNotifyEvent;
     function GetBottomPadding: Integer;
     function GetLeftPadding: Integer;
     function GetRightPadding: Integer;
     function GetTopPadding: Integer;
     procedure SetBottomPadding(const Value: Integer);
+    procedure SetBorderColor(const Value: TColor);
     procedure SetBorderRadius(const Value: Integer);
+    procedure SetBorderWidth(const Value: Integer);
+    procedure SetBorderWidths(const Value: TKRect);
+    procedure SetBrush(const Value: TBrush);
     procedure SetContentPadding(const Value: TKRect);
+    procedure SetHAlign(const Value: TKHAlign);
     procedure SetLeftPadding(const Value: Integer);
     procedure SetRightPadding(const Value: Integer);
     procedure SetTopPadding(const Value: Integer);
-    procedure SetBrush(const Value: TBrush);
-    procedure SetBorderColor(const Value: TColor);
-    procedure SetBorderWidth(const Value: Integer);
-    procedure SetBorderWidths(const Value: TKRect);
-    procedure SetCancelFloat(const Value: Boolean);
+    procedure SetWrapMode(const Value: TKMemoBlockWrapMode);
   protected
     FChanged: Boolean;
     FLocked: Boolean;
@@ -240,28 +261,26 @@ type
     property BorderWidth: Integer read FBorderWidth write SetBorderWidth;
     property BorderWidths: TKRect read FBorderWidths write SetBorderWidths;
     property Brush: TBrush read FBrush write SetBrush;
-    property CancelFloat: Boolean read FCancelFloat write SetCancelFloat;
     property ContentPadding: TKRect read FContentPadding write SetContentPadding;
+    property HAlign: TKHAlign read FHAlign write SetHAlign;
     property LeftPadding: Integer read GetLeftPadding write SetLeftPadding;
     property RightPadding: Integer read GetRightPadding write SetRightPadding;
     property TopPadding: Integer read GetTopPadding write SetTopPadding;
+    property WrapMode: TKMemoBlockWrapMode read FWrapMode write SetWrapMode;
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   end;
 
   TKMemoParaStyle = class(TKMemoBlockStyle)
   private
     FFirstIndent: Integer;
-    FHAlign: TKHAlign;
     FWordWrap: Boolean;
     procedure SetFirstIndent(const Value: Integer);
-    procedure SetHAlign(const Value: TKHAlign);
     procedure SetWordWrap(const Value: Boolean);
   public
     constructor Create; override;
     procedure Assign(ASource: TPersistent); override;
     procedure Defaults; override;
     property FirstIndent: Integer read FFirstIndent write SetFirstIndent;
-    property HAlign: TKHAlign read FHAlign write SetHAlign;
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
   end;
 
@@ -364,6 +383,7 @@ type
     function ContentLength: Integer; virtual;
     function GetBottomPadding: Integer; virtual;
     function GetCanAddText: Boolean; virtual;
+    function GetWrapMode: TKMemoBlockWrapMode; virtual;
     function GetDefaultTextStyle: TKMemoTextStyle; virtual;
     function GetDefaultParaStyle: TKMemoParaStyle; virtual;
     function GetHeight: Integer; virtual;
@@ -458,6 +478,7 @@ type
     property WordTop[Index: Integer]: Integer read GetWordTop write SetWordTop;
     property WordTopPadding[Index: Integer]: Integer read GetWordTopPadding write SetWordTopPadding;
     property WordWidth[Index: Integer]: Integer read GetWordWidth write SetWordWidth;
+    property WrapMode: TKMemoBlockWrapMode read GetWrapMode;
   end;
 
   TKMemoSingleton = class(TKMemoBlock)
@@ -574,6 +595,7 @@ type
   protected
     FCalcBaseLine: Integer;
     function ContentLength: Integer; override;
+    function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetImageHeight: Integer; virtual;
     function GetImageWidth: Integer; virtual;
     function GetWordBottomPadding(Index: Integer): Integer; override;
@@ -639,6 +661,7 @@ type
     procedure ClearLines; virtual;
     function ContentLength: Integer; override;
     function GetBottomPadding: Integer; override;
+    function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetCanAddText: Boolean; override;
     function GetSelLength: Integer; override;
     function GetSelStart: Integer; override;
@@ -690,15 +713,20 @@ type
 
   TKMemoTableCell = class(TKMemoContainer)
   private
+    FParaStyle: TKMemoParaStyle;
+    FRequiredBorderWidths: TKRect;
     function GetParentRow: TKMemoTableRow;
   protected
-    FParaStyle: TKMemoParaStyle;
     function GetParaStyle: TKMemoParaStyle; override;
+    procedure ParaStyleChanged(Sender: TObject);
+    procedure RequiredBorderWidthsChanged(Sender: TObject);
     procedure RequiredWidthChanged; override;
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
+    procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property ParentRow: TKMemoTableRow read GetParentRow;
+    property RequiredBorderWidths: TKRect read FRequiredBorderWidths;
   end;
 
   TKMemoTable = class;
@@ -710,8 +738,6 @@ type
     procedure SetCellCount(const Value: Integer);
     function GetParentTable: TKMemoTable;
   protected
-    FParaStyle: TKMemoParaStyle;
-    function GetParaStyle: TKMemoParaStyle; override;
     procedure RequiredHeightChanged; override;
     procedure RequiredWidthChanged; override;
   public
@@ -792,6 +818,7 @@ type
     function GetDefaultParaStyle: TKMemoParaStyle; virtual;
     function GetLineBottom(ALineIndex: Integer): Integer; virtual;
     function GetLineEndIndex(ALineIndex: Integer): Integer; virtual;
+    function GetLineFloat(ALineIndex: Integer): Boolean; virtual;
     function GetLineHeight(ALineIndex: Integer): Integer; virtual;
     function GetLineInfo(ALineIndex: Integer): TKMemoLine;
     function GetLineLeft(ALineIndex: Integer): Integer; virtual;
@@ -875,6 +902,7 @@ type
     property LineBottom[ALineIndex: Integer]: Integer read GetLineBottom;
     property LineCount: Integer read GetLineCount;
     property LineEndIndex[ALineIndex: Integer]: Integer read GetLineEndIndex;
+    property LineFloat[ALineIndex: Integer]: Boolean read GetLineFloat;
     property LineInfo[ALineIndex: Integer]: TKMemoLine read GetLineInfo;
     property LineHeight[ALineIndex: Integer]: Integer read GetLineHeight;
     property LineLeft[ALineIndex: Integer]: Integer read GetLineLeft;
@@ -1185,9 +1213,11 @@ type
     function DoPaste: Boolean; virtual;
     { Performs the Redo command. }
     function DoRedo: Boolean; virtual;
+    { Perforns the Search or Replace command. }
     function DoSearchReplace(AReplace: Boolean): Boolean; virtual;
     { Performs the Undo command. }
     function DoUndo: Boolean; virtual;
+    { Update the editor after block changes. }
     procedure DoUpdate(Reasons: TKMemoUpdateReasons);
     { Closes the undo group created by @link(TKCustomMemo.BeginUndoGroup). }
     procedure EndUndoGroup;
@@ -1359,6 +1389,7 @@ type
       <LI><I>AValue</I> - inserted string</LI>
       </UL> }
     procedure InsertString(At: Integer; const AValue: TKString); virtual;
+    { Load contents from a RTF file. }
     procedure LoadFromRTF(const AFileName: TKString); virtual;
     { Converts client area coordinates into a text buffer index.
       <UL>
@@ -1368,6 +1399,7 @@ type
       the supplied coordinates are outside of the text space</LI>
       </UL> }
     function PointToIndex(APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
+    { Save contents to a RTF file. }
     procedure SaveToRTF(const AFileName: TKString); virtual;
     { Determines whether a selection is available. }
     function SelAvail: Boolean;
@@ -1761,9 +1793,10 @@ begin
   FBorderWidth := 0;
   FBorderWidths.AssignFromValues(0, 0, 0, 0);
   FBrush.Style := bsClear;
-  FCancelFloat := False;
   FContentPadding.AssignFromValues(0, 0, 0, 0);
   FChanged := False;
+  FHAlign := halLeft;
+  FWrapMode := wrAround;
 end;
 
 destructor TKMemoBlockStyle.Destroy;
@@ -1783,8 +1816,9 @@ begin
     BorderWidth := TKMemoBlockStyle(ASource).BorderWidth;
     BorderWidths.Assign(TKMemoBlockStyle(ASource).BorderWidths);
     Brush.Assign(TKMemoBlockStyle(ASource).Brush);
-    CancelFloat := TKMemoParaStyle(ASource).CancelFloat;
+    WrapMode := TKMemoParaStyle(ASource).WrapMode;
     ContentPadding.Assign(TKMemoBlockStyle(ASource).ContentPadding);
+    HAlign := TKMemoParaStyle(ASource).HAlign;
   end;
 end;
 
@@ -1976,11 +2010,11 @@ begin
   FBrush.Assign(Value);
 end;
 
-procedure TKMemoBlockStyle.SetCancelFloat(const Value: Boolean);
+procedure TKMemoBlockStyle.SetWrapMode(const Value: TKMemoBlockWrapMode);
 begin
-  if Value <> FCancelFloat then
+  if Value <> FWrapMode then
   begin
-    FCancelFloat := Value;
+    FWrapMode := Value;
     Changed;
   end;
 end;
@@ -1988,6 +2022,15 @@ end;
 procedure TKMemoBlockStyle.SetContentPadding(const Value: TKRect);
 begin
   FContentPadding.Assign(Value);
+end;
+
+procedure TKMemoBlockStyle.SetHAlign(const Value: TKHAlign);
+begin
+  if Value <> FHAlign then
+  begin
+    FHAlign := Value;
+    Changed;
+  end;
 end;
 
 procedure TKMemoBlockStyle.SetLeftPadding(const Value: Integer);
@@ -2028,7 +2071,6 @@ procedure TKMemoParaStyle.Defaults;
 begin
   inherited;
   FFirstIndent := 0;
-  FHAlign := halLeft;
   FWordWrap := True;
 end;
 
@@ -2038,7 +2080,6 @@ begin
   if ASource is TKMemoParaStyle then
   begin
     FirstIndent := TKMemoParaStyle(ASource).FirstIndent;
-    HAlign := TKMemoParaStyle(ASource).HAlign;
     WordWrap := TKMemoParaStyle(ASource).WordWrap;
   end;
 end;
@@ -2048,15 +2089,6 @@ begin
   if Value <> FFirstIndent then
   begin
     FFirstIndent := Value;
-    Changed;
-  end;
-end;
-
-procedure TKMemoParaStyle.SetHAlign(const Value: TKHAlign);
-begin
-  if Value <> FHAlign then
-  begin
-    FHAlign := Value;
     Changed;
   end;
 end;
@@ -3947,6 +3979,8 @@ end;
 procedure TKCustomMemo.WMGetDlgCode(var Msg: TLMNoParams);
 begin
   Msg.Result := DLGC_WANTARROWS;
+  if eoWantTab in FOptions then
+    Msg.Result := Msg.Result or DLGC_WANTTAB;
 end;
 
 procedure TKCustomMemo.WMHScroll(var Msg: TLMHScroll);
@@ -4037,6 +4071,11 @@ end;
 function TKMemoBlock.GetCanAddText: Boolean;
 begin
   Result := False;
+end;
+
+function TKMemoBlock.GetWrapMode: TKMemoBlockWrapMode;
+begin
+  Result := wrAround;
 end;
 
 function TKMemoBlock.GetDefaultParaStyle: TKMemoParaStyle;
@@ -5199,6 +5238,11 @@ begin
   Result := 1;
 end;
 
+function TKMemoImageBlock.GetWrapMode: TKMemoBlockWrapMode;
+begin
+  Result := FImageStyle.WrapMode;
+end;
+
 function TKMemoImageBlock.GetImageHeight: Integer;
 begin
   if FScaleExtent.Y <> 0 then
@@ -5615,6 +5659,11 @@ begin
   Result := True;
 end;
 
+function TKMemoContainer.GetWrapMode: TKMemoBlockWrapMode;
+begin
+  Result := FBlockStyle.WrapMode;
+end;
+
 function TKMemoContainer.GetSelLength: Integer;
 begin
   Result := FBlocks.SelLength;
@@ -5867,12 +5916,15 @@ begin
   inherited;
   FClip := True;
   FParaStyle := TKMemoParaStyle.Create;
-  FParaStyle.WordWrap := False;
+  FParaStyle.OnChanged := ParaStyleChanged;
+  FRequiredBorderWidths := TKRect.Create;
+  FRequiredBorderWidths.OnChanged := RequiredBorderWidthsChanged;
 end;
 
 destructor TKMemoTableCell.Destroy;
 begin
   FParaStyle.Free;
+  FRequiredBorderWidths.Free;
   inherited;
 end;
 
@@ -5889,6 +5941,21 @@ begin
     Result := nil;
 end;
 
+procedure TKMemoTableCell.ParaStyleChanged(Sender: TObject);
+begin
+  // take some default paragraph properties to cell style
+  FBlockStyle.ContentPadding.Assign(FParaStyle.ContentPadding);
+end;
+
+procedure TKMemoTableCell.RequiredBorderWidthsChanged(Sender: TObject);
+var
+  Row: TKMemoTableRow;
+begin
+  Row := ParentRow;
+  if (Row <> nil) and (Row.ParentTable <> nil) then
+    Row.ParentTable.FixupBorders;
+end;
+
 procedure TKMemoTableCell.RequiredWidthChanged;
 var
   Row: TKMemoTableRow;
@@ -5898,18 +5965,20 @@ begin
     Row.UpdateRequiredWidth;
 end;
 
+procedure TKMemoTableCell.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
+begin
+  inherited;
+end;
+
 { TKMemoTableRow }
 
 constructor TKMemoTableRow.Create(AParent: TKMemoBlocks);
 begin
   inherited;
-  FParaStyle := TKMemoParaStyle.Create;
-  FParaStyle.WordWrap := False;
 end;
 
 destructor TKMemoTableRow.Destroy;
 begin
-  FParaStyle.Free;
   inherited;
 end;
 
@@ -5942,21 +6011,28 @@ begin
       else
         PrevRowCell := nil;
       Cell.BlockStyle.BorderWidth := 0;
+      Cell.BlockStyle.BorderWidths.Assign(Cell.RequiredBorderWidths);
       if PrevColCell <> nil then
       begin
         // we split the border width among two neighbor cells
-        Width := Cell.BlockStyle.BorderWidths.Left;
-        Part := DivUp(Width, 2);
-        Cell.BlockStyle.BorderWidths.Left := Part;
-        PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
+        Width := Cell.RequiredBorderWidths.Left;
+        if Width > 0 then
+        begin
+          Part := DivUp(Width, 2);
+          Cell.BlockStyle.BorderWidths.Left := Part;
+          PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
+        end;
       end;
       if PrevRowCell <> nil then
       begin
         // we split the border width among two neighbor cells
-        Width := Cell.BlockStyle.BorderWidths.Top;
-        Part := DivUp(Width, 2);
-        Cell.BlockStyle.BorderWidths.Top := Part;
-        PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part;
+        Width := Cell.RequiredBorderWidths.Top;
+        if Width > 0 then
+        begin
+          Part := DivUp(Width, 2);
+          Cell.BlockStyle.BorderWidths.Top := Part;
+          PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part;
+        end;
       end;
     end;
   end;
@@ -5993,11 +6069,6 @@ function TKMemoTableRow.CanAdd(AItem: TKMemoBlock): Boolean;
 begin
   // table row can only accept table cells
   Result := AItem is TKMemoTableCell;
-end;
-
-function TKMemoTableRow.GetParaStyle: TKMemoParaStyle;
-begin
-  Result := FParaStyle;
 end;
 
 function TKMemoTableRow.GetParentTable: TKMemoTable;
@@ -6086,6 +6157,7 @@ begin
   FCellStyle := TKMemoBlockStyle.Create;
   FColCount := 0;
   FColWidths := TKMemoSparseList.Create;
+  FBlockStyle.WrapMode := wrNone;
 end;
 
 destructor TKMemoTable.Destroy;
@@ -6728,6 +6800,26 @@ begin
   end;
 end;
 
+function TKMemoBlocks.GetLineFloat(ALineIndex: Integer): Boolean;
+var
+  I: Integer;
+  Item: TKMemoBlock;
+begin
+  Result := True;
+  if (ALineIndex >= 0) and (ALineIndex < LineCount) then
+  begin
+    for I := FLines[ALineIndex].StartBlock to FLines[ALineIndex].EndBlock do
+    begin
+      Item := Items[I];
+      if Item.WrapMode = wrNone then
+      begin
+        Result := False;
+        Break;
+      end;
+    end;
+  end;
+end;
+
 function TKMemoBlocks.GetLineHeight(ALineIndex: Integer): Integer;
 begin
   if (ALineIndex >= 0) and (ALineIndex < LineCount) then
@@ -6859,13 +6951,16 @@ begin
 end;
 
 function TKMemoBlocks.GetNearestParagraph(AIndex: Integer): TKMemoParagraph;
+var
+  Item: TKMemoBlock;
 begin
   Result := nil;
   if AIndex >= 0 then
     while (Result = nil) and (AIndex < Count) do
     begin
-      if Items[AIndex] is TKMemoParagraph then
-        Result := Items[AIndex] as TKMemoParagraph;
+      Item := Items[AIndex];
+      if Item is TKMemoParagraph then
+        Result := Item as TKMemoParagraph;
       Inc(AIndex);
     end;
 end;
@@ -7405,6 +7500,7 @@ var
   var
     I: Integer;
     Item: TKMemoBlock;
+    DoCheck: Boolean;
   begin
     Result := False;
     I := 0;
@@ -7415,7 +7511,21 @@ var
       begin
         ACollisionRect := Item.BoundsRect;
         OffsetRect(ACollisionRect, Item.LeftOffset, Item.TopOffset);
-        Result := RectInRect(ACollisionRect, ARect);
+        DoCheck := True;
+        case Item.WrapMode of
+          wrAround, wrTight:;
+          wrAroundLeft, wrTightLeft: ACollisionRect.Right := Right;
+          wrAroundRight, wrTightRight: ACollisionRect.Left := CurParaStyle.LeftPadding;
+          wrTopBottom:
+          begin
+            ACollisionRect.Left := CurParaStyle.LeftPadding;
+            ACollisionRect.Right := Right;
+          end;
+        else
+          DoCheck := False;
+        end;
+        if DoCheck then
+          Result := RectInRect(ACollisionRect, ARect);
       end;
       Inc(I);
     end;
@@ -7626,7 +7736,7 @@ var
       while RectCollidesWithNonText(Rect(PosX, PosY, PosX + AWordWidth, PosY + TmpHeight), R) do
       begin
         PosX := R.Right;
-        if (PosX + AWordWidth > Right) or CurParaStyle.CancelFloat then
+        if PosX + AWordWidth > Right then
         begin
           if not AddLine then
             Inc(PosY, 5);
@@ -7820,15 +7930,18 @@ begin
     if (LineBottom[I] + ATop >= ARect.Top) and (LineTop[I] + ATop < ARect.Bottom) then
     begin
       // fill areas under paragraphs
-      PA := GetNearestParagraph(FLines[I].StartBlock);
-      if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
+      if LineFloat[I] then
       begin
-        R := Rect(0, 0, Max(FRequiredWidth, PA.Width), PA.Height);
-        OffsetRect(R, PA.Left, PA.Top);
-        R.Top := Max(R.Top, LineTop[I]);
-        R.Bottom := Min(R.Bottom, LineBottom[I]);
-        OffsetRect(R, ALeft, ATop);
-        PA.ParaStyle.PaintBox(ACanvas, R);
+        PA := GetNearestParagraph(FLines[I].StartBlock);
+        if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
+        begin
+          R := Rect(0, 0, Max(FRequiredWidth, PA.Width), PA.Height);
+          OffsetRect(R, PA.Left, PA.Top);
+          R.Top := Max(R.Top, LineTop[I]);
+          R.Bottom := Min(R.Bottom, LineBottom[I]);
+          OffsetRect(R, ALeft, ATop);
+          PA.ParaStyle.PaintBox(ACanvas, R);
+        end;
       end;
       // then paint text blocks
       for J := FLines[I].StartBlock to FLines[I].EndBlock do

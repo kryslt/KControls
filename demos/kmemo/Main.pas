@@ -106,7 +106,7 @@ begin
   Memo.ContentPadding.Left := 20;
   Memo.ContentPadding.Right := 20;
   Memo.Align := alClient;
-  Memo.Options := Memo.Options + [eoShowFormatting];
+  Memo.Options := Memo.Options + [eoShowFormatting, eoWantTab];
 //  Memo.Colors.BkGnd := clWhite;
 //  Memo.Font.Name := 'Arial';
 //  Memo.Font.Size := 20;
@@ -182,8 +182,7 @@ begin
 
     PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
-    PA.ParaStyle.HAlign := halCenter;
-    PA.ParaStyle.CancelFloat := True;}
+    PA.ParaStyle.HAlign := halCenter;}
 
 //    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
 
@@ -282,9 +281,10 @@ begin
   MemoCopy.ContentPadding.Left := 20;
   MemoCopy.ContentPadding.Right := 20;
   MemoCopy.Align := alClient;
-  MemoCopy.Options := MemoCopy.Options + [eoShowFormatting];
+  MemoCopy.Options := MemoCopy.Options + [eoShowFormatting, eoWantTab];
   MemoCopy.LoadFromRTF('test_save.rtf');
   MemoCopy.Parent := Panel2;
+  MemoCopy.SaveToRTF('test_copy_save.rtf');
 end;
 
 {$IFDEF FPC}
