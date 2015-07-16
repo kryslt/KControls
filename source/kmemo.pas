@@ -211,7 +211,9 @@ type
     { Text does not wrap around block on left or right side. }
     wrTopBottom,
     { Text wraps as block was not present. }
-    wrNone
+    wrNone,
+    { Text wrap not specified. }
+    wrUnknown
   );
 
   TKMemoBlockStyle = class(TPersistent)
@@ -222,6 +224,7 @@ type
     FBorderWidth: Integer;
     FBorderWidths: TKRect;
     FContentPadding: TKRect;
+    FFillBlip: TGraphic;
     FHAlign: TKHAlign;
     FWrapMode: TKMemoBlockWrapMode;
     FOnChanged: TNotifyEvent;
@@ -236,6 +239,7 @@ type
     procedure SetBorderWidths(const Value: TKRect);
     procedure SetBrush(const Value: TBrush);
     procedure SetContentPadding(const Value: TKRect);
+    procedure SetFillBlip(const Value: TGraphic);
     procedure SetHAlign(const Value: TKHAlign);
     procedure SetLeftPadding(const Value: Integer);
     procedure SetRightPadding(const Value: Integer);
@@ -262,6 +266,7 @@ type
     property BorderWidths: TKRect read FBorderWidths write SetBorderWidths;
     property Brush: TBrush read FBrush write SetBrush;
     property ContentPadding: TKRect read FContentPadding write SetContentPadding;
+    property FillBlip: TGraphic read FFillBlip write SetFillBlip;
     property HAlign: TKHAlign read FHAlign write SetHAlign;
     property LeftPadding: Integer read GetLeftPadding write SetLeftPadding;
     property RightPadding: Integer read GetRightPadding write SetRightPadding;
@@ -644,6 +649,7 @@ type
     FClip: Boolean;
     FCurrentRequiredWidth: Integer;
     FCurrentRequiredHeight: Integer;
+    FFixedHeight: Boolean;
     FFixedWidth: Boolean;
     FPosition: TPoint;
     FTopPadding: Integer;
@@ -651,6 +657,7 @@ type
     procedure SetRequiredWidth(const Value: Integer);
     procedure SetRequiredHeight(const Value: Integer);
     procedure SetClip(const Value: Boolean);
+    procedure SetFixedHeight(const Value: Boolean);
   protected
     FRequiredHeight: Integer;
     FRequiredWidth: Integer;
@@ -704,6 +711,7 @@ type
     property Clip: Boolean read FClip write SetClip;
     property CurrentRequiredHeight: Integer read FCurrentRequiredHeight;
     property CurrentRequiredWidth: Integer read FCurrentRequiredWidth;
+    property FixedHeight: Boolean read FFixedHeight write SetFixedHeight;
     property FixedWidth: Boolean read FFixedWidth write SetFixedWidth;
     property RequiredHeight: Integer read FRequiredHeight write SetRequiredHeight;
     property RequiredWidth: Integer read FRequiredWidth write SetRequiredWidth;
@@ -1781,6 +1789,7 @@ begin
   FBrush.OnChange := BrushChanged;
   FContentPadding := TKRect.Create;
   FContentPadding.OnChanged := BrushChanged;
+  FFillBlip := nil;
   FOnChanged := nil;
   FLocked := False;
   Defaults;
@@ -1804,6 +1813,7 @@ begin
   FBorderWidths.Free;
   FBrush.Free;
   FContentPadding.Free;
+  FFillBlip.Free;
   inherited;
 end;
 
@@ -2022,6 +2032,20 @@ end;
 procedure TKMemoBlockStyle.SetContentPadding(const Value: TKRect);
 begin
   FContentPadding.Assign(Value);
+end;
+
+procedure TKMemoBlockStyle.SetFillBlip(const Value: TGraphic);
+var
+  Cls: TGraphicClass;
+begin
+  FreeAndNil(FFillBlip);
+  if Value <> nil then
+  begin
+    Cls := TGraphicClass(Value.ClassType);
+    FFillBlip := Cls.Create;
+    FFillBlip.Assign(Value);
+  end;
+  Changed;
 end;
 
 procedure TKMemoBlockStyle.SetHAlign(const Value: TKHAlign);
@@ -5353,7 +5377,7 @@ var
   RatioX, RatioY: Double;
   OrigCrop: TRect;
 begin
-  if FScaledImage = nil then
+  if (FScaledImage = nil) and (FImage.Graphic <> nil) then
   begin
     // get scaled image only on demand
     ExtentX := FScaleExtent.X;
@@ -5550,6 +5574,7 @@ begin
   FClip := False;
   FCurrentRequiredHeight := 0;
   FCurrentRequiredWidth := 0;
+  FFixedHeight := False;
   FFixedWidth := False;
   FPosition := CreateEmptyPoint;
   FRequiredHeight := 0;
@@ -5697,7 +5722,10 @@ end;
 
 function TKMemoContainer.GetWordHeight(Index: Integer): Integer;
 begin
-  Result := Max(Max(FRequiredHeight, FCurrentRequiredHeight), FBlocks.Height + FBlockStyle.TopPadding + FBlockStyle.BottomPadding);
+  if FFixedHeight then
+    Result := FRequiredHeight
+  else
+    Result := Max(FCurrentRequiredHeight, FBlocks.Height + FBlockStyle.TopPadding + FBlockStyle.BottomPadding);
 end;
 
 function TKMemoContainer.GetWordLeft(Index: Integer): Integer;
@@ -5727,7 +5755,10 @@ end;
 
 function TKMemoContainer.GetWordWidth(Index: Integer): Integer;
 begin
-  Result := Max(FCurrentRequiredWidth, FBlocks.Width + FBlockStyle.LeftPadding - FBlockStyle.RightPadding);
+  if FFixedWidth then
+    Result := FRequiredWidth
+  else
+    Result := Max(FCurrentRequiredWidth, FBlocks.Width + FBlockStyle.LeftPadding - FBlockStyle.RightPadding);
 end;
 
 function TKMemoContainer.InsertParagraph(AIndex: Integer): Boolean;
@@ -5749,6 +5780,10 @@ begin
   else
     FCurrentRequiredWidth := ARequiredWidth;
   FCurrentRequiredHeight := 0;
+  if not ((Self is TKMemoTable) or (Self is TKMemoTableRow) or (Self is TKMemotableCell)) then
+  asm
+    nop;
+  end;
   FBlocks.MeasureExtent(ACanvas, Max(FCurrentRequiredWidth - FBlockStyle.LeftPadding - FBlockStyle.RightPadding, 0));
   Result := Point(Width, Height);
 end;
@@ -5786,6 +5821,15 @@ begin
   if Value <> FClip then
   begin
     FClip := Value;
+    Update([muExtent]);
+  end;
+end;
+
+procedure TKMemoContainer.SetFixedHeight(const Value: Boolean);
+begin
+  if Value <> FFixedHeight then
+  begin
+    FFixedHeight := Value;
     Update([muExtent]);
   end;
 end;
@@ -7717,6 +7761,7 @@ var
       end;
       Right := ARequiredWidth - CurParaStyle.RightPadding;
       Inc(PosY, LineHeight);
+      FExtent.Y := Max(FExtent.Y, PosY);
       LastBlock := CurBlock;
       LastWord := CurWord;
       LastIndex := CurIndex;
@@ -7735,7 +7780,7 @@ var
       TmpHeight := Max(LineHeight, AWordHeight);
       while RectCollidesWithNonText(Rect(PosX, PosY, PosX + AWordWidth, PosY + TmpHeight), R) do
       begin
-        PosX := R.Right;
+        PosX := R.Right + 5;
         if PosX + AWordWidth > Right then
         begin
           if not AddLine then
@@ -7806,7 +7851,6 @@ begin
           Inc(CurIndex, WLen);
           Inc(CurWord);
           Inc(CurTotalWord);
-          FExtent.Y := Max(FExtent.Y, PosY + Extent.Y);
         end;
       end;
       mbpRelative:

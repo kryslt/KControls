@@ -73,19 +73,23 @@ type
     property Items[Index: Integer]: TKMemoRTFFont read GetItem write SetItem; default;
   end;
 
-  TKMemoRTFShapeContentType = (sctUnknown, sctContainer, sctImage, sctRectangle, sctText);
+  TKMemoRTFShapeContentType = (sctUnknown, sctTextBox, sctImage, sctRectangle, sctText);
 
   TKMemoRTFShape = class(TObject)
   private
+    FBackground: Boolean;
     FContentPosition: TKRect;
     FContentType: TKMemoRTFShapeContentType;
     FCtrlName: AnsiString;
     FCtrlValue: AnsiString;
+    FFitToShape: Boolean;
+    FFitToText: Boolean;
+    FHorzPosCode: Integer;
+    FItem: TKMemoBlock;
     FStyle: TKMemoBlockStyle;
+    FVertPosCode: Integer;
     FWrap: Integer;
     FWrapSide: Integer;
-    FHorzPosCode: Integer;
-    FVertPosCode: Integer;
     procedure SetWrap(const Value: Integer);
     procedure SetWrapSide(const Value: Integer);
     function GetWrap: Integer;
@@ -96,11 +100,15 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    property Background: Boolean read FBackground write FBackground;
     property ContentPosition: TKRect read FContentPosition;
     property ContentType: TKMemoRTFShapeContentType read FContentType write FContentType;
     property CtrlName: AnsiString read FCtrlName write FCtrlName;
     property CtrlValue: AnsiString read FCtrlValue write FCtrlValue;
+    property FitToShape: Boolean read FFitToShape write FFitToShape;
+    property FitToText: Boolean read FFitToText write FFitToText;
     property HorzPosCode: Integer read FHorzPosCode write FHorzPosCode;
+    property Item: TKMemoBlock read FItem write FItem;
     property Style: TKMemoBlockStyle read FStyle;
     property VertPosCode: Integer read FVertPosCode write FVertPosCode;
     property Wrap: Integer read GetWrap write SetWrap;
@@ -198,28 +206,43 @@ type
     FFontTable: TKMemoRTFFontTable;
     FMemo: TKCustomMemo;
     FStream: TMemoryStream;
+    function BoolToParam(AValue: Boolean): AnsiString; virtual;
     function ColorToHighlightCode(AValue: TColor): Integer; virtual;
+    function ColorToParam(AValue: TColor): AnsiString; virtual;
+    function EMUToParam(AValue: Integer): AnsiString; virtual;
     procedure FillColorTable(ABlocks: TKMemoBlocks); virtual;
     procedure FillFontTable(ABlocks: TKMemoBlocks); virtual;
+    function PointsToEMU(AValue: Integer): Integer; virtual;
     function PointsToTwips(AValue: Integer): Integer; virtual;
-    procedure WriteBody(ABlocks: TKMemoBlocks; var AGroup: Integer; AInsideTable: Boolean); virtual;
-    procedure WriteColorTable(var AGroup: Integer); virtual;
+    procedure WriteBackground; virtual;
+    procedure WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean); virtual;
+    procedure WriteColorTable; virtual;
+    procedure WriteContainer(ABlock: TKMemoContainer; AInsideTable: Boolean); virtual;
     procedure WriteCtrl(const ACtrl: AnsiString);
     procedure WriteCtrlParam(const ACtrl: AnsiString; AParam: Integer);
-    procedure WriteFontTable(var AGroup: Integer); virtual;
-    procedure WriteGroupBegin(var AGroup: Integer);
-    procedure WriteGroupEnd(var AGroup: Integer);
-    procedure WriteHeader(AGroup: Integer); virtual;
-    procedure WriteParagraph(AItem: TKMemoParagraph; var AGroup: Integer; AInsideTable: Boolean); virtual;
+    procedure WriteFontTable; virtual;
+    procedure WriteGroupBegin;
+    procedure WriteGroupEnd;
+    procedure WriteHeader; virtual;
+    procedure WriteImage(AItem: TKmemoImageBlock); virtual;
+    procedure WriteImageBlock(AItem: TKmemoImageBlock; AInsideTable: Boolean); virtual;
+    procedure WriteParagraph(AItem: TKMemoParagraph; AInsideTable: Boolean); virtual;
     procedure WriteParaStyle(AParaStyle: TKMemoParaStyle); virtual;
+    procedure WritePicture(AImage: TGraphic); virtual;
     procedure WriteSemiColon;
+    procedure WriteShape(AShape: TKMemoRTFShape; AInsideTable: Boolean); virtual;
+    procedure WriteShapeProp(const APropName, APropValue: AnsiString); virtual;
+    procedure WriteShapeProperties(AShape: TKMemoRTFShape); virtual;
+    procedure WriteShapePropName(const APropName: AnsiString);
+    procedure WriteShapePropValue(const APropValue: AnsiString);
     procedure WriteSpace;
     procedure WriteString(const AText: AnsiString);
-    procedure WriteTable(AItem: TKMemoTable; var AGroup: Integer); virtual;
+    procedure WriteTable(AItem: TKMemoTable); virtual;
     procedure WriteTableRowProperties(ATable: TKmemoTable; ARowIndex: Integer); virtual;
-    procedure WriteTextBlock(AItem: TKMemoTextBlock; var AGroup: Integer); virtual;
+    procedure WriteTextBlock(AItem: TKMemoTextBlock); virtual;
     procedure WriteTextStyle(ATextStyle: TKMemoTextStyle); virtual;
     procedure WriteUnicodeString(const AText: TKString); virtual;
+    procedure WriteUnknownGroup;
   public
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
@@ -652,12 +675,16 @@ end;
 
 constructor TKMemoRTFShape.Create;
 begin
+  FBackground := False;
   FContentPosition := TKRect.Create;
   FContentType := sctUnknown;
+  FFitToShape := False;
+  FFitToText := True;
   FHorzPosCode := 0;
+  FItem := nil;
   FStyle := TKMemoBlockStyle.Create;
   FStyle.Brush.Color := clWhite;
-  FStyle.ContentPadding.AssignFromValues(2, 2, 2, 2);
+  FStyle.ContentPadding.AssignFromValues(5, 5, 5, 5);
   FVertPosCode := 0;
   FWrap := 0;
   FWrapSide := 0;
@@ -679,7 +706,7 @@ end;
 function TKMemoRTFShape.GetWrapSide: Integer;
 begin
   WrapModeToRTFWrap;
-  Result := FWrap;
+  Result := FWrapSide;
 end;
 
 procedure TKMemoRTFShape.SetWrap(const Value: Integer);
@@ -702,9 +729,9 @@ begin
     wrAround: FWrap := 2;
     wrAroundLeft: begin FWrap := 2; FWrapSide := 1; end;
     wrAroundRight: begin FWrap := 2; FWrapSide := 2; end;
-    wrTight: FWrap := 4;
-    wrTightLeft: begin FWrap := 4; FWrapSide := 1; end;
-    wrTightRight: begin FWrap := 4; FWrapSide := 2; end;
+    wrTight: FWrap := 2; // FWrap should be 4 but don't confuse reader
+    wrTightLeft: begin FWrap := 2; FWrapSide := 1; end; // FWrap should be 4 but don't confuse reader
+    wrTightRight: begin FWrap := 2; FWrapSide := 2; end; // FWrap should be 4 but don't confuse reader
     wrTopBottom: FWrap := 1;
     wrNone: FWrap := 3;
   end;
@@ -913,19 +940,22 @@ begin
           FBackgroundImage := False;
         end;
       end;
-      sctContainer:
+      sctTextBox:
       begin
         if FActiveContainer <> nil then
         begin
           // container was inside shape
           ActiveContainer.Position := mbpRelative;
+          ActiveContainer.Clip := True;
           ActiveContainer.FixedWidth := True;
+          if not FActiveShape.FitToText then
+            ActiveContainer.FixedHeight := True;
           if FActiveShape.HorzPosCode = 2 then
             ActiveContainer.LeftOffset := FActiveShape.ContentPosition.Left;
           if FActiveShape.VertPosCode = 2 then
             ActiveContainer.TopOffset := FActiveShape.ContentPosition.Top;
-          ActiveContainer.RequiredWidth := FActiveShape.ContentPosition.Right - FActiveShape.ContentPosition.Left;
-          ActiveContainer.RequiredHeight := FActiveShape.ContentPosition.Bottom - FActiveShape.ContentPosition.Top;
+          ActiveContainer.RequiredWidth := FActiveShape.ContentPosition.Right - FActiveShape.ContentPosition.Left - FActiveShape.Style.BorderWidth * 2;
+          ActiveContainer.RequiredHeight := FActiveShape.ContentPosition.Bottom - FActiveShape.ContentPosition.Top - FActiveShape.Style.BorderWidth * 2;
           ActiveContainer.BlockStyle.Assign(FActiveShape.Style);
           FlushContainer;
         end;
@@ -1259,7 +1289,7 @@ begin
               else if Ctrl = 'shptxt' then
               begin
                 FlushText;
-                ActiveShape.ContentType := sctContainer;
+                ActiveShape.ContentType := sctTextBox;
                 FBlocks := ActiveContainer.Blocks;
                 Group := rgText // text in this shape
               end;
@@ -1536,8 +1566,8 @@ begin
   else if ACtrl = 'picwgoal' then
     ActiveImage.ScaleWidth := TwipsToPoints(AParam)
   else if ACtrl = 'pichgoal' then
-    ActiveImage.ScaleHeight := TwipsToPoints(AParam)
-  else if (ACtrl = '') and (AText <> '') then
+    ActiveImage.ScaleHeight := TwipsToPoints(AParam);
+  if AText <> '' then
   begin
     if FImageClass <> nil then
     begin
@@ -1619,6 +1649,10 @@ begin
     begin
       ActiveShape.VertPosCode := ParamToInt(AText);
     end
+    else if ActiveShape.CtrlName = 'fFitShapeToText' then
+      ActiveShape.FitToText := True
+    else if ActiveShape.CtrlName = 'fFitTextToShape' then
+      ActiveShape.FitToShape := True
     else if ActiveShape.CtrlName = 'fFilled' then
     begin
       if not ParamToBool(AText) then
@@ -1948,6 +1982,7 @@ end;
 
 { TKMemoRTFWriter }
 
+
 constructor TKMemoRTFWriter.Create(AMemo: TKCustomMemo);
 begin
   FMemo := AMemo;
@@ -1962,6 +1997,11 @@ begin
   FFontTable.Free;
   FStream.Free;
   inherited;
+end;
+
+function TKMemoRTFWriter.BoolToParam(AValue: Boolean): AnsiString;
+begin
+  Result := IntToStr(Integer(AValue));
 end;
 
 function TKMemoRTFWriter.ColorToHighlightCode(AValue: TColor): Integer;
@@ -1985,6 +2025,16 @@ begin
   else
     Result := 0;
   end;
+end;
+
+function TKMemoRTFWriter.ColorToParam(AValue: TColor): AnsiString;
+begin
+  Result := IntToStr(ColorToColorRec(Avalue).Value);
+end;
+
+function TKMemoRTFWriter.EMUToParam(AValue: Integer): AnsiString;
+begin
+  Result := IntToStr(PointsToEMU(AValue));
 end;
 
 procedure TKMemoRTFWriter.FillColorTable(ABlocks: TKMemoBlocks);
@@ -2040,24 +2090,27 @@ begin
   end;
 end;
 
+function TKMemoRTFWriter.PointsToEMU(AValue: Integer): Integer;
+begin
+  Result := AValue * 12700;
+end;
+
 function TKMemoRTFWriter.PointsToTwips(AValue: Integer): Integer;
 begin
   Result := AValue * 20;
 end;
 
 procedure TKMemoRTFWriter.Save(const AFileName: TKString);
-var
-  Group: Integer;
 begin
   try
     FCodePage := SystemCodepage;
-    Group := 0;
-    WriteGroupBegin(Group);
+    WriteGroupBegin;
     try
-      WriteHeader(Group);
-      WriteBody(FMemo.Blocks, Group, False);
+      WriteHeader;
+      WriteBackground;
+      WriteBody(FMemo.Blocks, False);
     finally
-      WriteGroupEnd(Group);
+      WriteGroupEnd;
     end;
     FStream.SaveToFile(AFileName);
   except
@@ -2065,7 +2118,40 @@ begin
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteBody(ABlocks: TKMemoBlocks; var AGroup: Integer; AInsideTable: Boolean);
+procedure TKMemoRTFWriter.WriteBackground;
+var
+  Shape: TKMemoRTFShape;
+begin
+  if (FMemo <> nil) and ((FMemo.Colors.BkGnd <> clWindow) or (FMemo.BackgroundImage.Graphic <> nil)) then
+  begin
+    WriteCtrlParam('viewbksp', 1);
+    WriteGroupBegin;
+    try
+      WriteUnknownGroup;
+      WriteCtrl('background');
+      WriteSpace;
+      Shape := TKmemoRTFShape.Create;
+      try
+        Shape.ContentType := sctRectangle;
+        Shape.FitToShape := False;
+        Shape.FitToText := False;
+        Shape.Style.WrapMode := wrUnknown;
+        Shape.Style.Brush.Color := FMemo.Colors.BkGnd;
+        Shape.Style.FillBlip := FMemo.BackgroundImage.Graphic;
+        Shape.Background := True;
+        Shape.HorzPosCode := 0;
+        Shape.VertPosCode := 0;
+        WriteShape(Shape, False);
+      finally
+        Shape.Free;
+      end;
+    finally
+      WriteGroupEnd;
+    end;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean);
 var
   I: Integer;
   Item: TKMemoBlock;
@@ -2076,26 +2162,28 @@ begin
     begin
       Item := ABlocks[I];
       if Item is TKMemoParagraph then
-        WriteParagraph(TKMemoParagraph(Item), AGroup, AInsideTable)
+        WriteParagraph(TKMemoParagraph(Item), AInsideTable)
       else if Item is TKMemoTextBlock then
-        WriteTextBlock(TKMemoTextBlock(Item), AGroup)
+        WriteTextBlock(TKMemoTextBlock(Item))
+      else if Item is TKMemoImageBlock then
+        WriteImageBlock(TKMemoImageBlock(Item), AInsideTable)
       else if Item is TKMemoContainer then
       begin
         if Item is TKMemoTable then
-          WriteTable(TKMemoTable(Item), AGroup)
+          WriteTable(TKMemoTable(Item))
         else
-          WriteBody(TKMemoContainer(Item).Blocks, AGroup, AInsideTable);
+          WriteContainer(TKMemoContainer(Item), AInsideTable);
       end;
     end;
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteColorTable(var AGroup: Integer);
+procedure TKMemoRTFWriter.WriteColorTable;
 var
   I: Integer;
   ColorRec: TKColorRec;
 begin
-  WriteGroupBegin(AGroup);
+  WriteGroupBegin;
   try
     WriteCtrl('colortbl');
     WriteSemicolon;
@@ -2108,7 +2196,31 @@ begin
       WriteSemiColon;
     end;
   finally
-    WriteGroupEnd(AGroup);
+    WriteGroupEnd;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteContainer(ABlock: TKMemoContainer;
+  AInsideTable: Boolean);
+var
+  Shape: TKMemoRTFShape;
+begin
+  // write generic container - write as RTF text box
+  Shape := TKMemoRTFShape.Create;
+  try
+    Shape.ContentType := sctTextBox;
+    Shape.Item := ABlock;
+    Shape.ContentPosition.Left := ABlock.LeftOffset;
+    Shape.ContentPosition.Top := ABlock.TopOffset;
+    Shape.ContentPosition.Right := ABlock.LeftOffset + ABlock.RequiredWidth + ABlock.BlockStyle.BorderWidth * 2;
+    Shape.ContentPosition.Bottom := ABlock.TopOffset + ABlock.RequiredHeight + ABlock.BlockStyle.BorderWidth * 2;
+    Shape.FitToText := not ABlock.FixedHeight;
+    Shape.HorzPosCode := 2; // we don't support any other
+    Shape.VertPosCode := 2; // we don't support any other
+    Shape.Style.Assign(ABlock.BlockStyle);
+    WriteShape(Shape, AInsideTable);
+  finally
+    Shape.Free;
   end;
 end;
 
@@ -2123,16 +2235,16 @@ begin
   WriteString(AnsiString(Format('\%s%d', [ACtrl, AParam])));
 end;
 
-procedure TKMemoRTFWriter.WriteFontTable(var AGroup: Integer);
+procedure TKMemoRTFWriter.WriteFontTable;
 var
   I, Pitch, Charset: Integer;
 begin
-  WriteGroupBegin(AGroup);
+  WriteGroupBegin;
   try
     WriteCtrl('fonttbl');
     for I := 0 to FFontTable.Count - 1 do
     begin
-      WriteGroupBegin(AGroup);
+      WriteGroupBegin;
       try
         WriteCtrlParam('f', I);
         Charset := FFontTable[I].Font.Charset;
@@ -2150,27 +2262,25 @@ begin
         WriteString(AnsiString(FFontTable[I].Font.Name));
         WriteSemiColon;
       finally
-        WriteGroupEnd(AGroup);
+        WriteGroupEnd;
       end;
     end;
   finally
-    WriteGroupEnd(AGroup);
+    WriteGroupEnd;
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteGroupBegin(var AGroup: Integer);
+procedure TKMemoRTFWriter.WriteGroupBegin;
 begin
   WriteString('{');
-  Inc(AGroup);
 end;
 
-procedure TKMemoRTFWriter.WriteGroupEnd(var AGroup: Integer);
+procedure TKMemoRTFWriter.WriteGroupEnd;
 begin
   WriteString('}');
-  Dec(AGroup);
 end;
 
-procedure TKMemoRTFWriter.WriteHeader(AGroup: Integer);
+procedure TKMemoRTFWriter.WriteHeader;
 begin
   FFontTable.AddFont(FMemo.TextStyle.Font);
   FillFontTable(FMemo.Blocks);
@@ -2181,14 +2291,75 @@ begin
   if FFontTable.Count > 0 then
     WriteCtrlParam('deff', 0);
   WriteCtrlParam('uc', 1);
-  WriteFontTable(AGroup);
-  WriteColorTable(AGroup);
+  WriteFontTable;
+  WriteColorTable;
 end;
 
-procedure TKMemoRTFWriter.WriteParagraph(AItem: TKMemoParagraph;
-  var AGroup: Integer; AInsideTable: Boolean);
+procedure TKMemoRTFWriter.WriteImage(AItem: TKmemoImageBlock);
 begin
-  WriteGroupBegin(AGroup);
+  WriteCtrlParam('piccropb', PointsToTwips(AItem.Crop.Bottom));
+  WriteCtrlParam('piccropl', PointsToTwips(AItem.Crop.Left));
+  WriteCtrlParam('piccropr', PointsToTwips(AItem.Crop.Right));
+  WriteCtrlParam('piccropt', PointsToTwips(AItem.Crop.Top));
+  WriteCtrlParam('picwgoal', PointsToTwips(AItem.ScaleWidth));
+  WriteCtrlParam('pichgoal', PointsToTwips(AItem.ScaleHeight));
+  WritePicture(AItem.Image.Graphic);
+end;
+
+procedure TKMemoRTFWriter.WriteImageBlock(AItem: TKmemoImageBlock; AInsideTable: Boolean);
+var
+  Shape: TKMemoRTFShape;
+begin
+  // write generic container - write as RTF text box
+  Shape := TKMemoRTFShape.Create;
+  try
+    Shape.ContentType := sctImage;
+    Shape.FitToShape := False;
+    Shape.FitToText := False;
+    Shape.Style.Assign(AItem.ImageStyle);
+    if AItem.Position = mbpText then
+    begin
+      WriteGroupBegin;
+      try
+        WriteUnknownGroup;
+        WriteCtrl('shppict');
+        WriteGroupBegin;
+        try
+          WriteCtrl('pict');
+          WriteGroupBegin;
+          try
+            WriteUnknownGroup;
+            WriteCtrl('picprop');
+            WriteShapeProperties(Shape);
+          finally
+            WriteGroupEnd;
+          end;
+          WriteImage(AItem);
+        finally
+          WriteGroupEnd;
+        end;
+      finally
+        WriteGroupEnd;
+      end;
+    end else
+    begin
+      Shape.Item := AItem;
+      Shape.ContentPosition.Left := AItem.LeftOffset;
+      Shape.ContentPosition.Top := AItem.TopOffset;
+      Shape.ContentPosition.Right := AItem.LeftOffset + AItem.ScaleWidth + AItem.ImageStyle.LeftPadding + AItem.ImageStyle.RightPadding;
+      Shape.ContentPosition.Bottom := AItem.TopOffset + AItem.ScaleHeight + AItem.ImageStyle.TopPadding + AItem.ImageStyle.BottomPadding;
+      Shape.HorzPosCode := 2; // we don't support any other
+      Shape.VertPosCode := 2; // we don't support any other
+      WriteShape(Shape, AInsideTable);
+    end;
+  finally
+    Shape.Free;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteParagraph(AItem: TKMemoParagraph; AInsideTable: Boolean);
+begin
+  WriteGroupBegin;
   try
     WriteParaStyle(AItem.ParaStyle);
     WriteTextStyle(AItem.TextStyle);
@@ -2196,7 +2367,7 @@ begin
       WriteCtrl('intbl');
     WriteCtrl('par');
   finally
-    WriteGroupEnd(AGroup);
+    WriteGroupEnd;
   end;
 end;
 
@@ -2259,9 +2430,223 @@ begin
     WriteCtrlParam('brdrcf', FColorTable.GetIndex(AParaStyle.BorderColor) + 1)
 end;
 
+procedure TKMemoRTFWriter.WritePicture(AImage: TGraphic);
+var
+  MS: TMemoryStream;
+  S, ImgData: AnsiString;
+  W, H: Integer;
+begin
+  if AImage <> nil then
+  begin
+    W := PointsToTwips(AImage.Width);
+    H := PointsToTwips(AImage.Height);
+    if AImage is TJPegImage then
+      WriteCtrl('jpegblip')
+  {$IFDEF USE_PNG_SUPPORT}
+    else if AImage is TKPngImage then
+      WriteCtrl('pngblip')
+  {$ENDIF}
+  {$IFDEF USE_WINAPI}
+    else if AImage is TKMetafile then
+    begin
+      if TKMetafile(AImage).Enhanced then
+        WriteCtrl('emfblip')
+      else
+      begin
+        WriteCtrlParam('wmetafile', 8);
+        // store original extent here
+        W := AImage.Width;
+        H := AImage.Height;
+      end;
+    end
+  {$ENDIF}
+    ;
+    WriteCtrlParam('picw', W);
+    WriteCtrlParam('pich', H);
+    MS := TMemoryStream.Create;
+    try
+      AImage.SaveToStream(MS);
+      MS.Seek(0, soFromBeginning);
+      SetLength(S, MS.Size);
+      MS.Read(S[1], MS.Size);
+    finally
+      MS.Free;
+    end;
+    WriteSpace;
+    ImgData := BinaryToDigits(S);
+    WriteString(ImgData);
+  end;
+end;
+
 procedure TKMemoRTFWriter.WriteSemiColon;
 begin
   WriteString(';');
+end;
+
+procedure TKMemoRTFWriter.WriteShape(AShape: TKMemoRTFShape; AInsideTable: Boolean);
+begin
+  WriteGroupBegin;
+  try
+    WriteCtrl('shp');
+    WriteGroupBegin;
+    try
+      WriteUnknownGroup;
+      WriteCtrl('shpinst');
+      WriteCtrlParam('shpbottom', PointsToTwips(Ashape.ContentPosition.Bottom));
+      WriteCtrlParam('shpleft', PointsToTwips(Ashape.ContentPosition.Left));
+      WriteCtrlParam('shpright', PointsToTwips(Ashape.ContentPosition.Right));
+      WriteCtrlParam('shptop', PointsToTwips(Ashape.ContentPosition.Top));
+      case AShape.HorzPosCode of
+        1: WriteCtrl('shpbxpage');
+        2: WriteCtrl('shpbxcolumn');
+      else
+        WriteCtrl('shpbxmargin');
+      end;
+      case AShape.VertPosCode of
+        1: WriteCtrl('shpbypage');
+        2: WriteCtrl('shpbypara');
+      else
+        WriteCtrl('shpbymargin');
+      end;
+      WriteCtrlParam('shpfhdr', 0);
+      WriteCtrlParam('shpwr', AShape.Wrap);
+      WriteCtrlParam('shpwrk', AShape.WrapSide);
+      WriteShapeProperties(AShape);
+      case AShape.ContentType of
+        sctImage: if AShape.Item <> nil then
+        begin
+          WriteGroupBegin;
+          try
+            WriteCtrl('sp');
+            WriteShapePropName('pib');
+            WriteGroupBegin;
+            try
+              WriteCtrl('sv');
+              WriteSpace;
+              WriteGroupBegin;
+              try
+                WriteCtrl('pict');
+                WriteImage(AShape.Item as TKMemoImageBlock);
+              finally
+                WriteGroupEnd;
+              end;
+            finally
+              WriteGroupEnd;
+            end;
+          finally
+            WriteGroupEnd;
+          end;
+        end;
+        sctRectangle: if AShape.Style.FillBlip <> nil then
+        begin
+          WriteShapeProp('fillType', '3');
+          WriteGroupBegin;
+          try
+            WriteCtrl('sp');
+            WriteShapePropName('fillBlip');
+            WriteGroupBegin;
+            try
+              WriteCtrl('sv');
+              WriteSpace;
+              WriteGroupBegin;
+              try
+                WriteCtrl('pict');
+                WritePicture(AShape.Style.FillBlip);
+              finally
+                WriteGroupEnd;
+              end;
+            finally
+              WriteGroupEnd;
+            end;
+          finally
+            WriteGroupEnd;
+          end;
+        end;
+        sctTextbox: if AShape.Item <> nil then
+        begin
+          WriteGroupBegin;
+          try
+            WriteCtrl('shptxt');
+            WriteBody((AShape.Item as TKMemoContainer).Blocks, AInsideTable);
+          finally
+            WriteGroupEnd;
+          end;
+        end;
+      end;
+    finally
+      WriteGroupEnd;
+    end;
+  finally
+    WriteGroupEnd;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteShapeProp(const APropName,
+  APropValue: AnsiString);
+begin
+  WriteGroupBegin;
+  try
+    WriteCtrl('sp');
+    WriteShapePropName(APropName);
+    WriteShapePropValue(APropValue);
+  finally
+    WriteGroupEnd;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteShapeProperties(AShape: TKMemoRTFShape);
+var
+  B: Boolean;
+begin
+  B := AShape.Style.Brush.Style <> bsClear;
+  case AShape.ContentType of
+    sctImage: WriteShapeProp('shapeType', '75');
+    sctRectangle: WriteShapeProp('shapeType', '1');
+    sctTextbox: WriteShapeProp('shapeType', '202');
+  end;
+  if AShape.FitToShape then
+    WriteShapeProp('fFitTextToShape', BoolToParam(True));
+  if AShape.FitToText then
+    WriteShapeProp('fFitShapeToText', BoolToParam(True));
+  WriteShapeProp('fFilled', BoolToParam(B));
+  if B then
+    WriteShapeProp('fillColor', ColorToParam(AShape.Style.Brush.Color));
+  B := AShape.Style.BorderWidth > 0;
+  WriteShapeProp('fLine', BoolToParam(B));
+  if B then
+  begin
+    WriteShapeProp('lineColor', ColorToParam(AShape.Style.BorderColor));
+    WriteShapeProp('lineWidth', EMUToParam(AShape.Style.BorderWidth));
+  end;
+  if AShape.Background then
+  begin
+    WriteShapeProp('fBackground', BoolToParam(True));
+//    WriteShapeProp('fillShape', BoolToParam(True));
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteShapePropName(const APropName: AnsiString);
+begin
+  WriteGroupBegin;
+  try
+    WriteCtrl('sn');
+    WriteSpace;
+    WriteString(APropName);
+  finally
+    WriteGroupEnd;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteShapePropValue(const APropValue: AnsiString);
+begin
+  WriteGroupBegin;
+  try
+    WriteCtrl('sv');
+    WriteSpace;
+    WriteString(APropValue);
+  finally
+    WriteGroupEnd;
+  end;
 end;
 
 procedure TKMemoRTFWriter.WriteSpace;
@@ -2274,7 +2659,7 @@ begin
   FStream.Write(AText[1], Length(AText));
 end;
 
-procedure TKMemoRTFWriter.WriteTable(AItem: TKMemoTable; var AGroup: Integer);
+procedure TKMemoRTFWriter.WriteTable(AItem: TKMemoTable);
 var
   I, J: Integer;
   Row: TKMemoTableRow;
@@ -2289,15 +2674,15 @@ begin
     begin
       Cell := Row.Cells[J];
       WriteParaStyle(Cell.ParaStyle);
-      WriteGroupBegin(AGroup);
+      WriteGroupBegin;
       try
-        WriteBody(Cell.Blocks, AGroup, True);
+        WriteBody(Cell.Blocks, True);
       finally
-        WriteGroupEnd(AGroup);
+        WriteGroupEnd;
       end;
       WriteCtrl('cell');
     end;
-    WriteGroupBegin(AGroup);
+    WriteGroupBegin;
     try
       WriteCtrl('trowd');
       WriteTableRowProperties(AItem, I);
@@ -2305,7 +2690,7 @@ begin
         WriteCtrl('lastrow');
       WriteCtrl('row');
     finally
-      WriteGroupEnd(AGroup);
+      WriteGroupEnd;
     end;
   end;
 end;
@@ -2362,16 +2747,15 @@ begin
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteTextBlock(AItem: TKMemoTextBlock;
-  var AGroup: Integer);
+procedure TKMemoRTFWriter.WriteTextBlock(AItem: TKMemoTextBlock);
 begin
-  WriteGroupBegin(AGroup);
+  WriteGroupBegin;
   try
     WriteTextStyle(AItem.TextStyle);
     WriteSpace;
     WriteUnicodeString(AItem.Text);
   finally
-    WriteGroupEnd(AGroup);
+    WriteGroupEnd;
   end;
 end;
 
@@ -2451,6 +2835,11 @@ begin
     end;
   end;
   WriteString(S);
+end;
+
+procedure TKMemoRTFWriter.WriteUnknownGroup;
+begin
+  WriteCtrl('*');
 end;
 
 end.
