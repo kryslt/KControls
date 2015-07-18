@@ -223,6 +223,7 @@ type
     FBorderColor: TColor;
     FBorderWidth: Integer;
     FBorderWidths: TKRect;
+    FContentMargin: TKRect;
     FContentPadding: TKRect;
     FFillBlip: TGraphic;
     FHAlign: TKHAlign;
@@ -245,6 +246,23 @@ type
     procedure SetRightPadding(const Value: Integer);
     procedure SetTopPadding(const Value: Integer);
     procedure SetWrapMode(const Value: TKMemoBlockWrapMode);
+    procedure SetContentMargin(const Value: TKRect);
+    function GetBottomMargin: Integer;
+    function GetLeftMargin: Integer;
+    function GetRightMargin: Integer;
+    function GetTopMargin: Integer;
+    procedure SetBottomMargin(const Value: Integer);
+    procedure SetLeftMargin(const Value: Integer);
+    procedure SetRightMargin(const Value: Integer);
+    procedure SetTopMargin(const Value: Integer);
+    function GetBottomBorderWidth: Integer;
+    function GetLeftBorderWidth: Integer;
+    function GetRightBorderWidth: Integer;
+    function GetTopBorderWidth: Integer;
+    function GetAllPaddingsBottom: Integer;
+    function GetAllPaddingsLeft: Integer;
+    function GetAllPaddingsRight: Integer;
+    function GetAllPaddingsTop: Integer;
   protected
     FChanged: Boolean;
     FLocked: Boolean;
@@ -257,19 +275,33 @@ type
     function BorderRect(const ARect: TRect): TRect; virtual;
     function InteriorRect(const ARect: TRect): TRect; virtual;
     procedure Defaults; virtual;
+    function MarginRect(const ARect: TRect): TRect; virtual;
     procedure NotifyChange(AValue: TKMemoBlockStyle); virtual;
     procedure PaintBox(ACanvas: TCanvas; const ARect: TRect); virtual;
+    property AllPaddingsBottom: Integer read GetAllPaddingsBottom;
+    property AllPaddingsLeft: Integer read GetAllPaddingsLeft;
+    property AllPaddingsRight: Integer read GetAllPaddingsRight;
+    property AllPaddingsTop: Integer read GetAllPaddingsTop;
+    property BottomBorderWidth: Integer read GetBottomBorderWidth;
+    property BottomMargin: Integer read GetBottomMargin write SetBottomMargin;
     property BottomPadding: Integer read GetBottomPadding write SetBottomPadding;
     property BorderRadius: Integer read FBorderRadius write SetBorderRadius;
     property BorderColor: TColor read FBorderColor write SetBorderColor;
     property BorderWidth: Integer read FBorderWidth write SetBorderWidth;
     property BorderWidths: TKRect read FBorderWidths write SetBorderWidths;
     property Brush: TBrush read FBrush write SetBrush;
+    property ContentMargin: TKRect read FContentMargin write SetContentMargin;
     property ContentPadding: TKRect read FContentPadding write SetContentPadding;
     property FillBlip: TGraphic read FFillBlip write SetFillBlip;
     property HAlign: TKHAlign read FHAlign write SetHAlign;
+    property LeftBorderWidth: Integer read GetLeftBorderWidth;
+    property LeftMargin: Integer read GetLeftMargin write SetLeftMargin;
     property LeftPadding: Integer read GetLeftPadding write SetLeftPadding;
+    property RightBorderWidth: Integer read GetRightBorderWidth;
+    property RightMargin: Integer read GetRightMargin write SetRightMargin;
     property RightPadding: Integer read GetRightPadding write SetRightPadding;
+    property TopBorderWidth: Integer read GetTopBorderWidth;
+    property TopMargin: Integer read GetTopMargin write SetTopMargin;
     property TopPadding: Integer read GetTopPadding write SetTopPadding;
     property WrapMode: TKMemoBlockWrapMode read FWrapMode write SetWrapMode;
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
@@ -1787,6 +1819,8 @@ begin
   FBorderWidths.OnChanged := BrushChanged;
   FBrush := TBrush.Create;
   FBrush.OnChange := BrushChanged;
+  FContentMargin := TKRect.Create;
+  FContentMargin.OnChanged := BrushChanged;
   FContentPadding := TKRect.Create;
   FContentPadding.OnChanged := BrushChanged;
   FFillBlip := nil;
@@ -1803,6 +1837,7 @@ begin
   FBorderWidths.AssignFromValues(0, 0, 0, 0);
   FBrush.Style := bsClear;
   FContentPadding.AssignFromValues(0, 0, 0, 0);
+  FContentMargin.AssignFromValues(0, 0, 0, 0);
   FChanged := False;
   FHAlign := halLeft;
   FWrapMode := wrAround;
@@ -1813,6 +1848,7 @@ begin
   FBorderWidths.Free;
   FBrush.Free;
   FContentPadding.Free;
+  FContentMargin.Free;
   FFillBlip.Free;
   inherited;
 end;
@@ -1827,6 +1863,7 @@ begin
     BorderWidths.Assign(TKMemoBlockStyle(ASource).BorderWidths);
     Brush.Assign(TKMemoBlockStyle(ASource).Brush);
     WrapMode := TKMemoParaStyle(ASource).WrapMode;
+    ContentMargin.Assign(TKMemoBlockStyle(ASource).ContentMargin);
     ContentPadding.Assign(TKMemoBlockStyle(ASource).ContentPadding);
     HAlign := TKMemoParaStyle(ASource).HAlign;
   end;
@@ -1837,14 +1874,10 @@ begin
   Result := ARect;
   if FBorderWidths.NonZero then
   begin
-    if FBorderWidths.Left <> 0 then
-      Inc(Result.Left, FBorderWidths.Left);
-    if FBorderWidths.Top <> 0 then
-      Inc(Result.Top, FBorderWidths.Top);
-    if FBorderWidths.Right <> 0 then
-      Dec(Result.Right, FBorderWidths.Right);
-    if FBorderWidths.Bottom <> 0 then
-      Dec(Result.Bottom, FBorderWidths.Bottom);
+    Inc(Result.Left, FBorderWidths.Left);
+    Inc(Result.Top, FBorderWidths.Top);
+    Dec(Result.Right, FBorderWidths.Right);
+    Dec(Result.Bottom, FBorderWidths.Bottom);
   end else
     InflateRect(Result, -FBorderWidth, -FBorderWidth);
 end;
@@ -1864,9 +1897,49 @@ begin
   end;
 end;
 
+function TKMemoBlockStyle.GetAllPaddingsBottom: Integer;
+begin
+  Result := BottomBorderWidth + BottomMargin + BottomPadding;
+end;
+
+function TKMemoBlockStyle.GetAllPaddingsLeft: Integer;
+begin
+  Result := LeftBorderWidth + LeftMargin + LeftPadding;
+end;
+
+function TKMemoBlockStyle.GetAllPaddingsRight: Integer;
+begin
+  Result := RightBorderWidth + RightMargin + RightPadding;
+end;
+
+function TKMemoBlockStyle.GetAllPaddingsTop: Integer;
+begin
+  Result := TopBorderWidth + TopMargin + TopPadding;
+end;
+
+function TKMemoBlockStyle.GetBottomBorderWidth: Integer;
+begin
+  Result := Max(FBorderWidths.Bottom, FBorderWidth);
+end;
+
+function TKMemoBlockStyle.GetBottomMargin: Integer;
+begin
+  Result := FContentMargin.Bottom;
+end;
+
 function TKMemoBlockStyle.GetBottomPadding: Integer;
 begin
   Result := FContentPadding.Bottom;
+end;
+
+function TKMemoBlockStyle.GetLeftBorderWidth: Integer;
+begin
+  Result := Max(FBorderWidths.Left, FBorderWidth);
+end;
+
+function TKMemoBlockStyle.GetLeftMargin: Integer;
+begin
+  Result := FContentMargin.Left;
 end;
 
 function TKMemoBlockStyle.GetLeftPadding: Integer;
@@ -1874,9 +1947,29 @@ begin
   Result := FContentPadding.Left;
 end;
 
+function TKMemoBlockStyle.GetRightBorderWidth: Integer;
+begin
+  Result := Max(FBorderWidths.Right, FBorderWidth);
+end;
+
+function TKMemoBlockStyle.GetRightMargin: Integer;
+begin
+  Result := FContentMargin.Right;
+end;
+
 function TKMemoBlockStyle.GetRightPadding: Integer;
 begin
   Result := FContentPadding.Right;
+end;
+
+function TKMemoBlockStyle.GetTopBorderWidth: Integer;
+begin
+  Result := Max(FBorderWidths.Top, FBorderWidth);
+end;
+
+function TKMemoBlockStyle.GetTopMargin: Integer;
+begin
+  Result := FContentMargin.Top;
 end;
 
 function TKMemoBlockStyle.GetTopPadding: Integer;
@@ -1886,17 +1979,25 @@ end;
 
 function TKMemoBlockStyle.InteriorRect(const ARect: TRect): TRect;
 begin
-  Result := BorderRect(ARect);
+  Result := ARect;
   if FContentPadding.NonZero then
   begin
-    if FContentPadding.Left <> 0 then
-      Inc(Result.Left, FContentPadding.Left);
-    if FContentPadding.Top <> 0 then
-      Inc(Result.Top, FContentPadding.Top);
-    if FContentPadding.Right <> 0 then
-      Dec(Result.Right, FContentPadding.Right);
-    if FContentPadding.Bottom <> 0 then
-      Dec(Result.Bottom, FContentPadding.Bottom);
+    Inc(Result.Left, FContentPadding.Left);
+    Inc(Result.Top, FContentPadding.Top);
+    Dec(Result.Right, FContentPadding.Right);
+    Dec(Result.Bottom, FContentPadding.Bottom);
+  end;
+end;
+
+function TKMemoBlockStyle.MarginRect(const ARect: TRect): TRect;
+begin
+  Result := ARect;
+  if FContentMargin.NonZero then
+  begin
+    Inc(Result.Left, FContentMargin.Left);
+    Inc(Result.Top, FContentMargin.Top);
+    Dec(Result.Right, FContentMargin.Right);
+    Dec(Result.Bottom, FContentMargin.Bottom);
   end;
 end;
 
@@ -2006,13 +2107,14 @@ begin
   FBorderWidths.Assign(Value);
 end;
 
+procedure TKMemoBlockStyle.SetBottomMargin(const Value: Integer);
+begin
+  FContentMargin.Bottom := Value;
+end;
+
 procedure TKMemoBlockStyle.SetBottomPadding(const Value: Integer);
 begin
-  if Value <> FContentPadding.Bottom then
-  begin
-    FContentPadding.Bottom := Value;
-    Changed;
-  end;
+  FContentPadding.Bottom := Value;
 end;
 
 procedure TKMemoBlockStyle.SetBrush(const Value: TBrush);
@@ -2027,6 +2129,11 @@ begin
     FWrapMode := Value;
     Changed;
   end;
+end;
+
+procedure TKMemoBlockStyle.SetContentMargin(const Value: TKRect);
+begin
+  FContentMargin.Assign(Value);
 end;
 
 procedure TKMemoBlockStyle.SetContentPadding(const Value: TKRect);
@@ -2057,31 +2164,34 @@ begin
   end;
 end;
 
+procedure TKMemoBlockStyle.SetLeftMargin(const Value: Integer);
+begin
+  FContentMargin.Left := Value;
+end;
+
 procedure TKMemoBlockStyle.SetLeftPadding(const Value: Integer);
 begin
-  if Value <> FContentPadding.Left then
-  begin
-    FContentPadding.Left := Value;
-    Changed;
-  end;
+  FContentPadding.Left := Value;
+end;
+
+procedure TKMemoBlockStyle.SetRightMargin(const Value: Integer);
+begin
+  FContentMargin.Right := Value;
 end;
 
 procedure TKMemoBlockStyle.SetRightPadding(const Value: Integer);
 begin
-  if Value <> FContentPadding.Right then
-  begin
-    FContentPadding.Right := Value;
-    Changed;
-  end;
+  FContentPadding.Right := Value;
+end;
+
+procedure TKMemoBlockStyle.SetTopMargin(const Value: Integer);
+begin
+  FContentMargin.Top := Value;
 end;
 
 procedure TKMemoBlockStyle.SetTopPadding(const Value: Integer);
 begin
-  if Value <> FContentPadding.Top then
-  begin
-    FContentPadding.Top := Value;
-    Changed;
-  end;
+  FContentPadding.Top := Value;
 end;
 
 { TKMemoParagraphStyle }
@@ -5194,7 +5304,7 @@ begin
   FExtent := CreateEmptyPoint;
   FImage := TPicture.Create;
   FImageStyle := TKMemoBlockStyle.Create;
-  FImageStyle.ContentPadding.AssignFromValues(10, 10, 10, 10);
+  FImageStyle.ContentMargin.AssignFromValues(5, 5, 5, 5);
   FImageStyle.OnChanged := ImageStyleChanged;
   FPosition := CreateEmptyPoint;
   FScaleExtent := CreateEmptyPoint;
@@ -5346,8 +5456,8 @@ function TKMemoImageBlock.MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredW
 begin
   FreeAndNil(FScaledImage);
   Result := Point(
-    ImageWidth + FImageStyle.ContentPadding.Left + FImageStyle.ContentPadding.Right,
-    ImageHeight + FImageStyle.ContentPadding.Top + FImageStyle.ContentPadding.Bottom);
+    ImageWidth + FImageStyle.LeftPadding + FImageStyle.RightPadding + FImageStyle.LeftMargin + FImageStyle.RightMargin,
+    ImageHeight + FImageStyle.TopPadding + FImageStyle.BottomPadding + FImageStyle.TopMargin + FImageStyle.BottomMargin);
   if (Position = mbpText) and (Result.X > ARequiredWidth) then
   begin
     // when image is placed in text it should be adjusted to page width
@@ -5394,8 +5504,9 @@ begin
     if Position = mbpText then
     begin
       // when image is placed in text it should be adjusted to page width
-      NewExtentX := FExtent.X - FImageStyle.ContentPadding.Left - FImageStyle.ContentPadding.Right;
-      ExtentY := Min(MulDiv(NewExtentX, ExtentY, ExtentX), FExtent.Y - FImageStyle.ContentPadding.Top - FImageStyle.ContentPadding.Bottom - FTopPadding - FBottomPadding);
+      NewExtentX := FExtent.X - FImageStyle.LeftPadding - FImageStyle.RightPadding - FImageStyle.LeftMargin - FImageStyle.RightMargin;
+      ExtentY := Min(MulDiv(NewExtentX, ExtentY, ExtentX),
+        FExtent.Y - FImageStyle.TopPadding - FImageStyle.BottomPadding - FImageStyle.TopMargin - FImageStyle.BottomMargin - FTopPadding - FBottomPadding);
       ExtentX := NewExtentX;
     end else
     begin
@@ -5516,12 +5627,14 @@ begin
   inherited;
   ROuter := OuterRect(False);
   OffsetRect(ROuter, ALeft, ATop);
-  X := ROuter.Left + FImageStyle.ContentPadding.Left;
-  Y := ROuter.Top + FImageStyle.ContentPadding.Top + FTopPadding + FBaseLine - FCalcBaseLine;
+  X := ROuter.Left + FImageStyle.LeftPadding + FImageStyle.LeftMargin;
+  Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FTopPadding + FBaseLine - FCalcBaseLine;
   if SelLength > 0 then
   begin
     GetSelColors(Color, BkGnd);
     ACanvas.Brush.Color := BkGnd;
+    if Position <> mbpText then
+      ROuter := ImageStyle.MarginRect(ROuter);
     ACanvas.FillRect(ROuter);
     if ScaledImage <> nil then
     begin
@@ -5545,6 +5658,7 @@ begin
     end;
   end else
   begin
+    ROuter := ImageStyle.MarginRect(ROuter);
     FImageStyle.PaintBox(ACanvas, ROuter);
     if ScaledImage <> nil then
       ACanvas.Draw(X, Y, ScaledImage);
@@ -5725,7 +5839,7 @@ begin
   if FFixedHeight then
     Result := FRequiredHeight
   else
-    Result := Max(FCurrentRequiredHeight, FBlocks.Height + FBlockStyle.TopPadding + FBlockStyle.BottomPadding);
+    Result := Max(FCurrentRequiredHeight, FBlocks.Height + FBlockStyle.AllPaddingsBottom + FBlockStyle.AllPaddingsTop);
 end;
 
 function TKMemoContainer.GetWordLeft(Index: Integer): Integer;
@@ -5758,7 +5872,7 @@ begin
   if FFixedWidth then
     Result := FRequiredWidth
   else
-    Result := Max(FCurrentRequiredWidth, FBlocks.Width + FBlockStyle.LeftPadding - FBlockStyle.RightPadding);
+    Result := Max(FCurrentRequiredWidth, FBlocks.Width + FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight);
 end;
 
 function TKMemoContainer.InsertParagraph(AIndex: Integer): Boolean;
@@ -5784,7 +5898,7 @@ begin
   asm
     nop;
   end;
-  FBlocks.MeasureExtent(ACanvas, Max(FCurrentRequiredWidth - FBlockStyle.LeftPadding - FBlockStyle.RightPadding, 0));
+  FBlocks.MeasureExtent(ACanvas, Max(FCurrentRequiredWidth - FBlockStyle.AllPaddingsLeft - FBlockStyle.AllPaddingsRight, 0));
   Result := Point(Width, Height);
 end;
 
@@ -5813,7 +5927,7 @@ end;
 
 procedure TKMemoContainer.SetBlockExtent(AWidth, AHeight: Integer);
 begin
-  FBlocks.SetExtent(AWidth - FBlockStyle.LeftPadding - FBlockStyle.RightPadding, AHeight - FBlockStyle.TopPadding - FBlockStyle.BottomPadding);
+  FBlocks.SetExtent(AWidth - FBlockStyle.AllPaddingsLeft - FBlockStyle.AllPaddingsRight,  AHeight - FBlockStyle.AllPaddingsTop - FBlockStyle.AllPaddingsBottom);
 end;
 
 procedure TKMemoContainer.SetClip(const Value: Boolean);
@@ -5895,11 +6009,13 @@ begin
   begin
     // expand rect to enable vertical caret movement
     if Result.Top = 0 then
-      Dec(Result.Top, FBlockStyle.TopPadding + FTopPadding);
+      Dec(Result.Top, FBlockStyle.AllPaddingsTop + FTopPadding);
     if Result.Bottom = FBlocks.Height then
-      Inc(Result.Bottom, Height - FBlocks.Height - FBlockStyle.TopPadding - FTopPadding);
+      Inc(Result.Bottom, Height - FBlocks.Height - FBlockStyle.AllPaddingsTop - FTopPadding);
   end;
-  KFunctions.OffsetRect(Result, Left + InternalLeftOffset + FBlockStyle.LeftPadding, Top + InternalTopOffset + FBlockStyle.TopPadding + FTopPadding);
+  KFunctions.OffsetRect(Result,
+    Left + InternalLeftOffset + FBlockStyle.AllPaddingsLeft,
+    Top + InternalTopOffset + FBlockStyle.AllPaddingsTop + FTopPadding);
 end;
 
 procedure TKMemoContainer.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
@@ -5910,15 +6026,17 @@ var
 begin
   R := Rect(0, 0, Width, Height);
   OffsetRect(R, Left + ALeft + InternalLeftOffset, Top + ATop + InternalTopOffset + FTopPadding);
+  R := FBlockStyle.MarginRect(R);
   FBlockStyle.PaintBox(ACanvas, R);
-  Inc(ALeft, Left + FBlockStyle.LeftPadding + InternalLeftOffset);
-  Inc(ATop, Top + FBlockStyle.TopPadding + InternalTopOffset + FTopPadding);
+  R := FBlockStyle.BorderRect(R);
+  Inc(ALeft, Left + FBlockStyle.AllPaddingsLeft + InternalLeftOffset);
+  Inc(ATop, Top + FBlockStyle.AllPaddingsTop + InternalTopOffset + FTopPadding);
   if FClip then
   begin
-    ClipRect := FBlockStyle.BorderRect(R);
     SaveIndex := SaveDC(ACanvas.Handle);
     MainClipRgn := CreateEmptyRgn;
     try
+      ClipRect := R;
       TranslateRectToDevice(ACanvas.Handle, ClipRect);
       if GetClipRgn(ACanvas.Handle, MainClipRgn) <> 1 then
       begin
@@ -5926,14 +6044,20 @@ begin
         MainClipRgn := CreateRectRgnIndirect(ClipRect);
       end;
       if ExtSelectClipRect(ACanvas.Handle, ClipRect, RGN_AND, MainClipRgn) then
+      begin
+        R := FBlockStyle.InteriorRect(R);
         FBlocks.PaintToCanvas(ACanvas, ALeft, ATop, R);
+      end;
     finally
       RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
       RestoreDC(ACanvas.Handle, SaveIndex);
     end;
     ACanvas.Refresh;
   end else
+  begin
+    R := FBlockStyle.InteriorRect(R);
     FBlocks.PaintToCanvas(ACanvas, ALeft, ATop, R);
+  end;
 end;
 
 function TKMemoContainer.WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint;
@@ -5947,7 +6071,7 @@ begin
   OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FTopPadding);
   if PtInRect(R, P) or (AOutOfArea and (P.X >= R.Left) and (P.X < R.Right)) then
   begin
-    OffsetPoint(P, -FBlockStyle.LeftPadding, -FBlockStyle.TopPadding);
+    OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
     Result := FBlocks.PointToIndex(ACanvas, P, AOutOfArea, ASelectionExpanding, APosition);
   end else
     Result := -1;
@@ -7780,7 +7904,7 @@ var
       TmpHeight := Max(LineHeight, AWordHeight);
       while RectCollidesWithNonText(Rect(PosX, PosY, PosX + AWordWidth, PosY + TmpHeight), R) do
       begin
-        PosX := R.Right + 5;
+        PosX := R.Right;
         if PosX + AWordWidth > Right then
         begin
           if not AddLine then
@@ -7793,7 +7917,7 @@ var
 
 var
   Extent: TPoint;
-  WLen: Integer;
+  WLen, PrevPosX, PrevPosY: Integer;
   IsParagraph, OutSide, WasParagraph: Boolean;
   Item: TKMemoBlock;
   NextParaStyle: TKMemoParaStyle;
@@ -7860,11 +7984,21 @@ begin
           AddLine;
           IsParagraph := False;
         end;
-        MoveWordToFreeSpace(Item.Width, Item.Height);
-        Item.WordLeft[0] := PosX;
-        Item.WordTop[0] := PosY;
-        FExtent.X := Max(FExtent.X, PosX + Item.Width);
-        FExtent.Y := Max(FExtent.Y, PosY + Item.Height);
+        // position relative block correctly
+        PrevPosX := PosX; PrevPosY := PosY;
+        try
+          // starting position for relative object is currently always: X by column (currently always 0), Y by paragraph
+          // the object position offsets (LeftOffset, TopOffset) are always counted from this default position
+          PosX := 0;
+          PosY := ParaPosY;
+          MoveWordToFreeSpace(Item.Width, Item.Height);
+          Item.WordLeft[0] := PosX;
+          Item.WordTop[0] := PosY;
+          FExtent.X := Max(FExtent.X, PosX + Item.Width);
+          FExtent.Y := Max(FExtent.Y, PosY + Item.Height);
+        finally
+          PosX := PrevPosX; PosY := PrevPosY;
+        end;
       end;
     end;
     Inc(CurBlock);
@@ -8013,7 +8147,7 @@ end;
 
 function TKMemoBlocks.PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer;
 var
-  I : Integer;
+  I: Integer;
 begin
   Result := -1;
   if LineCount > 0 then
@@ -8021,8 +8155,11 @@ begin
     I := 0;
     while (Result < 0) and (I < LineCount) do
     begin
-      if (APoint.Y >= LineTop[I]) and (APoint.Y < LineBottom[I]) or
-        AOutOfArea and ((I = 0) and (APoint.Y < LineTop[I]) or (I = LineCount - 1) and (APoint.Y >= LineBottom[I])) then
+      if (APoint.Y >= LineTop[I]) and (APoint.Y < LineBottom[I]) or AOutOfArea and (
+         (I = 0) and (APoint.Y < LineTop[I]) or // point below first line
+         (I = LineCount - 1) and (APoint.Y >= LineBottom[I]) or // point after last line
+         (I > 0) and (APoint.Y < LineTop[I]) and (Apoint.Y >= LineBottom[I - 1]) // point between two lines
+        ) then
       begin
         Result := PointToIndexOnLine(ACanvas, I, APoint, AOutOfArea, ASelectionExpanding, ALinePos)
       end;

@@ -12,7 +12,7 @@ uses
   {$ENDIF}
     SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs, KGrids,
     KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon,
-  KSplitter;
+    KSplitter;
 
 type
 
@@ -257,11 +257,12 @@ begin
 
 //  Memo.LoadFromRTF('test_no_img.rtf');
   Memo.LoadFromRTF('test.rtf');
-  Memo.SaveToRTF('test_save.rtf');
 //  Memo.LoadFromRTF('test1.rtf');
 //  Memo.LoadFromRTF('kgrid_manual.rtf');
 //  Memo.LoadFromRTF('Word2007RTFSpec9.rtf');
 //  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
+
+  Memo.SaveToRTF('test_save.rtf');
 
 {
   Memo.ContentPadding.Left := 50;

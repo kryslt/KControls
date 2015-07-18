@@ -27,8 +27,34 @@ uses
   KControls, KFunctions, KGraphics, KMemo;
 
 type
-  TKMemoRTFGroup = (rgNone, rgUnknown, rgColorTable, rgFontTable, rgFooter, rgHeader, rgInfo, rgPicture, rgShape, rgShapeInst, rgShapeResult, rgShapePict, rgStyleSheet, rgText);
+  TKMemoRTFCtrlMethod = procedure(ACtrl: Integer; var AText: AnsiString; AParam: Integer) of object;
 
+  { Specifies the RTF control word descriptor. Is only used by RTF reader. }
+  TKMemoRTFCtrl = class(TObject)
+  private
+    FCode: Integer;
+    FCtrl: AnsiString;
+    FMethod: TKMemoRTFCtrlMethod;
+  public
+    constructor Create;
+    property Code: Integer read FCode write FCode;
+    property Ctrl: AnsiString read FCtrl write FCtrl;
+    property Method: TKMemoRTFCtrlMethod read FMethod write FMethod;
+  end;
+
+  { Specifies the RTF control word table. Is only used by RTF reader. Maybe using hash table would be even faster. }
+  TKMemoRTFCtrlTable = class(TObjectList)
+  private
+    function GetItem(Index: Integer): TKMemoRTFCtrl;
+    procedure SetItem(Index: Integer; const Value: TKMemoRTFCtrl);
+  public
+    procedure AddCtrl(const ACtrl: AnsiString; ACode: Integer; AMethod: TKMemoRTFCtrlMethod);
+    function FindByCtrl(const ACtrl: AnsiString): TKMemoRtfCtrl; virtual;
+    procedure SortTable; virtual;
+    property Items[Index: Integer]: TKMemoRTFCtrl read GetItem write SetItem; default;
+  end;
+
+  { Specifies the RTF color descriptor. }
   TKMemoRTFColor = class(TObject)
   private
     FColorRec: TKColorRec;
@@ -40,6 +66,7 @@ type
     property Blue: Byte read FColorRec.B write FColorRec.B;
   end;
 
+  { Specifies the RTF color table. }
   TKMemoRTFColorTable = class(TObjectList)
   private
     function GetItem(Index: Integer): TKMemoRTFColor;
@@ -51,6 +78,7 @@ type
     property Items[Index: Integer]: TKMemoRTFColor read GetItem write SetItem; default;
   end;
 
+  { Specifies the RTF font descriptor. }
   TKMemoRTFFont = class(TObject)
   private
     FFont: TFont;
@@ -62,6 +90,7 @@ type
     property FontIndex: Integer read FFontIndex write FFontIndex;
   end;
 
+  { Specifies the RTF font table. }
   TKMemoRTFFontTable = class(TObjectList)
   private
     function GetItem(Index: Integer): TKMemoRTFFont;
@@ -75,6 +104,7 @@ type
 
   TKMemoRTFShapeContentType = (sctUnknown, sctTextBox, sctImage, sctRectangle, sctText);
 
+  { Specifies the RTF shape object since KMemo has no generic drawing object support. }
   TKMemoRTFShape = class(TObject)
   private
     FBackground: Boolean;
@@ -90,6 +120,7 @@ type
     FVertPosCode: Integer;
     FWrap: Integer;
     FWrapSide: Integer;
+    FFillBlip: Boolean;
     procedure SetWrap(const Value: Integer);
     procedure SetWrapSide(const Value: Integer);
     function GetWrap: Integer;
@@ -105,6 +136,7 @@ type
     property ContentType: TKMemoRTFShapeContentType read FContentType write FContentType;
     property CtrlName: AnsiString read FCtrlName write FCtrlName;
     property CtrlValue: AnsiString read FCtrlValue write FCtrlValue;
+    property FillBlip: Boolean read FFillBlip write FFillBlip;
     property FitToShape: Boolean read FFitToShape write FFitToShape;
     property FitToText: Boolean read FFitToText write FFitToText;
     property HorzPosCode: Integer read FHorzPosCode write FHorzPosCode;
@@ -115,6 +147,52 @@ type
     property WrapSide: Integer read GetWrapSide write SetWrapSide;
   end;
 
+  TKMemoRTFGroup = (rgNone, rgUnknown, rgColorTable, rgFontTable, rgFooter, rgHeader, rgInfo,
+    rgPageBackground, rgPicture, rgPicProp, rgShape, rgShapeInst, rgShapePict, rgStyleSheet, rgTextBox);
+
+  { Specifies the RTF reader state. This class is used by RTF reader to store reader state on the stack. }
+  TKMemoRTFState = class(TObject)
+  private
+    FTextStyle: TKMemoTextStyle;
+    FParaStyle: TKMemoParaStyle;
+    FGroup: TKMemoRTFGroup;
+    FIsShape: Boolean;
+    FIsPicture: Boolean;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Assign(ASource: TKmemoRTFState); virtual;
+    property Group: TKMemoRTFGroup read FGroup write FGroup;
+    //property IsPicture: Boolean read FIsPicture write FIsPicture;
+    //property IsShape: Boolean read FIsShape write FIsShape;
+    property ParaStyle: TKMemoParaStyle read FParaStyle write FParaStyle;
+    property TextStyle: TKMemoTextStyle read FTextStyle write FTextStyle;
+  end;
+
+  { Specifies the stack for the RTF reader state. }
+  TKMemoRTFStack = class(TStack)
+  public
+    function Push(AObject: TKMemoRTFState): TKMemoRTFState;
+    function Pop: TKMemoRTFState;
+    function Peek: TKMemoRTFState;
+  end;
+
+  TKMemoRTFHeaderProp = (rphRtf, rphCodePage, rphDefaultFont, rphIgnoreCharsAfterUnicode, rphFontTable, rphColorTable, rphStyleSheet);
+  TKMemoRTFDocumentProp = (rpdFooter, rpdFooterLeft, rpdFooterRight, rpdHeader, rpdHeaderLeft, rpdHeaderRight, rpdInfo);
+  TKMemoRTFColorProp = (rpcRed, rpcGreen, rpcBlue);
+  TKMemoRTFFontProp = (rpfIndex, rpfCharset, rpfPitch);
+  TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop, rpiReqWidth, rpiReqHeight);
+  TKMemoRTFShapeProp = (rpsShape, rpsBottom, rpsLeft, rpsRight, rpsTop, rpsXColumn, rpsYPara, rpsWrap, rpsWrapSide, rpsSn, rpsSv, rpsShapeText);
+  TKMemoRTFParaProp = (rppParD, rppIndentFirst, rppIndentBottom, rppIndentLeft, rppIndentRight, rppIndentTop, rppAlignLeft, rppAlignCenter, rppAlignRight, rppAlignJustify,
+    rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor, rppPar);
+  TKMemoRTFSpecialCharProp = (rpscTab, rpscLquote, rpscRQuote, rpscLDblQuote, rpscRDblQuote, rpscEnDash, rpscEmDash, rpscBullet, rpscNBSP, rpscEmSpace, rpscEnSpace,
+    rpscAnsiChar, rpscUnicodeChar);
+  TKMemoRTFTableProp = (rptbRowBegin, rptbCellEnd, rptbRowEnd, rptbLastRow, rptbPaddBottom, rptbPaddLeft, rptbPaddRight, rptbPaddTop, rptbBorderBottom, rptbBorderLeft,
+    rptbPaddAll, rptbBorderRight, rptbBorderTop, rptbBorderWidth, rptbBorderNone, rptbBorderColor, rptbBackColor, rptbCellX);
+  TKMemoRTFTextProp = (rptPlain, rptFontIndex, rptBold, rptItalic, rptUnderline, rptStrikeout, rptCaps, rptSmallCaps, rptFontSize, rptForeColor, rptBackColor);
+  TKMemoRTFUnknownProp = (rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict);
+
+  { Specifies the RTF reader. }
   TKMemoRTFReader = class(TObject)
   private
     function GetActiveFont: TKMemoRTFFont;
@@ -128,36 +206,40 @@ type
     FActiveContainer: TKMemoContainer;
     FActiveFont: TKMemoRTFFont;
     FActiveImage: TKMemoImageBlock;
+    FActiveImageClass: TGraphicClass;
+    FActiveImageIsEMF: Boolean;
+    FActiveImageOriginalHeight: Integer;
+    FActiveImageOriginalWidth: Integer;
+    FActiveParaBorder: TAlign;
     FActiveShape: TKMemoRTFShape;
     FActiveString: TKString;
+    FActiveState: TKMemoRTFState;
     FActiveTable: TKMemoTable;
+    FActiveTableBorder: TAlign;
+    FActiveTableCell: TKMemoTableCell;
+    FActiveTableCellXPos: Integer;
+    FActiveTableCol: Integer;
+    FActiveTableColCount: Integer;
+    FActiveTableLastRow: Boolean;
+    FActiveTableRow: TKMemoTableRow;
     FActiveText: TKMemoTextBlock;
-    FBackgroundImage: Boolean;
     FBlocks: TKMemoBlocks;
     FColorTable: TKMemoRTFColorTable;
-    FDefFontIndex: Integer;
+    FCtrlTable: TKMemoRTFCtrlTable;
+    FDefaultCodePage: Integer;
+    FDefaultFontIndex: Integer;
     FFontTable: TKMemoRTFFontTable;
-    FHeaderRead: Boolean;
-    FImageClass: TGraphicClass;
-    FImageEnhMetafile: Boolean;
-    FImageOriginalHeight: Integer;
-    FImageOriginalWidth: Integer;
     FIgnoreChars: Integer;
+    FIgnoreCharsAfterUnicode: Integer;
     FGraphicClass: TGraphicClass;
     FMemo: TKCustomMemo;
-    FParaBorder: TAlign;
+    FStack: TKMemoRTFStack;
     FStream: TMemoryStream;
-    FTableBorder: TAlign;
-    FTableCell: TKMemoTableCell;
-    FTableCellXPos: Integer;
-    FTableCol: Integer;
-    FTableColCount: Integer;
-    FTableRow: TKMemoTableRow;
-    FTableLastRow: Boolean;
-    FTextStyle: TKMemoTextStyle;
-    procedure AddText(const APart: TKString; ATextStyle: TKMemoTextStyle); virtual;
-    procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer; var CodePage: Integer); virtual;
+    FTmpTextStyle: TKMemoTextStyle;
+    procedure AddText(const APart: TKString); virtual;
+    procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer); virtual;
     procedure ApplyHighlight(ATextStyle: TKMemoTextStyle; AHighlightCode: Integer); virtual;
+    procedure FillCtrlTable; virtual;
     function ParamToBool(const AValue: AnsiString): Boolean; virtual;
     function ParamToColor(const AValue: AnsiString): TColor; virtual;
     function ParamToInt(const AValue: AnsiString): Integer; virtual;
@@ -167,22 +249,26 @@ type
     procedure FlushContainer; virtual;
     procedure FlushFont; virtual;
     procedure FlushImage; virtual;
-    procedure FlushParagraph(ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle); virtual;
+    procedure FlushParagraph; virtual;
     procedure FlushShape; virtual;
     procedure FlushTable; virtual;
     procedure FlushText; virtual;
     function HighlightCodeToColor(AValue: Integer): TColor; virtual;
+    procedure PopFromStack(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure PushToStack(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     function ReadNext(out ACtrl, AText: AnsiString; out AParam: Int64): Boolean; virtual;
-    procedure ReadColorGroup(const ACtrl, AText: AnsiString; AParam: Integer); virtual;
-    procedure ReadFontGroup(const ACtrl, AText: AnsiString; AParam: Integer); virtual;
-    function ReadHeaderGroup(const ACtrl, AText: AnsiString; AParam: Integer; var AGroup: TKMemoRTFGroup; var ACodePage: Integer): Boolean; virtual;
-    procedure ReadGroup(GroupIndex: Integer; Group: TKMemoRTFGroup; ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle; CodePage, IgnoreUnicodeChars: Integer); virtual;
-    procedure ReadPictureGroup(const ACtrl, AText: AnsiString; AParam: Integer); virtual;
-    function ReadShapeGroup(const ACtrl, AText: AnsiString; AParam: Integer): Boolean; virtual;
-    function ReadParaFormatting(const ACtrl: AnsiString; AParam: Integer; AParaStyle: TKMemoParaStyle): Boolean; virtual;
-    function ReadSpecialCharacter(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle; ACodePage, AIgnoreUnicodeChars: Integer): Boolean; virtual;
-    function ReadTableFormatting(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle): Boolean; virtual;
-    function ReadTextFormatting(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle; var ACodePage: Integer): Boolean; virtual;
+    procedure ReadColorGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadDocumentGroups(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadFontGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadHeaderGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadParaFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadPictureGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadShapeGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadSpecialCharacter(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadStream; virtual;
+    procedure ReadTableFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadTextFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadUnknownGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     function TwipsToPoints(AValue: Integer): Integer; virtual;
     property ActiveColor: TKMemoRTFColor read GetActiveColor;
     property ActiveContainer: TKMemoContainer read GetActiveContainer;
@@ -196,8 +282,7 @@ type
     procedure Load(const AFileName: TKString); virtual;
   end;
 
-  { TKMemoRTFWriter }
-
+  { Specifies the RTF writer. }
   TKMemoRTFWriter = class(TObject)
   private
   protected
@@ -538,6 +623,94 @@ begin
   end;
 end;
 
+{ TKMemoRTFCtrlItem }
+
+constructor TKMemoRTFCtrl.Create;
+begin
+  FCode := 0;
+  FCtrl := '';
+  FMethod := nil;
+end;
+
+{ TKMemoRTFCtrlTable }
+
+function KMemoRTFSearchCompare(Data: Pointer; Index: Integer; KeyPtr: Pointer): Integer;
+var
+  Tbl: TKMemoRTFCtrlTable;
+  TblCtrl, Ctrl: AnsiString;
+begin
+  Tbl := TKMemoRTFCtrlTable(Data);
+  Ctrl := AnsiString(keyPtr);
+  TblCtrl := Tbl[Index].Ctrl;
+  if Ctrl > TblCtrl then
+    Result := 1
+  else if Ctrl < TblCtrl then
+    Result := -1
+  else
+    Result := 0;
+end;
+
+function KMemoRTFSortCompare(Data: Pointer; Index1, Index2: Integer): Integer;
+var
+  Tbl: TKMemoRTFCtrlTable;
+  TblCtrl1, TblCtrl2: AnsiString;
+begin
+  Tbl := TKMemoRTFCtrlTable(Data);
+  TblCtrl1 := Tbl[Index1].Ctrl;
+  TblCtrl2 := Tbl[Index2].Ctrl;
+  if TblCtrl1 > TblCtrl2 then
+    Result := 1
+  else if TblCtrl1 < TblCtrl2 then
+    Result := -1
+  else
+    Result := 0;
+end;
+
+procedure KMemoRTFSortExchange(Data: Pointer; Index1, Index2: Integer);
+var
+  Tbl: TKMemoRTFCtrlTable;
+begin
+  Tbl := TKMemoRTFCtrlTable(Data);
+  Tbl.Exchange(Index1, Index2);
+end;
+
+procedure TKMemoRTFCtrlTable.AddCtrl(const ACtrl: AnsiString; ACode: Integer; AMethod: TKMemoRTFCtrlMethod);
+var
+  Item: TKMemoRTFCtrl;
+begin
+  Item := TKMemoRTFCtrl.Create;
+  Item.Ctrl := ACtrl;
+  Item.Code := ACode;
+  Item.Method := AMethod;
+  inherited Add(Item);
+end;
+
+function TKMemoRTFCtrlTable.FindByCtrl(const ACtrl: AnsiString): TKMemoRtfCtrl;
+var
+  Index: Integer;
+begin
+  Index := BinarySearch(Self, Count, Pointer(ACtrl), KMemoRTFSearchCompare, True);
+  if Index >= 0 then
+    Result := Items[Index]
+  else
+    Result := nil;
+end;
+
+function TKMemoRTFCtrlTable.GetItem(Index: Integer): TKMemoRTFCtrl;
+begin
+  Result := TKMemoRTFCtrl(inherited GetItem(Index));
+end;
+
+procedure TKMemoRTFCtrlTable.SetItem(Index: Integer; const Value: TKMemoRTFCtrl);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+procedure TKMemoRTFCtrlTable.SortTable;
+begin
+  QuickSort(Self, Count, KMemoRTFSortCompare, KMemoRTFSortExchange, True);
+end;
+
 { TKMemoRTFColor }
 
 constructor TKMemoRTFColor.Create;
@@ -678,13 +851,14 @@ begin
   FBackground := False;
   FContentPosition := TKRect.Create;
   FContentType := sctUnknown;
+  FFillBlip := False;
   FFitToShape := False;
   FFitToText := True;
   FHorzPosCode := 0;
   FItem := nil;
   FStyle := TKMemoBlockStyle.Create;
   FStyle.Brush.Color := clWhite;
-  FStyle.ContentPadding.AssignFromValues(5, 5, 5, 5);
+  FStyle.ContentMargin.AssignFromValues(5, 5, 5, 5);
   FVertPosCode := 0;
   FWrap := 0;
   FWrapSide := 0;
@@ -759,53 +933,213 @@ begin
   end;
 end;
 
+{ TKMemoRTFState }
+
+procedure TKMemoRTFState.Assign(ASource: TKmemoRTFState);
+begin
+  if ASource <> nil then
+  begin
+    FGroup := ASource.Group;
+    FParaStyle.Assign(ASource.ParaStyle);
+    FTextStyle.Assign(ASource.TextStyle);
+    // don't assign the IsShape and IsPicture properties, they should not be inherited
+  end;
+end;
+
+constructor TKMemoRTFState.Create;
+begin
+  FGroup := rgNone;
+  FIsPicture := False;
+  FIsShape := False;
+  FParaStyle := TKMemoParaStyle.Create;
+  FTextStyle := TKMemoTextStyle.Create;
+end;
+
+destructor TKMemoRTFState.Destroy;
+begin
+  FParaStyle.Free;
+  FTextStyle.Free;
+  inherited;
+end;
+
+{ TKMemoRTFStack }
+
+function TKMemoRTFStack.Peek: TKMemoRTFState;
+begin
+  Result := TKMemoRTFState(inherited Peek);
+end;
+
+function TKMemoRTFStack.Pop: TKMemoRTFState;
+begin
+  Result := TKMemoRTFState(inherited Pop);
+end;
+
+function TKMemoRTFStack.Push(AObject: TKMemoRTFState): TKMemoRTFState;
+begin
+  Result := TKMemoRTFState(inherited Push(AObject));
+end;
+
 { TKMemoRTFReader }
 
 constructor TKMemoRTFReader.Create(AMemo: TKCustomMemo);
 begin
   FBlocks := AMemo.Blocks;
   FColorTable := TKMemoRTFColorTable.Create;
+  FCtrlTable := TKMemoRTFCtrlTable.Create;
   FFontTable := TKMemoRTFFontTable.Create;
   FMemo := AMemo;
+  FStack := TKMemoRTFStack.Create;
   FStream := TMemoryStream.Create;
-  FTextStyle := TKMemoTextStyle.Create;
+  FTmpTextStyle := TKMemoTextStyle.Create;
+  FillCtrlTable;
+  FCtrlTable.SortTable;
 end;
 
 destructor TKMemoRTFReader.Destroy;
 begin
   FColorTable.Free;
+  FCtrlTable.Free;
   FFontTable.Free;
+  FStack.Free;
   FStream.Free;
-  FTextStyle.Free;
+  FTmpTextStyle.Free;
   inherited;
 end;
 
-function TKMemoRTFReader.ParamToBool(const AValue: AnsiString): Boolean;
+procedure TKMemoRTFReader.FillCtrlTable;
 begin
-  Result := Boolean(StrToIntDef(string(AValue), 0));
+  // control symbols
+  FCtrlTable.AddCtrl('{', 0, PushToStack);
+  FCtrlTable.AddCtrl('}', 0, PopFromStack);
+  FCtrlTable.AddCtrl('*', Integer(rpuUnknownSym), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('shpinst', Integer(rpuShapeInst), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('shppict', Integer(rpuShapePict), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('nonshppict', Integer(rpuNonShapePict), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('background', Integer(rpuPageBackground), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('picprop', Integer(rpuPicProp), ReadUnknownGroup);
+  // header ctrls
+  FCtrlTable.AddCtrl('rtf', Integer(rphRtf), ReadHeaderGroup);
+  FCtrlTable.AddCtrl('ansicpg', Integer(rphCodePage), ReadHeaderGroup);
+  FCtrlTable.AddCtrl('deff', Integer(rphDefaultFont), ReadHeaderGroup);
+  FCtrlTable.AddCtrl('uc', Integer(rphIgnoreCharsAfterUnicode), ReadHeaderGroup);
+  FCtrlTable.AddCtrl('fonttbl', Integer(rphFontTable), ReadHeaderGroup);
+  FCtrlTable.AddCtrl('colortbl', Integer(rphColorTable), ReadHeaderGroup);
+  FCtrlTable.AddCtrl('stylesheet', Integer(rphStyleSheet), ReadHeaderGroup);
+  // document ctrls
+  FCtrlTable.AddCtrl('footer', Integer(rpdFooter), ReadDocumentGroups);
+  FCtrlTable.AddCtrl('footerl', Integer(rpdFooterLeft), ReadDocumentGroups);
+  FCtrlTable.AddCtrl('footerr', Integer(rpdFooterRight), ReadDocumentGroups);
+  FCtrlTable.AddCtrl('header', Integer(rpdHeader), ReadDocumentGroups);
+  FCtrlTable.AddCtrl('headerl', Integer(rpdHeaderLeft), ReadDocumentGroups);
+  FCtrlTable.AddCtrl('headerr', Integer(rpdHeaderRight), ReadDocumentGroups);
+  FCtrlTable.AddCtrl('info', Integer(rpdInfo), ReadDocumentGroups);
+  // color table ctrls
+  FCtrlTable.AddCtrl('red', Integer(rpcRed), ReadColorGroup);
+  FCtrlTable.AddCtrl('green', Integer(rpcGreen), ReadColorGroup);
+  FCtrlTable.AddCtrl('blue', Integer(rpcBlue), ReadColorGroup);
+  // font table ctrls
+  FCtrlTable.AddCtrl('f', Integer(rpfIndex), ReadFontGroup);
+  FCtrlTable.AddCtrl('fcharset', Integer(rpfCharset), ReadFontGroup);
+  FCtrlTable.AddCtrl('fprq', Integer(rpfPitch), ReadFontGroup);
+  // paragraph formatting ctrls
+  FCtrlTable.AddCtrl('pard', Integer(rppParD), ReadParaFormatting);
+  FCtrlTable.AddCtrl('fi', Integer(rppIndentFirst), ReadParaFormatting);
+  FCtrlTable.AddCtrl('li', Integer(rppIndentLeft), ReadParaFormatting);
+  FCtrlTable.AddCtrl('ri', Integer(rppIndentRight), ReadParaFormatting);
+  FCtrlTable.AddCtrl('sb', Integer(rppIndentTop), ReadParaFormatting);
+  FCtrlTable.AddCtrl('sa', Integer(rppIndentBottom), ReadParaFormatting);
+  FCtrlTable.AddCtrl('ql', Integer(rppAlignLeft), ReadParaFormatting);
+  FCtrlTable.AddCtrl('qc', Integer(rppAlignCenter), ReadParaFormatting);
+  FCtrlTable.AddCtrl('qr', Integer(rppAlignRight), ReadParaFormatting);
+  FCtrlTable.AddCtrl('qj', Integer(rppAlignJustify), ReadParaFormatting);
+  FCtrlTable.AddCtrl('cbpat', Integer(rppBackColor), ReadParaFormatting);
+  FCtrlTable.AddCtrl('nowwrap', Integer(rppNoWordWrap), ReadParaFormatting);
+  FCtrlTable.AddCtrl('brdrb', Integer(rppBorderBottom), ReadParaFormatting);
+  FCtrlTable.AddCtrl('brdrl', Integer(rppBorderLeft), ReadParaFormatting);
+  FCtrlTable.AddCtrl('brdrr', Integer(rppBorderRight), ReadParaFormatting);
+  FCtrlTable.AddCtrl('brdrt', Integer(rppBorderTop), ReadParaFormatting);
+  FCtrlTable.AddCtrl('box', Integer(rppBorderAll), ReadParaFormatting);
+  FCtrlTable.AddCtrl('brdrw', Integer(rppBorderWidth), ReadParaFormatting);
+  FCtrlTable.AddCtrl('brdrnone', Integer(rppBorderNone), ReadTableFormatting);
+  FCtrlTable.AddCtrl('brdrradius', Integer(rppBorderRadius), ReadParaFormatting);
+  FCtrlTable.AddCtrl('brdrcf', Integer(rppBorderColor), ReadParaFormatting);
+  FCtrlTable.AddCtrl('par', Integer(rppPar), ReadParaFormatting);
+  // picture group ctrls
+  FCtrlTable.AddCtrl('pict', Integer(rpiPict), ReadPictureGroup);
+  FCtrlTable.AddCtrl('jpegblip', Integer(rpiJpeg), ReadPictureGroup);
+  FCtrlTable.AddCtrl('pngblip', Integer(rpiPng), ReadPictureGroup);
+  FCtrlTable.AddCtrl('emfblip', Integer(rpiEmf), ReadPictureGroup);
+  FCtrlTable.AddCtrl('wmetafile', Integer(rpiWmf), ReadPictureGroup);
+  FCtrlTable.AddCtrl('picw', Integer(rpiWidth), ReadPictureGroup);
+  FCtrlTable.AddCtrl('pich', Integer(rpiHeight), ReadPictureGroup);
+  FCtrlTable.AddCtrl('piccropb', Integer(rpiCropBottom), ReadPictureGroup);
+  FCtrlTable.AddCtrl('piccropl', Integer(rpiCropLeft), ReadPictureGroup);
+  FCtrlTable.AddCtrl('piccropr', Integer(rpiCropRight), ReadPictureGroup);
+  FCtrlTable.AddCtrl('piccropt', Integer(rpiCropTop), ReadPictureGroup);
+  FCtrlTable.AddCtrl('picwgoal', Integer(rpiReqWidth), ReadPictureGroup);
+  FCtrlTable.AddCtrl('pichgoal', Integer(rpiReqHeight), ReadPictureGroup);
+  // shape ctrls
+  FCtrlTable.AddCtrl('shp', Integer(rpsShape), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shpbottom', Integer(rpsBottom), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shpleft', Integer(rpsLeft), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shpright', Integer(rpsRight), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shptop', Integer(rpsTop), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shpbxcolumn', Integer(rpsXColumn), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shpbypara', Integer(rpsYPara), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shpwr', Integer(rpsWrap), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shpwrk', Integer(rpsWrapSide), ReadShapeGroup);
+  FCtrlTable.AddCtrl('sn', Integer(rpsSn), ReadShapeGroup);
+  FCtrlTable.AddCtrl('sv', Integer(rpsSv), ReadShapeGroup);
+  FCtrlTable.AddCtrl('shptxt', Integer(rpsShapeText), ReadShapeGroup);
+  // special character ctrls
+  FCtrlTable.AddCtrl('tab', Integer(rpscTab), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('lquote', Integer(rpscLQuote), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('rquote', Integer(rpscRQuote), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('ldblquote', Integer(rpscLDblQuote), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('rdblquote', Integer(rpscRDblQuote), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('endash', Integer(rpscEnDash), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('emdash', Integer(rpscEmDash), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('bullet', Integer(rpscBullet), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('~', Integer(rpscNBSP), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('emspace', Integer(rpscEmSpace), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('enspace', Integer(rpscEnSpace), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('''', Integer(rpscAnsiChar), ReadSpecialCharacter);
+  FCtrlTable.AddCtrl('u', Integer(rpscUnicodeChar), ReadSpecialCharacter);
+  // table formatting ctrls
+  FCtrlTable.AddCtrl('trowd', Integer(rptbRowBegin), ReadTableFormatting);
+  FCtrlTable.AddCtrl('cell', Integer(rptbCellEnd), ReadTableFormatting);
+  FCtrlTable.AddCtrl('row', Integer(rptbRowEnd), ReadTableFormatting);
+  FCtrlTable.AddCtrl('lastrow', Integer(rptbLastRow), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddb', Integer(rptbPaddBottom), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddl', Integer(rptbPaddLeft), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddr', Integer(rptbPaddRight), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddt', Integer(rptbPaddTop), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trgaph', Integer(rptbPaddAll), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clbrdrb', Integer(rptbBorderBottom), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clbrdrl', Integer(rptbBorderLeft), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clbrdrr', Integer(rptbBorderRight), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clbrdrt', Integer(rptbBorderTop), ReadTableFormatting);
+//  FCtrlTable.AddCtrl('brdrw', Integer(rptbBorderWidth), ReadTableFormatting); // see ReadParaFormatting
+//  FCtrlTable.AddCtrl('brdrnone', Integer(rptbBorderNone), ReadTableFormatting); // see ReadParaFormatting
+//  FCtrlTable.AddCtrl('brdrcf', Integer(rptbBorderColor), ReadParaFormatting); // see ReadParaFormatting
+  FCtrlTable.AddCtrl('clcbpat', Integer(rptbBackColor), ReadTableFormatting);
+  FCtrlTable.AddCtrl('cellx', Integer(rptbCellX), ReadTableFormatting);
+  // text formatting ctrls
+  FCtrlTable.AddCtrl('plain', Integer(rptPlain), ReadTextFormatting);
+//  FCtrlTable.AddCtrl('f', Integer(rptFontIndex), ReadTextFormatting); see ReadFontGroup
+  FCtrlTable.AddCtrl('b', Integer(rptBold), ReadTextFormatting);
+  FCtrlTable.AddCtrl('i', Integer(rptItalic), ReadTextFormatting);
+  FCtrlTable.AddCtrl('ul', Integer(rptUnderline), ReadTextFormatting);
+  FCtrlTable.AddCtrl('strike', Integer(rptStrikeout), ReadTextFormatting);
+  FCtrlTable.AddCtrl('caps', Integer(rptCaps), ReadTextFormatting);
+  FCtrlTable.AddCtrl('scaps', Integer(rptSmallCaps), ReadTextFormatting);
+  FCtrlTable.AddCtrl('fs', Integer(rptFontSize), ReadTextFormatting);
+  FCtrlTable.AddCtrl('cf', Integer(rptForeColor), ReadTextFormatting);
+  FCtrlTable.AddCtrl('cb', Integer(rptBackColor), ReadTextFormatting);
+  FCtrlTable.AddCtrl('highlight', Integer(rptBackColor), ReadTextFormatting);
 end;
 
-function TKMemoRTFReader.ParamToColor(const AValue: AnsiString): TColor;
-begin
-  Result := ColorRecToColor(MakeColorRec(StrToIntDef(string(AValue), 0)));
-end;
-
-function TKMemoRTFReader.ParamToEMU(const AValue: AnsiString): Integer;
-begin
-  Result := EMUToPoints(StrToIntDef(string(AValue), 0));
-end;
-
-function TKMemoRTFReader.ParamToInt(const AValue: AnsiString): Integer;
-begin
-  Result := StrToIntDef(string(AValue), 0);
-end;
-
-function TKMemoRTFReader.EMUToPoints(AValue: Integer): Integer;
-begin
-  Result := DivUp(AValue, 12700);
-end;
-
-procedure TKMemoRTFReader.AddText(const APart: TKString; ATextStyle: TKMemoTextStyle);
+procedure TKMemoRTFReader.AddText(const APart: TKString);
 var
   S: TKString;
 begin
@@ -817,22 +1151,22 @@ begin
   end;
   if S <> '' then
   begin
-    FTextStyle.Assign(ATextStyle);
-    if FTextStyle.StyleChanged then
+    FTmpTextStyle.Assign(FActiveState.TextStyle);
+    if FTmpTextStyle.StyleChanged then
     begin
       FlushText;
-      FTextStyle.StyleChanged := False;
+      FTmpTextStyle.StyleChanged := False;
     end;
     if FActiveText = nil then
     begin
       FActiveText := TKMemoTextBlock.Create(nil);
-      FActiveText.TextStyle.Assign(FTextStyle);
+      FActiveText.TextStyle.Assign(FTmpTextStyle);
     end;
     FActiveString := FActiveString + S;
   end;
 end;
 
-procedure TKMemoRTFReader.ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer; var CodePage: Integer);
+procedure TKMemoRTFReader.ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer);
 var
   Font: TFont;
 begin
@@ -842,7 +1176,6 @@ begin
     ATextStyle.Font.Name := Font.Name;
     ATextStyle.Font.Charset := Font.Charset;
     ATextStyle.Font.Pitch := Font.Pitch;
-    CodePage := CharSetToCP(Font.Charset);
   end else
   asm
     nop
@@ -858,6 +1191,11 @@ begin
     ATextStyle.Brush.Color := Color
   else
     ATextStyle.Brush.Style := bsClear;
+end;
+
+function TKMemoRTFReader.EMUToPoints(AValue: Integer): Integer;
+begin
+  Result := DivUp(AValue, 12700);
 end;
 
 procedure TKMemoRTFReader.FlushColor;
@@ -897,17 +1235,19 @@ begin
   end;
 end;
 
-procedure TKMemoRTFReader.FlushParagraph(ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle);
+procedure TKMemoRTFReader.FlushParagraph;
 var
   PA: TKMemoParagraph;
 begin
   PA := FBlocks.AddParagraph;
-  PA.TextStyle.Assign(ATextStyle);
-  PA.ParaStyle.Assign(AParaStyle);
-  FParaBorder := alNone;
+  PA.TextStyle.Assign(FActiveState.TextStyle);
+  PA.ParaStyle.Assign(FActiveState.ParaStyle);
+  FActiveParaBorder := alNone;
 end;
 
 procedure TKMemoRTFReader.FlushShape;
+var
+  State: TKMemoRTFState;
 begin
   if FActiveShape <> nil then
   begin
@@ -928,16 +1268,19 @@ begin
       end;
       sctRectangle:
       begin
-        // currently only document background supported
-        if FBackgroundImage then
+        // currently only document background supported, look if it is the case
+        State := FStack.Peek;
+        if (State <> nil) and (State.Group = rgPageBackground) then
         begin
-          if FActiveImage <> nil then
+          if FActiveShape.FillBlip then
           begin
-            FMemo.BackgroundImage.Assign(ActiveImage.Image);
-            FreeAndNil(FActiveImage);
+            if FActiveImage <> nil then
+            begin
+              FMemo.BackgroundImage.Assign(ActiveImage.Image);
+              FreeAndNil(FActiveImage);
+            end;
           end else
             FMemo.Colors.BkGnd := FActiveShape.Style.Brush.Color;
-          FBackgroundImage := False;
         end;
       end;
       sctTextBox:
@@ -954,8 +1297,8 @@ begin
             ActiveContainer.LeftOffset := FActiveShape.ContentPosition.Left;
           if FActiveShape.VertPosCode = 2 then
             ActiveContainer.TopOffset := FActiveShape.ContentPosition.Top;
-          ActiveContainer.RequiredWidth := FActiveShape.ContentPosition.Right - FActiveShape.ContentPosition.Left - FActiveShape.Style.BorderWidth * 2;
-          ActiveContainer.RequiredHeight := FActiveShape.ContentPosition.Bottom - FActiveShape.ContentPosition.Top - FActiveShape.Style.BorderWidth * 2;
+          ActiveContainer.RequiredWidth := FActiveShape.ContentPosition.Right - FActiveShape.ContentPosition.Left;
+          ActiveContainer.RequiredHeight := FActiveShape.ContentPosition.Bottom - FActiveShape.ContentPosition.Top;
           ActiveContainer.BlockStyle.Assign(FActiveShape.Style);
           FlushContainer;
         end;
@@ -978,6 +1321,8 @@ begin
     FBlocks := FActiveTable.Parent;
     FBlocks.AddAt(FActiveTable);
     FActiveTable := nil;
+    FActiveTableRow := nil;
+    FActiveTableCell := nil;
   end;
 end;
 
@@ -1025,10 +1370,7 @@ end;
 function TKMemoRTFReader.GetActiveImage: TKMemoImageBlock;
 begin
   if FActiveImage = nil then
-  begin
     FActiveImage := TKMemoImageBlock.Create(nil);
-    FActiveImage.ImageStyle.ContentPadding.AssignFromValues(0, 0, 0, 0);
-  end;
   Result := FActiveImage;
 end;
 
@@ -1048,6 +1390,7 @@ end;
 
 function TKMemoRTFReader.HighlightCodeToColor(AValue: Integer): TColor;
 begin
+  // it seems that highlight color is taken from color table, is it correct?
   case AValue of
     1: Result := clBlack;
     2: Result := clBlue;
@@ -1082,37 +1425,104 @@ begin
     FActiveContainer := nil;
     FActiveFont := nil;
     FActiveImage := nil;
+    FActiveImageClass := nil;
+    FActiveParaBorder := alNone;
     FActiveShape := nil;
-    FActiveTable := nil;
+    FActiveState := TKMemoRTFState.Create;
     FActiveString := '';
+    FActiveTable := nil;
+    FActiveTableBorder := alNone;
+    FActiveTableCell := nil;
+    FActiveTableCol := -1;
+    FActiveTableColCount := 0;
+    FActiveTableRow := nil;
     FActiveText := nil;
-    FBackgroundImage := False;
     FColorTable.Clear;
-    FDefFontIndex := 0;
-    FHeaderRead := False;
-    FImageClass := nil;
+    FDefaultFontIndex := 0;
     FIgnoreChars := 0;
-    FParaBorder := alNone;
-    FTableBorder := alNone;
-    FTableCell := nil;
-    FTableCol := -1;
-    FTableColCount := 0;
-    FTableRow := nil;
     FBlocks.LockUpdate;
     try
       FBlocks.Clear;
-      ReadGroup(0, rgNone, FMemo.TextStyle, FMemo.ParaStyle, 0, 0);
+      FActiveState.Group := rgUnknown; // we wait for file header
+      FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
+      FActiveState.TextStyle.Assign(FMemo.TextStyle);
+      ReadStream;
     finally
       FlushColor;
       FlushFont;
       FlushText;
       FlushShape;
       FlushImage;
+      FActiveState.Free;
       FBlocks.UnlockUpdate;
     end;
   except
     KFunctions.Error(sErrMemoLoadFromRTF);
   end;
+end;
+
+function TKMemoRTFReader.ParamToBool(const AValue: AnsiString): Boolean;
+begin
+  Result := Boolean(StrToIntDef(string(AValue), 0));
+end;
+
+function TKMemoRTFReader.ParamToColor(const AValue: AnsiString): TColor;
+begin
+  Result := ColorRecToColor(MakeColorRec(StrToIntDef(string(AValue), 0)));
+end;
+
+function TKMemoRTFReader.ParamToEMU(const AValue: AnsiString): Integer;
+begin
+  Result := EMUToPoints(StrToIntDef(string(AValue), 0));
+end;
+
+function TKMemoRTFReader.ParamToInt(const AValue: AnsiString): Integer;
+begin
+  Result := StrToIntDef(string(AValue), 0);
+end;
+
+procedure TKMemoRTFReader.PopFromStack(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
+var
+  State: TKMemoRTFState;
+begin
+  State := FStack.Peek;
+  if State <> nil then
+  begin
+    if FActiveState.Group = rgShape then
+    begin
+      // standard shape group
+      FlushShape
+    end
+    else if FActiveState.Group = rgShapePict then
+    begin
+      // image inside of shppict group (Word 97 and newer images)
+      FlushText;
+      if FActiveImage <> nil then
+      begin
+        if FActiveShape <> nil then
+          FActiveImage.ImageStyle.Assign(FActiveShape.Style);
+        FlushImage;
+      end;
+    end
+    else if (FActiveState.Group = rgPicture) and (State.Group in [rgNone, rgTextBox]) then
+    begin
+      // standalone image outside of shppict and shape group (e.g. results of embedded objects)
+      FlushText;
+      FlushImage;
+    end;
+    FActiveState.Free;
+    FActiveState := FStack.Pop;
+  end;
+end;
+
+procedure TKMemoRTFReader.PushToStack(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
+var
+  State: TKMemoRTFState;
+begin
+  FStack.Push(FActiveState);
+  State := TKMemoRTFState.Create;
+  State.Assign(FActiveState);
+  FActiveState := State;
 end;
 
 function TKMemoRTFReader.ReadNext(out ACtrl, AText: AnsiString; out AParam: Int64): Boolean;
@@ -1191,788 +1601,568 @@ begin
     ReadText(AText, C);
 end;
 
-procedure TKMemoRTFReader.ReadColorGroup(const ACtrl, AText: AnsiString; AParam: Integer);
+procedure TKMemoRTFReader.ReadColorGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  if ACtrl = 'red' then
-    ActiveColor.Red := Byte(AParam)
-  else if ACtrl = 'green' then
-    ActiveColor.Green := Byte(AParam)
-  else if ACtrl = 'blue' then
-    ActiveColor.Blue := Byte(AParam);
-  if AText = ';' then
-    FlushColor;
+  if FActiveState.Group = rgColorTable then
+  begin
+    case TKMemoRTFColorProp(ACtrl) of
+      rpcRed: ActiveColor.Red := Byte(AParam);
+      rpcGreen: ActiveColor.Green := Byte(AParam);
+      rpcBlue: ActiveColor.Blue := Byte(AParam);
+    end;
+    if AText = ';' then
+    begin
+      FlushColor;
+      AText := ''; // we used the text
+    end;
+  end;
 end;
 
-procedure TKMemoRTFReader.ReadFontGroup(const ACtrl, AText: AnsiString; AParam: Integer);
+procedure TKMemoRTFReader.ReadDocumentGroups(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
+begin
+  if FActiveState.Group = rgNone then case TKMemoRTFDocumentProp(ACtrl) of
+    rpdFooter, rpdFooterLeft, rpdFooterRight: FActiveState.Group := rgFooter;
+    rpdHeader, rpdHeaderLeft, rpdHeaderRight: FActiveState.Group := rgHeader;
+    rpdInfo: FActiveState.Group := rgInfo;
+  end;
+end;
+
+procedure TKMemoRTFReader.ReadFontGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 var
   I: Integer;
   S: TKString;
 begin
-  if ACtrl = 'f' then
-    ActiveFont.FFontIndex := AParam
-  else if ACtrl = 'fcharset' then
-    ActiveFont.Font.Charset := AParam
-  else if ACtrl = 'fprq' then
+  if FActiveState.Group = rgFontTable then
   begin
-    case AParam of
-      1: ActiveFont.Font.Pitch := fpFixed;
-      2: ActiveFont.Font.Pitch := fpVariable;
-    else
-      ActiveFont.Font.Pitch := fpDefault;
-    end;
-  end;
-  if AText <> '' then
-  begin
-    S := TKString(AText);
-    I := Pos(';', S);
-    if I > 0 then
-      Delete(S, I, 1);
-    ActiveFont.Font.Name := S;
-    FlushFont;
-  end
-end;
-
-procedure TKMemoRTFReader.ReadGroup(GroupIndex: Integer; Group: TKMemoRTFGroup; ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle; CodePage, IgnoreUnicodeChars: Integer);
-var
-  Ctrl: AnsiString;
-  Text: AnsiString;
-  Param: Int64;
-  LocalTextStyle: TKMemoTextStyle;
-  LocalParaStyle: TKMemoParaStyle;
-  IsPicture, IsShapeInst: Boolean;
-begin
-  IsPicture := False;
-  IsShapeInst := False;
-  LocalParaStyle := TKMemoParaStyle.Create;
-  LocalTextStyle := TKMemoTextStyle.Create;
-  try
-    LocalParaStyle.Assign(AParaStyle);
-    LocalTextStyle.Assign(ATextStyle);
-    Ctrl := '';
-    while (FStream.Position < FStream.Size) and (Ctrl <> '}') do
-    begin
-      ReadNext(Ctrl, Text, Param);
-      if (Ctrl <> '') or (Text <> '') then
+    case TKMemoRTFFontProp(ACtrl) of
+      rpfIndex: ActiveFont.FFontIndex := AParam;
+      rpfCharSet: ActiveFont.Font.Charset := AParam;
+      rpfPitch:
       begin
-        if Ctrl = '{' then
-        begin
-          ReadGroup(GroupIndex + 1, Group, LocalTextStyle, LocalParaStyle, CodePage, IgnoreUnicodeChars)
-        end
-        else if Ctrl = '*' then
-        begin
-          if Group <> rgShape then
-            Group := rgUnknown;
-        end
-        else if Ctrl <> '}' then
-        begin
-          case Group of
-            rgColorTable: ReadColorGroup(Ctrl, Text, Param);
-            rgFontTable: ReadFontGroup(Ctrl, Text, Param);
-            rgFooter:;
-            rgHeader:;
-            rgInfo:;
-            rgPicture: ReadPictureGroup(Ctrl, Text, Param);
-            rgShape:
-            begin
-              if Ctrl = 'shpinst' then
-              begin
-                IsShapeInst := True;
-                Group := rgShapeInst;
-              end;
-            end;
-            rgShapeInst: if not ReadShapeGroup(Ctrl, Text, Param) then
-            begin
-              if Ctrl = 'pict' then
-              begin
-                Group := rgPicture // picture in this shape
-              end
-              else if Ctrl = 'shptxt' then
-              begin
-                FlushText;
-                ActiveShape.ContentType := sctTextBox;
-                FBlocks := ActiveContainer.Blocks;
-                Group := rgText // text in this shape
-              end;
-            end;
-            rgShapePict:
-            begin
-              if Ctrl = 'pict' then
-              begin
-                Group := rgPicture;
-                IsPicture := True;
-              end;
-            end;
-            rgStyleSheet:;
-            rgUnknown:
-            begin
-              if Ctrl = 'shppict' then
-              begin
-                FlushText;
-                FlushShape;
-                Group := rgShapePict; // picture inside text
-              end
-              else if Ctrl = 'background' then
-              begin
-                FBackgroundImage := True;
-                Group := rgNone;
-              end;
-            end;
-          else
-            if not FHeaderRead then
-            begin
-              if Ctrl = 'rtf' then
-                FHeaderRead := True;
-            end else
-            begin
-              if Ctrl <> '' then
-              begin
-                if Ctrl = 'par' then
-                begin
-                  FlushText;
-                  FlushParagraph(LocalTextStyle, LocalParaStyle);
-                end
-                // supported text formatting
-                else if ReadTextFormatting(Ctrl, Param, LocalTextStyle, CodePage) then
-                begin
-                end
-                // supported paragraph formatting
-                else if ReadParaFormatting(Ctrl, Param, LocalParaStyle) then
-                begin
-                end
-                // supported special characters
-                else if ReadSpecialCharacter(Ctrl, Param, LocalTextStyle, CodePage, IgnoreUnicodeChars) then
-                begin
-                end
-                // supported table commands
-                else if ReadTableFormatting(Ctrl, Param, LocalTextStyle, LocalParaStyle) then
-                begin
-                end
-                // shape control words
-                else if Ctrl = 'shp' then
-                begin
-                  Group := rgShape;
-                end
-                else if Ctrl = 'nonshppict' then
-                begin
-                  Group := rgUnknown;
-                end
-                else if Ctrl = 'pict' then
-                begin
-                  FlushText;
-                  FlushShape;
-                  Group := rgPicture;
-                  IsPicture := True; // picture inside text
-                end
-                else if Ctrl = 'uc' then
-                begin
-                  IgnoreUnicodeChars := Param;
-                end
-                // file header control words (unfortunately header has not its own group)
-                else if ReadHeaderGroup(Ctrl, Text, Param, Group, CodePage) then
-                begin
-                  Text := '';
-                end
-                // document headers
-                else if (Ctrl = 'header') or (Ctrl = 'headerl') or (Ctrl = 'headerr') then
-                begin
-                  Group := rgHeader;
-                end
-                // document footers
-                else if (Ctrl = 'footer') or (Ctrl = 'footerl') or (Ctrl = 'footerr') then
-                begin
-                  Group := rgHeader;
-                end
-                // document info
-                else if Ctrl = 'info' then
-                begin
-                  Group := rgInfo;
-                end
-              end;
-              if Text <> '' then
-              begin
-                AddText(TKString(Text), LocalTextStyle);
-              end
-            end;
-          end;
+        case AParam of
+          1: ActiveFont.Font.Pitch := fpFixed;
+          2: ActiveFont.Font.Pitch := fpVariable;
+        else
+          ActiveFont.Font.Pitch := fpDefault;
         end;
       end;
     end;
-    if IsPicture then
-      FlushImage;
-    if IsShapeInst then
-      FlushShape;
-  finally
-    LocalParaStyle.Free;
-    LocalTextStyle.Free;
+    if AText <> '' then
+    begin
+      S := TKString(AText);
+      I := Pos(';', S);
+      if I > 0 then
+        Delete(S, I, 1);
+      ActiveFont.Font.Name := S;
+      FlushFont;
+      AText := ''; // we used the text
+    end
+  end
+  else if FActiveState.Group in [rgNone, rgTextBox] then
+  begin
+    case TKMemoRTFFontProp(ACtrl) of
+      rpfIndex: ReadTextFormatting(Integer(rptFontIndex), AText, AParam);
+    end;
   end;
 end;
 
-function TKMemoRTFReader.ReadHeaderGroup(const ACtrl, AText: AnsiString; AParam: Integer; var AGroup: TKMemoRTFGroup; var ACodePage: Integer): Boolean;
+procedure TKMemoRTFReader.ReadHeaderGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  Result := True;
-  if ACtrl = 'ansicpg' then
+  if FActiveState.Group = rgUnknown then
   begin
-    ACodePage := AParam;
+    case TKMemoRTFheaderProp(ACtrl) of
+      rphRtf: FActiveState.Group := rgNone;
+    end;
   end
-  else if ACtrl = 'deff' then
-  begin
-    FDefFontIndex := AParam;
-  end
-  else if ACtrl = 'fonttbl' then
-  begin
-    AGroup := rgFontTable;
-  end
-  else if ACtrl = 'colortbl' then
-  begin
-    AGroup := rgColorTable;
-  end
-  else if ACtrl = 'stylesheet' then
-  begin
-    AGroup := rgStyleSheet;
-  end else
-    Result := False;
+  else if FActiveState.Group = rgNone then case TKMemoRTFheaderProp(ACtrl) of
+    rphCodePage: FDefaultCodePage := AParam;
+    rphDefaultFont: FDefaultFontIndex := AParam;
+    rphIgnoreCharsAfterUnicode: FIgnoreCharsAfterUnicode := AParam;
+    rphFontTable: FActiveState.Group := rgFontTable;
+    rphColorTable: FActiveState.Group := rgColorTable;
+    rphStyleSheet: FActiveState.Group := rgStyleSheet;
+  end;
 end;
 
-function TKMemoRTFReader.ReadParaFormatting(const ACtrl: AnsiString;
-  AParam: Integer; AParaStyle: TKMemoParaStyle): Boolean;
+procedure TKMemoRTFReader.ReadParaFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  Result := True;
-  if ACtrl = 'pard' then
-  begin
-    AParaStyle.Assign(FMemo.ParaStyle);
-  end
-  else if ACtrl = 'fi' then
-  begin
-    AParaStyle.FirstIndent := TwipsToPoints(AParam);
-  end
-  else if ACtrl = 'li' then
-  begin
-    AParaStyle.LeftPadding := TwipsToPoints(AParam);
-  end
-  else if ACtrl = 'ri' then
-  begin
-    AParaStyle.RightPadding := TwipsToPoints(AParam);
-  end
-  else if ACtrl = 'sb' then
-  begin
-    AParaStyle.TopPadding := TwipsToPoints(AParam);
-  end
-  else if ACtrl = 'sa' then
-  begin
-    AParaStyle.BottomPadding := TwipsToPoints(AParam);
-  end
-  else if ACtrl = 'ql' then
-  begin
-    AParaStyle.HAlign := halLeft;
-  end
-  else if ACtrl = 'qr' then
-  begin
-    AParaStyle.HAlign := halRight;
-  end
-  else if ACtrl = 'qc' then
-  begin
-    AParaStyle.HAlign := halCenter;
-  end
-  else if ACtrl = 'qj' then
-  begin
-    AParaStyle.HAlign := halJustify;
-  end
-  else if ACtrl = 'cbpat' then
-  begin
-    AParaStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
-  end
-  else if ACtrl = 'nowwrap' then
-  begin
-    AParaStyle.WordWrap := False;
-  end
-  else if ACtrl = 'brdrb' then
-    FParaBorder := alBottom
-  else if ACtrl = 'brdrl' then
-    FParaBorder := alLeft
-  else if ACtrl = 'brdrr' then
-    FParaBorder := alRight
-  else if ACtrl = 'brdrt' then
-    FParaBorder := alTop
-  else if ACtrl = 'box' then
-    FParaBorder := alClient
-  else if ACtrl = 'brdrw' then
-  begin
-    case FParaBorder of
-      alBottom: AParaStyle.BorderWidths.Bottom := TwipsToPoints(AParam);
-      alLeft: AParaStyle.BorderWidths.Left := TwipsToPoints(AParam);
-      alRight: AParaStyle.BorderWidths.Right := TwipsToPoints(AParam);
-      alTop: AParaStyle.BorderWidths.Top := TwipsToPoints(AParam);
-      alClient: AParaStyle.BorderWidth := TwipsToPoints(AParam);
+  if FActiveState.Group in [rgNone, rgTextBox] then case TKMemoRTFParaProp(ACtrl) of
+    rppParD: FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
+    rppIndentFirst: FActiveState.ParaStyle.FirstIndent := TwipsToPoints(AParam);
+    rppIndentBottom: FActiveState.ParaStyle.BottomPadding := TwipsToPoints(AParam);
+    rppIndentLeft: FActiveState.ParaStyle.LeftPadding := TwipsToPoints(AParam);
+    rppIndentRight: FActiveState.ParaStyle.RightPadding := TwipsToPoints(AParam);
+    rppIndentTop: FActiveState.ParaStyle.TopPadding := TwipsToPoints(AParam);
+    rppAlignLeft: FActiveState.ParaStyle.HAlign := halLeft;
+    rppAlignCenter: FActiveState.ParaStyle.HAlign := halCenter;
+    rppAlignRight: FActiveState.ParaStyle.HAlign := halRight;
+    rppAlignJustify: FActiveState.ParaStyle.HAlign := halJustify;
+    rppBackColor: FActiveState.ParaStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+    rppNoWordWrap: FActiveState.ParaStyle.WordWrap := False;
+    rppBorderBottom: FActiveParaBorder := alBottom;
+    rppBorderLeft: FActiveParaBorder := alLeft;
+    rppBorderRight: FActiveParaBorder := alRight;
+    rppBorderTop: FActiveParaBorder := alTop;
+    rppBorderAll: FActiveParaBorder := alClient;
+    rppBorderWidth:
+    case FActiveParaBorder of
+      alBottom: FActiveState.ParaStyle.BorderWidths.Bottom := TwipsToPoints(AParam);
+      alLeft: FActiveState.ParaStyle.BorderWidths.Left := TwipsToPoints(AParam);
+      alRight: FActiveState.ParaStyle.BorderWidths.Right := TwipsToPoints(AParam);
+      alTop: FActiveState.ParaStyle.BorderWidths.Top := TwipsToPoints(AParam);
+      alClient: FActiveState.ParaStyle.BorderWidth := TwipsToPoints(AParam);
     else
-      Result := False;
+      if FActiveTableBorder <> alNone then
+        ReadTableFormatting(Integer(rptbBorderWidth), AText, AParam)
+    end;
+    rppBorderNone:
+    case FActiveParaBorder of
+      alBottom: FActiveState.ParaStyle.BorderWidths.Bottom := 0;
+      alLeft: FActiveState.ParaStyle.BorderWidths.Left := 0;
+      alRight: FActiveState.ParaStyle.BorderWidths.Right := 0;
+      alTop: FActiveState.ParaStyle.BorderWidths.Top := 0;
+      alClient: FActiveState.ParaStyle.BorderWidth := 0;
+    else
+      if FActiveTableBorder <> alNone then
+        ReadTableFormatting(Integer(rptbBorderNone), AText, AParam)
+    end;
+    rppBorderRadius: FActiveState.ParaStyle.BorderRadius := TwipsToPoints(AParam);
+    rppBorderColor:
+    begin
+      if FActiveParaBorder <> alNone then
+        FActiveState.ParaStyle.BorderColor := FColorTable.GetColor(AParam - 1)
+      else if FActiveTableBorder <> alNone then
+        ReadTableFormatting(Integer(rptbBorderColor), AText, AParam)
+    end;
+    rppPar:
+    begin
+      FlushText;
+      FlushParagraph;
     end
-  end
-  else if ACtrl = 'brdrradius' then
-  begin
-    if FParaBorder <> alNone then
-      AParaStyle.BorderRadius := TwipsToPoints(AParam)
-    else
-      Result := False;
-  end
-  else if ACtrl = 'brdrcf' then
-  begin
-    if FParaBorder <> alNone then
-      AParaStyle.BorderColor := FColorTable.GetColor(AParam - 1)
-    else
-      Result := False;
-  end
-  else
-    Result := False;
+  end;
 end;
 
-procedure TKMemoRTFReader.ReadPictureGroup(const ACtrl, AText: AnsiString; AParam: Integer);
+procedure TKMemoRTFReader.ReadPictureGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 var
   S: AnsiString;
   MS: TMemoryStream;
   Image: TGraphic;
 begin
-  if ACtrl = 'jpegblip' then
-    FImageClass := TJpegImage
-{$IFDEF USE_PNG_SUPPORT}
-  else if ACtrl = 'pngblip' then
-    FImageClass := TKPngImage
-{$ENDIF}    
-{$IFDEF USE_WINAPI}
-  else if ACtrl = 'emfblip' then
+  if FActiveState.Group in [rgShapeInst, rgShapePict, rgNone, rgTextBox] then
   begin
-    FImageClass := TKMetafile;
-    FImageEnhMetafile := True;
-  end
-  else if ACtrl = 'wmetafile' then
-  begin
-    FImageClass := TKMetafile;
-    FImageEnhMetafile := False;
-  end
-{$ELSE}
-  // how do we load metafiles under other OSes?
-{$ENDIF}
-  else if ACtrl = 'picw' then
-    FImageOriginalWidth := AParam
-  else if ACtrl = 'pich' then
-    FImageOriginalHeight := AParam
-  else if ACtrl = 'piccropb' then
-    ActiveImage.Crop.Bottom := TwipsToPoints(AParam)
-  else if ACtrl = 'piccropl' then
-    ActiveImage.Crop.Left := TwipsToPoints(AParam)
-  else if ACtrl = 'piccropr' then
-    ActiveImage.Crop.Right := TwipsToPoints(AParam)
-  else if ACtrl = 'piccropt' then
-    ActiveImage.Crop.Top := TwipsToPoints(AParam)
-  else if ACtrl = 'picwgoal' then
-    ActiveImage.ScaleWidth := TwipsToPoints(AParam)
-  else if ACtrl = 'pichgoal' then
-    ActiveImage.ScaleHeight := TwipsToPoints(AParam);
-  if AText <> '' then
-  begin
-    if FImageClass <> nil then
-    begin
-      S := AText;
-      if DigitsToBinStr(S) then
+    case TKMemoRTFImageProp(ACtrl) of
+      rpiPict:
       begin
-        S := BinStrToBinary(S);
-        try
-          MS := TMemoryStream.Create;
-          try
-            MS.Write(S[1], Length(S));
-            MS.Seek(0, soFromBeginning);
-            Image := FImageClass.Create;
-            try
-            {$IFDEF USE_WINAPI}
-              if Image is TKMetafile then
-              begin
-                //if not FImageEnhMetafile then MS.SaveToFile('test.wmf');
-                TKMetafile(Image).CopyOnAssign := False; // we will destroy this instance anyway...
-                TKMetafile(Image).Enhanced := FImageEnhMetafile;
-                TKmetafile(Image).LoadFromStream(MS);
-                if not FImageEnhMetafile then
-                begin
-                  // WMF extent could be incorrect here, so use RTF info
-                  TKMetafile(Image).Width := FImageOriginalWidth;
-                  TKMetafile(Image).Height := FImageOriginalHeight;
-                end;
-              end else
-            {$ENDIF}
-                Image.LoadFromStream(MS);
-              ActiveImage.Image.Graphic := Image;
-            finally
-              Image.Free;
-            end;
-          finally
-            MS.Free;
-          end;
-        except
-          KFunctions.Error(sErrMemoLoadImageFromRTF);
-        end;
+        FActiveState.Group := rgPicture;
       end;
-      FImageClass := nil;
-    end else
-    asm
-      nop;
+    end;
+  end
+  else if FActiveState.Group in [rgPicture] then
+  begin
+    case TKMemoRTFImageProp(ACtrl) of
+      rpiJPeg: FActiveImageClass := TJpegImage;
+    {$IFDEF USE_PNG_SUPPORT}
+      rpiPng: FActiveImageClass := TKPngImage;
+    {$ENDIF}
+    {$IFDEF USE_WINAPI}
+      rpiEmf:
+      begin
+        FActiveImageClass := TKMetafile;
+        FActiveImageIsEMF := True;
+      end;
+      rpiWmf:
+      begin
+        FActiveImageClass := TKMetafile;
+        FActiveImageIsEMF := False;
+      end;
+    {$ENDIF}
+      rpiWidth: FActiveImageOriginalWidth := AParam;
+      rpiHeight: FActiveImageOriginalHeight := AParam;
+      rpiCropBottom: ActiveImage.Crop.Bottom := TwipsToPoints(AParam);
+      rpiCropLeft: ActiveImage.Crop.Left := TwipsToPoints(AParam);
+      rpiCropRight: ActiveImage.Crop.Right := TwipsToPoints(AParam);
+      rpiCropTop: ActiveImage.Crop.Top := TwipsToPoints(AParam);
+      rpiReqWidth: ActiveImage.ScaleWidth := TwipsToPoints(AParam);
+      rpiReqHeight: ActiveImage.ScaleHeight := TwipsToPoints(AParam);
+    end;
+    if AText <> '' then
+    begin
+      if FActiveImageClass <> nil then
+      begin
+        S := AText;
+        if DigitsToBinStr(S) then
+        begin
+          S := BinStrToBinary(S);
+          try
+            MS := TMemoryStream.Create;
+            try
+              MS.Write(S[1], Length(S));
+              MS.Seek(0, soFromBeginning);
+              Image := FActiveImageClass.Create;
+              try
+              {$IFDEF USE_WINAPI}
+                if Image is TKMetafile then
+                begin
+                  //if not FImageEnhMetafile then MS.SaveToFile('test.wmf');
+                  TKMetafile(Image).CopyOnAssign := False; // we will destroy this instance anyway...
+                  TKMetafile(Image).Enhanced := FActiveImageIsEMF;
+                  TKmetafile(Image).LoadFromStream(MS);
+                  if not FActiveImageIsEMF then
+                  begin
+                    // WMF extent could be incorrect here, so use RTF info
+                    TKMetafile(Image).Width := FActiveImageOriginalWidth;
+                    TKMetafile(Image).Height := FActiveImageOriginalHeight;
+                  end;
+                end else
+              {$ENDIF}
+                  Image.LoadFromStream(MS);
+                ActiveImage.Image.Graphic := Image;
+              finally
+                Image.Free;
+              end;
+            finally
+              MS.Free;
+            end;
+          except
+            KFunctions.Error(sErrMemoLoadImageFromRTF);
+          end;
+        end;
+        FActiveImageClass := nil;
+      end else
+      asm
+        nop;
+      end;
+      AText := ''; // we used the text
     end;
   end;
 end;
 
-function TKMemoRTFReader.ReadShapeGroup(const ACtrl, AText: AnsiString; AParam: Integer): Boolean;
+procedure TKMemoRTFReader.ReadShapeGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  Result := True;
-  if ACtrl = 'shpleft' then
-    ActiveShape.ContentPosition.Left := TwipsToPoints(AParam)
-  else if ACtrl = 'shpright' then
-    ActiveShape.ContentPosition.Right := TwipsToPoints(AParam)
-  else if ACtrl = 'shptop' then
-    ActiveShape.ContentPosition.Top := TwipsToPoints(AParam)
-  else if ACtrl = 'shpbottom' then
-    ActiveShape.ContentPosition.Bottom := TwipsToPoints(AParam)
-  else if ACtrl = 'shpbxcolumn' then
-    ActiveShape.HorzPosCode := 2 // we silently assume posrelh always comes later
-  else if ACtrl = 'shpbypara' then
-    ActiveShape.VertPosCode := 2 // we silently assume posrelv always comes later
-  else if ACtrl = 'shpwr' then
-    ActiveShape.Wrap := AParam
-  else if ACtrl = 'shpwrk' then
-    ActiveShape.WrapSide := AParam
-  else if ACtrl = 'sn' then
-    ActiveShape.CtrlName := AText
-  else if ACtrl = 'sv' then
-  begin
-    ActiveShape.CtrlValue := AText;
-    if ActiveShape.CtrlName = 'posrelh' then
+  case TKMemoRTFShapeProp(ACtrl) of
+    rpsShape: FActiveState.Group := rgShape;
+  end;
+  if FActiveState.Group in [rgShapeInst, rgShapePict, rgPicProp] then case TKMemoRTFShapeProp(ACtrl) of
+    rpsBottom: ActiveShape.ContentPosition.Bottom := TwipsToPoints(AParam);
+    rpsLeft: ActiveShape.ContentPosition.Left := TwipsToPoints(AParam);
+    rpsRight: ActiveShape.ContentPosition.Right := TwipsToPoints(AParam);
+    rpsTop: ActiveShape.ContentPosition.Top := TwipsToPoints(AParam);
+    rpsXColumn: ActiveShape.HorzPosCode := 2; // we silently assume posrelh always comes later
+    rpsYPara: ActiveShape.VertPosCode := 2; // we silently assume posrelv always comes later
+    rpsWrap: ActiveShape.Wrap := AParam;
+    rpsWrapSide: ActiveShape.WrapSide := AParam;
+    rpsSn: ActiveShape.CtrlName := AText;
+    rpsSv:
     begin
-      ActiveShape.HorzPosCode := ParamToInt(AText);
-    end
-    else if ActiveShape.CtrlName = 'posrelv' then
-    begin
-      ActiveShape.VertPosCode := ParamToInt(AText);
-    end
-    else if ActiveShape.CtrlName = 'fFitShapeToText' then
-      ActiveShape.FitToText := True
-    else if ActiveShape.CtrlName = 'fFitTextToShape' then
-      ActiveShape.FitToShape := True
-    else if ActiveShape.CtrlName = 'fFilled' then
-    begin
-      if not ParamToBool(AText) then
-        ActiveShape.Style.Brush.Style := bsClear;
-    end
-    else if ActiveShape.CtrlName = 'fillColor' then
-      ActiveShape.Style.Brush.Color := ParamToColor(AText)
-    else if ActiveShape.CtrlName = 'fLine' then
-    begin
-      if not ParamToBool(AText) then
-        ActiveShape.Style.BorderWidth := 0;
-    end
-    else if ActiveShape.CtrlName = 'lineColor' then
-      ActiveShape.Style.BorderColor := ParamToColor(AText)
-    else if ActiveShape.CtrlName = 'lineWidth' then
-      ActiveShape.Style.BorderWidth := ParamToEMU(AText)
-    else if ActiveShape.CtrlName = 'shapeType' then
-    begin
-      // supported shape types
-      case StrToIntDef(string(ActiveShape.CtrlValue), 0) of
-        1: ActiveShape.ContentType := sctRectangle;
-        75: ActiveShape.ContentType := sctImage;
+      ActiveShape.CtrlValue := AText;
+      // do different things according to CtrlName property
+      if ActiveShape.CtrlName = 'posrelh' then
+      begin
+        ActiveShape.HorzPosCode := ParamToInt(AText);
+      end
+      else if ActiveShape.CtrlName = 'posrelv' then
+      begin
+        ActiveShape.VertPosCode := ParamToInt(AText);
+      end
+      else if ActiveShape.CtrlName = 'fFitShapeToText' then
+        ActiveShape.FitToText := True
+      else if ActiveShape.CtrlName = 'fFitTextToShape' then
+        ActiveShape.FitToShape := True
+      else if ActiveShape.CtrlName = 'fFilled' then
+      begin
+        if not ParamToBool(AText) then
+          ActiveShape.Style.Brush.Style := bsClear;
+      end
+      else if ActiveShape.CtrlName = 'fillColor' then
+        ActiveShape.Style.Brush.Color := ParamToColor(AText)
+      else if ActiveShape.CtrlName = 'fillBlip' then
+        ActiveShape.FillBlip := True
+      else if ActiveShape.CtrlName = 'fLine' then
+      begin
+        if not ParamToBool(AText) then
+          ActiveShape.Style.BorderWidth := 0;
+      end
+      else if ActiveShape.CtrlName = 'lineColor' then
+        ActiveShape.Style.BorderColor := ParamToColor(AText)
+      else if ActiveShape.CtrlName = 'lineWidth' then
+        ActiveShape.Style.BorderWidth := ParamToEMU(AText)
+      else if ActiveShape.CtrlName = 'shapeType' then
+      begin
+        // supported shape types
+        case StrToIntDef(string(ActiveShape.CtrlValue), 0) of
+          1: ActiveShape.ContentType := sctRectangle;
+          75: ActiveShape.ContentType := sctImage;
+          202:
+          begin
+            ActiveShape.ContentType := sctTextBox;
+            ActiveShape.Style.ContentPadding.AssignFromValues(5, 5, 5, 5); //default padding for text box
+          end;
+        end;
       end;
     end;
-  end
-  else
-    Result := False;
+    rpsShapeText:
+    begin
+      // this keyword starts the actual text box contents
+      FlushText;
+      FBlocks := ActiveContainer.Blocks;
+      FActiveState.Group := rgTextBox;
+    end;
+  end;
 end;
 
-function TKMemoRTFReader.ReadSpecialCharacter(const ACtrl: AnsiString; AParam: Integer; ATextStyle: TKMemoTextStyle; ACodePage, AIgnoreUnicodeChars: Integer): Boolean;
+procedure TKMemoRTFReader.ReadSpecialCharacter(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 var
   S: TKString;
+  CodePage: Integer;
 begin
-  Result := True;
-  if ACtrl = 'tab' then
-  begin
-    // tab is rendered with an arrow symbol
-    AddText(#9, ATextStyle);
-  end
-  else if ACtrl = 'lquote' then
-  begin
-    // we must suppose selected font supports this
-    AddText(UnicodeToNativeUTF(#$2018), ATextStyle);
-  end
-  else if ACtrl = 'rquote' then
-  begin
-    // we must suppose selected font supports this
-    AddText(UnicodeToNativeUTF(#$2019), ATextStyle);
-  end
-  else if ACtrl = 'ldblquote' then
-  begin
-    // we must suppose selected font supports this
-    AddText(UnicodeToNativeUTF(#$201C), ATextStyle);
-  end
-  else if ACtrl = 'rdblquote' then
-  begin
-    // we must suppose selected font supports this
-    AddText(UnicodeToNativeUTF(#$201D), ATextStyle);
-  end
-  else if ACtrl = 'endash' then
-  begin
-    AddText(UnicodeToNativeUTF(#$2013), ATextStyle);
-  end
-  else if ACtrl = 'emdash' then
-  begin
-    AddText(UnicodeToNativeUTF(#$2014), ATextStyle);
-  end
-  else if ACtrl = 'bullet' then
-  begin
-    AddText(UnicodeToNativeUTF(#$2022), ATextStyle);
-  end
-  else if (ACtrl = '~') or (ACtrl = 'emspace') or (ACtrl = 'enspace') then
-  begin
-    AddText(' ', ATextStyle); // nonbreaking spaces not supported
-  end
-  else if ACtrl = '''' then
-  begin
-    if ATextStyle.Font.Name = 'Symbol' then
-      S := UnicodeToNativeUTF(WideChar(AdobeSymbolToUTF16(AParam)))
-    else
-      S := AnsiStringToString(AnsiChar(AParam), ACodePage);
-    AddText(S, ATextStyle);
-  end
-  else if ACtrl = 'u' then
-  begin
-    if ATextStyle.Font.Name = 'Symbol' then
-      AParam := AdobeSymbolToUTF16(AParam);
-    S := UnicodeToNativeUTF(WideChar(AParam));
-    AddText(S, ATextStyle);
-    FIgnoreChars := AIgnoreUnicodeChars;
-  end else
-    Result := False;
+  // we must suppose here selected font supports these Unicode characters
+  if FActiveState.Group in [rgNone, rgTextBox] then case TKMemoRTFSpecialCharProp(ACtrl) of
+    rpscTab: AddText(#9); // tab is rendered with an arrow symbol
+    rpscLquote: AddText(UnicodeToNativeUTF(#$2018));
+    rpscRQuote: AddText(UnicodeToNativeUTF(#$2019));
+    rpscLDblQuote: AddText(UnicodeToNativeUTF(#$201C));
+    rpscRDblQuote: AddText(UnicodeToNativeUTF(#$201D));
+    rpscEnDash: AddText(UnicodeToNativeUTF(#$2013));
+    rpscEmDash: AddText(UnicodeToNativeUTF(#$2014));
+    rpscBullet: AddText(UnicodeToNativeUTF(#$2022));
+    rpscNBSP: AddText(' '); // nonbreaking spaces not supported
+    rpscEmSpace: AddText(' ');
+    rpscEnSpace: AddText(' ');
+    rpscAnsiChar:
+    begin
+      if FActiveState.TextStyle.Font.Name = 'Symbol' then
+        S := UnicodeToNativeUTF(WideChar(AdobeSymbolToUTF16(AParam)))
+      else
+      begin
+        CodePage := CharSetToCP(FActiveState.TextStyle.Font.Charset);
+        S := AnsiStringToString(AnsiChar(AParam), CodePage);
+      end;
+      AddText(S);
+    end;
+    rpscUnicodeChar:
+    begin
+      if FActiveState.TextStyle.Font.Name = 'Symbol' then
+        AParam := AdobeSymbolToUTF16(AParam);
+      S := UnicodeToNativeUTF(WideChar(AParam));
+      AddText(S);
+      FIgnoreChars := FIgnoreCharsAfterUnicode;
+    end;
+  end;
 end;
 
-function TKMemoRTFReader.ReadTableFormatting(const ACtrl: AnsiString;
-  AParam: Integer; ATextStyle: TKMemoTextStyle; AParaStyle: TKMemoParaStyle): Boolean;
+procedure TKMemoRTFReader.ReadStream;
+var
+  Ctrl: AnsiString;
+  Text: AnsiString;
+  Param: Int64;
+  CtrlItem: TKMemoRTFCtrl;
+begin
+  while FStream.Position < FStream.Size do
+  begin
+    ReadNext(Ctrl, Text, Param);
+    if (Ctrl <> '') or (Text <> '') then
+    begin
+      CtrlItem := FCtrlTable.FindByCtrl(Ctrl);
+      if CtrlItem <> nil then
+        CtrlItem.Method(CtrlItem.Code, Text, Param);
+      // if Method did not use Text use it according to active group
+      if Text <> '' then
+        case FActiveState.Group of
+          rgColorTable: ReadColorGroup(-1, Text, 0);
+          rgFontTable: ReadFontGroup(-1, Text, 0);
+          rgPicture: ReadPictureGroup(-1, Text, 0);
+          rgNone, rgTextBox: AddText(Text);
+        end;
+    end;
+  end;
+end;
+
+procedure TKMemoRTFReader.ReadTableFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 var
   I, Value: Integer;
   Cell: TKMemoTableCell;
 begin
-  Result := True;
-  if FTableColCount = 0 then
-  begin
-    if ACtrl = 'trowd' then // start of a row
+  if FActiveState.Group in [rgNone, rgTextBox] then case TKMemoRTFTableProp(ACtrl) of
+    rptbRowBegin:
     begin
-      FlushText;
-      if FActiveTable = nil then
+      if FActiveTableColCount = 0 then
       begin
-        ActiveTable.RowCount := 1;
-        ActiveTable.ColCount := 1;
-        FTableColCount := 1;
-        FTableRow := ActiveTable.Rows[ActiveTable.RowCount - 1];
-        FBlocks := FTableRow.Cells[FTableColCount - 1].Blocks; // starting new cell
-        FTableCellXPos := 0;
-      end;
-    end else
-      Result := False;
-  end
-  else if FTableRow <> nil then
-  begin
-    if ACtrl = 'cell' then // end of a cell
+        FlushText;
+        if FActiveTable = nil then
+        begin
+          ActiveTable.RowCount := 1;
+          ActiveTable.ColCount := 1;
+          FActiveTableColCount := 1;
+          FActiveTableRow := ActiveTable.Rows[ActiveTable.RowCount - 1];
+          FBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+          FActiveTableCellXPos := 0;
+          FActiveTableLastRow := False;
+        end;
+      end
+      else if (FActiveTableRow <> nil) and (FActiveTableRow.CellCount > 1) then
+      begin
+        // this block comes again after definition of the row and is used to read row/cell properties (at least Word saves this)
+        // we don't support reading cell properties before entire row is defined with /cell control words
+        FActiveTableCol := 0;
+        FActiveTableCell := FActiveTableRow.Cells[FActiveTableCol];
+      end
+    end;
+    rptbCellEnd: if FActiveTableRow <> nil then
     begin
       FlushText;
-      Cell := FTableRow.Cells[FTableColCount - 1];
-      Cell.ParaStyle.Assign(AParaStyle);
-      Inc(FTableColCount);
-      FTableRow.CellCount := FTableColCount;
-      FBlocks := FTableRow.Cells[FTableColCount - 1].Blocks; // starting new cell
-    end
-    else if ACtrl = 'row' then // end of a row
+      Cell := FActiveTableRow.Cells[FActiveTableColCount - 1];
+      Cell.ParaStyle.Assign(FActiveState.ParaStyle);
+      Inc(FActiveTableColCount);
+      FActiveTableRow.CellCount := FActiveTableColCount;
+      FBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+    end;
+    rptbRowEnd: if FActiveTableRow <> nil then
     begin
-      if FTableRow.Cells[FTableColCount - 1].Blocks.Count = 0 then
-        FTableRow.CellCount := FTableRow.CellCount - 1;
-      if FTableLastRow then
+      // delete previously started cell if empty
+      if FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks.Count = 0 then
+        FActiveTableRow.CellCount := FActiveTableRow.CellCount - 1;
+      if FActiveTableLastRow then
       begin
         FlushTable;
-        FTableLastRow := False;
-        FTableColCount := 0;
+        FActiveTableLastRow := False;
+        FActiveTableColCount := 0;
       end else
       begin
         ActiveTable.RowCount := ActiveTable.RowCount + 1;
-        ActiveTable.ColCount := Max(ActiveTable.ColCount, FTableRow.CellCount);
-        FTableRow := ActiveTable.Rows[ActiveTable.RowCount - 1];
-        FTableColCount := 1;
-        FTableRow.CellCount := FTableColCount;
-        FBlocks := FTableRow.Cells[FTableColCount - 1].Blocks; // starting new cell
-        FTableCellXPos := 0;
+        ActiveTable.ColCount := Max(ActiveTable.ColCount, FActiveTableRow.CellCount);
+        FActiveTableRow := ActiveTable.Rows[ActiveTable.RowCount - 1];
+        FActiveTableColCount := 1;
+        FActiveTableRow.CellCount := FActiveTableColCount;
+        FBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+        FActiveTableCellXPos := 0;
       end;
-      FTableCol := -1;
-      FTableCell := nil;
-      FTableBorder := alNone;
-    end
-    else if ACtrl = 'lastrow' then
+      FActiveTableCol := -1;
+      FActiveTableCell := nil;
+      FActiveTableBorder := alNone;
+    end;
+    rptbLastRow: FActiveTableLastRow := True;
+  end;
+  // read row/cell formatting (if any)
+  if (FActiveTableRow <> nil) and (FActiveTableCell <> nil) then case TKMemoRTFTableProp(ACtrl) of
+    rptbPaddBottom:
     begin
-      FTableLastRow := True;
-    end
-    else if (ACtrl = 'trowd') and (FTableRow.CellCount > 1) then
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.BottomPadding := TwipsToPoints(AParam);
+    end;
+    rptbPaddLeft:
     begin
-      // this block comes again after definition of the row and is used to read row/cell properties
-      // we don't support reading cell properties before entire row is defined
-      FTableCol := 0;
-      FTableCell := FTableRow.Cells[FTableCol];
-    end
-    else if (FTableCol >= 0) and (FTableCell <> nil) then
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.LeftPadding := TwipsToPoints(AParam);
+    end;
+    rptbPaddRight:
     begin
-      // read row properties
-      if ACtrl = 'trpaddb' then
-      begin
-        // we silently assume trgaph will come before trpaddx
-        for I := 0 to FTableRow.CellCount - 1 do
-          FTableRow.Cells[I].BlockStyle.BottomPadding := TwipsToPoints(AParam);
-      end
-      else if ACtrl = 'trpaddl' then
-      begin
-        // we silently assume trgaph will come before trpaddx
-        for I := 0 to FTableRow.CellCount - 1 do
-          FTableRow.Cells[I].BlockStyle.LeftPadding := TwipsToPoints(AParam);
-      end
-      else if ACtrl = 'trpaddr' then
-      begin
-        // we silently assume trgaph will come before trpaddx
-        for I := 0 to FTableRow.CellCount - 1 do
-          FTableRow.Cells[I].BlockStyle.RightPadding := TwipsToPoints(AParam);
-      end
-      else if ACtrl = 'trpaddt' then
-      begin
-        // we silently assume trgaph will come before trpaddx
-        for I := 0 to FTableRow.CellCount - 1 do
-          FTableRow.Cells[I].BlockStyle.TopPadding := TwipsToPoints(AParam);
-      end
-      else if ACtrl = 'trgaph' then
-      begin
-        Value := TwipsToPoints(AParam);
-        for I := 0 to FTableRow.CellCount - 1 do
-          FTableRow.Cells[I].BlockStyle.ContentPadding.AssignFromValues(Value, Value, Value, Value);
-      end
-      // read cell properties
-      else if ACtrl = 'clbrdrb' then
-        FTableBorder := alBottom
-      else if ACtrl = 'clbrdrl' then
-        FTableBorder := alLeft
-      else if ACtrl = 'clbrdrr' then
-        FTableBorder := alRight
-      else if ACtrl = 'clbrdrt' then
-        FTableBorder := alTop
-      else if ACtrl = 'brdrw' then
-      begin
-        case FTableBorder of
-          alBottom: FTableCell.RequiredBorderWidths.Bottom := TwipsToPoints(AParam);
-          alLeft: FTableCell.RequiredBorderWidths.Left := TwipsToPoints(AParam);
-          alRight: FTableCell.RequiredBorderWidths.Right := TwipsToPoints(AParam);
-          alTop: FTableCell.RequiredBorderWidths.Top := TwipsToPoints(AParam);
-        end;
-      end
-      else if ACtrl = 'brdrnone' then
-      begin
-        case FTableBorder of
-          alBottom: FTableCell.RequiredBorderWidths.Bottom := 0;
-          alLeft: FTableCell.RequiredBorderWidths.Left := 0;
-          alRight: FTableCell.RequiredBorderWidths.Right := 0;
-          alTop: FTableCell.RequiredBorderWidths.Top := 0;
-        end;
-      end
-      else if ACtrl = 'brdrcf' then
-      begin
-        if FTableBorder <> alNone then
-        begin
-          // we currently support only one color for a cell, get the last...
-          FTableCell.BlockStyle.BorderColor := FColorTable.GetColor(AParam - 1);
-        end;
-      end
-      else if ACtrl = 'clcbpat' then
-      begin
-        FTableCell.BlockStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
-      end
-      else if ACtrl = 'cellx' then
-      begin
-        // this command comes as the last for current cell
-        Value := FTableCellXPos;
-        FTableCellXPos := TwipsToPoints(AParam);
-        FTableCell.RequiredWidth := FTableCellXPos - Value;
-        Inc(FTableCol);
-        if FTableCol < FTableRow.CellCount then
-          FTableCell := FTableRow.Cells[FTableCol]
-        else
-          FTableCell := nil; // error in RTF, ignore next properties
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.RightPadding := TwipsToPoints(AParam);
+    end;
+    rptbPaddTop:
+    begin
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.TopPadding := TwipsToPoints(AParam);
+    end;
+    rptbPaddAll:
+    begin
+      // we silently assume this will come before other rptbPaddxx ctrls
+      Value := TwipsToPoints(AParam);
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.ContentPadding.AssignFromValues(Value, Value, Value, Value);
+    end;
+    rptbBorderBottom: FActiveTableBorder := alBottom;
+    rptbBorderLeft: FActiveTableBorder := alLeft;
+    rptbBorderRight: FActiveTableBorder := alRight;
+    rptbBorderTop: FActiveTableBorder := alTop;
+    rptbBorderWidth:
+    begin
+      case FActiveTableBorder of
+        alBottom: FActiveTableCell.RequiredBorderWidths.Bottom := TwipsToPoints(AParam);
+        alLeft: FActiveTableCell.RequiredBorderWidths.Left := TwipsToPoints(AParam);
+        alRight: FActiveTableCell.RequiredBorderWidths.Right := TwipsToPoints(AParam);
+        alTop: FActiveTableCell.RequiredBorderWidths.Top := TwipsToPoints(AParam);
       end;
-    end else
-      Result := False;
-  end else
-    Result := False;
+    end;
+    rptbBorderNone:
+    begin
+      case FActiveTableBorder of
+        alBottom: FActiveTableCell.RequiredBorderWidths.Bottom := 0;
+        alLeft: FActiveTableCell.RequiredBorderWidths.Left := 0;
+        alRight: FActiveTableCell.RequiredBorderWidths.Right := 0;
+        alTop: FActiveTableCell.RequiredBorderWidths.Top := 0;
+      end;
+    end;
+    rptbBorderColor: FActiveTableCell.BlockStyle.BorderColor := FColorTable.GetColor(AParam - 1); // no support for different colors for different borders
+    rptbBackColor: FActiveTableCell.BlockStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+    rptbCellX:
+    begin
+      // this command comes as the last for current cell
+      Value := FActiveTableCellXPos;
+      FActiveTableCellXPos := TwipsToPoints(AParam);
+      FActiveTableCell.RequiredWidth := FActiveTableCellXPos - Value;
+      Inc(FActiveTableCol);
+      if FActiveTableCol < FActiveTableRow.CellCount then
+        FActiveTableCell := FActiveTableRow.Cells[FActiveTableCol]
+      else
+        FActiveTableCell := nil; // error in RTF, ignore next properties
+    end;
+  end;
 end;
 
-function TKMemoRTFReader.ReadTextFormatting(const ACtrl: AnsiString;
-  AParam: Integer; ATextStyle: TKMemoTextStyle; var ACodePage: Integer): Boolean;
+procedure TKMemoRTFReader.ReadTextFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  Result := True;
-  if ACtrl = 'plain' then
-  begin
-    ATextStyle.Assign(FMemo.TextStyle);
-  end
-  else if ACtrl = 'f' then
-  begin
-    ApplyFont(ATextStyle, AParam, ACodePage);
-  end
-  else if ACtrl = 'b' then
-  begin
-    if AParam = 0 then
-      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsBold]
-    else
-      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsBold];
-  end
-  else if ACtrl = 'i' then
-  begin
-    if AParam = 0 then
-      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsItalic]
-    else
-      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsItalic];
-  end
-  else if ACtrl = 'ul' then
-  begin
-    if AParam = 0 then
-      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsUnderline]
-    else
-      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsUnderline];
-  end
-  else if ACtrl = 'strike' then
-  begin
-    if AParam = 0 then
-      ATextStyle.Font.Style := ATextStyle.Font.Style - [fsStrikeout]
-    else
-      ATextStyle.Font.Style := ATextStyle.Font.Style + [fsStrikeout];
-  end
-  else if ACtrl = 'caps' then
-  begin
-    ATextStyle.Capitals := tcaNormal;
-  end
-  else if ACtrl = 'scaps' then
-  begin
-    ATextStyle.Capitals := tcaSmall;
-  end
-  else if ACtrl = 'fs' then
-  begin
-    ATextStyle.Font.Size := DivUp(AParam, 2);
-  end
-  else if ACtrl = 'cf' then
-  begin
-    ATextStyle.Font.Color := FColorTable.GetColor(AParam - 1);
-  end
-  else if ACtrl = 'cb' then
-  begin
-    ATextStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
-  end
-  else if ACtrl = 'highlight' then
-  begin
-    ATextStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
-//    ApplyHighlight(ATextStyle, AParam);
-  end
-  else
-    Result := False;
+  if FActiveState.Group in [rgNone, rgTextBox] then case TKMemoRTFTextProp(ACtrl) of
+    rptPlain: FActiveState.TextStyle.Assign(FMemo.TextStyle);
+    rptFontIndex: ApplyFont(FActiveState.TextStyle, AParam);
+    rptBold:
+    begin
+      if AParam = 0 then
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style - [fsBold]
+      else
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style + [fsBold];
+    end;
+    rptItalic:
+    begin
+      if AParam = 0 then
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style - [fsItalic]
+      else
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style + [fsItalic];
+    end;
+    rptUnderline:
+    begin
+      if AParam = 0 then
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style - [fsUnderline]
+      else
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style + [fsUnderline];
+    end;
+    rptStrikeout:
+    begin
+      if AParam = 0 then
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style - [fsStrikeout]
+      else
+        FActiveState.TextStyle.Font.Style := FActiveState.TextStyle.Font.Style + [fsStrikeout];
+    end;
+    rptCaps: FActiveState.TextStyle.Capitals := tcaNormal;
+    rptSmallCaps: FActiveState.TextStyle.Capitals := tcaSmall;
+    rptFontSize: FActiveState.TextStyle.Font.Size := DivUp(AParam, 2);
+    rptForeColor: FActiveState.TextStyle.Font.Color := FColorTable.GetColor(AParam - 1);
+    rptBackColor: FActiveState.TextStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+  end;
+end;
+
+procedure TKMemoRTFReader.ReadUnknownGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
+begin
+  if not (FActiveState.Group in [rgInfo, rgHeader, rgFooter]) then case TKMemoRTFUnknownProp(ACtrl) of
+    rpuUnknownSym: FActiveState.Group := rgUnknown;
+    rpuNonShapePict: FActiveState.Group := rgUnknown; // we ignore this picture
+  end;
+  if FActiveState.Group = rgUnknown then case TKMemoRTFUnknownProp(ACtrl) of
+    rpuShapeInst: FActiveState.Group := rgShapeInst; // picture inside text
+    rpuShapePict: FActiveState.Group := rgShapePict; // picture inside text
+    rpuPageBackground: FActiveState.Group := rgPageBackground; // this is the page background, read it
+    rpuPicProp: FActiveState.Group := rgPicProp; // non shape picture has some shape properties, read them
+  end;
 end;
 
 function TKMemoRTFReader.TwipsToPoints(AValue: Integer): Integer;
@@ -1981,7 +2171,6 @@ begin
 end;
 
 { TKMemoRTFWriter }
-
 
 constructor TKMemoRTFWriter.Create(AMemo: TKCustomMemo);
 begin
@@ -2006,6 +2195,7 @@ end;
 
 function TKMemoRTFWriter.ColorToHighlightCode(AValue: TColor): Integer;
 begin
+  // we save highlight color as reference to color table, is it correct?
   case AValue of
     clBlack: Result := 1;
     clBlue: Result := 2;
@@ -2212,8 +2402,8 @@ begin
     Shape.Item := ABlock;
     Shape.ContentPosition.Left := ABlock.LeftOffset;
     Shape.ContentPosition.Top := ABlock.TopOffset;
-    Shape.ContentPosition.Right := ABlock.LeftOffset + ABlock.RequiredWidth + ABlock.BlockStyle.BorderWidth * 2;
-    Shape.ContentPosition.Bottom := ABlock.TopOffset + ABlock.RequiredHeight + ABlock.BlockStyle.BorderWidth * 2;
+    Shape.ContentPosition.Right := ABlock.LeftOffset + ABlock.RequiredWidth;
+    Shape.ContentPosition.Bottom := ABlock.TopOffset + ABlock.RequiredHeight;
     Shape.FitToText := not ABlock.FixedHeight;
     Shape.HorzPosCode := 2; // we don't support any other
     Shape.VertPosCode := 2; // we don't support any other
