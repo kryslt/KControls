@@ -654,6 +654,12 @@ procedure FillAroundRect(ACanvas: TCanvas; const Boundary, Interior: TRect; Back
 { Determine the height (ascent + descent) of the font currently selected into given DC. }
 function GetFontHeight(DC: HDC): Integer;
 
+{ Determine the ascent of the font currently selected into given DC. }
+function GetFontAscent(DC: HDC): Integer;
+
+{ Determine the descent of the font currently selected into given DC. }
+function GetFontDescent(DC: HDC): Integer;
+
 { Raises an exception if GDI resource has not been created. }
 function GDICheck(Value: Integer): Integer;
 
@@ -1239,6 +1245,24 @@ begin
   FillChar(TM, SizeOf(TTextMetric), 0);
   GetTextMetrics(DC, TM);
   Result := TM.tmHeight;
+end;
+
+function GetFontAscent(DC: HDC): Integer;
+var
+  TM: TTextMetric;
+begin
+  FillChar(TM, SizeOf(TTextMetric), 0);
+  GetTextMetrics(DC, TM);
+  Result := TM.tmAscent;
+end;
+
+function GetFontDescent(DC: HDC): Integer;
+var
+  TM: TTextMetric;
+begin
+  FillChar(TM, SizeOf(TTextMetric), 0);
+  GetTextMetrics(DC, TM);
+  Result := TM.tmDescent;
 end;
 
 function GDICheck(Value: Integer): Integer;
@@ -3440,4 +3464,4 @@ finalization
   //not necessary, but...
   UnregisterAlphaBitmap;
 {$ENDIF}
-end.
+end.

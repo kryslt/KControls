@@ -28,7 +28,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Contnrs,
+  SysUtils, Classes, Graphics, Controls, Contnrs, Types,
   ExtCtrls, StdCtrls, Forms, KFunctions, KControls, KGraphics, KEditCommon;
 
 const
@@ -542,6 +542,7 @@ type
     procedure ApplyTextStyle(ACanvas: TCanvas); virtual;
     function ContentLength: Integer; override;
     function GetCanAddText: Boolean; override;
+    function GetKerningDistance(ACanvas: TCanvas; const AChar1, AChar2: TKChar): Integer;
     function GetSelText: TKString; override;
     function GetText: TKString; override;
     function GetWordBaseLine(Index: Integer): Integer; override;
@@ -566,7 +567,9 @@ type
     procedure SetWordTop(Index: Integer; const Value: Integer); override;
     procedure SetWordTopPadding(Index: Integer; const Value: Integer); override;
     class procedure SplitText(const ASource: TKString; At: Integer; out APart1, APart2: TKString);
+    function TextExtentDepOnKerning(ACanvas: TCanvas; const AText: TKString): TSize; virtual;
     function TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer; virtual;
+    procedure TextOutputDepOnKerning(ACanvas: TCanvas; ALeft, ATop: Integer; const AText: TKString); virtual;
     procedure TextStyleChanged(Sender: TObject);
     procedure UpdateWords; virtual;
   public
@@ -1672,7 +1675,22 @@ uses
 {$IFDEF USE_THEMES}
   Themes,
 {$ENDIF}
-  Math, Types, KMemoRTF;
+  Math, KMemoRTF;
+
+{$IFDEF USE_WINAPI}
+// this is better declaration of GetKerningPairs than in Windows.pas
+type
+  TKerningPair = packed record
+    wFirst: Word;
+    wSecond: Word;
+    iKernAmount: Integer;
+  end;
+
+  TKerningPairs = array[0..MaxInt div SizeOf(TKerningPair) - 1] of TKerningPair;
+  PKerningPairs = ^TKerningPairs;
+
+function GetKerningPairs(DC: HDC; Count: DWORD; KerningPairs: PKerningPairs): DWORD; stdcall; external 'gdi32.dll' name 'GetKerningPairs';
+{$ENDIF}
 
 function OppositeKind(ItemKind: TKMemoChangeKind): TKMemoChangeKind;
 begin
@@ -4675,21 +4693,15 @@ begin
 end;
 
 function TKMemoTextBlock.CalcBaseLine(ACanvas: TCanvas): Integer;
-var
-  TM: TTextMetric;
 begin
   ApplyTextStyle(ACanvas);
-  GetTextMetrics(ACanvas.Handle, TM);
-  Result := TM.tmAscent;
+  Result := GetFontAscent(ACanvas.Handle);
 end;
 
 function TKMemoTextBlock.CalcDescent(ACanvas: TCanvas): Integer;
-var
-  TM: TTextMetric;
 begin
   ApplyTextStyle(ACanvas);
-  GetTextMetrics(ACanvas.Handle, TM);
-  Result := TM.tmDescent;
+  Result := GetFontDescent(ACanvas.Handle);
 end;
 
 procedure TKMemoTextBlock.ClearSelection(ATextOnly: Boolean);
@@ -4722,6 +4734,39 @@ function TKMemoTextBlock.GetCanAddText: Boolean;
 begin
   Result := Position = mbpText;
 end;
+
+function TKMemoTextBlock.GetKerningDistance(ACanvas: TCanvas; const AChar1, AChar2: TKChar): Integer;
+{$IFDEF USE_WINAPI}
+var
+  Cnt: Integer;
+  Pairs: array of TKerningPair;
+  C1, C2: WideChar;
+  I: Integer;
+begin
+  Result := 0;
+  Cnt := GetKerningPairs(ACanvas.Handle, 0, nil);
+  if Cnt > 0 then
+  begin
+    SetLength(Pairs, Cnt);
+    GetKerningPairs(ACanvas.Handle, Cnt, PKerningPairs(@Pairs[0]));
+    C1 := NativeUTFToUnicode(AChar1);
+    C2 := NativeUTFToUnicode(AChar2);
+    for I := 0 to Cnt - 1 do
+      if (Pairs[I].wFirst = Ord(C1)) and (Pairs[I].wSecond = Ord(C2)) then
+      begin
+        if Pairs[I].iKernAmount <> 0 then
+        begin
+          Result := Pairs[I].iKernAmount;
+        end;
+        Exit;
+      end;
+  end;
+end;
+{$ELSE}
+begin
+  Result := 0;
+end;
+{$ENDIF}
 
 function TKMemoTextBlock.GetSelText: TKString;
 begin
@@ -4848,19 +4893,19 @@ begin
   if Pos(#9, AText) <> 0 then
   begin
     SU := UnicodeStringReplace(AText, #9, TabChar, [rfReplaceAll]);
-    Size := TKTextBox.TextExtent(ACanvas, SU, 1, Length(SU));
+    Size := TextExtentDepOnKerning(ACanvas, SU);
     Result := Point(Size.cx, Size.cy);
   end
   else if FTextStyle.Capitals = tcaNone then
   begin
-    Size := TKTextBox.TextExtent(ACanvas, AText, 1, Length(AText));
+    Size := TextExtentDepOnKerning(ACanvas, AText);
     Result := Point(Size.cx, Size.cy);
   end else
   begin
     SU := UnicodeUpperCase(AText);
     if FTextStyle.Capitals = tcaNormal then
     begin
-      Size := TKTextBox.TextExtent(ACanvas, SU, 1, Length(SU));
+      Size := TextExtentDepOnKerning(ACanvas, SU);
       Result := Point(Size.cx, Size.cy);
     end else
     begin
@@ -4874,7 +4919,7 @@ begin
           ACanvas.Font.Size := SmallFontSize
         else
           ACanvas.Font.Size := FTextStyle.Font.Size;
-        Size := TKTextBox.TextExtent(ACanvas, CU, 1, Length(CU));
+        Size := TextExtentDepOnKerning(ACanvas, CU);
         Inc(X, Size.cx);
         Y := Max(Y, Size.cy);
       end;
@@ -4971,6 +5016,32 @@ begin
   APart2 := StringCopy(ASource, At, Length(ASource) - At + 1);
 end;
 
+function TKMemoTextBlock.TextExtentDepOnKerning(ACanvas: TCanvas; const AText: TKString): TSize;
+{$IFDEF KMEMO_DISABLE_KERNING}
+var
+  CharIndex, NewCharIndex: Integer;
+  Size: TSize;
+{$ENDIF}
+begin
+{$IFDEF KMEMO_DISABLE_KERNING}
+  // character by character
+  Result.cx := 0;
+  Result.cy := 0;
+  CharIndex := 1;
+  while CharIndex <= Length(AText) do
+  begin
+    NewCharIndex := StrNextCharIndex(AText, CharIndex);
+    Size := TKTextBox.TextExtent(ACanvas, AText, CharIndex, NewCharIndex - CharIndex);
+    Inc(Result.cx, Size.cx);
+    Result.cy := Max(Result.cy, Size.cy);
+    CharIndex := NewCharIndex;
+  end;
+{$ELSE}
+  // system default
+  Result := TKTextBox.TextExtent(ACanvas, AText, 1, Length(AText));
+{$ENDIF}
+end;
+
 function TKMemoTextBlock.TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer;
 {$IFDEF FPC}
 var
@@ -4992,6 +5063,30 @@ begin
   {$ENDIF}
   end else
     Result := -1;
+end;
+
+procedure TKMemoTextBlock.TextOutputDepOnKerning(ACanvas: TCanvas; ALeft, ATop: Integer; const AText: TKString);
+{$IFDEF KMEMO_DISABLE_KERNING}
+var
+  CharIndex, NewCharIndex: Integer;
+  Size: TSize;
+{$ENDIF}
+begin
+{$IFDEF KMEMO_DISABLE_KERNING}
+  // character by character
+  CharIndex := 1;
+  while CharIndex <= Length(AText) do
+  begin
+    NewCharIndex := StrNextCharIndex(AText, CharIndex);
+    TKTextBox.TextOutput(ACanvas, ALeft, ATop, AText, CharIndex, NewCharIndex - CharIndex);
+    Size := TKTextBox.TextExtent(ACanvas, AText, CharIndex, NewCharIndex - CharIndex);
+    Inc(ALeft, Size.cx);
+    CharIndex := NewCharIndex;
+  end;
+{$ELSE}
+  // system default
+  TKTextBox.TextOutput(ACanvas, ALeft, ATop, AText, 1, Length(AText));
+{$ENDIF}
 end;
 
 procedure TKMemoTextBlock.TextStyleChanged(Sender: TObject);
@@ -5085,39 +5180,37 @@ end;
 procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
   AWordIndex: Integer; ALeft, ATop: Integer);
 
+  function AdjustBaseLine(ABaseLine: Integer): Integer;
+  begin
+    Dec(ABaseline, GetFontAscent(ACanvas.Handle));
+    Result := ABaseLine;
+  end;
+
   procedure TextDraw(const ARect: TRect; ABaseLine: Integer; const AText: TKString);
   var
     C, CU, SU: TKString;
-    I, SmallFontSize, X: Integer;
+    AdjBaseLine, I, SmallFontSize, X: Integer;
     Size: TSize;
-  {$IFDEF FPC}
-    TM: TLCLTextMetric;
-  {$ENDIF}
   begin
     with ACanvas do
     begin
       if Brush.Style <> bsClear then
         DrawFilledRectangle(ACanvas, ARect, clNone);
-    {$IFDEF FPC}
-      GetTextMetrics(TM);
-      Dec(ABaseline, TM.Ascender);
-    {$ELSE}
-      SetTextAlign(Handle, TA_BASELINE);
-    {$ENDIF}
       SetBkMode(Handle, TRANSPARENT);
+      AdjBaseLine := AdjustBaseLine(ABaseLine); // align to baseline
       if (Pos(#9, AText) <> 0) and ShowFormatting then
       begin
         SU := UnicodeStringReplace(AText, #9, TabChar, [rfReplaceAll]);
-        TKTextBox.TextOutput(ACanvas, ARect.Left, ABaseLine, SU, 1, Length(SU));
+        TextOutputDepOnKerning(ACanvas, ARect.Left, AdjBaseLine, SU);
       end
       else if FTextStyle.Capitals = tcaNone then
       begin
-        TKTextBox.TextOutput(ACanvas, ARect.Left, ABaseLine, AText, 1, Length(AText));
+        TextOutputDepOnKerning(ACanvas, ARect.Left, AdjBaseLine, AText);
       end else
       begin
         SU := UnicodeUpperCase(AText);
         if FTextStyle.Capitals = tcaNormal then
-          TKTextBox.TextOutput(ACanvas, ARect.Left, ABaseLine, SU, 1, Length(SU))
+          TextOutputDepOnKerning(ACanvas, ARect.Left, AdjBaseLine, SU)
         else
         begin
           SmallFontSize := MulDiv(FTextStyle.Font.Size, 4, 5);
@@ -5130,8 +5223,9 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
               Font.Size := SmallFontSize
             else
               Font.Size := FTextStyle.Font.Size;
-            TKTextBox.TextOutput(ACanvas, X, ABaseLine, CU, 1, Length(CU));
-            Size := TKTextBox.TextExtent(ACanvas, CU, 1, Length(CU));
+            AdjBaseLine := AdjustBaseLine(ABaseLine);
+            TextOutputDepOnKerning(ACanvas, X, AdjBaseLine, CU);
+            Size := TextExtentDepOnKerning(ACanvas, CU);
             Inc(X, Size.cx);
           end;
         end;

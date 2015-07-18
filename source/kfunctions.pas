@@ -747,6 +747,7 @@ function RunExecutable(const AFileName: string; AWaitForIt: Boolean): DWORD;
 
 function SystemCodePage: Integer;
 
+function NativeUTFToUnicode(const AText: TKString): WideChar;
 function UnicodeUpperCase(const AText: TKString): TKString;
 function UnicodeLowerCase(const AText: TKString): TKString;
 function UnicodeToNativeUTF(const AParam: WideChar): TKString;
@@ -2273,6 +2274,17 @@ begin
  {$ELSE}
   Result := 0;
  {$IFEND}
+{$ENDIF}
+end;
+
+function NativeUTFToUnicode(const AText: TKString): WideChar;
+var
+  CharLen: Integer;
+begin
+{$IFDEF FPC}
+  Result := WideChar(UTF8CharacterToUnicode(PChar(AText), CharLen));
+{$ELSE}
+  Result := AText[1];
 {$ENDIF}
 end;
 
