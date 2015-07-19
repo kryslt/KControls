@@ -105,6 +105,7 @@ begin
   Memo.ContentPadding.Top := 20;
   Memo.ContentPadding.Left := 20;
   Memo.ContentPadding.Right := 20;
+  Memo.ContentPadding.Bottom := 20;
   Memo.Align := alClient;
   Memo.Options := Memo.Options + [eoShowFormatting, eoWantTab];
 //  Memo.Colors.BkGnd := clWhite;
@@ -261,8 +262,8 @@ begin
 //  Memo.LoadFromRTF('kgrid_manual.rtf');
 //  Memo.LoadFromRTF('Word2007RTFSpec9.rtf');
 //  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
-
-  Memo.SaveToRTF('test_save.rtf');
+//  Memo.Select(10, 510);
+//  Memo.SaveToRTF('test_save.rtf', True);
 
 {
   Memo.ContentPadding.Left := 50;
@@ -275,7 +276,6 @@ begin
   W := Memo.Text;
   Memo.Text := W;}
   Memo.Parent := Panel1;
-//  Memo.Select(2, 10);
 //  Mainform.Canvas.StretchDraw(ClientRect, MF);
   MemoCopy := TKMemo.Create(Self);
   MemoCopy.ContentPadding.Top := 20;
@@ -283,9 +283,9 @@ begin
   MemoCopy.ContentPadding.Right := 20;
   MemoCopy.Align := alClient;
   MemoCopy.Options := MemoCopy.Options + [eoShowFormatting, eoWantTab];
-  MemoCopy.LoadFromRTF('test_save.rtf');
+//  MemoCopy.LoadFromRTF('test_save.rtf');
   MemoCopy.Parent := Panel2;
-  MemoCopy.SaveToRTF('test_copy_save.rtf');
+//  MemoCopy.SaveToRTF('test_copy_save.rtf');
 end;
 
 {$IFDEF FPC}

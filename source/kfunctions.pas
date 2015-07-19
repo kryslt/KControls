@@ -36,7 +36,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  Classes, Controls, ComCtrls, Graphics, StdCtrls, SysUtils,
+  Classes, ClipBrd, Controls, ComCtrls, Graphics, StdCtrls, SysUtils,
   Forms;
 
 const
@@ -409,6 +409,12 @@ type
   { Pointer to TKAppContext }
   PKAppContext = ^TKAppContext;
 
+{$IFDEF FPC}
+  TKClipboardFormat = TClipboardFormat;
+{$ELSE}
+  TKClipboardFormat = Word;
+{$ENDIF}
+
 { Replaces possible decimal separators in S with DecimalSeparator variable.}
 function AdjustDecimalSeparator(const S: string): string;
 
@@ -442,6 +448,14 @@ function CharInSetEx(AChar: AnsiChar; const ASet: TKSysCharSet): Boolean; overlo
 
 { Compiler independent Delphi2009-like CharInSet function for Unicode characters. }
 function CharInSetEx(AChar: WideChar; const ASet: TKSysCharSet): Boolean; overload;
+
+{ Load clipboard data to AStream in a format specified by AFormat (if any).
+  Loads also AText if clipboard has some data in text format. }
+function ClipboardLoadStreamAs(const AFormat: TKString; AStream: TStream; var AText: TKString): Boolean;
+
+{ Save data from AStream to clipboard in a format specified by AFormat.
+  Optional AText can be saved in text format. }
+function ClipboardSaveStreamAs(const AFormat: TKString; AStream: TStream; const AText: TKString): Boolean;
 
 { Compares two Integers. Returns 1 if I1 > I2, -1 if I1 < I2 and 0 if I1 = I2. }
 function CompareIntegers(I1, I2: Integer): Integer;
@@ -878,6 +892,105 @@ begin
   {$ELSE}
     (AnsiChar(AChar) in ASet);
   {$ENDIF}
+end;
+
+function ClipboardLoadStreamAs(const AFormat: TKString; AStream: TStream; var AText: TKString): Boolean;
+var
+  Fmt: TKClipboardFormat;
+  Data: Cardinal;
+begin
+  Result := False;
+{$IFDEF FPC}
+  with Clipboard do
+  begin
+    Fmt := RegisterClipboardFormat(AFormat);
+    if (Fmt <> 0) and HasFormat(Fmt) then
+    begin
+      Clipboard.GetFormat(Fmt, AStream);
+      Result := True;
+    end
+    else
+      AText := AText;
+  end;
+{$ELSE}
+  Fmt := RegisterClipboardFormat(PKText(AFormat));
+  if Fmt <> 0 then
+  begin
+    try
+      with Clipboard do
+      begin
+        Open;
+        try
+          Data := GetAsHandle(Fmt);
+          if Data <> 0 then
+          begin
+            AStream.Write(GlobalLock(Data)^, GlobalSize(Data));
+            GlobalUnlock(Data);
+            Result := True;
+          end else
+          begin
+            AText := AsText;
+            Result := AText <> '';
+          end;
+        finally
+          Close;
+        end;
+      end;
+    except
+      GlobalFree(Data);
+    end;
+  end else
+    Clipboard.AsText := AText;
+{$ENDIF}
+end;
+
+function ClipboardSaveStreamAs(const AFormat: TKString; AStream: TStream; const AText: TKString): Boolean;
+var
+  Fmt: TKClipboardFormat;
+  Data: Cardinal;
+begin
+  Result := False;
+{$IFDEF FPC}
+  with Clipboard do
+  begin
+    Clear;
+    AsText := AText;
+    Fmt := RegisterClipboardFormat(AFormat);
+    if Fmt <> 0 then
+    begin
+      AStream.Seek(0, soFromBeginning);
+      AddFormat(Fmt, AStream);
+      Result := True;
+    end;
+  end;
+{$ELSE}
+  Clipboard.Clear;
+  Fmt := RegisterClipboardFormat(PKText(AFormat));
+  if Fmt <> 0 then
+  begin
+    Data := GlobalAlloc(GHND or GMEM_SHARE, AStream.Size);
+    if Data <> 0 then
+    try
+      AStream.Seek(0, soFromBeginning);
+      AStream.Read(GlobalLock(Data)^, AStream.Size);
+      GlobalUnlock(Data);
+      with Clipboard do
+      begin
+        Open;
+        try
+          Clipboard.AsText := AText;
+          SetAsHandle(Fmt, Data);
+        finally
+          Close;
+        end;
+      end;
+      Result := True;
+    except
+      GlobalFree(Data);
+    end;
+  end else
+    Clipboard.AsText := AText;
+{$ENDIF}
 end;
 
 function CompareIntegers(I1, I2: Integer): Integer;

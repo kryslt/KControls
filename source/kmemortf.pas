@@ -156,15 +156,11 @@ type
     FTextStyle: TKMemoTextStyle;
     FParaStyle: TKMemoParaStyle;
     FGroup: TKMemoRTFGroup;
-    FIsShape: Boolean;
-    FIsPicture: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Assign(ASource: TKmemoRTFState); virtual;
     property Group: TKMemoRTFGroup read FGroup write FGroup;
-    //property IsPicture: Boolean read FIsPicture write FIsPicture;
-    //property IsShape: Boolean read FIsShape write FIsShape;
     property ParaStyle: TKMemoParaStyle read FParaStyle write FParaStyle;
     property TextStyle: TKMemoTextStyle read FTextStyle write FTextStyle;
   end;
@@ -202,6 +198,7 @@ type
     function GetActiveContainer: TKMemoContainer;
     function GetActiveTable: TKMemoTable;
   protected
+    FActiveBlocks: TKMemoBlocks;
     FActiveColor: TKMemoRTFColor;
     FActiveContainer: TKMemoContainer;
     FActiveFont: TKMemoRTFFont;
@@ -223,7 +220,7 @@ type
     FActiveTableLastRow: Boolean;
     FActiveTableRow: TKMemoTableRow;
     FActiveText: TKMemoTextBlock;
-    FBlocks: TKMemoBlocks;
+    FAtIndex: Integer;
     FColorTable: TKMemoRTFColorTable;
     FCtrlTable: TKMemoRTFCtrlTable;
     FDefaultCodePage: Integer;
@@ -231,10 +228,11 @@ type
     FFontTable: TKMemoRTFFontTable;
     FIgnoreChars: Integer;
     FIgnoreCharsAfterUnicode: Integer;
+    FIndexStack: TKMemoSparseStack;
     FGraphicClass: TGraphicClass;
     FMemo: TKCustomMemo;
     FStack: TKMemoRTFStack;
-    FStream: TMemoryStream;
+    FStream: TStream;
     FTmpTextStyle: TKMemoTextStyle;
     procedure AddText(const APart: TKString); virtual;
     procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer); virtual;
@@ -279,7 +277,8 @@ type
   public
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
-    procedure Load(const AFileName: TKString); virtual;
+    procedure LoadFromFile(const AFileName: TKString; AtIndex: Integer = -1); virtual;
+    procedure LoadFromStream(AStream: TStream; AtIndex: Integer = -1); virtual;
   end;
 
   { Specifies the RTF writer. }
@@ -290,8 +289,10 @@ type
     FColorTable: TKMemoRTFColorTable;
     FFontTable: TKMemoRTFFontTable;
     FMemo: TKCustomMemo;
-    FStream: TMemoryStream;
+    FSelectedOnly: Boolean;
+    FStream: TStream;
     function BoolToParam(AValue: Boolean): AnsiString; virtual;
+    function CanSave(AItem: TKMemoBlock): Boolean; virtual;
     function ColorToHighlightCode(AValue: TColor): Integer; virtual;
     function ColorToParam(AValue: TColor): AnsiString; virtual;
     function EMUToParam(AValue: Integer): AnsiString; virtual;
@@ -323,7 +324,7 @@ type
     procedure WriteSpace;
     procedure WriteString(const AText: AnsiString);
     procedure WriteTable(AItem: TKMemoTable); virtual;
-    procedure WriteTableRowProperties(ATable: TKmemoTable; ARowIndex: Integer); virtual;
+    procedure WriteTableRowProperties(ARow: TKMemoTableRow; ASavedRowIndex: Integer); virtual;
     procedure WriteTextBlock(AItem: TKMemoTextBlock); virtual;
     procedure WriteTextStyle(ATextStyle: TKMemoTextStyle); virtual;
     procedure WriteUnicodeString(const AText: TKString); virtual;
@@ -331,7 +332,8 @@ type
   public
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
-    procedure Save(const AFileName: TKString); virtual;
+    procedure SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean); virtual;
+    procedure SaveToStream(AStream: TStream; ASelectedOnly: Boolean); virtual;
   end;
 
 implementation
@@ -903,9 +905,9 @@ begin
     wrAround: FWrap := 2;
     wrAroundLeft: begin FWrap := 2; FWrapSide := 1; end;
     wrAroundRight: begin FWrap := 2; FWrapSide := 2; end;
-    wrTight: FWrap := 2; // FWrap should be 4 but don't confuse reader
-    wrTightLeft: begin FWrap := 2; FWrapSide := 1; end; // FWrap should be 4 but don't confuse reader
-    wrTightRight: begin FWrap := 2; FWrapSide := 2; end; // FWrap should be 4 but don't confuse reader
+    wrTight: FWrap := 2; // FWrap should be 4, change when tight wrapping supported
+    wrTightLeft: begin FWrap := 2; FWrapSide := 1; end; // FWrap should be 4, change when tight wrapping supported
+    wrTightRight: begin FWrap := 2; FWrapSide := 2; end; // FWrap should be 4, change when tight wrapping supported
     wrTopBottom: FWrap := 1;
     wrNone: FWrap := 3;
   end;
@@ -949,8 +951,6 @@ end;
 constructor TKMemoRTFState.Create;
 begin
   FGroup := rgNone;
-  FIsPicture := False;
-  FIsShape := False;
   FParaStyle := TKMemoParaStyle.Create;
   FTextStyle := TKMemoTextStyle.Create;
 end;
@@ -983,13 +983,13 @@ end;
 
 constructor TKMemoRTFReader.Create(AMemo: TKCustomMemo);
 begin
-  FBlocks := AMemo.Blocks;
   FColorTable := TKMemoRTFColorTable.Create;
   FCtrlTable := TKMemoRTFCtrlTable.Create;
   FFontTable := TKMemoRTFFontTable.Create;
+  FIndexStack := TKMemoSparseStack.Create;
   FMemo := AMemo;
   FStack := TKMemoRTFStack.Create;
-  FStream := TMemoryStream.Create;
+  FStream := nil;
   FTmpTextStyle := TKMemoTextStyle.Create;
   FillCtrlTable;
   FCtrlTable.SortTable;
@@ -1000,8 +1000,8 @@ begin
   FColorTable.Free;
   FCtrlTable.Free;
   FFontTable.Free;
+  FIndexStack.Free;
   FStack.Free;
-  FStream.Free;
   FTmpTextStyle.Free;
   inherited;
 end;
@@ -1178,7 +1178,7 @@ begin
     ATextStyle.Font.Pitch := Font.Pitch;
   end else
   asm
-    nop
+    nop // debug line
   end;
 end;
 
@@ -1211,8 +1211,10 @@ procedure TKMemoRTFReader.FlushContainer;
 begin
   if FActiveContainer <> nil then
   begin
-    FBlocks := FActiveContainer.Parent;
-    FBlocks.AddAt(FActiveContainer);
+    FActiveBlocks := FActiveContainer.Parent;
+    FAtIndex := FIndexStack.PopValue;
+    FActiveBlocks.AddAt(FActiveContainer, FAtIndex);
+    Inc(FAtIndex);
     FActiveContainer := nil;
   end;
 end;
@@ -1230,7 +1232,8 @@ procedure TKMemoRTFReader.FlushImage;
 begin
   if FActiveImage <> nil then
   begin
-    FBlocks.AddAt(FActiveImage);
+    FActiveBlocks.AddAt(FActiveImage, FAtIndex);
+    Inc(FAtIndex);
     FActiveImage := nil;
   end;
 end;
@@ -1239,9 +1242,10 @@ procedure TKMemoRTFReader.FlushParagraph;
 var
   PA: TKMemoParagraph;
 begin
-  PA := FBlocks.AddParagraph;
+  PA := FActiveBlocks.AddParagraph(FAtIndex);
   PA.TextStyle.Assign(FActiveState.TextStyle);
   PA.ParaStyle.Assign(FActiveState.ParaStyle);
+  Inc(FAtIndex);
   FActiveParaBorder := alNone;
 end;
 
@@ -1318,8 +1322,14 @@ begin
   if FActiveTable <> nil then
   begin
     //FTable.Position := mbpRelative;
-    FBlocks := FActiveTable.Parent;
-    FBlocks.AddAt(FActiveTable);
+    FActiveBlocks := FActiveTable.Parent;
+    FAtIndex := FIndexStack.PopValue;
+    if not FActiveBlocks.InsideOfTable then // no support for nested tables yet
+    begin
+      FActiveBlocks.AddAt(FActiveTable, FAtIndex);
+      Inc(FAtIndex);
+    end else
+      FActiveTable.Free;
     FActiveTable := nil;
     FActiveTableRow := nil;
     FActiveTableCell := nil;
@@ -1340,8 +1350,8 @@ begin
       FActiveText.TextStyle.Font.Name := 'Arial';
       FActiveText.TextStyle.Font.Charset := 0;
     end;
-    if FBlocks <> nil then
-      FBlocks.AddAt(FActiveText);
+    FActiveBlocks.AddAt(FActiveText, FAtIndex);
+    Inc(FAtIndex);
     FActiveText := nil;
   end;
 end;
@@ -1356,7 +1366,7 @@ end;
 function TKMemoRTFReader.GetActiveContainer: TKMemoContainer;
 begin
   if FActiveContainer = nil then
-    FActiveContainer := TKMemoContainer.Create(FBlocks);
+    FActiveContainer := TKMemoContainer.Create(FActiveBlocks);
   Result := FActiveContainer;
 end;
 
@@ -1384,7 +1394,7 @@ end;
 function TKMemoRTFReader.GetActiveTable: TKMemoTable;
 begin
   if FActiveTable = nil then
-    FActiveTable := TKMemoTable.Create(FBlocks);
+    FActiveTable := TKMemoTable.Create(FActiveBlocks);
   Result := FActiveTable;
 end;
 
@@ -1412,40 +1422,86 @@ begin
   end;
 end;
 
-procedure TKMemoRTFReader.Load(const AFileName: TKString);
+procedure TKMemoRTFReader.LoadFromFile(const AFileName: TKString; AtIndex: Integer);
+var
+  Stream: TMemoryStream;
 begin
   if FileExists(AFileName) then
-  try
-    FStream.LoadFromFile(AFileName);
-    FMemo.TextStyle.Defaults;
-    FMemo.ParaStyle.Defaults;
-    FMemo.Colors.BkGnd := cBkGndDef;
-    FMemo.BackgroundImage.Graphic := nil;
-    FActiveColor := nil;
-    FActiveContainer := nil;
-    FActiveFont := nil;
-    FActiveImage := nil;
-    FActiveImageClass := nil;
-    FActiveParaBorder := alNone;
-    FActiveShape := nil;
-    FActiveState := TKMemoRTFState.Create;
-    FActiveString := '';
-    FActiveTable := nil;
-    FActiveTableBorder := alNone;
-    FActiveTableCell := nil;
-    FActiveTableCol := -1;
-    FActiveTableColCount := 0;
-    FActiveTableRow := nil;
-    FActiveText := nil;
-    FColorTable.Clear;
-    FDefaultFontIndex := 0;
-    FIgnoreChars := 0;
-    FBlocks.LockUpdate;
+  begin
+    Stream := TMemoryStream.Create;
     try
-      FBlocks.Clear;
+      Stream.LoadFromFile(AFileName);
+      LoadFromStream(Stream, AtIndex);
+    finally
+      Stream.Free;
+    end;
+  end;
+end;
+
+procedure TKMemoRTFReader.LoadFromStream(AStream: TStream; AtIndex: Integer);
+var
+  Item, NewItem: TKMemoBlock;
+  ContLocalIndex, BlockLocalIndex: Integer;
+begin
+  try
+    if AtIndex < 0 then
+    begin
+      FMemo.Blocks.Clear;
+      FMemo.TextStyle.Defaults;
+      FMemo.ParaStyle.Defaults;
+      FMemo.Colors.BkGnd := cBkGndDef;
+      FMemo.BackgroundImage.Graphic := nil;
+      FActiveBlocks := FMemo.Blocks;
+      FAtIndex := -1; // just append new blocks to active blocks
+    end else
+    begin
+      FActiveBlocks := FMemo.Blocks.IndexToBlocks(AtIndex, ContLocalIndex); // get active blocks
+      if FActiveBlocks <> nil then
+      begin
+        FAtIndex := FActiveBlocks.IndexToBlock(ContLocalIndex, BlockLocalIndex); // get block index within active blocks
+        if FAtIndex >= 0 then
+        begin
+          // if active block is splittable do it and make space for new blocks
+          Item := FActiveBlocks.Items[FAtIndex];
+          NewItem := Item.Split(BlockLocalIndex);
+          if NewItem <> nil then
+          begin
+            Inc(FAtIndex);
+            FActiveBlocks.AddAt(NewItem, FAtIndex);
+          end;
+        end else
+          FAtIndex := -1; // just append new blocks to active blocks
+      end else
+      begin
+        FActiveBlocks := FMemo.Blocks;
+        FAtIndex := -1; // just append new blocks to active blocks
+      end;
+    end;
+    FActiveBlocks.LockUpdate;
+    try
+      FActiveColor := nil;
+      FActiveContainer := nil;
+      FActiveFont := nil;
+      FActiveImage := nil;
+      FActiveImageClass := nil;
+      FActiveParaBorder := alNone;
+      FActiveShape := nil;
+      FActiveState := TKMemoRTFState.Create;
       FActiveState.Group := rgUnknown; // we wait for file header
       FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
       FActiveState.TextStyle.Assign(FMemo.TextStyle);
+      FActiveString := '';
+      FActiveTable := nil;
+      FActiveTableBorder := alNone;
+      FActiveTableCell := nil;
+      FActiveTableCol := -1;
+      FActiveTableColCount := 0;
+      FActiveTableRow := nil;
+      FActiveText := nil;
+      FColorTable.Clear;
+      FDefaultFontIndex := 0;
+      FIgnoreChars := 0;
+      FStream := AStream;
       ReadStream;
     finally
       FlushColor;
@@ -1453,8 +1509,10 @@ begin
       FlushText;
       FlushShape;
       FlushImage;
+      FlushTable;
       FActiveState.Free;
-      FBlocks.UnlockUpdate;
+      FActiveBlocks.ConcatEqualBlocks;
+      FActiveBlocks.UnlockUpdate;
     end;
   except
     KFunctions.Error(sErrMemoLoadFromRTF);
@@ -1488,6 +1546,7 @@ begin
   State := FStack.Peek;
   if State <> nil then
   begin
+    // flush shapes, images and other embedded objects to memo
     if FActiveState.Group = rgShape then
     begin
       // standard shape group
@@ -1534,7 +1593,8 @@ function TKMemoRTFReader.ReadNext(out ACtrl, AText: AnsiString; out AParam: Int6
         AText := AText + AChar;
       Result := FStream.Read(AChar, 1) > 0;
     until CharInSetEx(AChar, ['{', '}', '\']) or not Result;
-    FStream.Seek(-1, soFromCurrent);
+    if Result then
+      FStream.Seek(-1, soFromCurrent);
   end;
 
 var
@@ -1565,10 +1625,10 @@ begin
           Result := FStream.Read(C, 1) > 0;
         until not (Result and CharInSetEx(C, cNumbers));
         AParam := StrToIntDef(TKString(ParamStr), 0);
-        if C <> ' ' then
+        if Result and (C <> ' ') then
           FStream.Seek(-1, soFromCurrent);
       end
-      else if C <> ' ' then
+      else if Result and (C <> ' ') then
         FStream.Seek(-1, soFromCurrent);
     end else
     begin
@@ -1613,7 +1673,7 @@ begin
     if AText = ';' then
     begin
       FlushColor;
-      AText := ''; // we used the text
+      AText := ''; // we used the text as end of the color record
     end;
   end;
 end;
@@ -1655,7 +1715,7 @@ begin
         Delete(S, I, 1);
       ActiveFont.Font.Name := S;
       FlushFont;
-      AText := ''; // we used the text
+      AText := ''; // we used the text as font name
     end
   end
   else if FActiveState.Group in [rgNone, rgTextBox] then
@@ -1830,9 +1890,9 @@ begin
         FActiveImageClass := nil;
       end else
       asm
-        nop;
+        nop; // debug line
       end;
-      AText := ''; // we used the text
+      AText := ''; // we used the text as image data
     end;
   end;
 end;
@@ -1904,7 +1964,9 @@ begin
     begin
       // this keyword starts the actual text box contents
       FlushText;
-      FBlocks := ActiveContainer.Blocks;
+      FActiveBlocks := ActiveContainer.Blocks;
+      FIndexStack.PushValue(FAtIndex);
+      FAtIndex := 0;
       FActiveState.Group := rgTextBox;
     end;
   end;
@@ -1962,17 +2024,22 @@ begin
     ReadNext(Ctrl, Text, Param);
     if (Ctrl <> '') or (Text <> '') then
     begin
-      CtrlItem := FCtrlTable.FindByCtrl(Ctrl);
-      if CtrlItem <> nil then
-        CtrlItem.Method(CtrlItem.Code, Text, Param);
-      // if Method did not use Text use it according to active group
+      if Ctrl <> '' then
+      begin
+        CtrlItem := FCtrlTable.FindByCtrl(Ctrl);
+        if CtrlItem <> nil then
+          CtrlItem.Method(CtrlItem.Code, Text, Param);
+      end;
       if Text <> '' then
+      begin
+        // if Method did not use Text use it according to active group
         case FActiveState.Group of
           rgColorTable: ReadColorGroup(-1, Text, 0);
           rgFontTable: ReadFontGroup(-1, Text, 0);
           rgPicture: ReadPictureGroup(-1, Text, 0);
-          rgNone, rgTextBox: AddText(Text);
+          rgNone, rgTextBox: AddText(TKString(Text));
         end;
+      end;
     end;
   end;
 end;
@@ -1994,7 +2061,9 @@ begin
           ActiveTable.ColCount := 1;
           FActiveTableColCount := 1;
           FActiveTableRow := ActiveTable.Rows[ActiveTable.RowCount - 1];
-          FBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+          FActiveBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+          FIndexStack.PushValue(FAtIndex);
+          FAtIndex := 0;
           FActiveTableCellXPos := 0;
           FActiveTableLastRow := False;
         end;
@@ -2014,7 +2083,8 @@ begin
       Cell.ParaStyle.Assign(FActiveState.ParaStyle);
       Inc(FActiveTableColCount);
       FActiveTableRow.CellCount := FActiveTableColCount;
-      FBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+      FActiveBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+      FAtIndex := 0;
     end;
     rptbRowEnd: if FActiveTableRow <> nil then
     begin
@@ -2033,7 +2103,8 @@ begin
         FActiveTableRow := ActiveTable.Rows[ActiveTable.RowCount - 1];
         FActiveTableColCount := 1;
         FActiveTableRow.CellCount := FActiveTableColCount;
-        FBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+        FActiveBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell
+        FAtIndex := 0;
         FActiveTableCellXPos := 0;
       end;
       FActiveTableCol := -1;
@@ -2177,20 +2248,25 @@ begin
   FMemo := AMemo;
   FColorTable := TKMemoRTFColorTable.Create;
   FFontTable := TKMemoRTFFontTable.Create;
-  FStream := TMemoryStream.Create;
+  FSelectedOnly := False;
+  FStream := nil;
 end;
 
 destructor TKMemoRTFWriter.Destroy;
 begin
   FColorTable.Free;
   FFontTable.Free;
-  FStream.Free;
   inherited;
 end;
 
 function TKMemoRTFWriter.BoolToParam(AValue: Boolean): AnsiString;
 begin
-  Result := IntToStr(Integer(AValue));
+  Result := AnsiString(IntToStr(Integer(AValue)));
+end;
+
+function TKMemoRTFWriter.CanSave(AItem: TKMemoBlock): Boolean;
+begin
+  Result := not FSelectedOnly or (AItem <> nil) and (AItem.SelLength > 0);
 end;
 
 function TKMemoRTFWriter.ColorToHighlightCode(AValue: TColor): Integer;
@@ -2219,12 +2295,12 @@ end;
 
 function TKMemoRTFWriter.ColorToParam(AValue: TColor): AnsiString;
 begin
-  Result := IntToStr(ColorToColorRec(Avalue).Value);
+  Result := AnsiString(IntToStr(ColorToColorRec(Avalue).Value));
 end;
 
 function TKMemoRTFWriter.EMUToParam(AValue: Integer): AnsiString;
 begin
-  Result := IntToStr(PointsToEMU(AValue));
+  Result := AnsiString(IntToStr(PointsToEMU(AValue)));
 end;
 
 procedure TKMemoRTFWriter.FillColorTable(ABlocks: TKMemoBlocks);
@@ -2237,26 +2313,29 @@ begin
     for I := 0 to ABlocks.Count - 1 do
     begin
       Item := Ablocks[I];
-      if Item is TKMemoTextBlock then
+      if CanSave(Item) then
       begin
-        FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Brush.Color);
-        FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Font.Color);
-        if Item is TKMemoParagraph then
+        if Item is TKMemoTextBlock then
         begin
-          FColorTable.AddColor(TKMemoParagraph(Item).ParaStyle.Brush.Color);
-          FColorTable.AddColor(TKMemoParagraph(Item).ParaStyle.BorderColor);
-        end;
-      end
-      else if Item is TKMemoContainer then
-      begin
-        FColorTable.AddColor(TKmemoContainer(Item).BlockStyle.Brush.Color);
-        FColorTable.AddColor(TKmemoContainer(Item).BlockStyle.BorderColor);
-        if Item is TKMemoTable then
+          FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Brush.Color);
+          FColorTable.AddColor(TKmemoTextBlock(Item).TextStyle.Font.Color);
+          if Item is TKMemoParagraph then
+          begin
+            FColorTable.AddColor(TKMemoParagraph(Item).ParaStyle.Brush.Color);
+            FColorTable.AddColor(TKMemoParagraph(Item).ParaStyle.BorderColor);
+          end;
+        end
+        else if Item is TKMemoContainer then
         begin
-          FColorTable.AddColor(TKmemoTable(Item).CellStyle.Brush.Color);
-          FColorTable.AddColor(TKmemoTable(Item).CellStyle.BorderColor);
+          FColorTable.AddColor(TKmemoContainer(Item).BlockStyle.Brush.Color);
+          FColorTable.AddColor(TKmemoContainer(Item).BlockStyle.BorderColor);
+          if Item is TKMemoTable then
+          begin
+            FColorTable.AddColor(TKmemoTable(Item).CellStyle.Brush.Color);
+            FColorTable.AddColor(TKmemoTable(Item).CellStyle.BorderColor);
+          end;
+          FillColorTable(TKmemoContainer(Item).Blocks);
         end;
-        FillColorTable(TKmemoContainer(Item).Blocks);
       end;
     end;
   end;
@@ -2272,10 +2351,13 @@ begin
     for I := 0 to ABlocks.Count - 1 do
     begin
       Item := Ablocks[I];
-      if Item is TKMemoTextBlock then
-        FFontTable.AddFont(TKmemoTextBlock(Item).TextStyle.Font)
-      else if Item is TKmemoContainer then
-        FillFontTable(TKmemoContainer(Item).Blocks);
+      if CanSave(Item) then
+      begin
+        if Item is TKMemoTextBlock then
+          FFontTable.AddFont(TKmemoTextBlock(Item).TextStyle.Font)
+        else if Item is TKmemoContainer then
+          FillFontTable(TKmemoContainer(Item).Blocks);
+      end;
     end;
   end;
 end;
@@ -2290,19 +2372,56 @@ begin
   Result := AValue * 20;
 end;
 
-procedure TKMemoRTFWriter.Save(const AFileName: TKString);
+procedure TKMemoRTFWriter.SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean);
+var
+  Stream: TMemoryStream;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    SaveToStream(Stream, ASelectedOnly);
+    Stream.SaveToFile(AFileName);
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TKMemoRTFWriter.SaveToStream(AStream: TStream; ASelectedOnly: Boolean);
+var
+  ActiveBlocks, Blocks1, Blocks2, SavedBlocks1: TKMemoBlocks;
+  LocalIndex: Integer;
 begin
   try
+    FStream := AStream;
+    FSelectedOnly := ASelectedOnly;
+    if FSelectedOnly then
+    begin
+      // find common parent blocks for the selection and use this instead of main blocks
+      ActiveBlocks := FMemo.Blocks;
+      Blocks1 := ActiveBlocks.IndexToBlocks(FMemo.SelStart, LocalIndex);
+      Blocks2 := ActiveBlocks.IndexToBlocks(FMemo.SelEnd, LocalIndex);
+      SavedBlocks1 := Blocks1;
+      while Blocks1 <> Blocks2 do
+      begin
+        Blocks1 := Blocks1.ParentBlocks;
+        if Blocks1 = nil then
+        begin
+          Blocks2 := Blocks2.ParentBlocks;
+          if Blocks2 <> nil then
+            Blocks1 := SavedBlocks1;
+        end;
+      end;
+      ActiveBlocks := Blocks1;
+    end else
+      ActiveBlocks := FMemo.Blocks;
     FCodePage := SystemCodepage;
     WriteGroupBegin;
     try
       WriteHeader;
       WriteBackground;
-      WriteBody(FMemo.Blocks, False);
+      WriteBody(ActiveBlocks, False);
     finally
       WriteGroupEnd;
     end;
-    FStream.SaveToFile(AFileName);
   except
     KFunctions.Error(sErrMemoSaveToRTF);
   end;
@@ -2312,7 +2431,7 @@ procedure TKMemoRTFWriter.WriteBackground;
 var
   Shape: TKMemoRTFShape;
 begin
-  if (FMemo <> nil) and ((FMemo.Colors.BkGnd <> clWindow) or (FMemo.BackgroundImage.Graphic <> nil)) then
+  if not FSelectedOnly and (FMemo <> nil) and ((FMemo.Colors.BkGnd <> clWindow) or (FMemo.BackgroundImage.Graphic <> nil)) then
   begin
     WriteCtrlParam('viewbksp', 1);
     WriteGroupBegin;
@@ -2351,18 +2470,23 @@ begin
     for I := 0 to ABlocks.Count - 1 do
     begin
       Item := ABlocks[I];
-      if Item is TKMemoParagraph then
-        WriteParagraph(TKMemoParagraph(Item), AInsideTable)
-      else if Item is TKMemoTextBlock then
-        WriteTextBlock(TKMemoTextBlock(Item))
-      else if Item is TKMemoImageBlock then
-        WriteImageBlock(TKMemoImageBlock(Item), AInsideTable)
-      else if Item is TKMemoContainer then
+      if CanSave(Item) then
       begin
-        if Item is TKMemoTable then
-          WriteTable(TKMemoTable(Item))
-        else
-          WriteContainer(TKMemoContainer(Item), AInsideTable);
+        if Item is TKMemoParagraph then
+          WriteParagraph(TKMemoParagraph(Item), AInsideTable)
+        else if Item is TKMemoTextBlock then
+          WriteTextBlock(TKMemoTextBlock(Item))
+        else if Item is TKMemoImageBlock then
+          WriteImageBlock(TKMemoImageBlock(Item), AInsideTable)
+        else if Item is TKMemoContainer then
+        begin
+          if Item is TKMemoTable then
+            WriteTable(TKMemoTable(Item))
+          else if Item.Position <> mbpText then
+            WriteContainer(TKMemoContainer(Item), AInsideTable)
+          else
+            WriteBody(TKMemoContainer(Item).Blocks, AInsideTable) // just save the contents
+        end;
       end;
     end;
   end;
@@ -2405,8 +2529,8 @@ begin
     Shape.ContentPosition.Right := ABlock.LeftOffset + ABlock.RequiredWidth;
     Shape.ContentPosition.Bottom := ABlock.TopOffset + ABlock.RequiredHeight;
     Shape.FitToText := not ABlock.FixedHeight;
-    Shape.HorzPosCode := 2; // we don't support any other
-    Shape.VertPosCode := 2; // we don't support any other
+    Shape.HorzPosCode := 2; // position by column, we don't support any other
+    Shape.VertPosCode := 2; // position by paragraph, we don't support any other
     Shape.Style.Assign(ABlock.BlockStyle);
     WriteShape(Shape, AInsideTable);
   finally
@@ -2809,10 +2933,7 @@ begin
     WriteShapeProp('lineWidth', EMUToParam(AShape.Style.BorderWidth));
   end;
   if AShape.Background then
-  begin
     WriteShapeProp('fBackground', BoolToParam(True));
-//    WriteShapeProp('fillShape', BoolToParam(True));
-  end;
 end;
 
 procedure TKMemoRTFWriter.WriteShapePropName(const APropName: AnsiString);
@@ -2851,41 +2972,53 @@ end;
 
 procedure TKMemoRTFWriter.WriteTable(AItem: TKMemoTable);
 var
-  I, J: Integer;
+  I, J, SavedRow, SavedRowCount: Integer;
   Row: TKMemoTableRow;
   Cell: TKMemoTableCell;
 begin
+  SavedRowCount := 0;
   for I := 0 to AItem.RowCount - 1 do
   begin
     Row := AItem.Rows[I];
-    WriteCtrl('trowd');
-    WriteTableRowProperties(AItem, I);
-    for J := 0 to Row.CellCount - 1 do
+    if CanSave(Row) then
+      Inc(SavedRowCount);
+  end;
+  SavedRow := 0;
+  for I := 0 to AItem.RowCount - 1 do
+  begin
+    Row := AItem.Rows[I];
+    if CanSave(Row) then
     begin
-      Cell := Row.Cells[J];
-      WriteParaStyle(Cell.ParaStyle);
+      WriteCtrl('trowd');
+      WriteTableRowProperties(Row, SavedRowCount);
+      for J := 0 to Row.CellCount - 1 do
+      begin
+        Cell := Row.Cells[J];
+        WriteParaStyle(Cell.ParaStyle);
+        WriteGroupBegin;
+        try
+          WriteBody(Cell.Blocks, True);
+        finally
+          WriteGroupEnd;
+        end;
+        WriteCtrl('cell');
+      end;
       WriteGroupBegin;
       try
-        WriteBody(Cell.Blocks, True);
+        WriteCtrl('trowd');
+        WriteTableRowProperties(Row, SavedRowCount);
+        if SavedRow = SavedRowCount - 1 then
+          WriteCtrl('lastrow');
+        WriteCtrl('row');
       finally
         WriteGroupEnd;
       end;
-      WriteCtrl('cell');
-    end;
-    WriteGroupBegin;
-    try
-      WriteCtrl('trowd');
-      WriteTableRowProperties(AItem, I);
-      if I = AItem.RowCount - 1 then
-        WriteCtrl('lastrow');
-      WriteCtrl('row');
-    finally
-      WriteGroupEnd;
+      Inc(SavedRow);
     end;
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteTableRowProperties(ATable: TKmemoTable; ARowIndex: Integer);
+procedure TKMemoRTFWriter.WriteTableRowProperties(ARow: TKMemoTableRow; ASavedRowIndex: Integer);
 
   procedure WriteBorderWidth(AWidth: Integer);
   begin
@@ -2898,16 +3031,14 @@ procedure TKMemoRTFWriter.WriteTableRowProperties(ATable: TKmemoTable; ARowIndex
   end;
 
 var
-  Row: TKmemoTableRow;
   Cell: TKMemoTableCell;
   I, XPos: Integer;
 begin
-  WriteCtrlParam('irow', ARowIndex);
-  Row := ATable.Rows[ARowIndex];
+  WriteCtrlParam('irow', ASavedRowIndex);
   Xpos := 0;
-  for I := 0 to Row.CellCount - 1 do
+  for I := 0 to ARow.CellCount - 1 do
   begin
-    Cell := Row.Cells[I];
+    Cell := ARow.Cells[I];
     if I = 0 then
     begin
       WriteCtrlParam('trpaddb', PointsToTwips(Cell.BlockStyle.BottomPadding));
@@ -2938,12 +3069,18 @@ begin
 end;
 
 procedure TKMemoRTFWriter.WriteTextBlock(AItem: TKMemoTextBlock);
+var
+  S: TKString;
 begin
   WriteGroupBegin;
   try
+    if FSelectedOnly then
+      S := AItem.SelText
+    else
+      S := AItem.Text;
     WriteTextStyle(AItem.TextStyle);
     WriteSpace;
-    WriteUnicodeString(AItem.Text);
+    WriteUnicodeString(S);
   finally
     WriteGroupEnd;
   end;

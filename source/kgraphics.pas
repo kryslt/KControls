@@ -582,6 +582,12 @@ function ColorToColorRec(Color: TColor): TKColorRec;
 { Makes a grayscale representation of the given color. }
 function ColorToGrayScale(Color: TColor): TColor;
 
+{ Returns True if properties of the two brushes are equal. }
+function CompareBrushes(ABrush1, ABrush2: TBrush): Boolean;
+
+{ Returns True if properties of the two fonts are equal. }
+function CompareFonts(AFont1, AFont2: TFont): Boolean;
+
 { Calls BitBlt. }
 procedure CopyBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcX, SrcY: Integer);
 
@@ -907,6 +913,25 @@ end;
 function ColorToColorRec(Color: TColor): TKColorRec;
 begin
   Result.Value := ColorToRGB(Color);
+end;
+
+function CompareBrushes(ABrush1, ABrush2: TBrush): Boolean;
+begin
+  Result :=
+    (ABrush1.Color = ABrush2.Color) and
+    (ABrush1.Style = ABrush2.Style);
+end;
+
+function CompareFonts(AFont1, AFont2: TFont): Boolean;
+begin
+  Result :=
+    (AFont1.Charset = AFont2.Charset) and
+    (AFont1.Color = AFont2.Color) and
+    (AFont1.Name = AFont2.Name) and
+    (AFont1.Orientation = AFont2.Orientation) and
+    (AFont1.Pitch = AFont2.Pitch) and
+    (AFont1.Size = AFont2.Size) and
+    (AFont1.Style = AFont2.Style);
 end;
 
 procedure CopyBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcX, SrcY: Integer);
