@@ -1452,7 +1452,7 @@ begin
       FMemo.Colors.BkGnd := cBkGndDef;
       FMemo.BackgroundImage.Graphic := nil;
       FActiveBlocks := FMemo.Blocks;
-      FAtIndex := -1; // just append new blocks to active blocks
+      FAtIndex := 0; // just append new blocks to active blocks
     end else
     begin
       FActiveBlocks := FMemo.Blocks.IndexToBlocks(AtIndex, ContLocalIndex); // get active blocks
@@ -1470,11 +1470,11 @@ begin
             FActiveBlocks.AddAt(NewItem, FAtIndex);
           end;
         end else
-          FAtIndex := -1; // just append new blocks to active blocks
+          FAtIndex := 0; // just append new blocks to active blocks
       end else
       begin
         FActiveBlocks := FMemo.Blocks;
-        FAtIndex := -1; // just append new blocks to active blocks
+        FAtIndex := 0; // just append new blocks to active blocks
       end;
     end;
     FActiveBlocks.LockUpdate;

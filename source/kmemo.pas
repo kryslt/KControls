@@ -451,6 +451,7 @@ type
     function GetWordBaseLine(Index: Integer): Integer; virtual;
     function GetWordBottomPadding(Index: Integer): Integer; virtual;
     function GetWordBoundsRect(Index: Integer): TRect; virtual;
+    function GetWordBreakable(Index: Integer): Boolean; virtual;
     function GetWordCount: Integer; virtual;
     function GetWordHeight(Index: Integer): Integer; virtual;
     function GetWordLeft(Index: Integer): Integer; virtual;
@@ -519,6 +520,7 @@ type
     property Width: Integer read GetWidth;
     property WordCount: Integer read GetWordCount;
     property WordBaseLine[Index: Integer]: Integer read GetWordBaseLine write SetWordBaseLine;
+    property WordBreakable[Index: Integer]: Boolean read GetWordBreakable;
     property WordBottomPadding[Index: Integer]: Integer read GetWordBottomPadding write SetWordBottomPadding;
     property WordBoundsRect[Index: Integer]: TRect read GetWordBoundsRect;
     property WordHeight[Index: Integer]: Integer read GetWordHeight write SetWordHeight;
@@ -561,6 +563,7 @@ type
     function GetWordBaseLine(Index: Integer): Integer; override;
     function GetWordBottomPadding(Index: Integer): Integer; override;
     function GetWordBoundsRect(Index: Integer): TRect; override;
+    function GetWordBreakable(Index: Integer): Boolean; override;
     function GetWordCount: Integer; override;
     function GetWordHeight(Index: Integer): Integer; override;
     function GetWordLeft(Index: Integer): Integer; override;
@@ -614,6 +617,7 @@ type
   protected
     function GetCanAddText: Boolean; override;
     function GetParaStyle: TKMemoParaStyle; override;
+    function GetWordBreakable(Index: Integer): Boolean; override;
     procedure ParaStyleChanged(Sender: TObject);
   public
     constructor Create(AParent: TKMemoBlocks); override;
@@ -773,9 +777,13 @@ type
 
   TKMemoTableCell = class(TKMemoContainer)
   private
+    FColSpan: Integer;
     FParaStyle: TKMemoParaStyle;
     FRequiredBorderWidths: TKRect;
+    FRowSpan: Integer;
     function GetParentRow: TKMemoTableRow;
+    procedure SetColSpan(Value: Integer);
+    procedure SetRowSpan(Value: Integer);
   protected
     function GetParaStyle: TKMemoParaStyle; override;
     procedure ParaStyleChanged(Sender: TObject);
@@ -784,9 +792,10 @@ type
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
-    procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property ParentRow: TKMemoTableRow read GetParentRow;
     property RequiredBorderWidths: TKRect read FRequiredBorderWidths;
+    property ColSpan: Integer read FColSpan write SetColSpan;
+    property RowSpan: Integer read FRowSpan write SetRowSpan;
   end;
 
   TKMemoTable = class;
@@ -1461,6 +1470,11 @@ type
       <LI><I>AValue</I> - inserted string</LI>
       </UL> }
     procedure InsertString(At: Integer; const AValue: TKString); virtual;
+    { Load contents from a file. Chooses format automatically by extension.
+      RTF is default format, nothing will be loaded if file format is not recognized. }
+    procedure LoadFromFile(const AFileName: TKString); virtual;
+    { Load contents from a plain text file. }
+    procedure LoadFromTXT(const AFileName: TKString); virtual;
     { Load contents from a RTF file. }
     procedure LoadFromRTF(const AFileName: TKString); virtual;
     { Converts client area coordinates into a text buffer index.
@@ -1471,8 +1485,12 @@ type
       the supplied coordinates are outside of the text space</LI>
       </UL> }
     function PointToIndex(APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
+    { Save contents to a file. Chooses format automatically by extension. RTF is default format. }
+    procedure SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
     { Save contents to a RTF file. }
     procedure SaveToRTF(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
+    { Save contents to a plain text file. }
+    procedure SaveToTXT(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
     { Determines whether a selection is available. }
     function SelAvail: Boolean;
     { Specifies the current selection. This is faster than combination of SelStart and SelLength. }
@@ -2923,12 +2941,14 @@ begin
         Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd <> FActiveBlocks.LineStartIndexByIndex(TmpSelEnd, True, TmpLinePos)));
       ecDeleteEOL:
         Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd <> FActiveBlocks.LineEndIndexByIndex(TmpSelEnd, True, True, TmpLinePos)));
-      ecDeleteLine, ecSelectAll, ecClearAll, ecReplace:
+      ecDeleteLine, ecClearAll, ecReplace:
         Result := not (Empty or ReadOnly);
       ecClearSelection:
         Result := not (Empty or ReadOnly) and (TmpSelLength > 0);
       ecSearch:
         Result := not Empty;
+      ecSelectAll:
+        Result := not Empty and (SelLength < SelectableLength);
       ecInsertMode:
         Result := elOverwrite in FStates;
       ecOverwriteMode:
@@ -3021,7 +3041,7 @@ var
   S: TKString;
 begin
   // copy selected blocks as plain text and RTF to clipboard
-  S := UnicodeStringReplace(FActiveBlocks.SelText, NewLineChar, cEOL, [rfReplaceAll]);
+  S := FActiveBlocks.SelText;
   Stream := TMemoryStream.Create;
   Writer := TKMemoRTFWriter.Create(Self);
   try
@@ -3624,6 +3644,17 @@ begin
   end;
 end;
 
+procedure TKCustomMemo.LoadFromFile(const AFileName: TKString);
+var
+  Ext: TKString;
+begin
+  Ext := LowerCase(ExtractFileExt(AFileName));
+  if Ext = '.txt' then
+    LoadFromTXT(AFileName)
+  else
+    LoadFromRTF(AFileName);
+end;
+
 procedure TKCustomMemo.LoadFromRTF(const AFileName: TKString);
 var
   Reader: TKMemoRTFReader;
@@ -3633,6 +3664,23 @@ begin
     Reader.LoadFromFile(AFileName);
   finally
     Reader.Free;
+  end;
+end;
+
+procedure TKCustomMemo.LoadFromTXT(const AFileName: TKString);
+var
+  List: TStringList;
+begin
+  if FileExists(AFileName) then
+  begin
+    List := TStringList.Create;
+    try
+      List.LoadFromFile(AFileName);
+      FBlocks.Clear;
+      FBlocks.Text := List.Text;
+    finally
+      List.Free;
+    end;
   end;
 end;
 
@@ -3742,6 +3790,18 @@ begin
   if not Focused and CanFocus and not (csDesigning in ComponentState) then SetFocus;
 end;
 
+procedure TKCustomMemo.SaveToFile(const AFileName: TKString;
+  ASelectedOnly: Boolean);
+var
+  Ext: TKString;
+begin
+  Ext := LowerCase(ExtractFileExt(AFileName));
+  if Ext = '.txt' then
+    SaveToTXT(AFileName)
+  else
+    SaveToRTF(AFileName);
+end;
+
 procedure TKCustomMemo.SaveToRTF(const AFileName: TKString; ASelectedOnly: Boolean);
 var
   Writer: TKMemoRTFWriter;
@@ -3751,6 +3811,23 @@ begin
     Writer.SaveToFile(AFileName, ASelectedOnly);
   finally
     Writer.Free;
+  end;
+end;
+
+procedure TKCustomMemo.SaveToTXT(const AFileName: TKString;
+  ASelectedOnly: Boolean);
+var
+  List: TStringList;
+begin
+  List := TStringList.Create;
+  try
+    if ASelectedOnly then
+      List.Text := FBlocks.SelText
+    else
+      List.Text := FBlocks.Text;
+    List.SaveToFile(AFileName);
+  finally
+    List.Free;
   end;
 end;
 
@@ -4511,6 +4588,11 @@ begin
   Result := CreateEmptyRect;
 end;
 
+function TKMemoBlock.GetWordBreakable(Index: Integer): Boolean;
+begin
+  Result := True;
+end;
+
 function TKMemoBlock.GetWordCount: Integer;
 begin
   Result := 0;
@@ -5000,6 +5082,17 @@ begin
   Result.TopLeft := CreateEmptyPoint;
   Result.BottomRight := FWords[Index].Extent;
   KFunctions.OffsetRect(Result, FWords[Index].Position);
+end;
+
+function TKMemoTextBlock.GetWordBreakable(Index: Integer): Boolean;
+var
+  S: TKString;
+begin
+  S := Words[Index];
+  if S <> '' then
+    Result := CharInSetEx(S[Length(S)], cWordBreaks + ['.',',',':',';','?','!','/','\'])
+  else
+    Result := True;
 end;
 
 function TKMemoTextBlock.GetWords(Index: Integer): TKString;
@@ -5561,6 +5654,11 @@ end;
 function TKMemoParagraph.GetParaStyle: TKMemoParaStyle;
 begin
   Result := FParaStyle;
+end;
+
+function TKMemoParagraph.GetWordBreakable(Index: Integer): Boolean;
+begin
+  Result := True;
 end;
 
 procedure TKMemoParagraph.NotifyDefaultParaChange;
@@ -6383,6 +6481,8 @@ begin
   FParaStyle.OnChanged := ParaStyleChanged;
   FRequiredBorderWidths := TKRect.Create;
   FRequiredBorderWidths.OnChanged := RequiredBorderWidthsChanged;
+  FRowSpan := 1;
+  FColSpan := 1;
 end;
 
 destructor TKMemoTableCell.Destroy;
@@ -6429,9 +6529,24 @@ begin
     Row.UpdateRequiredWidth;
 end;
 
-procedure TKMemoTableCell.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
+procedure TKMemoTableCell.SetColSpan(Value: Integer);
 begin
-  inherited;
+  Value := Max(Value, 1);
+  if Value <> FColSpan then
+  begin
+    FColSpan := Value;
+    Update([muExtent]);
+  end;
+end;
+
+procedure TKMemoTableCell.SetRowSpan(Value: Integer);
+begin
+  Value := Max(Value, 1);
+  if Value <> FRowSpan then
+  begin
+    FRowSpan := Value;
+    Update([muExtent]);
+  end;
 end;
 
 { TKMemoTableRow }
@@ -7526,6 +7641,7 @@ begin
     if Item.SelLength > 0 then
       Result := Result + Item.SelText;
   end;
+  Result := UnicodeStringReplace(Result, NewLineChar, cEOL, [rfReplaceAll]);
 end;
 
 function TKMemoBlocks.GetShowFormatting: Boolean;
@@ -7547,6 +7663,7 @@ begin
     Item := Items[I];
     Result := Result + Item.Text;
   end;
+  Result := UnicodeStringReplace(Result, NewLineChar, cEOL, [rfReplaceAll]);
 end;
 
 function TKMemoBlocks.GetTotalLeftOffset: Integer;
@@ -7889,28 +8006,37 @@ begin
       else
         LastItem := nil;
       // proceed with adding text
-      if Item.CanAddText then
-      begin
-        // we already have suitable block at given location
-        Result := Item.InsertString(AValue, LocalIndex);
-      end
-      else if LocalIndex = 0 then
+      if LocalIndex = 0 then
       begin
         // we are at local position 0 so we can use previous text block or add new one
         if (LastItem <> nil) and LastItem.CanAddText then
         begin
-          // insert character at the end of this block
+          // insert character at the end of last block
           Result := LastItem.InsertString(AValue);
+        end
+        else if Item.CanAddText then
+        begin
+          // insert character at the beginning of current block if previous one cannot be used
+          Result := Item.InsertString(AValue, LocalIndex);
         end else
         begin
-          // insert new text block
+          // insert new text block if current block cannot add text
           NewItem := AddTextBlock(AValue, Block);
         end;
-      end
-      else if LocalIndex = Item.ContentLength then
+      end else
       begin
-        // insert new text block
-        NewItem := AddTextBlock(AValue, Block + 1);
+        // we are in the middle of current block
+        if Item.CanAddText then
+        begin
+          // current block can insert text, so do it at given location
+          Result := Item.InsertString(AValue, LocalIndex);
+        end
+        else if LocalIndex = Item.ContentLength then
+        begin
+          // current block cannot insert text, so insert new text block
+          // but only when we are at the end of the current block
+          NewItem := AddTextBlock(AValue, Block + 1);
+        end;
       end;
       if NewItem <> nil then
       begin
@@ -8134,7 +8260,7 @@ var
     end;
   end;
 
-  procedure MoveWords(ALineIndex, AStartPos, AEndPos, ADelta: Integer);
+  procedure MoveWordsOnLine(ALineIndex, AStartPos, AEndPos, ADelta: Integer);
   var
     I, J, St, En: Integer;
     Item: TKMemoBlock;
@@ -8253,7 +8379,7 @@ var
                   case CurParaStyle.HAlign of
                     halCenter: Delta := Delta div 2;
                   end;
-                  MoveWords(LineIndex, StPosX, R.Left, Delta);
+                  MoveWordsOnLine(LineIndex, StPosX, R.Left, Delta);
                 end;
                 PosX := Item.WordLeft[J];
                 StPosX := PosX;
@@ -8272,7 +8398,7 @@ var
         case CurParaStyle.HAlign of
           halCenter: Delta := Delta div 2;
         end;
-        MoveWords(LineIndex, StPosX, Right + ParaMarkWidth, Delta);
+        MoveWordsOnLine(LineIndex, StPosX, Right + ParaMarkWidth, Delta);
       end;
       // adjust all words vertically, compute line extent
       LineRight := CurParaStyle.LeftPadding;
@@ -8350,10 +8476,48 @@ var
     end;
   end;
 
+  function MeasureNextWords(ACanvas: TCanvas; ACurBlock, ACurWord, ARequiredWidth: Integer; IsBreakable: Boolean; var ANBExtent: TPoint): TPoint;
+  var
+    Item: TKMemoBlock;
+    Extent: TPoint;
+  begin
+    Item := Items[ACurBlock];
+    Result := Item.MeasureWordExtent(ACanvas, ACurWord, ARequiredWidth);
+    ANBExtent := Result;
+    if not IsBreakable then
+    begin
+      Inc(ACurWord);
+      if ACurWord >= Item.WordCount then
+      begin
+        ACurWord := 0;
+        Inc(ACurBlock);
+      end;
+      while not IsBreakable and (ACurBlock < Count) do
+      begin
+        Item := Items[ACurBlock];
+        if (Item is TKMemoParagraph) or not (Item is TKMemoTextBlock) then
+          IsBreakable := True
+        else
+        begin
+          while not IsBreakable and (ACurWord < Item.WordCount) do
+          begin
+            IsBreakable := Item.WordBreakable[ACurWord];
+            Extent := Item.MeasureWordExtent(ACanvas, ACurWord, ARequiredWidth);
+            Inc(ANBExtent.X, Extent.X);
+            ANBExtent.Y := Max(ANBExtent.Y, Extent.Y);
+            Inc(ACurWord);
+          end;
+          ACurWord := 0;
+          Inc(ACurBlock);
+        end;
+      end;
+    end;
+  end;
+
 var
-  Extent: TPoint;
+  Extent, NBExtent: TPoint;
   WLen, PrevPosX, PrevPosY: Integer;
-  IsParagraph, OutSide, WasParagraph: Boolean;
+  IsBreakable, IsParagraph, OutSide, WasBreakable, WasParagraph: Boolean;
   Item: TKMemoBlock;
   NextParaStyle: TKMemoParaStyle;
 begin
@@ -8381,6 +8545,7 @@ begin
   end;
   // then measure all other items
   CurBlock := 0;
+  IsBreakable := True;
   IsParagraph := False;
   while CurBlock < Count do
   begin
@@ -8398,8 +8563,10 @@ begin
             NextParaStyle := GetParaStyle(CurBlock)
           else
             NextParaStyle := CurParaStyle;
-          Extent := Item.MeasureWordExtent(ACanvas, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - NextParaStyle.FirstIndent);
-          OutSide := CurParaStyle.WordWrap and not IsParagraph and (PosX + Extent.X > Right);
+          WasBreakable := IsBreakable or not (Item is TKMemoTextBlock);
+          IsBreakable := Item.WordBreakable[CurWord];
+          Extent := MeasureNextWords(ACanvas, CurBlock, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - NextParaStyle.FirstIndent, IsBreakable, NBExtent);
+          OutSide := CurParaStyle.WordWrap and not IsParagraph and WasBreakable and (PosX + NBExtent.X > Right);
           if OutSide or WasParagraph then
             AddLine;
           MoveWordToFreeSpace(Extent.X, Extent.Y);
@@ -8429,8 +8596,8 @@ begin
           MoveWordToFreeSpace(Item.Width, Item.Height);
           Item.WordLeft[0] := PosX;
           Item.WordTop[0] := PosY;
-          FExtent.X := Max(FExtent.X, PosX + Item.Width);
-          FExtent.Y := Max(FExtent.Y, PosY + Item.Height);
+          FExtent.X := Max(FExtent.X, PosX + Item.Width + Item.LeftOffset);
+          FExtent.Y := Max(FExtent.Y, PosY + Item.Height + Item.TopOffset);
         finally
           PosX := PrevPosX; PosY := PrevPosY;
         end;

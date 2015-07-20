@@ -160,30 +160,32 @@ begin
     //AddTextField;
     //AddTextField;
 
-{    TBL := Memo.Blocks.AddTable;
+    TBL := Memo.Blocks.AddTable;
     TBL.BlockStyle.TopPadding := 20;
     TBL.BlockStyle.BottomPadding := 30;
     TBL.CellStyle.BorderWidth := 2;
     TBL.CellStyle.ContentPadding.AssignFromValues(5,5,5,5);
     TBL.CellStyle.Brush.Color := clWhite;
     TBL.ColCount := 2;
-    TBL.RowCount := 2;
+    TBL.RowCount := 3;
 //    TBL.Rows[0].Cells[0].FixedWidth := True;
 //    TBL.Rows[1].Cells[1].FixedWidth := True;
     TBL.Rows[0].RequiredHeight := 200;
-    TBL.ColWidths[0] := 500;
-    TBl.ColWidths[1] := 400;
+//    TBL.ColWidths[0] := 300;
+//    TBl.ColWidths[1] := 300;
     AddTextField(TBL.Rows[0].Cells[0], True);
     AddTextField(TBL.Rows[0].Cells[1], True);
     AddTextField(TBL.Rows[1].Cells[0], False);
     AddTextField(TBL.Rows[1].Cells[1], False);
-    TBL.RequiredWidth := 600;
-    TBL.FixedWidth := True;
+    AddTextField(TBL.Rows[2].Cells[0], True);
+    AddTextField(TBL.Rows[2].Cells[1], True);
+//    TBL.RequiredWidth := 600;
+//    TBL.FixedWidth := True;
     TBL.ApplyDefaultCellStyle;
 
     PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
-    PA.ParaStyle.HAlign := halCenter;}
+    PA.ParaStyle.HAlign := halCenter;
 
 //    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
 
@@ -256,11 +258,10 @@ begin
     Memo.Blocks.UnlockUpdate;
   end;
 
-//  Memo.LoadFromRTF('test_no_img.rtf');
   Memo.LoadFromRTF('test.rtf');
-//  Memo.LoadFromRTF('test1.rtf');
+//  Memo.LoadFromRTF('test_no_img.rtf');
+//  Memo.LoadFromRTF('test_simple.rtf');
 //  Memo.LoadFromRTF('kgrid_manual.rtf');
-//  Memo.LoadFromRTF('Word2007RTFSpec9.rtf');
 //  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
 //  Memo.Select(10, 510);
 //  Memo.SaveToRTF('test_save.rtf', True);
@@ -284,7 +285,7 @@ begin
   MemoCopy.Align := alClient;
   MemoCopy.Options := MemoCopy.Options + [eoShowFormatting, eoWantTab];
 //  MemoCopy.LoadFromRTF('test_save.rtf');
-  MemoCopy.Parent := Panel2;
+//  MemoCopy.Parent := Panel2;
 //  MemoCopy.SaveToRTF('test_copy_save.rtf');
 end;
 
