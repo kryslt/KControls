@@ -928,7 +928,6 @@ begin
     (AFont1.Charset = AFont2.Charset) and
     (AFont1.Color = AFont2.Color) and
     (AFont1.Name = AFont2.Name) and
-    (AFont1.Orientation = AFont2.Orientation) and
     (AFont1.Pitch = AFont2.Pitch) and
     (AFont1.Size = AFont2.Size) and
     (AFont1.Style = AFont2.Style);

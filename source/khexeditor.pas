@@ -1029,7 +1029,7 @@ type
     { Specifies the byte grouping in the digits area }
     property DigitGrouping: Integer read FDigitGrouping write SetDigitGrouping default cDigitGroupingDef;
     { Specifies the style how the outline is drawn when editor is disabled }
-    property DisabledDrawStyle: TKEditDisabledDrawStyle read FDisabledDrawStyle write SetDisabledDrawStyle default cDisabledDrawStyleDef;
+    property DisabledDrawStyle: TKEditDisabledDrawStyle read FDisabledDrawStyle write SetDisabledDrawStyle default cEditDisabledDrawStyleDef;
     { Defines areas to paint, whether to paint horizontal and vertical trailing lines,
       area separator lines and caret mark when the editor has no input focus }
     property DrawStyles: TKHexEditorDrawStyles read FDrawStyles write SetDrawStyles stored IsDrawStylesStored;
@@ -1829,7 +1829,7 @@ begin
   FCharSpacing := cCharSpacingDef;
   FCharWidth := 6;
   FDigitGrouping := cDigitGroupingDef;
-  FDisabledDrawStyle := cDisabledDrawStyleDef;
+  FDisabledDrawStyle := cEditDisabledDrawStyleDef;
   FDrawStyles := cDrawStylesDef;
   FEditArea := eaDigits;
   FLeftChar := 0;

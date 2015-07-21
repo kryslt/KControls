@@ -15,6 +15,7 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   OnPaint = FormPaint
   OnResize = FormResize
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
@@ -39,7 +40,5 @@ object MainForm: TMainForm
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
-    ExplicitLeft = 8
-    ExplicitWidth = 473
   end
 end

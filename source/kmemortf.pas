@@ -1446,7 +1446,7 @@ begin
   try
     if AtIndex < 0 then
     begin
-      FMemo.Blocks.Clear;
+      FMemo.Clear;
       FMemo.TextStyle.Defaults;
       FMemo.ParaStyle.Defaults;
       FMemo.Colors.BkGnd := cBkGndDef;

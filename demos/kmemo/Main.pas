@@ -12,7 +12,7 @@ uses
   {$ENDIF}
     SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs, KGrids,
     KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon,
-    KSplitter;
+    KSplitter, KControls;
 
 type
 
@@ -26,6 +26,8 @@ type
     procedure FormPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
+    procedure KMemo1DropFiles(Sender: TObject; X, Y: Integer; Files: TStrings);
+    procedure FormShow(Sender: TObject);
   private
     { Private declarations }
     Memo: TKMemo;
@@ -107,7 +109,8 @@ begin
   Memo.ContentPadding.Right := 20;
   Memo.ContentPadding.Bottom := 20;
   Memo.Align := alClient;
-  Memo.Options := Memo.Options + [eoShowFormatting, eoWantTab];
+  Memo.Options := Memo.Options + [eoDropFiles, eoShowFormatting, eoWantTab];
+  Memo.OnDropFiles := KMemo1DropFiles;
 //  Memo.Colors.BkGnd := clWhite;
 //  Memo.Font.Name := 'Arial';
 //  Memo.Font.Size := 20;
@@ -166,19 +169,26 @@ begin
     TBL.CellStyle.BorderWidth := 2;
     TBL.CellStyle.ContentPadding.AssignFromValues(5,5,5,5);
     TBL.CellStyle.Brush.Color := clWhite;
-    TBL.ColCount := 2;
+    TBL.ColCount := 3;
     TBL.RowCount := 3;
 //    TBL.Rows[0].Cells[0].FixedWidth := True;
 //    TBL.Rows[1].Cells[1].FixedWidth := True;
     TBL.Rows[0].RequiredHeight := 200;
 //    TBL.ColWidths[0] := 300;
 //    TBl.ColWidths[1] := 300;
+//    TBL.Rows[1].Cells[0].ColSpan := 2;
+//    TBL.Rows[1].Cells[2].RowSpan := 2;
+    TBL.Rows[1].Cells[1].ColSpan := 2;
+    TBL.Rows[1].Cells[0].RowSpan := 2;
     AddTextField(TBL.Rows[0].Cells[0], True);
     AddTextField(TBL.Rows[0].Cells[1], True);
+    AddTextField(TBL.Rows[0].Cells[2], True);
     AddTextField(TBL.Rows[1].Cells[0], False);
     AddTextField(TBL.Rows[1].Cells[1], False);
+    AddTextField(TBL.Rows[1].Cells[2], False);
     AddTextField(TBL.Rows[2].Cells[0], True);
     AddTextField(TBL.Rows[2].Cells[1], True);
+    AddTextField(TBL.Rows[2].Cells[2], True);
 //    TBL.RequiredWidth := 600;
 //    TBL.FixedWidth := True;
     TBL.ApplyDefaultCellStyle;
@@ -258,7 +268,7 @@ begin
     Memo.Blocks.UnlockUpdate;
   end;
 
-  Memo.LoadFromRTF('test.rtf');
+// Memo.LoadFromRTF('test.rtf');
 //  Memo.LoadFromRTF('test_no_img.rtf');
 //  Memo.LoadFromRTF('test_simple.rtf');
 //  Memo.LoadFromRTF('kgrid_manual.rtf');
@@ -318,6 +328,14 @@ end;
 
 procedure TMainForm.FormResize(Sender: TObject);begin
   Panel1.Width := ClientWidth div 2;
+end;
+
+procedure TMainForm.FormShow(Sender: TObject);begin
+  //Memo.Clear;
+end;
+
+procedure TMainForm.KMemo1DropFiles(Sender: TObject; X, Y: Integer;  Files: TStrings);begin
+  Memo.LoadFromFile(Files[0]);
 end;
 
 end.

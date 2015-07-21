@@ -350,7 +350,7 @@ type
 
 const
   { Default value for the @link(TKCustomHexEditor.DisabledDrawStyle) property }
-  cDisabledDrawStyleDef = eddBright;
+  cEditDisabledDrawStyleDef = eddBright;
 
 { Returns default key mapping structure }
 function CreateDefaultKeyMapping: TKEditKeyMapping;

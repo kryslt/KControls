@@ -451,11 +451,11 @@ function CharInSetEx(AChar: WideChar; const ASet: TKSysCharSet): Boolean; overlo
 
 { Load clipboard data to AStream in a format specified by AFormat (if any).
   Loads also AText if clipboard has some data in text format. }
-function ClipboardLoadStreamAs(const AFormat: TKString; AStream: TStream; var AText: TKString): Boolean;
+function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean;
 
 { Save data from AStream to clipboard in a format specified by AFormat.
   Optional AText can be saved in text format. }
-function ClipboardSaveStreamAs(const AFormat: TKString; AStream: TStream; const AText: TKString): Boolean;
+function ClipboardSaveStreamAs(const AFormat: string; AStream: TStream; const AText: TKString): Boolean;
 
 { Compares two Integers. Returns 1 if I1 > I2, -1 if I1 < I2 and 0 if I1 = I2. }
 function CompareIntegers(I1, I2: Integer): Integer;
@@ -502,13 +502,22 @@ function DivUp(Dividend, Divisor: Integer): Integer;
 function DivDown(Dividend, Divisor: Integer): Integer;
 
 { Returns True if focused window is some text editing window, such as TEdit. }
-function EditIsFocused: Boolean;
+function EditIsFocused(AMustAllowWrite: Boolean): Boolean;
 
-{ Returns True if some text editing window is focused and contains a text. }
-function EditIsTextFocused: Boolean;
+{ Returns True if some text editing window is focused and contains a selectable text. }
+function EditFocusedTextCanCopy: Boolean;
+
+{ Returns True if some non-readonly text editing window is focused and contains a selectable text. }
+function EditFocusedTextCanCut: Boolean;
+
+{ Returns True if some non-readonly text editing window is focused. }
+function EditFocusedTextCanDelete: Boolean;
+
+{ Returns True if some non-readonly text editing window is focused and clipboard is not empty. }
+function EditFocusedTextCanPaste: Boolean;
 
 { Returns True if the focused text editing window can perform an undo operation. }
-function EditCanUndoFocused: Boolean;
+function EditFocusedTextCanUndo: Boolean;
 
 { Performs an undo operation on the focused text editing window. }
 procedure EditUndoFocused;
@@ -783,7 +792,7 @@ uses
 {$IFDEF FPC}
   , LConvEncoding
 {$ENDIF}
-;
+  , KMemo;
 
 function AdjustDecimalSeparator(const S: string): string;
 var
@@ -894,7 +903,7 @@ begin
   {$ENDIF}
 end;
 
-function ClipboardLoadStreamAs(const AFormat: TKString; AStream: TStream; var AText: TKString): Boolean;
+function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean;
 var
   Fmt: TKClipboardFormat;
   Data: Cardinal;
@@ -913,7 +922,7 @@ begin
       AText := AText;
   end;
 {$ELSE}
-  Fmt := RegisterClipboardFormat(PKText(AFormat));
+  Fmt := RegisterClipboardFormat(PChar(AFormat));
   if Fmt <> 0 then
   begin
     try
@@ -944,7 +953,7 @@ begin
 {$ENDIF}
 end;
 
-function ClipboardSaveStreamAs(const AFormat: TKString; AStream: TStream; const AText: TKString): Boolean;
+function ClipboardSaveStreamAs(const AFormat: string; AStream: TStream; const AText: TKString): Boolean;
 var
   Fmt: TKClipboardFormat;
   Data: Cardinal;
@@ -965,7 +974,7 @@ begin
   end;
 {$ELSE}
   Clipboard.Clear;
-  Fmt := RegisterClipboardFormat(PKText(AFormat));
+  Fmt := RegisterClipboardFormat(PChar(AFormat));
   if Fmt <> 0 then
   begin
     Data := GlobalAlloc(GHND or GMEM_SHARE, AStream.Size);
@@ -1145,7 +1154,7 @@ begin
 end;
 
 {$IFDEF USE_WINAPI}
-function EditFocusedHandle: THandle;
+function EditFocusedHandle(AMustAllowWrite: Boolean): THandle;
 var
   Len: Integer;
   Wnd: HWND;
@@ -1155,11 +1164,14 @@ begin
   Result := 0;
   Wnd := GetFocus;
   C := FindControl(Wnd);
-  if (C <> nil) and (C is TCustomEdit) or (C is TCustomMemo) or
+  if (C <> nil) and
+    (C is TCustomEdit) and (not AMustAllowWrite or not TCustomEdit(C).ReadOnly) or
+    (C is TCustomMemo) and (not AMustAllowWrite or not TCustomMemo(C).ReadOnly) or
     (C is TComboBox) and (TComboBox(C).Style in [csSimple, csDropDown])
 {$IFnDEF FPC}
-   or (C is TRichEdit)
+     or (C is TRichEdit) and (not AMustAllowWrite or not TRichEdit(C).ReadOnly)
 {$ENDIF}
+   or (C is TKCustomMemo) and (not AMustAllowWrite or not TKCustomMemo(C).ReadOnly)
   then
     Result := Wnd
   else
@@ -1177,10 +1189,10 @@ begin
 end;
 {$ENDIF}
 
-function EditIsFocused: Boolean;
+function EditIsFocused(AMustAllowWrite: Boolean): Boolean;
 {$IFDEF USE_WINAPI}
 begin
-  Result := EditFocusedHandle <> 0;
+  Result := EditFocusedHandle(AMustAllowWrite) <> 0;
 end;
 {$ELSE}
 begin
@@ -1189,13 +1201,13 @@ begin
 end;
 {$ENDIF}
 
-function EditIsTextFocused: Boolean;
+function EditFocusedTextHasSelection(AMustAllowWrite: Boolean): Boolean;
 {$IFDEF USE_WINAPI}
 var
   A, B: Integer;
   Wnd: THandle;
 begin
-  Wnd := EditFocusedHandle;
+  Wnd := EditFocusedHandle(AMustAllowWrite);
   if Wnd <> 0 then
   begin
     SendMessage(Wnd, EM_GETSEL, WParam(@A), LParam(@B));
@@ -1210,7 +1222,27 @@ begin
 end;
 {$ENDIF}
 
-function EditCanUndoFocused: Boolean;
+function EditFocusedTextCanCopy: Boolean;
+begin
+  Result := EditFocusedTextHasSelection(False);
+end;
+
+function EditFocusedTextCanCut: Boolean;
+begin
+  Result := EditFocusedTextHasSelection(True);
+end;
+
+function EditFocusedTextCanDelete: Boolean;
+begin
+  Result := EditIsFocused(True);
+end;
+
+function EditFocusedTextCanPaste: Boolean;
+begin
+  Result := EditIsFocused(True) and ClipBoard.HasFormat(CF_TEXT);
+end;
+
+function EditFocusedTextCanUndo: Boolean;
 begin
 {$IFDEF USE_WINAPI}
   Result := LongBool(SendMessage(GetFocus, EM_CANUNDO, 0, 0));
@@ -1245,6 +1277,11 @@ end;
 procedure EditPasteFocused;
 begin
   SendMessage(GetFocus, LM_PASTE, 0, 0);
+end;
+
+function EditFocusedCanCut: Boolean;
+begin
+  SendMessage(GetFocus, LM_CUT, 0, 0);
 end;
 
 procedure EditSelectAllFocused;
