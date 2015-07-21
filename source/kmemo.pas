@@ -7339,7 +7339,7 @@ begin
           begin
             Cell.WordHeight[0] := 0;
           end;
-          Inc(PosX, MeasHorzExtents[I].Index);
+          Inc(PosX, MeasHorzExtents[J].Index);
         end;
       end;
       Row.SetBlockExtent(PosX, VertExtents[I].Index);
