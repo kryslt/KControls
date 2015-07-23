@@ -190,16 +190,8 @@ type
     csStop
   );
 
-  { @abstract(Declares a structure that holds both column and row span of a cell)
-    <UL>
-    <LH>Members:</LH>
-    <LI><I>ColSpan</I> - column span.</LI>
-    <LI><I>RowSpan</I> - row span.</LI>
-    </UL> }
-  TKGridCellSpan = record
-    ColSpan: Integer;
-    RowSpan: Integer;
-  end;
+  { For backward compatibility. }
+  TKGridCellSpan = TKCellSpan;
 
   { @abstract(Declares a structure that hold both column and row index of a cell)
     <UL>
@@ -3854,9 +3846,6 @@ function GridRect(ACol1, ARow1, ACol2, ARow2: Integer): TKGridRect; overload;
   in GridRect1 equal those in GridRect2. }
 function GridRectEqual(const GridRect1, GridRect2: TKGridRect): Boolean;
 
-{ Makes a @link(TKGridCellSpan) record from AColumns and ARows. }
-function MakeCellSpan(AColumns, ARows: Integer): TKGridCellSpan;
-
 { Makes Cell1 field of GridRect always top-left cell and Cell2 field always
   bottom-right cell. }
 procedure NormalizeGridRect(var GridRect: TKGridRect);
@@ -4035,12 +4024,6 @@ begin
     Row1 := ARow1;
     Row2 := ARow2;
   end;
-end;
-
-function MakeCellSpan(AColumns, ARows: Integer): TKGridCellSpan;
-begin
-  Result.ColSpan := AColumns;
-  Result.RowSpan := ARows;
 end;
 
 procedure NormalizeGridRect(var GridRect: TKGridRect);

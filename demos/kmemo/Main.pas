@@ -163,6 +163,7 @@ begin
     //AddTextField;
     //AddTextField;
 
+{
     TBL := Memo.Blocks.AddTable;
     TBL.BlockStyle.TopPadding := 20;
     TBL.BlockStyle.BottomPadding := 30;
@@ -183,7 +184,7 @@ begin
     AddTextField(TBL.Rows[0].Cells[0], True);
     AddTextField(TBL.Rows[0].Cells[1], True);
     AddTextField(TBL.Rows[0].Cells[2], True);
-    AddTextField(TBL.Rows[1].Cells[0], False);
+    AddTextField(TBL.Rows[1].Cells[0], True);
     AddTextField(TBL.Rows[1].Cells[1], False);
     AddTextField(TBL.Rows[1].Cells[2], False);
     AddTextField(TBL.Rows[2].Cells[0], True);
@@ -196,6 +197,7 @@ begin
     PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
     PA.ParaStyle.HAlign := halCenter;
+}
 
 //    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
 
@@ -272,9 +274,11 @@ begin
 //  Memo.LoadFromRTF('test_no_img.rtf');
 //  Memo.LoadFromRTF('test_simple.rtf');
 //  Memo.LoadFromRTF('kgrid_manual.rtf');
-//  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
+  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
+//  Memo.LoadFromRTF('simpletable.rtf');
+//  Memo.LoadFromRTF('advancedtable.rtf');
 //  Memo.Select(10, 510);
-//  Memo.SaveToRTF('test_save.rtf', True);
+  Memo.SaveToRTF('test_save.rtf');
 
 {
   Memo.ContentPadding.Left := 50;
@@ -295,8 +299,8 @@ begin
   MemoCopy.Align := alClient;
   MemoCopy.Options := MemoCopy.Options + [eoShowFormatting, eoWantTab];
 //  MemoCopy.LoadFromRTF('test_save.rtf');
-//  MemoCopy.Parent := Panel2;
-//  MemoCopy.SaveToRTF('test_copy_save.rtf');
+  MemoCopy.SaveToRTF('test_copy_save.rtf');
+  MemoCopy.Parent := Panel2;
 end;
 
 {$IFDEF FPC}

@@ -184,7 +184,8 @@ type
   TKMemoRTFSpecialCharProp = (rpscTab, rpscLquote, rpscRQuote, rpscLDblQuote, rpscRDblQuote, rpscEnDash, rpscEmDash, rpscBullet, rpscNBSP, rpscEmSpace, rpscEnSpace,
     rpscAnsiChar, rpscUnicodeChar);
   TKMemoRTFTableProp = (rptbRowBegin, rptbCellEnd, rptbRowEnd, rptbLastRow, rptbPaddBottom, rptbPaddLeft, rptbPaddRight, rptbPaddTop, rptbBorderBottom, rptbBorderLeft,
-    rptbPaddAll, rptbBorderRight, rptbBorderTop, rptbBorderWidth, rptbBorderNone, rptbBorderColor, rptbBackColor, rptbCellX);
+    rptbPaddAll, rptbBorderRight, rptbBorderTop, rptbBorderWidth, rptbBorderNone, rptbBorderColor, rptbBackColor, rptbHorzMergeBegin, rptbHorzMerge,
+    rptbVertMergeBegin, rptbVertMerge, rptbCellWidth, rptbCellX);
   TKMemoRTFTextProp = (rptPlain, rptFontIndex, rptBold, rptItalic, rptUnderline, rptStrikeout, rptCaps, rptSmallCaps, rptFontSize, rptForeColor, rptBackColor);
   TKMemoRTFUnknownProp = (rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict);
 
@@ -324,7 +325,7 @@ type
     procedure WriteSpace;
     procedure WriteString(const AText: AnsiString);
     procedure WriteTable(AItem: TKMemoTable); virtual;
-    procedure WriteTableRowProperties(ARow: TKMemoTableRow; ASavedRowIndex: Integer); virtual;
+    procedure WriteTableRowProperties(ATable: TKMemoTable; ARowIndex, ASavedRowIndex: Integer); virtual;
     procedure WriteTextBlock(AItem: TKMemoTextBlock); virtual;
     procedure WriteTextStyle(ATextStyle: TKMemoTextStyle); virtual;
     procedure WriteUnicodeString(const AText: TKString); virtual;
@@ -1060,7 +1061,7 @@ begin
   FCtrlTable.AddCtrl('brdrt', Integer(rppBorderTop), ReadParaFormatting);
   FCtrlTable.AddCtrl('box', Integer(rppBorderAll), ReadParaFormatting);
   FCtrlTable.AddCtrl('brdrw', Integer(rppBorderWidth), ReadParaFormatting);
-  FCtrlTable.AddCtrl('brdrnone', Integer(rppBorderNone), ReadTableFormatting);
+  FCtrlTable.AddCtrl('brdrnone', Integer(rppBorderNone), ReadParaFormatting);
   FCtrlTable.AddCtrl('brdrradius', Integer(rppBorderRadius), ReadParaFormatting);
   FCtrlTable.AddCtrl('brdrcf', Integer(rppBorderColor), ReadParaFormatting);
   FCtrlTable.AddCtrl('par', Integer(rppPar), ReadParaFormatting);
@@ -1123,6 +1124,11 @@ begin
 //  FCtrlTable.AddCtrl('brdrnone', Integer(rptbBorderNone), ReadTableFormatting); // see ReadParaFormatting
 //  FCtrlTable.AddCtrl('brdrcf', Integer(rptbBorderColor), ReadParaFormatting); // see ReadParaFormatting
   FCtrlTable.AddCtrl('clcbpat', Integer(rptbBackColor), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clmgf', Integer(rptbHorzMergeBegin), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clhmrg', Integer(rptbHorzMerge), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clvmgf', Integer(rptbVertMergeBegin), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clvmrg', Integer(rptbVertMerge), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clwWidth', Integer(rptbCellWidth), ReadTableFormatting);
   FCtrlTable.AddCtrl('cellx', Integer(rptbCellX), ReadTableFormatting);
   // text formatting ctrls
   FCtrlTable.AddCtrl('plain', Integer(rptPlain), ReadTextFormatting);
@@ -1322,6 +1328,9 @@ begin
   if FActiveTable <> nil then
   begin
     //FTable.Position := mbpRelative;
+    FActiveTable.FixupCellSpanFromRTF;
+    FActiveTable.FixupBorders;
+    FActiveTable.UnlockUpdate;
     FActiveBlocks := FActiveTable.Parent;
     FAtIndex := FIndexStack.PopValue;
     if not FActiveBlocks.InsideOfTable then // no support for nested tables yet
@@ -2057,6 +2066,7 @@ begin
         FlushText;
         if FActiveTable = nil then
         begin
+          ActiveTable.LockUpdate;
           ActiveTable.RowCount := 1;
           ActiveTable.ColCount := 1;
           FActiveTableColCount := 1;
@@ -2166,6 +2176,13 @@ begin
     end;
     rptbBorderColor: FActiveTableCell.BlockStyle.BorderColor := FColorTable.GetColor(AParam - 1); // no support for different colors for different borders
     rptbBackColor: FActiveTableCell.BlockStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+    rptbHorzMerge: FActiveTableCell.ColSpan := 0; // indicate for later fixup
+    rptbVertMerge: FActiveTableCell.RowSpan := 0; // indicate for later fixup
+    rptbCellWidth:
+    begin
+      FActiveTableCell.FixedWidth := True;
+      FActiveTableCell.RequiredWidth := TwipsToPoints(AParam);
+    end;
     rptbCellX:
     begin
       // this command comes as the last for current cell
@@ -2990,23 +3007,26 @@ begin
     if CanSave(Row) then
     begin
       WriteCtrl('trowd');
-      WriteTableRowProperties(Row, SavedRowCount);
+      WriteTableRowProperties(AItem, I, SavedRow);
       for J := 0 to Row.CellCount - 1 do
       begin
         Cell := Row.Cells[J];
-        WriteParaStyle(Cell.ParaStyle);
-        WriteGroupBegin;
-        try
-          WriteBody(Cell.Blocks, True);
-        finally
-          WriteGroupEnd;
+        if Cell.ColSpan >= 0 then
+        begin
+          WriteParaStyle(Cell.ParaStyle);
+          WriteGroupBegin;
+          try
+            WriteBody(Cell.Blocks, True);
+          finally
+            WriteGroupEnd;
+          end;
+          WriteCtrl('cell');
         end;
-        WriteCtrl('cell');
       end;
       WriteGroupBegin;
       try
         WriteCtrl('trowd');
-        WriteTableRowProperties(Row, SavedRowCount);
+        WriteTableRowProperties(AItem, I, SavedRow);
         if SavedRow = SavedRowCount - 1 then
           WriteCtrl('lastrow');
         WriteCtrl('row');
@@ -3018,7 +3038,7 @@ begin
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteTableRowProperties(ARow: TKMemoTableRow; ASavedRowIndex: Integer);
+procedure TKMemoRTFWriter.WriteTableRowProperties(ATable: TKMemoTable; ARowIndex, ASavedRowIndex: Integer);
 
   procedure WriteBorderWidth(AWidth: Integer);
   begin
@@ -3032,39 +3052,50 @@ procedure TKMemoRTFWriter.WriteTableRowProperties(ARow: TKMemoTableRow; ASavedRo
 
 var
   Cell: TKMemoTableCell;
-  I, XPos: Integer;
+  Row: TKMemoTableRow;
+  I, W, XPos: Integer;
 begin
   WriteCtrlParam('irow', ASavedRowIndex);
   Xpos := 0;
-  for I := 0 to ARow.CellCount - 1 do
+  Row := ATable.Rows[ARowIndex];
+  for I := 0 to Row.CellCount - 1 do
   begin
-    Cell := ARow.Cells[I];
-    if I = 0 then
+    Cell := Row.Cells[I];
+    if Cell.ColSpan >= 0 then
     begin
-      WriteCtrlParam('trpaddb', PointsToTwips(Cell.BlockStyle.BottomPadding));
-      WriteCtrlParam('trpaddl', PointsToTwips(Cell.BlockStyle.LeftPadding));
-      WriteCtrlParam('trpaddr', PointsToTwips(Cell.BlockStyle.RightPadding));
-      WriteCtrlParam('trpaddt', PointsToTwips(Cell.BlockStyle.TopPadding));
+      if I = 0 then
+      begin
+        WriteCtrlParam('trpaddb', PointsToTwips(Cell.BlockStyle.BottomPadding));
+        WriteCtrlParam('trpaddl', PointsToTwips(Cell.BlockStyle.LeftPadding));
+        WriteCtrlParam('trpaddr', PointsToTwips(Cell.BlockStyle.RightPadding));
+        WriteCtrlParam('trpaddt', PointsToTwips(Cell.BlockStyle.TopPadding));
+      end;
+      if Cell.RowSpan > 1 then
+        WriteCtrl('clvmgf')
+      else if Cell.RowSpan <= 0 then
+        WriteCtrl('clvmrg');
+      WriteCtrl('clbrdrb');
+      WriteBorderWidth(Cell.RequiredBorderWidths.Bottom);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      WriteCtrl('clbrdrl');
+      WriteBorderWidth(Cell.RequiredBorderWidths.Left);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      WriteCtrl('clbrdrr');
+      WriteBorderWidth(Cell.RequiredBorderWidths.Right);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      WriteCtrl('clbrdrt');
+      WriteBorderWidth(Cell.RequiredBorderWidths.Top);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      if Cell.BlockStyle.Brush.Style <> bsClear then
+        WriteCtrlParam('clcbpat', FColorTable.GetIndex(Cell.BlockStyle.Brush.Color) + 1);
+      W := Max(ATable.CalcTotalCellWidth(I, ARowIndex), 5);
+      WriteCtrlParam('clwWidth', PointsToTwips(W));
+      Inc(Xpos, W);
+      WriteCtrlParam('cellx', PointsToTwips(XPos));
+    end else
+    asm
+      nop
     end;
-    WriteCtrl('clbrdrb');
-    WriteBorderWidth(Cell.RequiredBorderWidths.Bottom);
-    WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
-    WriteCtrl('clbrdrl');
-    WriteBorderWidth(Cell.RequiredBorderWidths.Left);
-    WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
-    WriteCtrl('clbrdrr');
-    WriteBorderWidth(Cell.RequiredBorderWidths.Right);
-    WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
-    WriteCtrl('clbrdrt');
-    WriteBorderWidth(Cell.RequiredBorderWidths.Top);
-    WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
-    if Cell.BlockStyle.Brush.Style <> bsClear then
-      WriteCtrlParam('clcbpat', FColorTable.GetIndex(Cell.BlockStyle.Brush.Color) + 1);
-    if Cell.Width = 0 then
-      Inc(Xpos, Max(Cell.RequiredWidth, 5)) // was table extent not calculated, use required width
-    else
-      Inc(Xpos, Cell.Width);
-    WriteCtrlParam('cellx', PointsToTwips(Xpos));
   end;
 end;
 

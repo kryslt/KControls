@@ -415,6 +415,17 @@ type
   TKClipboardFormat = Word;
 {$ENDIF}
 
+  { @abstract(Declares a structure that holds both column and row span of a cell)
+    <UL>
+    <LH>Members:</LH>
+    <LI><I>ColSpan</I> - column span.</LI>
+    <LI><I>RowSpan</I> - row span.</LI>
+    </UL> }
+  TKCellSpan = record
+    ColSpan: Integer;
+    RowSpan: Integer;
+  end;
+
 { Replaces possible decimal separators in S with DecimalSeparator variable.}
 function AdjustDecimalSeparator(const S: string): string;
 
@@ -652,6 +663,9 @@ function KFormat(const Format: string; const Args: array of const;
 { Calls SysUtils.WideFormat. }
 function KFormat(const Format: WideString; const Args: array of const;
   const AFormatSettings: TFormatSettings): WideString; overload;
+
+{ Makes a @link(TKCellSpan) record from AColumns and ARows. }
+function MakeCellSpan(AColumns, ARows: Integer): TKCellSpan;
 
 { Returns a clipped ShortInt value so that it lies between Min and Max }
 function MinMax(Value, Min, Max: ShortInt): ShortInt; overload;
@@ -925,6 +939,7 @@ begin
   Fmt := RegisterClipboardFormat(PChar(AFormat));
   if Fmt <> 0 then
   begin
+    Data := 0;
     try
       with Clipboard do
       begin
@@ -1277,11 +1292,6 @@ end;
 procedure EditPasteFocused;
 begin
   SendMessage(GetFocus, LM_PASTE, 0, 0);
-end;
-
-function EditFocusedCanCut: Boolean;
-begin
-  SendMessage(GetFocus, LM_CUT, 0, 0);
 end;
 
 procedure EditSelectAllFocused;
@@ -1923,6 +1933,12 @@ begin
   Result := SysUtils.WideFormat(Format, Args, AFormatSettings);
 end;
 
+function MakeCellSpan(AColumns, ARows: Integer): TKCellSpan;
+begin
+  Result.ColSpan := AColumns;
+  Result.RowSpan := ARows;
+end;
+
 function MinMax(Value, Min, Max: ShortInt): ShortInt;
 begin
   if Max < Min then
@@ -2428,8 +2444,10 @@ begin
 end;
 
 function NativeUTFToUnicode(const AText: TKString): WideChar;
+{$IFDEF FPC}
 var
   CharLen: Integer;
+{$ENDIF}
 begin
 {$IFDEF FPC}
   Result := WideChar(UTF8CharacterToUnicode(PChar(AText), CharLen));
