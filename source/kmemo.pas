@@ -3749,8 +3749,13 @@ begin
     List := TStringList.Create;
     try
       List.LoadFromFile(AFileName);
-      FBlocks.Clear;
-      FBlocks.Text := List.Text;
+      FBlocks.LockUpdate;
+      try
+        FBlocks.Clear;
+        FBlocks.Text := List.Text;
+      finally
+        FBlocks.UnlockUpdate;
+      end;
     finally
       List.Free;
     end;
