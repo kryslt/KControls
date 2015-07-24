@@ -4,25 +4,8 @@ Original authorship: Tomas Krysl (tk@tkweb.eu)
 
 NOTE:
 -------------------
-This readme is no longer maintained and is included due to historic reasons.
-
-
-LICENSE:
--------------------
-License information for each source file can be found in it's header.
-If there is none, the code is public domain.
-
-
-SYSTEM REQUIREMENTS:
--------------------
-- Microsoft Windows 98(SE)/ME/2000/XP/VI
-- should work under Delphi 6 and higher (tested on Delphi 7, Delphi2007 and Delphi 2009) and Lazarus 0.9.26 and higher (Win32 only)
-
-
-INSTALLATION:
--------------------
-1. In your project or when compiling the demo, specify search path to
-   Source\KIcon.pas under Project/Options/Directories.
+This readme only covers the KMemo component.
+Refer to kcontrols_readme.txt for installation requirements and other information.
 
 
 KNOWN PROBLEMS:
@@ -39,11 +22,6 @@ I have implemented these through the direct access to the registry, because othe
 PLANNED:
 -------------------
 
-
-TECHNICAL SUPPORT:
--------------------
-Any suggestions, error reports and questions about this software please send to
-the author or discuss on http://www.tkweb.eu.
 
 CONTRIBUTORS:
 -------------------

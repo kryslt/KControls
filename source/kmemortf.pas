@@ -382,7 +382,7 @@ begin
     254: Result := 437; //PC 437
     255: Result := 850; //OEM
   else
-    Result := 1252; //ANSI
+    Result := SystemCodePage; //system default
   end;
 end;
 
@@ -3014,11 +3014,14 @@ begin
         if Cell.ColSpan >= 0 then
         begin
           WriteParaStyle(Cell.ParaStyle);
-          WriteGroupBegin;
-          try
-            WriteBody(Cell.Blocks, True);
-          finally
-            WriteGroupEnd;
+          if (Cell.Blocks.Count > 0) and ((Cell.Blocks.Count > 1) or not(Cell.Blocks[0] is TKmemoParagraph)) then
+          begin
+            WriteGroupBegin;
+            try
+              WriteBody(Cell.Blocks, True);
+            finally
+              WriteGroupEnd;
+            end;
           end;
           WriteCtrl('cell');
         end;

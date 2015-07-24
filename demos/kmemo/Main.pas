@@ -271,10 +271,11 @@ begin
   end;
 
 // Memo.LoadFromRTF('test.rtf');
+// Memo.LoadFromRTF('test1.rtf');
 //  Memo.LoadFromRTF('test_no_img.rtf');
 //  Memo.LoadFromRTF('test_simple.rtf');
-//  Memo.LoadFromRTF('kgrid_manual.rtf');
-  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
+  Memo.LoadFromRTF('kgrid_manual.rtf');
+//  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
 //  Memo.LoadFromRTF('simpletable.rtf');
 //  Memo.LoadFromRTF('advancedtable.rtf');
 //  Memo.Select(10, 510);
@@ -298,7 +299,7 @@ begin
   MemoCopy.ContentPadding.Right := 20;
   MemoCopy.Align := alClient;
   MemoCopy.Options := MemoCopy.Options + [eoShowFormatting, eoWantTab];
-//  MemoCopy.LoadFromRTF('test_save.rtf');
+  MemoCopy.LoadFromRTF('test_save.rtf');
   MemoCopy.SaveToRTF('test_copy_save.rtf');
   MemoCopy.Parent := Panel2;
 end;

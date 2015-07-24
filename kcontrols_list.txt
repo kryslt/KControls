@@ -1,5 +1,6 @@
 kcontrols_readme.txt
 kgrid_readme.txt
+kmemo_readme.txt
 khexeditor_readme.txt
 kicon_readme.txt
 
@@ -22,6 +23,7 @@ source/klabels.pas
 source/kprogress.pas
 source/kres.pas
 source/kmemo.pas
+source/kmemortf.pas
 source/kbuttons.pas
 source/kprintsetup.dfm
 source/kprintpreview.dfm

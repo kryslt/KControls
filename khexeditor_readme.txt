@@ -4,28 +4,8 @@ Original authorship: Tomas Krysl (tk@tkweb.eu)
 
 NOTE:
 -------------------
-This readme is no longer maintained and is included due to historic reasons.
-
-
-LICENSE:
--------------------
-License information for each source file can be found in it's header.
-If there is none, the code is public domain.
-
-
-SYSTEM REQUIREMENTS:
--------------------
-- platforms: Win32(98(SE)+), Win64(untested), GTK, GTK2, QT, Carbon(untested), WinCE(untested)
-- works under Delphi 7 and higher (tested on Delphi 7, Delphi2007 till Delphi 2010) 
-  and Lazarus 0.9.29(SVN#21827) and higher
-- should work under Delphi 6
-- some more problems might be experienced for older Lazarus versions
-
-
-INSTALLATION:
--------------------
-1. Compile and install package (it might be needed to specify some search paths in Delphi).
-2. When compiling an application or demo, it might be needed to specify the search path to KHexEditor sources.
+This readme only covers the KHexEditor component. 
+Refer to kcontrols_readme.txt for installation requirements and other information.
 
 
 PLANNED:
@@ -42,12 +22,6 @@ Delphi common:
 
 Lazarus common:
  -slow performance on non-Win32 widget sets 
-
-
-TECHNICAL SUPPORT:
--------------------
-Any suggestions, error reports and questions about this software please send to
-the author or discuss on http://www.tkweb.eu.
 
 
 VERSION HISTORY:

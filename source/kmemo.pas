@@ -2752,7 +2752,7 @@ begin
   FWordBreaks := cDefaultWordBreaks;
   FOnChange := nil;
   FOnReplaceText := nil;
-  Text := 'This is early alpha state control.'+cEOL+'You may try the demo but do not use it in your programs yet.';
+  Text := 'This is beta state control.'+cEOL+'You may already use it in your programs'+cEOL+'but some important functions are still missing.'+cEOL;
   UpdateEditorCaret;
 end;
 
@@ -3147,7 +3147,7 @@ begin
       if Stream.Size > 0 then
       begin
         Stream.Seek(0, soFromBeginning);
-        Stream.SaveToFile('pasted.rtf');
+        //Stream.SaveToFile('pasted.rtf'); debug line
         Reader := TKMemoRTFReader.Create(Self);
         try
           Reader.LoadFromStream(Stream, SelEnd);
@@ -3309,7 +3309,7 @@ begin
         NewSelEnd := FActiveBlocks.NextIndexByVertExtent(Canvas, TmpSelEnd, -ClientHeight, FPreferredCaretPos, TmpPosition);
         SelectionExpand(NewSelEnd, True, TmpPosition);
       end;
-      ecPageDown: 
+      ecPageDown:
       begin
         NewSelEnd := FActiveBlocks.NextIndexByVertExtent(Canvas, TmpSelEnd, ClientHeight, FPreferredCaretPos, TmpPosition);
         SelectionInit(NewSelEnd, True, TmpPosition);
@@ -6969,47 +6969,50 @@ begin
     Row := Rows[I];
     for J := 0 to Row.CellCount - 1 do
     begin
-      // find cells in previous row and column (or base cells corresponding to these positions)
-      // these cells cannot be a part of merged area of cells to which the current cell also belongs
-      FindBaseCell(J, I, CurBaseCol, CurBaseRow);
       Cell := Row.Cells[J];
-      PrevRowCell := nil;
-      if I > 0 then
+      //if (Cell.RowSpan > 0) and (Cell.ColSpan > 0) then
       begin
-        FindBaseCell(J, I - 1, BaseCol, BaseRow);
-        if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
-          PrevRowCell := Rows[BaseRow].Cells[BaseCol];
-      end;
-      PrevColCell := nil;
-      if J > 0 then
-      begin
-        FindBaseCell(J - 1, I, BaseCol, BaseRow);
-        if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
-          PrevColCell := Rows[BaseRow].Cells[BaseCol];
-      end;
-      // assign default cell borders
-      Cell.BlockStyle.BorderWidth := 0;
-      Cell.BlockStyle.BorderWidths.Assign(Cell.RequiredBorderWidths);
-      if PrevColCell <> nil then
-      begin
-        // we split the border width among two neighbor cells in horizontal direction
-        Width := Max(Cell.RequiredBorderWidths.Left, PrevColCell.RequiredBorderWidths.Right);
-        if Width > 0 then
+        // find cells in previous row and column (or base cells corresponding to these positions)
+        // these cells cannot be a part of merged area of cells to which the current cell also belongs
+        FindBaseCell(J, I, CurBaseCol, CurBaseRow);
+        PrevRowCell := nil;
+        if I > 0 then
         begin
-          Part := DivUp(Width, 2);
-          Cell.BlockStyle.BorderWidths.Left := Part;
-          PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
+          FindBaseCell(J, I - 1, BaseCol, BaseRow);
+          if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
+            PrevRowCell := Rows[BaseRow].Cells[BaseCol];
         end;
-      end;
-      if PrevRowCell <> nil then
-      begin
-        // we split the border width among two neighbor cells in vertical direction
-        Width := Max(Cell.RequiredBorderWidths.Top, PrevRowCell.RequiredBorderWidths.Bottom);
-        if Width > 0 then
+        PrevColCell := nil;
+        if J > 0 then
         begin
-          Part := DivUp(Width, 2);
-          Cell.BlockStyle.BorderWidths.Top := Part;
-          PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part
+          FindBaseCell(J - 1, I, BaseCol, BaseRow);
+          if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
+            PrevColCell := Rows[BaseRow].Cells[BaseCol];
+        end;
+        // assign default cell borders
+        Cell.BlockStyle.BorderWidth := 0;
+        Cell.BlockStyle.BorderWidths.Assign(Cell.RequiredBorderWidths);
+        if PrevColCell <> nil then
+        begin
+          // we split the border width among two neighbor cells in horizontal direction
+          Width := Max(Cell.RequiredBorderWidths.Left, PrevColCell.RequiredBorderWidths.Right);
+          if Width > 0 then
+          begin
+            Part := DivUp(Width, 2);
+            Cell.BlockStyle.BorderWidths.Left := Part;
+            PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
+          end;
+        end;
+        if PrevRowCell <> nil then
+        begin
+          // we split the border width among two neighbor cells in vertical direction
+          Width := Max(Cell.RequiredBorderWidths.Top, PrevRowCell.RequiredBorderWidths.Bottom);
+          if Width > 0 then
+          begin
+            Part := DivUp(Width, 2);
+            Cell.BlockStyle.BorderWidths.Top := Part;
+            PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part
+          end;
         end;
       end;
     end;
@@ -7108,90 +7111,135 @@ procedure TKMemoTable.FixupCellSpanFromRTF;
   end;
 
 var
-  I, J, K, ColDelta, RowDelta, WidthDelta, CellCnt: Integer;
+  I, J, K, CellCnt, ColCnt, ColDelta, MaxXPos, RowDelta, RowXPos, WDelta, XPos: Integer;
   Row, Row1: TKMemoTableRow;
   Span: TKCellSpan;
   LastCell, Cell, TmpCell: TKMemoTableCell;
+  RowPos: TKMemoSparseList;
 begin
-  // this routine assumes the cell span info was loaded from RTF
+  // this routine assumes the table was loaded from RTF
   LockUpdate;
   try
+    { First update our FColCount and FColWidths properties,
+      this is needed because horizontally merged table cells are stored as a single cell
+      and the only distinguishing factor is their width. }
+    MaxXPos := 0;
+    for I := 0 to RowCount - 1 do
+    begin
+      Row := Rows[I];
+      XPos := 0;
+      for J := 0 to Row.CellCount - 1 do
+        Inc(XPos, Row.Cells[J].RequiredWidth);
+      MaxXPos := Max(MaxXPos, XPos);
+    end;
+    XPos := 0;
+    K := 0;
+    while XPos < MaxXPos do
+    begin
+      WDelta := MaxInt;
+      for I := 0 to RowCount - 1 do
+      begin
+        Row := Rows[I];
+        J := 0;
+        RowXPos := 0;
+        while (J < Row.CellCount) and (RowXPos < XPos) do
+        begin
+          Inc(RowXPos, Row.Cells[J].RequiredWidth);
+          Inc(J);
+        end;
+        if (RowXPos = XPos) and (J < Row.CellCount) then
+          WDelta := Min(WDelta, Row.Cells[J].RequiredWidth);
+      end;
+      Inc(XPos, WDelta);
+      if K < FColCount then
+        FColWidths[K].Index := WDelta
+      else
+      begin
+        Inc(FColCount);
+        FColWidths.AddItem(WDelta);
+      end;
+      Inc(K);
+    end;
+    { Now fill the missing cells for each row that has horizontally merged cells. }
     for I := 0 to RowCount - 1 do
     begin
       Row := Rows[I];
       if (Row.CellCount < FColCount) or HasSomeCellZeroWidth(Row) then
       begin
-        { here the row has less cells than other rows (either not defined or with zero width).
-          This may be intentional but most common cause is that some of the cells is merged horizontally.
-          As we don't support such tables we must add some cells and merge them.
-          Unfortunatelly, we don't know which cells were originally merged so we need to make some
-          analysis on other row which has no horizontal merged cells. }
         CellCnt := 0;
         LastCell := Row.Cells[CellCnt]; // this cell must always exist
-        for K := 0 to RowCount - 1 do
+        for J := 0 to FColCount - 1 do if LastCell <> nil then
         begin
-          Row1 := Rows[K];
-          if (Row1 <> Row) and (Row1.CellCount = FColCount) and not HasSomeCellZeroWidth(Row1) then
+          // fill the gaps for possibly merged cells
+          WDelta := LastCell.RequiredWidth - FColWidths[J].Index;
+          if WDelta = 0 then
           begin
-            // we should have fully defined row here
-            for J := 0 to Row1.CellCount - 1 do
+            // OK, here this cell was certainly not merged so take next cell
+            Inc(CellCnt);
+            if CellCnt < Row.CellCount then
+              LastCell := Row.Cells[CellCnt]
+            else
+              LastCell := nil;
+          end
+          else if WDelta > 0 then
+          begin
+            // the cell must have been merged here
+            TmpCell := nil;
+            if CellCnt < Row.CellCount - 1 then
             begin
-              Cell := Row1.Cells[J];
-              // update the ColWidths property
-              FColWidths[J].Index := Cell.RequiredWidth;
-              // fill the gaps for possibly merged cells
-              WidthDelta := LastCell.RequiredWidth - Cell.RequiredWidth;
-              if J < FColCount - 1 then
-              begin
-                if WidthDelta = 0 then
-                begin
-                  // OK, here this cell was certainly not merged so take next cell
-                  Inc(CellCnt);
-                  if CellCnt >= Row.CellCount then
-                    Row.CellCount := Row.CellCount + 1;
-                  LastCell := Row.Cells[CellCnt]
-                end
-                else if WidthDelta > 0 then
-                begin
-                  // the cell must have been merged here
-                  TmpCell := nil;
-                  if CellCnt < Row.CellCount - 1 then
-                  begin
-                    // first check if next cell has zero width
-                    TmpCell := Row.Cells[CellCnt + 1];
-                    if TmpCell.RequiredWidth > 0 then
-                      TmpCell := nil;
-                  end;
-                  if TmpCell = nil then
-                  begin
-                    // otherwise insert new cell
-                    TmpCell := TKMemoTableCell.Create(Row.Blocks);
-                    TmpCell.RowSpan := LastCell.RowSpan;
-                    Row.Blocks.Insert(CellCnt + 1, TmpCell);
-                  end;
-                  TmpCell.FixedWidth := True;
-                  TmpCell.RequiredWidth := WidthDelta;
-                  TmpCell.Blocks.AddParagraph;
-                  TmpCell.ColSpan := 0; // for later fixup
-                  LastCell.RequiredWidth := LastCell.RequiredWidth - WidthDelta;
-                  LastCell := TmpCell;
-                  Inc(CellCnt);
-                end;
-              end
-              else if WidthDelta <> 0 then
-              begin
-                // should not occur but handle the case to align the row within table
-                LastCell.RequiredWidth := LastCell.RequiredWidth + WidthDelta;
-              end;
+              // first check if next cell has zero width
+              TmpCell := Row.Cells[CellCnt + 1];
+              if TmpCell.RequiredWidth > 0 then
+                TmpCell := nil;
             end;
-            Break; // one such row is enough
+            if TmpCell = nil then
+            begin
+              // otherwise insert new cell
+              TmpCell := TKMemoTableCell.Create(Row.Blocks);
+              TmpCell.RowSpan := LastCell.RowSpan;
+              Row.Blocks.Insert(CellCnt + 1, TmpCell);
+            end;
+            TmpCell.FixedWidth := True;
+            TmpCell.RequiredWidth := WDelta;
+            TmpCell.ColSpan := 0; // for later fixup
+            LastCell.RequiredWidth := LastCell.RequiredWidth - WDelta;
+            LastCell := TmpCell;
+            Inc(CellCnt);
           end;
         end;
         // delete superfluous cells
         while Row.CellCount > FColCount do
           Row.Blocks.Delete(FColCount);
+      end else
+      begin
+        for J := 0 to FColCount - 1 do
+          Row.Cells[J].RequiredWidth := FColWidths[J].Index;
       end;
-      // here we fixup the Span properties
+    end;
+    // check for special cases where the previous algorithm added more cells than defined in FColCount
+    // this can occur in certain table layouts
+    ColCnt := 0;
+    for I := 0 to RowCount - 1 do
+      ColCnt := Max(ColCnt, Rows[I].CellCount);
+    if ColCnt > FColCount then
+    begin
+      // we need to add cells to all other rows
+      for I := 0 to RowCount - 1 do
+      begin
+        Row := Rows[I];
+        for J := Row.CellCount to ColCnt - 1 do
+        begin
+          TmpCell := TKMemoTableCell.Create(Row.Blocks);
+          TmpCell.RowSpan := Row.Cells[Row.CellCount - 1].RowSpan;
+          TmpCell.ColSpan := 0; // for later fixup
+          Row.Blocks.Add(TmpCell);
+        end;
+      end;
+    end;
+    // here we fixup the Span properties
+    for I := 0 to RowCount - 1 do
+    begin
+      Row := Rows[I];
       for J := 0 to Row.CellCount - 1 do
       begin
         Cell := Row.Cells[J];
@@ -7433,13 +7481,14 @@ begin
         if I < Row.CellCount then
         begin
           Cell := Row.Cells[I];
-          if (Cell.ColSpan = 1) and (Cell.RowSpan = 1) then
+          if Cell.ColSpan = 1 then
           begin
             Extent := Cell.MeasureWordExtent(ACanvas, 0, cMinColSize);
             MinHorzExtents[I].Index := Max(MinHorzExtents[I].Index, Extent.X);
             Extent := Cell.MeasureWordExtent(ACanvas, 0, CalcHorzExtents[I].Index);
             MeasHorzExtents[I].Index := Max(MeasHorzExtents[I].Index, Extent.X);
-            VertExtents[J].Index := Max(VertExtents[J].Index, Extent.Y);
+            if Cell.RowSpan = 1 then
+              VertExtents[J].Index := Max(VertExtents[J].Index, Extent.Y);
           end;
         end;
       end;
@@ -7904,7 +7953,7 @@ begin
       Item := Items[I];
       if Item is TKMemoContainer then
         TKmemoContainer(Item).Blocks.ConcatEqualBlocks
-      else if (Item is TKMemoTextBlock) and (LastItem is TKMemoTextBlock) then
+      else if (Item is TKMemoTextBlock) and (LastItem is TKMemoTextBlock) and not (Item is TKMemoParagraph) then
       begin
         if TKmemoTextBlock(Item).TextStyle.EqualProperties(TKMemoTextBlock(LastItem).TextStyle) then
         begin
@@ -8637,7 +8686,7 @@ begin
     St := 1;
     I := 1;
     Ln := Length(Avalue);
-    while I < Ln do
+    while I <= Ln do
     begin
       if AValue[I] = cLF then
       begin
@@ -9036,7 +9085,7 @@ var
       // adjust line and paragraph heights
       Inc(LineHeight, TopPadding + BottomPadding);
       // adjust all words horizontally
-      if CurParaStyle.HAlign <> halLeft then
+      if CurParaStyle.HAlign in [halCenter, halRight] then
       begin
         // reposition all line chunks like MS Word does it
         PosX := CurParaStyle.LeftPadding + FirstIndent;
@@ -9298,9 +9347,19 @@ end;
 function TKMemoBlocks.NextIndexByHorzExtent(ACanvas: TCanvas; AIndex, AWidth: Integer; out ALinePos: TKMemoLinePosition): Integer;
 var
   R: TRect;
+  P: TPoint;
 begin
   R := IndexToRect(ACanvas, AIndex, True, EOLToNormal(AIndex));
   Result := PointToIndex(ACanvas, Point(R.Left + AWidth, R.Top), True, False, ALinePos);
+  if AIndex = Result then
+  begin
+    R := IndexToRect(ACanvas, AIndex, False, EOLToNormal(AIndex));
+    if AWidth > 0 then
+      P := Point(R.Right, R.Top)
+    else
+      P := Point(R.Left - 1, R.Top);
+    Result := PointToIndex(ACanvas, P, True, False, ALinePos);
+  end;
 end;
 
 function TKMemoBlocks.NextIndexByRowDelta(ACanvas: TCanvas; AIndex, ARowDelta, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): Integer;
@@ -9319,9 +9378,19 @@ end;
 function TKMemoBlocks.NextIndexByVertExtent(ACanvas: TCanvas; AIndex, AHeight, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): Integer;
 var
   R: TRect;
+  P: TPoint;
 begin
   R := IndexToRect(ACanvas, AIndex, True, EOLToNormal(AIndex));
   Result := PointToIndex(ACanvas, Point(ALeftPos, R.Top + AHeight), True, False, ALinePos);
+  if AIndex = Result then
+  begin
+    R := IndexToRect(ACanvas, AIndex, False, EOLToNormal(AIndex));
+    if AHeight > 0 then
+      P := Point(ALeftPos, R.Bottom)
+    else
+      P := Point(ALeftPos, R.Top - 1);
+    Result := PointToIndex(ACanvas, P, True, False, ALinePos);
+  end;
 end;
 
 function TKMemoBlocks.NextIndexByVertValue(ACanvas: TCanvas; AValue, ALeftPos: Integer; ADirection: Boolean; out ALinePos: TKMemoLinePosition): Integer;

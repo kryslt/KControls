@@ -11,8 +11,8 @@ If there is none, the code is public domain.
 
 SYSTEM REQUIREMENTS:
 -------------------
-- platforms: Win32(98(SE)+), Win64, GTK, GTK2, QT, Carbon(untested), WinCE(partially tested)
-- works under Delphi 7 and higher (tested on Delphi 7, DelphiXE till Delphi XE6) 
+- platforms: Win32, Win64, GTK, GTK2, QT, Carbon(untested), WinCE(partially tested)
+- works under Delphi 7 and higher (tested on Delphi 7, DelphiXE+) 
   and Lazarus 1.2.2 and higher
 - should work under Delphi 6
 - some more problems might be experienced for older Lazarus versions
@@ -36,6 +36,13 @@ the author or discuss on http://www.tkweb.eu.
 
 VERSION HISTORY:
 -------------------
+Version 1.7 (July 2015):
+  Added:
+    -TKMemo major improvements 
+    -TKPageControl, TKSpeedButton, TKSplitter components
+    -packages up to Delphi XE8
+  
+
 Version 1.6 (July 2014):
   Added:
     -Columns property to TKDBGrid (not 100% compatible with TDBGrid)   
