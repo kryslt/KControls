@@ -642,7 +642,6 @@ type
   TKMemoImageBlock = class(TKMemoSingleton)
   private
     FBaseLine: Integer;
-    FBottomPadding: Integer;
     FCrop: TKRect;
     FImage: TPicture;
     FImageStyle: TKMemoBlockStyle;
@@ -650,7 +649,8 @@ type
     FPosition: TPoint;
     FScaleExtent: TPoint;
     FScaledImage: TKAlphaBitmap;
-    FTopPadding: Integer;
+    FWordBottomPadding: Integer;
+    FWordTopPadding: Integer;
     procedure SetCrop(const Value: TKRect);
     procedure SetImage(const Value: TPicture);
     procedure SetImagePath(const Value: TKString);
@@ -704,14 +704,14 @@ type
   private
     FBlocks: TKMemoBlocks;
     FBlockStyle: TKMemoBlockStyle;
-    FBottomPadding: Integer;
     FClip: Boolean;
     FCurrentRequiredWidth: Integer;
     FCurrentRequiredHeight: Integer;
     FFixedHeight: Boolean;
     FFixedWidth: Boolean;
     FPosition: TPoint;
-    FTopPadding: Integer;
+    FWordBottomPadding: Integer;
+    FWordTopPadding: Integer;
     procedure SetFixedWidth(const Value: Boolean);
     procedure SetRequiredWidth(const Value: Integer);
     procedure SetRequiredHeight(const Value: Integer);
@@ -804,8 +804,8 @@ type
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
     function MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
-    function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer;
-      AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
+    function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AFirstRow, ALastRow, AOutOfArea, ASelectionExpanding: Boolean;
+      out APosition: TKMemoLinePosition): Integer; reintroduce; virtual;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property ParentRow: TKMemoTableRow read GetParentRow;
     property ParentTable: TKMemoTable read GetParentTable;
@@ -957,6 +957,7 @@ type
     function AddParagraph(At: Integer = -1): TKMemoParagraph;
     function AddTable(At: Integer = -1): TKMemoTable;
     function AddTextBlock(AText: TKString; At: Integer = -1): TKMemoTextBlock;
+    procedure Clear; override;
     procedure ClearSelection(ATextOnly: Boolean = True); virtual;
     procedure ConcatEqualBlocks; virtual;
     procedure DeleteBOL(At: Integer); virtual;
@@ -1318,6 +1319,7 @@ type
     procedure AddUndoString(AItemKind: TKMemoChangeKind; const AData: TKString; AInserted: Boolean = True); virtual;
     { Begins a new undo group. Use the GroupKind parameter to label it. }
     procedure BeginUndoGroup(AGroupKind: TKMemoChangeKind);
+    { Converts a rectangle relative to active blocks to a rectangle relative to TKMemo. }
     function BlockRectToRect(const ARect: TRect): TRect; virtual;
     { Determines whether an ecScroll* command can be executed. }
     function CanScroll(ACommand: TKEditCommand): Boolean; virtual;
@@ -1351,17 +1353,25 @@ type
     procedure EndUndoGroup;
     { Notify blocks about memo font change. }
     procedure FontChange(Sender: TObject); virtual;
+    { IKMemoNotifier implementation. }
     function GetDefaultTextStyle: TKMemoTextStyle;
+    { IKMemoNotifier implementation. }
     function GetDefaultParaStyle: TKMemoParaStyle;
+    { Returns actual scroll padding in horizontal direction. }
     function GetHorzScrollPadding: Integer; virtual;
+    { IKMemoNotifier implementation. }
     function GetLinePosition: TKMemoLinePosition;
+    { IKMemoNotifier implementation. }
     procedure GetSelColors(out Foreground, Background: TColor);
+    { IKMemoNotifier implementation. }
     function GetShowFormatting: Boolean;
     { Returns "real" selection end - with always higher index value than selection start value. }
     function GetRealSelEnd: Integer; virtual;
     { Returns "real" selection start - with always lower index value than selection end value. }
     function GetRealSelStart: Integer; virtual;
+    { Returns actual scroll padding in vertical direction. }
     function GetVertScrollPadding: Integer; virtual;
+    { IKMemoNotifier implementation. }
     function GetWordBreaks: TKSysCharSet;
     { Hides the caret. }
     procedure HideEditorCaret; virtual;
@@ -1383,7 +1393,9 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     { Overriden method - calls PaintLines to paint text lines into window client area. }
     procedure PaintToCanvas(ACanvas: TCanvas); override;
+    { Reacts on default paragraph style changes and notifies all paragraph blocks. }
     procedure ParaStyleChanged(Sender: TObject); virtual;
+    { Converts a point relative to TKMemo to a point relative to active blocks. }
     function PointToBlockPoint(const APoint: TPoint; ACalcActive: Boolean = True): TPoint; virtual;
     { Grants the input focus to the control when possible and the control has had none before. }
     procedure SafeSetFocus;
@@ -1412,6 +1424,7 @@ type
     function SetMouseCursor(X, Y: Integer): Boolean; override;
     { Shows the caret. }
     procedure ShowEditorCaret; virtual;
+    { Reacts on default text style changes and notifies all text blocks. }
     procedure TextStyleChanged(Sender: TObject); virtual;
     { Calls the @link(TKCustomMemo.DoChange) method. }
     procedure UndoChange(Sender: TObject; ItemKind: TKMemoChangeKind);
@@ -1422,6 +1435,7 @@ type
       been created and displayed</LI>
       </UL> }
     procedure UpdateEditorCaret(AShow: Boolean = True); virtual;
+    { Update the preferred caret horizontal position. }
     procedure UpdatePreferredCaretPos; virtual;
     { Updates the scrolling range. }
     procedure UpdateScrollRange(CallInvalidate: Boolean); virtual;
@@ -1759,6 +1773,7 @@ type
 
 function NewLineChar: TKString;
 function SpaceChar: TKString;
+function TabChar: TKString;
 
 implementation
 
@@ -2752,7 +2767,8 @@ begin
   FWordBreaks := cDefaultWordBreaks;
   FOnChange := nil;
   FOnReplaceText := nil;
-  Text := 'This is beta state control.'+cEOL+'You may already use it in your programs'+cEOL+'but some important functions are still missing.'+cEOL;
+  if csDesigning in ComponentState then
+    Text := 'This is beta state control.'+cEOL+'You may already use it in your programs'+cEOL+'but some important functions may still be missing.'+cEOL;
   UpdateEditorCaret;
 end;
 
@@ -2905,12 +2921,7 @@ end;
 
 procedure TKCustomMemo.Clear;
 begin
-  FBlocks.LockUpdate;
-  try
-    FBlocks.Clear;
-  finally
-    FBlocks.UnlockUpdate;
-  end;
+  FBlocks.Clear;
 end;
 
 procedure TKCustomMemo.ClearSelection(ATextOnly: Boolean);
@@ -5074,6 +5085,16 @@ begin
   Result := GetFontDescent(ACanvas.Handle);
 end;
 
+procedure TKMemoBlocks.Clear;
+begin
+  LockUpdate;
+  try
+    inherited;
+  finally
+    UnlockUpdate;
+  end;  
+end;
+
 procedure TKMemoTextBlock.ClearSelection(ATextOnly: Boolean);
 var
   S: TKString;
@@ -5784,7 +5805,7 @@ constructor TKMemoImageBlock.Create(AParent: TKMemoBlocks);
 begin
   inherited;
   FBaseLine := 0;
-  FBottomPadding := 0;
+  FWordBottomPadding := 0;
   FCrop := TKRect.Create;
   FCalcBaseLine := 0;
   FExtent := CreateEmptyPoint;
@@ -5795,7 +5816,7 @@ begin
   FPosition := CreateEmptyPoint;
   FScaleExtent := CreateEmptyPoint;
   FScaledImage := nil;
-  FTopPadding := 0;
+  FWordTopPadding := 0;
 end;
 
 destructor TKMemoImageBlock.Destroy;
@@ -5883,7 +5904,7 @@ end;
 
 function TKMemoImageBlock.GetWordBottomPadding(Index: Integer): Integer;
 begin
-  Result := FBottomPadding;
+  Result := FWordBottomPadding;
 end;
 
 function TKMemoImageBlock.GetWordBoundsRect(Index: Integer): TRect;
@@ -5925,7 +5946,7 @@ end;
 
 function TKMemoImageBlock.GetWordTopPadding(Index: Integer): Integer;
 begin
-  Result := FTopPadding;
+  Result := FWordTopPadding;
 end;
 
 function TKMemoImageBlock.GetWordWidth(Index: Integer): Integer;
@@ -5960,8 +5981,8 @@ begin
   Result.Bottom := Result.Top + FExtent.Y;
   if ACaret then
   begin
-    Inc(Result.Top, FTopPadding);
-    Dec(Result.Bottom, FBottomPadding);
+    Inc(Result.Top, FWordTopPadding);
+    Dec(Result.Bottom, FWordBottomPadding);
   end;
   OffsetRect(Result, InternalLeftOffset, InternalTopOffset);
 end;
@@ -5990,9 +6011,9 @@ begin
     if Position = mbpText then
     begin
       // when image is placed in text it should be adjusted to page width
-      NewExtentX := FExtent.X - FImageStyle.LeftPadding - FImageStyle.RightPadding - FImageStyle.LeftMargin - FImageStyle.RightMargin;
+      NewExtentX := FExtent.X - FImageStyle.AllPaddingsLeft - FImageStyle.AllPaddingsRight;
       ExtentY := Min(MulDiv(NewExtentX, ExtentY, ExtentX),
-        FExtent.Y - FImageStyle.TopPadding - FImageStyle.BottomPadding - FImageStyle.TopMargin - FImageStyle.BottomMargin - FTopPadding - FBottomPadding);
+        FExtent.Y - FImageStyle.AllPaddingsBottom - FImageStyle.AllPaddingsTop - FWordTopPadding - FWordBottomPadding);
       ExtentX := NewExtentX;
     end else
     begin
@@ -6074,7 +6095,7 @@ end;
 
 procedure TKMemoImageBlock.SetWordBottomPadding(Index: Integer; const Value: Integer);
 begin
-  FBottomPadding := Value;
+  FWordBottomPadding := Value;
 end;
 
 procedure TKMemoImageBlock.SetWordHeight(Index: Integer; const Value: Integer);
@@ -6094,7 +6115,7 @@ end;
 
 procedure TKMemoImageBlock.SetWordTopPadding(Index: Integer; const Value: Integer);
 begin
-  FTopPadding := Value;
+  FWordTopPadding := Value;
 end;
 
 function TKMemoImageBlock.WordIndexToRect(ACanvas: TCanvas; AWordIndex,
@@ -6114,7 +6135,7 @@ begin
   ROuter := OuterRect(False);
   OffsetRect(ROuter, ALeft, ATop);
   X := ROuter.Left + FImageStyle.LeftPadding + FImageStyle.LeftMargin;
-  Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FTopPadding + FBaseLine - FCalcBaseLine;
+  Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FWordTopPadding + FBaseLine - FCalcBaseLine;
   if SelLength > 0 then
   begin
     GetSelColors(Color, BkGnd);
@@ -6170,7 +6191,7 @@ begin
   FBlocks.OnUpdate := Update;
   FBlockStyle := TKMemoBlockStyle.Create;
   FBlockStyle.OnChanged := BlockStyleChanged;
-  FBottomPadding := 0;
+  FWordBottomPadding := 0;
   FClip := False;
   FCurrentRequiredHeight := 0;
   FCurrentRequiredWidth := 0;
@@ -6179,7 +6200,7 @@ begin
   FPosition := CreateEmptyPoint;
   FRequiredHeight := 0;
   FRequiredWidth := 0;
-  FTopPadding := 0;
+  FWordTopPadding := 0;
 end;
 
 destructor TKMemoContainer.Destroy;
@@ -6316,7 +6337,7 @@ end;
 
 function TKMemoContainer.GetWordBottomPadding(Index: Integer): Integer;
 begin
-  Result := FBottomPadding;
+  Result := FWordBottomPadding;
 end;
 
 function TKMemoContainer.GetWordBoundsRect(Index: Integer): TRect;
@@ -6360,7 +6381,7 @@ end;
 
 function TKMemoContainer.GetWordTopPadding(Index: Integer): Integer;
 begin
-  Result := FTopPadding;
+  Result := FWordTopPadding;
 end;
 
 function TKMemoContainer.GetWordWidth(Index: Integer): Integer;
@@ -6475,7 +6496,7 @@ end;
 
 procedure TKMemoContainer.SetWordBottomPadding(Index: Integer; const Value: Integer);
 begin
-  FBottomPadding := Value;
+  FWordBottomPadding := Value;
 end;
 
 procedure TKMemoContainer.SetWordHeight(Index: Integer; const Value: Integer);
@@ -6495,7 +6516,7 @@ end;
 
 procedure TKMemoContainer.SetWordTopPadding(Index: Integer; const Value: Integer);
 begin
-  FTopPadding := Value;
+  FWordTopPadding := Value;
 end;
 
 procedure TKMemoContainer.SetWordWidth(Index: Integer; const Value: Integer);
@@ -6515,13 +6536,13 @@ begin
   begin
     // expand rect to enable vertical caret movement
     if Result.Top = 0 then
-      Dec(Result.Top, FBlockStyle.AllPaddingsTop + FTopPadding);
+      Dec(Result.Top, FBlockStyle.AllPaddingsTop + FWordTopPadding);
     if Result.Bottom = FBlocks.Height then
-      Inc(Result.Bottom, Height - FBlocks.Height - FBlockStyle.AllPaddingsTop - FTopPadding);
+      Inc(Result.Bottom, Height - FBlocks.Height - FBlockStyle.AllPaddingsTop - FWordTopPadding);
   end;
   KFunctions.OffsetRect(Result,
     Left + InternalLeftOffset + FBlockStyle.AllPaddingsLeft,
-    Top + InternalTopOffset + FBlockStyle.AllPaddingsTop + FTopPadding);
+    Top + InternalTopOffset + FBlockStyle.AllPaddingsTop + FWordTopPadding);
 end;
 
 procedure TKMemoContainer.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
@@ -6531,12 +6552,12 @@ var
   SaveIndex: Integer;
 begin
   R := Rect(0, 0, Width, Height);
-  OffsetRect(R, Left + ALeft + InternalLeftOffset, Top + ATop + InternalTopOffset + FTopPadding);
+  OffsetRect(R, Left + ALeft + InternalLeftOffset, Top + ATop + InternalTopOffset + FWordTopPadding);
   R := FBlockStyle.MarginRect(R);
   FBlockStyle.PaintBox(ACanvas, R);
   R := FBlockStyle.BorderRect(R);
   Inc(ALeft, Left + FBlockStyle.AllPaddingsLeft + InternalLeftOffset);
-  Inc(ATop, Top + FBlockStyle.AllPaddingsTop + InternalTopOffset + FTopPadding);
+  Inc(ATop, Top + FBlockStyle.AllPaddingsTop + InternalTopOffset + FWordTopPadding);
   if FClip then
   begin
     SaveIndex := SaveDC(ACanvas.Handle);
@@ -6574,7 +6595,7 @@ var
 begin
   P := APoint;
   R := Rect(0, 0, Width, Height);
-  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FTopPadding);
+  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FWordTopPadding);
   if PtInRect(R, P) or (AOutOfArea and (P.X >= R.Left) and (P.X < R.Right)) then
   begin
     OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
@@ -6642,6 +6663,25 @@ begin
     Result := inherited MeasureWordExtent(ACanvas, AIndex, ARequiredWidth)
   else
     Result := CreateEmptyPoint;
+end;
+
+function TKMemoTableCell.PointToIndex(ACanvas: TCanvas; const APoint: TPoint;
+  AFirstRow, ALastRow, AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer;
+var
+  P: TPoint;
+  R: TRect;
+begin
+  P := APoint;
+  R := Rect(0, 0, Width, Height);
+  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FWordTopPadding);
+  if PtInRect(R, P) or
+    AFirstRow and (P.X >= R.Left) and (P.X < R.Right) and (P.Y < R.Bottom) or
+    ALastRow and (P.X >= R.Left) and (P.X < R.Right) and (P.Y >= R.Top) then
+  begin
+    OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
+    Result := FBlocks.PointToIndex(ACanvas, P, AOutOfArea, ASelectionExpanding, APosition);
+  end else
+    Result := -1;
 end;
 
 procedure TKMemoTableCell.ParaStyleChanged(Sender: TObject);
@@ -6718,23 +6758,6 @@ procedure TKMemoTableCell.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft,
 begin
   if (FSpan.ColSpan > 0) and (FSpan.RowSpan > 0) then
     inherited;
-end;
-
-function TKMemoTableCell.WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint;
-  AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer;
-var
-  P: TPoint;
-  R: TRect;
-begin
-  P := APoint;
-  R := Rect(0, 0, Width, Height);
-  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FTopPadding);
-  if PtInRect(R, P) then
-  begin
-    OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
-    Result := FBlocks.PointToIndex(ACanvas, P, AOutOfArea, ASelectionExpanding, APosition);
-  end else
-    Result := -1;
 end;
 
 { TKMemoTableRow }
@@ -6975,49 +6998,46 @@ begin
     for J := 0 to Row.CellCount - 1 do
     begin
       Cell := Row.Cells[J];
-      //if (Cell.RowSpan > 0) and (Cell.ColSpan > 0) then
+      // find cells in previous row and column (or base cells corresponding to these positions)
+      // these cells cannot be a part of merged area of cells to which the current cell also belongs
+      FindBaseCell(J, I, CurBaseCol, CurBaseRow);
+      PrevRowCell := nil;
+      if I > 0 then
       begin
-        // find cells in previous row and column (or base cells corresponding to these positions)
-        // these cells cannot be a part of merged area of cells to which the current cell also belongs
-        FindBaseCell(J, I, CurBaseCol, CurBaseRow);
-        PrevRowCell := nil;
-        if I > 0 then
+        FindBaseCell(J, I - 1, BaseCol, BaseRow);
+        if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
+          PrevRowCell := Rows[BaseRow].Cells[BaseCol];
+      end;
+      PrevColCell := nil;
+      if J > 0 then
+      begin
+        FindBaseCell(J - 1, I, BaseCol, BaseRow);
+        if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
+          PrevColCell := Rows[BaseRow].Cells[BaseCol];
+      end;
+      // assign default cell borders
+      Cell.BlockStyle.BorderWidth := 0;
+      Cell.BlockStyle.BorderWidths.Assign(Cell.RequiredBorderWidths);
+      if PrevColCell <> nil then
+      begin
+        // we split the border width among two neighbor cells in horizontal direction
+        Width := Max(Cell.RequiredBorderWidths.Left, PrevColCell.RequiredBorderWidths.Right);
+        if Width > 0 then
         begin
-          FindBaseCell(J, I - 1, BaseCol, BaseRow);
-          if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
-            PrevRowCell := Rows[BaseRow].Cells[BaseCol];
+          Part := DivUp(Width, 2);
+          Cell.BlockStyle.BorderWidths.Left := Part;
+          PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
         end;
-        PrevColCell := nil;
-        if J > 0 then
+      end;
+      if PrevRowCell <> nil then
+      begin
+        // we split the border width among two neighbor cells in vertical direction
+        Width := Max(Cell.RequiredBorderWidths.Top, PrevRowCell.RequiredBorderWidths.Bottom);
+        if Width > 0 then
         begin
-          FindBaseCell(J - 1, I, BaseCol, BaseRow);
-          if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
-            PrevColCell := Rows[BaseRow].Cells[BaseCol];
-        end;
-        // assign default cell borders
-        Cell.BlockStyle.BorderWidth := 0;
-        Cell.BlockStyle.BorderWidths.Assign(Cell.RequiredBorderWidths);
-        if PrevColCell <> nil then
-        begin
-          // we split the border width among two neighbor cells in horizontal direction
-          Width := Max(Cell.RequiredBorderWidths.Left, PrevColCell.RequiredBorderWidths.Right);
-          if Width > 0 then
-          begin
-            Part := DivUp(Width, 2);
-            Cell.BlockStyle.BorderWidths.Left := Part;
-            PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
-          end;
-        end;
-        if PrevRowCell <> nil then
-        begin
-          // we split the border width among two neighbor cells in vertical direction
-          Width := Max(Cell.RequiredBorderWidths.Top, PrevRowCell.RequiredBorderWidths.Bottom);
-          if Width > 0 then
-          begin
-            Part := DivUp(Width, 2);
-            Cell.BlockStyle.BorderWidths.Top := Part;
-            PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part
-          end;
+          Part := DivUp(Width, 2);
+          Cell.BlockStyle.BorderWidths.Top := Part;
+          PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part
         end;
       end;
     end;
@@ -7116,18 +7136,18 @@ procedure TKMemoTable.FixupCellSpanFromRTF;
   end;
 
 var
-  I, J, K, CellCnt, ColCnt, ColDelta, MaxXPos, RowDelta, RowXPos, WDelta, XPos: Integer;
-  Row, Row1: TKMemoTableRow;
+  I, J, K, CellCnt, ColDelta, MaxXPos, RowDelta, RowXPos, WDelta, XPos: Integer;
+  Row: TKMemoTableRow;
   Span: TKCellSpan;
   LastCell, Cell, TmpCell: TKMemoTableCell;
-  RowPos: TKMemoSparseList;
 begin
   // this routine assumes the table was loaded from RTF
   LockUpdate;
   try
-    { First update our FColCount and FColWidths properties,
-      this is needed because horizontally merged table cells are stored as a single cell
-      and the only distinguishing factor is their width. }
+    { First update our FColCount and FColWidths properties.
+      This is needed because horizontally merged table cells are stored as a single cell
+      and the only distinguishing factor is their width. So go through the table
+      and find every vertical cell split (end of each cell). }
     MaxXPos := 0;
     for I := 0 to RowCount - 1 do
     begin
@@ -7147,13 +7167,13 @@ begin
         Row := Rows[I];
         J := 0;
         RowXPos := 0;
-        while (J < Row.CellCount) and (RowXPos < XPos) do
+        while (J < Row.CellCount) and (RowXPos <= XPos) do
         begin
           Inc(RowXPos, Row.Cells[J].RequiredWidth);
           Inc(J);
         end;
-        if (RowXPos = XPos) and (J < Row.CellCount) then
-          WDelta := Min(WDelta, Row.Cells[J].RequiredWidth);
+        if RowXPos > XPos then
+          WDelta := Min(RowXPos - XPos, WDelta);
       end;
       Inc(XPos, WDelta);
       if K < FColCount then
@@ -7219,26 +7239,6 @@ begin
       begin
         for J := 0 to FColCount - 1 do
           Row.Cells[J].RequiredWidth := FColWidths[J].Index;
-      end;
-    end;
-    // check for special cases where the previous algorithm added more cells than defined in FColCount
-    // this can occur in certain table layouts
-    ColCnt := 0;
-    for I := 0 to RowCount - 1 do
-      ColCnt := Max(ColCnt, Rows[I].CellCount);
-    if ColCnt > FColCount then
-    begin
-      // we need to add cells to all other rows
-      for I := 0 to RowCount - 1 do
-      begin
-        Row := Rows[I];
-        for J := Row.CellCount to ColCnt - 1 do
-        begin
-          TmpCell := TKMemoTableCell.Create(Row.Blocks);
-          TmpCell.RowSpan := Row.Cells[Row.CellCount - 1].RowSpan;
-          TmpCell.ColSpan := 0; // for later fixup
-          Row.Blocks.Add(TmpCell);
-        end;
       end;
     end;
     // here we fixup the Span properties
@@ -7424,12 +7424,11 @@ function TKMemoTable.MeasureWordExtent(ACanvas: TCanvas; AIndex,
 const
   cMinColSize = 20;
 var
-  I, J, BaseCol, BaseRow, Len, RealColCount, ColWidth, DefColCount, DefSpace, MinSpace, OverflowSpace, UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY, VDelta: Integer;
-  Ratio: Double;
+  I, J, BaseCol, BaseRow, Len, RealColCount, ColWidth, DefColCount, DefSpace, DistSpace, MinSpace, OverflowSpace, UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY, VDelta: Integer;
   Extent: TPoint;
   Row: TKMemoTableRow;
   Cell, BaseCell: TKmemoTableCell;
-  CalcHorzExtents, MeasHorzExtents, MinHorzExtents, VertExtents: TKmemoSparseList;
+  MeasWidths, MinWidths, Heights: TKmemoSparseList;
 begin
   // this is the table layout calculation
   if FFixedWidth then
@@ -7460,26 +7459,24 @@ begin
   end;
   TotalSpace := DefSpace + UndefSpace;
   // now measure cells
-  CalcHorzExtents := TKMemoSparseList.Create;
-  MeasHorzExtents := TKMemoSparseList.Create;
-  MinHorzExtents := TKMemoSparseList.Create;
-  VertExtents := TKMemoSparseList.Create;
+  MeasWidths := TKMemoSparseList.Create;
+  MinWidths := TKMemoSparseList.Create;
+  Heights := TKMemoSparseList.Create;
   try
-    CalcHorzExtents.SetSize(RealColCount);
-    MeasHorzExtents.SetSize(RealColCount);
-    MinHorzExtents.SetSize(RealColCount);
-    VertExtents.SetSize(RowCount);
+    MeasWidths.SetSize(RealColCount);
+    MinWidths.SetSize(RealColCount);
+    Heights.SetSize(RowCount);
     for J := 0 to RowCount - 1 do
-      VertExtents[J].Index := 0;
-    // first measure cells with predefined column width
+      Heights[J].Index := 0;
+    // first measure cells with predefined column widths
     for I := 0 to RealColCount - 1 do
     begin
       if (I < FColCount) and (FColWidths[I].Index > 0) then
-        CalcHorzExtents[I].Index := MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace) - 1
+        ColWidth := Max(MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace), cMinColSize)
       else
-        CalcHorzExtents[I].Index := UndefColWidth;
-      MeasHorzExtents[I].Index := 0;
-      MinHorzExtents[I].Index := 0;
+        ColWidth := UndefColWidth;
+      MeasWidths[I].Index := 0;
+      MinWidths[I].Index := 0;
       for J := 0 to RowCount - 1 do
       begin
         Row := Rows[J];
@@ -7489,55 +7486,73 @@ begin
           if Cell.ColSpan = 1 then
           begin
             Extent := Cell.MeasureWordExtent(ACanvas, 0, cMinColSize);
-            MinHorzExtents[I].Index := Max(MinHorzExtents[I].Index, Extent.X);
-            Extent := Cell.MeasureWordExtent(ACanvas, 0, CalcHorzExtents[I].Index);
-            MeasHorzExtents[I].Index := Max(MeasHorzExtents[I].Index, Extent.X);
+            MinWidths[I].Index := Max(MinWidths[I].Index, Extent.X);
+            Extent := Cell.MeasureWordExtent(ACanvas, 0, ColWidth); // Extent.X can be bigger than ColWidth here
+            MeasWidths[I].Index := Max(MeasWidths[I].Index, Extent.X);
             if Cell.RowSpan = 1 then
-              VertExtents[J].Index := Max(VertExtents[J].Index, Extent.Y);
+              Heights[J].Index := Max(Heights[J].Index, Extent.Y);
           end;
         end;
       end;
+      if MeasWidths[I].Index = 0 then
+        MeasWidths[I].Index := ColWidth;
+      if MinWidths[I].Index = 0 then
+        MinWidths[I].Index := ColWidth;
     end;
-    // second, if some MeasHorzExtents are bigger than CalcHorzExtents then recalculate remaining columns to fit required width
+    // then, if some MeasWidths were bigger than ColWidth, recalculate remaining columns to fit required width
     OverflowSpace := 0;
     for I := 0 to RealColCount - 1 do
-      Inc(OverflowSpace, Max(MeasHorzExtents[I].Index - CalcHorzExtents[I].Index, 0));
+      Inc(OverflowSpace, MeasWidths[I].Index);
+    Dec(OverflowSpace, ARequiredWidth);
     if OverflowSpace > 0 then
     begin
       MinSpace := 0;
-      TotalSpace := 0;
       for I := 0 to RealColCount - 1 do
-        if MeasHorzExtents[I].Index <= CalcHorzExtents[I].Index then
-        begin
-          Inc(TotalSpace, Max(MeasHorzExtents[I].Index, CalcHorzExtents[I].Index));
-          Inc(MinSpace, CalcHorzExtents[I].Index - MinHorzExtents[I].Index);
-        end;
+        if MeasWidths[I].Index > MinWidths[I].Index then
+          Inc(MinSpace, MeasWidths[I].Index);
       if MinSpace > 0 then
       begin
-        Ratio := (TotalSpace - OverflowSpace) / TotalSpace;
+        DistSpace := 0;
         for I := 0 to RealColCount - 1 do
-          if MeasHorzExtents[I].Index <= CalcHorzExtents[I].Index then
-            MeasHorzExtents[I].Index := Max(Round(CalcHorzExtents[I].Index * Ratio), MinHorzExtents[I].Index);
+          if (MeasWidths[I].Index > MinWidths[I].Index) and (MinSpace > 0) then
+          begin
+            VDelta := DivUp(MeasWidths[I].Index * OverflowSpace, MinSpace);
+            Dec(MinSpace, MeasWidths[I].Index);
+            if MeasWidths[I].Index - MinWidths[I].Index < VDelta then
+            begin
+              Dec(OverflowSpace, MeasWidths[I].Index - MinWidths[I].Index);
+              Inc(DistSpace, MeasWidths[I].Index - MinWidths[I].Index);
+              MeasWidths[I].Index := MinWidths[I].Index;
+            end else
+            begin
+              Dec(OverflowSpace, VDelta);
+              MeasWidths[I].Index := MeasWidths[I].Index - VDelta;
+              Inc(DistSpace, VDelta);
+            end;
+          end;
+        if OverflowSpace > DistSpace then
+        asm
+          nop // debug line
+        end;
       end;
     end;
-    // second measure with maximum allowed column width
+    // then, measure again with maximum allowed column width and update vertical extents
     for I := 0 to RowCount - 1 do
     begin
       Row := Rows[I];
       for J := 0 to Row.CellCount - 1 do
       begin
         Cell := Row.Cells[J];
-        if CellVisible(J, I) and ((MeasHorzExtents[J].Index <> Cell.Width) or (Cell.ColSpan > 1) or (Cell.RowSpan > 1)) then
+        if CellVisible(J, I) and ((MeasWidths[J].Index <> Cell.Width) or (Cell.ColSpan > 1) or (Cell.RowSpan > 1)) then
         begin
-          Extent := Cell.MeasureWordExtent(ACanvas, 0, GetExtentSpanned(MeasHorzExtents, J, Cell.ColSpan));
+          Extent := Cell.MeasureWordExtent(ACanvas, 0, GetExtentSpanned(MeasWidths, J, Cell.ColSpan));
           // update vertical extents
           if Cell.RowSpan = 1 then
-            VertExtents[I].Index := Max(VertExtents[I].Index, Extent.Y);
+            Heights[I].Index := Max(Heights[I].Index, Extent.Y);
         end;
       end;
     end;
-    // third update vertical extents for row-spanned cells
-    // because some of these cells might be taller than remaining cells
+    // then, update vertical extents for row-spanned cells, because some of these cells might be taller than remaining cells
     for I := 0 to RowCount - 1 do
     begin
       Row := Rows[I];
@@ -7546,17 +7561,21 @@ begin
         Cell := Row.Cells[J];
         if CellVisible(J, I) and (Cell.RowSpan > 1) then
         begin
-          VDelta := Cell.Height - GetExtentSpanned(VertExtents, I, Cell.RowSpan);
+          VDelta := Cell.Height - GetExtentSpanned(Heights, I, Cell.RowSpan);
           if VDelta > 0 then
-            VertExtents[I + Cell.RowSpan - 1].Index := VertExtents[I + Cell.RowSpan - 1].Index + VDelta;
+            Heights[I + Cell.RowSpan - 1].Index := Heights[I + Cell.RowSpan - 1].Index + VDelta;
         end;
       end;
     end;
-    // set positions and heights
+    // finally, set cell/row positions and heights
     ClearLines;
     Extent.X := 0;
     for I := 0 to RealColCount - 1 do
-      Inc(Extent.X, MeasHorzExtents[I].Index);
+      Inc(Extent.X, MeasWidths[I].Index);
+    if Extent.X > ARequiredWidth then
+    asm
+      nop // debug line
+    end;
     Len := 0;
     PosY := 0;
     for I := 0 to RowCount - 1 do
@@ -7571,21 +7590,21 @@ begin
         Cell.WordTop[0] := 0;
         if CellVisible(J, I) then
         begin
-          Cell.WordHeight[0] := GetExtentSpanned(VertExtents, I, Cell.RowSpan);
+          Cell.WordHeight[0] := GetExtentSpanned(Heights, I, Cell.RowSpan);
         end else
         begin
-          Cell.WordHeight[0] := VertExtents[I].Index;
+          Cell.WordHeight[0] := Heights[I].Index;
         end;
-        Inc(PosX, MeasHorzExtents[J].Index);
+        Inc(PosX, MeasWidths[J].Index);
       end;
-      Row.SetBlockExtent(Extent.X, VertExtents[I].Index);
+      Row.SetBlockExtent(Extent.X, Heights[I].Index);
       Row.WordLeft[0] := 0;
       Row.WordTop[0] := PosY;
-      Row.WordHeight[0] := VertExtents[I].Index;
+      Row.WordHeight[0] := Heights[I].Index;
       Row.AddSingleLine;
-      AddBlockLine(I, Len, I, Len + Row.ContentLength - 1, 0, PosY, Extent.X, VertExtents[I].Index);
+      AddBlockLine(I, Len, I, Len + Row.ContentLength - 1, 0, PosY, Extent.X, Heights[I].Index);
       Inc(Len, Row.ContentLength);
-      Inc(PosY, VertExtents[I].Index);
+      Inc(PosY, Heights[I].Index);
     end;
     Extent.Y := PosY;
     Inc(Extent.X, FBlockStyle.LeftPadding + FBlockStyle.RightPadding);
@@ -7595,10 +7614,9 @@ begin
     WordTop[0] := 0;
     WordHeight[0] := 0;
   finally
-    CalcHorzExtents.Free;
-    MeasHorzExtents.Free;
-    MinHorzExtents.Free;
-    VertExtents.Free;
+    MeasWidths.Free;
+    MinWidths.Free;
+    Heights.Free;
   end;
   Result := Point(Extent.X, Extent.Y);
 end;
@@ -7720,7 +7738,7 @@ begin
   Result := -1;
   P := APoint;
   R := Rect(0, 0, Width, Height);
-  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FTopPadding);
+  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FWordTopPadding);
   if PtInRect(R, P) or (AOutOfArea and (P.X >= R.Left) and (P.X < R.Right)) then
   begin
     OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
@@ -7735,7 +7753,7 @@ begin
         Cell := Row.Cells[J];
         if (Cell.ColSpan > 0) and (Cell.RowSpan > 0) then
         begin
-          Result := Cell.WordPointToIndex(ACanvas, P, 0, AOutOfArea, ASelectionExpanding, APosition);
+          Result := Cell.PointToIndex(ACanvas, P, I = 0, I + Cell.RowSpan >= RowCount, AOutOfArea, ASelectionExpanding, APosition);
           if Result < 0 then
             Inc(Len, Cell.ContentLength);
         end;

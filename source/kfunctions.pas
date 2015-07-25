@@ -1180,8 +1180,8 @@ begin
   Wnd := GetFocus;
   C := FindControl(Wnd);
   if (C <> nil) and
-    (C is TCustomEdit) and (not AMustAllowWrite or not TCustomEdit(C).ReadOnly) or
-    (C is TCustomMemo) and (not AMustAllowWrite or not TCustomMemo(C).ReadOnly) or
+    (C is TCustomEdit) and (not AMustAllowWrite or not TEdit(C).ReadOnly) or
+    (C is TCustomMemo) and (not AMustAllowWrite or not TMemo(C).ReadOnly) or
     (C is TComboBox) and (TComboBox(C).Style in [csSimple, csDropDown])
 {$IFnDEF FPC}
      or (C is TRichEdit) and (not AMustAllowWrite or not TRichEdit(C).ReadOnly)

@@ -2005,7 +2005,10 @@ begin
         S := UnicodeToNativeUTF(WideChar(AdobeSymbolToUTF16(AParam)))
       else
       begin
-        CodePage := CharSetToCP(FActiveState.TextStyle.Font.Charset);
+        if FActiveState.TextStyle.Font.Charset = 0 then
+          CodePage := FDefaultCodePage
+        else
+          CodePage := CharSetToCP(FActiveState.TextStyle.Font.Charset);
         S := AnsiStringToString(AnsiChar(AParam), CodePage);
       end;
       AddText(S);

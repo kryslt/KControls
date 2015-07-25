@@ -270,12 +270,12 @@ begin
     Memo.Blocks.UnlockUpdate;
   end;
 
-// Memo.LoadFromRTF('test.rtf');
-// Memo.LoadFromRTF('test1.rtf');
+//  Memo.LoadFromRTF('test.rtf');
+//  Memo.LoadFromRTF('test1.rtf');
 //  Memo.LoadFromRTF('test_no_img.rtf');
 //  Memo.LoadFromRTF('test_simple.rtf');
-  Memo.LoadFromRTF('kgrid_manual.rtf');
-//  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
+//  Memo.LoadFromRTF('kgrid_manual.rtf');
+  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
 //  Memo.LoadFromRTF('simpletable.rtf');
 //  Memo.LoadFromRTF('advancedtable.rtf');
 //  Memo.Select(10, 510);
@@ -331,15 +331,18 @@ begin
   Canvas.TextOut(10, 10, S);
 end;
 
-procedure TMainForm.FormResize(Sender: TObject);begin
+procedure TMainForm.FormResize(Sender: TObject);
+begin
   Panel1.Width := ClientWidth div 2;
 end;
 
-procedure TMainForm.FormShow(Sender: TObject);begin
+procedure TMainForm.FormShow(Sender: TObject);
+begin
   //Memo.Clear;
 end;
 
-procedure TMainForm.KMemo1DropFiles(Sender: TObject; X, Y: Integer;  Files: TStrings);begin
+procedure TMainForm.KMemo1DropFiles(Sender: TObject; X, Y: Integer;  Files: TStrings);
+begin
   Memo.LoadFromFile(Files[0]);
 end;
 
