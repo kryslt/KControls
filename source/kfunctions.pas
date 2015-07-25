@@ -776,6 +776,9 @@ procedure TrimWhiteSpaces(var AText: AnsiString; const ASet: TKSysCharSet); over
   the current system code page for ANSI-UTFx translations will be used. }
 function StringToAnsiString(const AText: TKString; CodePage: Cardinal = 0): AnsiString;
 
+{ Converts specified character of TKString into TKChar. }
+function StringToChar(const AText: TKString; AIndex: Integer): TKChar;
+
 {$IFDEF USE_WINAPI}
 function GetWindowsFolder(CSIDL: Cardinal; var APath: string): Boolean;
 
@@ -2362,6 +2365,15 @@ begin
   Len := WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, nil, 0, @DefaultChar, nil);
   SetLength(Result, Len - 1);
   WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, PAnsiChar(Result), Len, @DefaultChar, nil);
+{$ENDIF}
+end;
+
+function StringToChar(const AText: TKString; AIndex: Integer): TKChar;
+begin
+{$IFDEF FPC}
+  Result := UTF8Copy(AText, AIndex, 1);
+{$ELSE}
+  Result := AText[AIndex];
 {$ENDIF}
 end;
 

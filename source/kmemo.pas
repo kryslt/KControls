@@ -1516,7 +1516,7 @@ type
       <LI><I>At</I> - position where the character should be inserted.</LI>
       <LI><I>AValue</I> - character</LI>
       </UL> }
-    procedure InsertChar(At: Integer; AValue: TKChar); virtual;
+    procedure InsertChar(At: Integer; const AValue: TKChar); virtual;
     { Inserts new line at specified position.
       <UL>
       <LH>Parameters:</LH>
@@ -3657,7 +3657,7 @@ begin
   Result := BlockRectToRect(FActiveBlocks.IndexToRect(Canvas, AValue, ACaret, FActiveBlocks.EOLToNormal(AValue)));
 end;
 
-procedure TKCustomMemo.InsertChar(At: Integer; AValue: TKChar);
+procedure TKCustomMemo.InsertChar(At: Integer; const AValue: TKChar);
 begin
   FActiveBlocks.InsertChar(At, AValue, elOverwrite in FStates);
 end;
@@ -3716,13 +3716,20 @@ procedure TKCustomMemo.UTF8KeyPress(var Key: TUTF8Char);
 {$ELSE}
 procedure TKCustomMemo.KeyPress(var Key: Char);
 {$ENDIF}
+var
+  C: TKCHar;
 begin
   inherited;
   if not (csDesigning in ComponentState) then
   begin
     if not (elIgnoreNextChar in FStates) then
     begin
-      ExecuteCommand(ecInsertChar, @Key);
+    {$IF DEFINED(FPC) OR DEFINED(COMPILER12_UP)}
+      C := Key;
+    {$ELSE}
+      C := AnsiStringToString(Key)[1];
+    {$IFEND}
+      ExecuteCommand(ecInsertChar, @C);
     end else
       Exclude(FStates, elIgnoreNextChar);
   end;
