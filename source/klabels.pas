@@ -102,11 +102,7 @@ type
 implementation
 
 uses
-  Math, SysUtils, KGraphics
-  {$IFDEF USE_WINAPI}
-  , ShellApi
-  {$ENDIF}
-  ;
+  Math, SysUtils, KGraphics;
 
 { TKGradientLabel }
 
@@ -271,11 +267,7 @@ end;
 procedure TKLinkLabel.Click;
 begin
   inherited;
-{$IFDEF USE_WINAPI}
-  ShellExecute(Application.MainForm.Handle, 'open', PChar(FURL), nil, nil, SW_SHOWNORMAL);
-{$ELSE}
-  OpenURL(FURL);
-{$ENDIF}
+  OpenURLWithShell(FURL);
 end;
 
 procedure TKLinkLabel.SetHotColor(Value: TColor);
@@ -332,4 +324,4 @@ begin
   Invalidate;
 end;
 
-end.
+end.

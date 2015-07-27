@@ -23,7 +23,7 @@ unit KMemoRTF;
 interface
 
 uses
-  Classes, Contnrs, Graphics, Controls,
+  Classes, Contnrs, Graphics, Controls, Types,
   KControls, KFunctions, KGraphics, KMemo;
 
 type
@@ -147,7 +147,7 @@ type
     property WrapSide: Integer read GetWrapSide write SetWrapSide;
   end;
 
-  TKMemoRTFGroup = (rgNone, rgUnknown, rgColorTable, rgFontTable, rgFooter, rgHeader, rgInfo,
+  TKMemoRTFGroup = (rgNone, rgUnknown, rgColorTable, rgField, rgFieldInst, rgFieldResult, rgFontTable, rgFooter, rgHeader, rgInfo,
     rgPageBackground, rgPicture, rgPicProp, rgShape, rgShapeInst, rgShapePict, rgStyleSheet, rgTextBox);
 
   { Specifies the RTF reader state. This class is used by RTF reader to store reader state on the stack. }
@@ -176,6 +176,7 @@ type
   TKMemoRTFHeaderProp = (rphRtf, rphCodePage, rphDefaultFont, rphIgnoreCharsAfterUnicode, rphFontTable, rphColorTable, rphStyleSheet);
   TKMemoRTFDocumentProp = (rpdFooter, rpdFooterLeft, rpdFooterRight, rpdHeader, rpdHeaderLeft, rpdHeaderRight, rpdInfo);
   TKMemoRTFColorProp = (rpcRed, rpcGreen, rpcBlue);
+  TKMemoRTFFieldProp = (rpfiField, rpfiResult);
   TKMemoRTFFontProp = (rpfIndex, rpfCharset, rpfPitch);
   TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop, rpiReqWidth, rpiReqHeight);
   TKMemoRTFShapeProp = (rpsShape, rpsBottom, rpsLeft, rpsRight, rpsTop, rpsXColumn, rpsYPara, rpsWrap, rpsWrapSide, rpsSn, rpsSv, rpsShapeText);
@@ -183,11 +184,11 @@ type
     rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor, rppPar);
   TKMemoRTFSpecialCharProp = (rpscTab, rpscLquote, rpscRQuote, rpscLDblQuote, rpscRDblQuote, rpscEnDash, rpscEmDash, rpscBullet, rpscNBSP, rpscEmSpace, rpscEnSpace,
     rpscAnsiChar, rpscUnicodeChar);
-  TKMemoRTFTableProp = (rptbRowBegin, rptbCellEnd, rptbRowEnd, rptbLastRow, rptbPaddBottom, rptbPaddLeft, rptbPaddRight, rptbPaddTop, rptbBorderBottom, rptbBorderLeft,
+  TKMemoRTFTableProp = (rptbRowBegin, rptbCellEnd, rptbRowEnd, rptbLastRow, rptbRowPaddBottom, rptbRowPaddLeft, rptbRowPaddRight, rptbRowPaddTop, rptbBorderBottom, rptbBorderLeft,
     rptbPaddAll, rptbBorderRight, rptbBorderTop, rptbBorderWidth, rptbBorderNone, rptbBorderColor, rptbBackColor, rptbHorzMergeBegin, rptbHorzMerge,
-    rptbVertMergeBegin, rptbVertMerge, rptbCellWidth, rptbCellX);
+    rptbVertMergeBegin, rptbVertMerge, rptbCellPaddBottom, rptbCellPaddLeft, rptbCellPaddRight, rptbCellPaddTop, rptbCellWidth, rptbCellX);
   TKMemoRTFTextProp = (rptPlain, rptFontIndex, rptBold, rptItalic, rptUnderline, rptStrikeout, rptCaps, rptSmallCaps, rptFontSize, rptForeColor, rptBackColor);
-  TKMemoRTFUnknownProp = (rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict);
+  TKMemoRTFUnknownProp = (rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict, rpuFieldInst);
 
   { Specifies the RTF reader. }
   TKMemoRTFReader = class(TObject)
@@ -220,7 +221,9 @@ type
     FActiveTableColCount: Integer;
     FActiveTableLastRow: Boolean;
     FActiveTableRow: TKMemoTableRow;
+    FActiveTableRowPadd: TRect;
     FActiveText: TKMemoTextBlock;
+    FActiveURL: TKString;
     FAtIndex: Integer;
     FColorTable: TKMemoRTFColorTable;
     FCtrlTable: TKMemoRTFCtrlTable;
@@ -247,6 +250,7 @@ type
     procedure FlushColor; virtual;
     procedure FlushContainer; virtual;
     procedure FlushFont; virtual;
+    procedure FlushHyperlink; virtual;
     procedure FlushImage; virtual;
     procedure FlushParagraph; virtual;
     procedure FlushShape; virtual;
@@ -258,6 +262,7 @@ type
     function ReadNext(out ACtrl, AText: AnsiString; out AParam: Int64): Boolean; virtual;
     procedure ReadColorGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadDocumentGroups(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadFieldGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadFontGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadHeaderGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadParaFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
@@ -311,6 +316,8 @@ type
     procedure WriteGroupBegin;
     procedure WriteGroupEnd;
     procedure WriteHeader; virtual;
+    procedure WriteHyperlinkBegin(AItem: TKMemoHyperlink); virtual;
+    procedure WriteHyperlinkEnd; virtual;
     procedure WriteImage(AItem: TKmemoImageBlock); virtual;
     procedure WriteImageBlock(AItem: TKmemoImageBlock; AInsideTable: Boolean); virtual;
     procedure WriteParagraph(AItem: TKMemoParagraph; AInsideTable: Boolean); virtual;
@@ -347,6 +354,9 @@ uses
   , JPeg, Windows
 {$ENDIF}
   ;
+
+const
+  cRTFHyperlink = 'HYPERLINK';
 
 function CharSetToCP(ACharSet: TFontCharSet): Integer;
 begin
@@ -1018,6 +1028,7 @@ begin
   FCtrlTable.AddCtrl('nonshppict', Integer(rpuNonShapePict), ReadUnknownGroup);
   FCtrlTable.AddCtrl('background', Integer(rpuPageBackground), ReadUnknownGroup);
   FCtrlTable.AddCtrl('picprop', Integer(rpuPicProp), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('fldinst', Integer(rpuFieldInst), ReadUnknownGroup);
   // header ctrls
   FCtrlTable.AddCtrl('rtf', Integer(rphRtf), ReadHeaderGroup);
   FCtrlTable.AddCtrl('ansicpg', Integer(rphCodePage), ReadHeaderGroup);
@@ -1038,6 +1049,9 @@ begin
   FCtrlTable.AddCtrl('red', Integer(rpcRed), ReadColorGroup);
   FCtrlTable.AddCtrl('green', Integer(rpcGreen), ReadColorGroup);
   FCtrlTable.AddCtrl('blue', Integer(rpcBlue), ReadColorGroup);
+  // field ctrls
+  FCtrlTable.AddCtrl('field', Integer(rpfiField), ReadFieldGroup);
+  FCtrlTable.AddCtrl('fldrslt', Integer(rpfiResult), ReadFieldGroup);
   // font table ctrls
   FCtrlTable.AddCtrl('f', Integer(rpfIndex), ReadFontGroup);
   FCtrlTable.AddCtrl('fcharset', Integer(rpfCharset), ReadFontGroup);
@@ -1111,15 +1125,19 @@ begin
   FCtrlTable.AddCtrl('cell', Integer(rptbCellEnd), ReadTableFormatting);
   FCtrlTable.AddCtrl('row', Integer(rptbRowEnd), ReadTableFormatting);
   FCtrlTable.AddCtrl('lastrow', Integer(rptbLastRow), ReadTableFormatting);
-  FCtrlTable.AddCtrl('trpaddb', Integer(rptbPaddBottom), ReadTableFormatting);
-  FCtrlTable.AddCtrl('trpaddl', Integer(rptbPaddLeft), ReadTableFormatting);
-  FCtrlTable.AddCtrl('trpaddr', Integer(rptbPaddRight), ReadTableFormatting);
-  FCtrlTable.AddCtrl('trpaddt', Integer(rptbPaddTop), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddb', Integer(rptbRowPaddBottom), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddl', Integer(rptbRowPaddLeft), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddr', Integer(rptbRowPaddRight), ReadTableFormatting);
+  FCtrlTable.AddCtrl('trpaddt', Integer(rptbRowPaddTop), ReadTableFormatting);
   FCtrlTable.AddCtrl('trgaph', Integer(rptbPaddAll), ReadTableFormatting);
   FCtrlTable.AddCtrl('clbrdrb', Integer(rptbBorderBottom), ReadTableFormatting);
   FCtrlTable.AddCtrl('clbrdrl', Integer(rptbBorderLeft), ReadTableFormatting);
   FCtrlTable.AddCtrl('clbrdrr', Integer(rptbBorderRight), ReadTableFormatting);
   FCtrlTable.AddCtrl('clbrdrt', Integer(rptbBorderTop), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clpadb', Integer(rptbCellPaddBottom), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clpadl', Integer(rptbCellPaddLeft), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clpadr', Integer(rptbCellPaddRight), ReadTableFormatting);
+  FCtrlTable.AddCtrl('clpadt', Integer(rptbCellPaddTop), ReadTableFormatting);
 //  FCtrlTable.AddCtrl('brdrw', Integer(rptbBorderWidth), ReadTableFormatting); // see ReadParaFormatting
 //  FCtrlTable.AddCtrl('brdrnone', Integer(rptbBorderNone), ReadTableFormatting); // see ReadParaFormatting
 //  FCtrlTable.AddCtrl('brdrcf', Integer(rptbBorderColor), ReadParaFormatting); // see ReadParaFormatting
@@ -1234,6 +1252,12 @@ begin
   end;
 end;
 
+procedure TKMemoRTFReader.FlushHyperlink;
+begin
+  FlushText;
+  FActiveURL := '';
+end;
+
 procedure TKMemoRTFReader.FlushImage;
 begin
   if FActiveImage <> nil then
@@ -1346,6 +1370,8 @@ begin
 end;
 
 procedure TKMemoRTFReader.FlushText;
+var
+  Item: TKMemoHyperlink;
 begin
   if FActiveText <> nil then
   begin
@@ -1358,6 +1384,15 @@ begin
     begin
       FActiveText.TextStyle.Font.Name := 'Arial';
       FActiveText.TextStyle.Font.Charset := 0;
+    end;
+    if FActiveURL <> '' then
+    begin
+      TrimWhiteSpaces(FActiveURL, cWordBreaks);
+      Item := TKMemoHyperlink.Create(nil);
+      Item.Assign(FActiveText);
+      Item.URL := FActiveURL;
+      FreeAndNil(FActiveText);
+      FActiveText := Item;
     end;
     FActiveBlocks.AddAt(FActiveText, FAtIndex);
     Inc(FAtIndex);
@@ -1577,6 +1612,11 @@ begin
       // standalone image outside of shppict and shape group (e.g. results of embedded objects)
       FlushText;
       FlushImage;
+    end
+    else if FActiveState.Group = rgField then
+    begin
+      // we only support hyperlinks now
+      FlushHyperlink;
     end;
     FActiveState.Free;
     FActiveState := FStack.Pop;
@@ -1693,6 +1733,42 @@ begin
     rpdFooter, rpdFooterLeft, rpdFooterRight: FActiveState.Group := rgFooter;
     rpdHeader, rpdHeaderLeft, rpdHeaderRight: FActiveState.Group := rgHeader;
     rpdInfo: FActiveState.Group := rgInfo;
+  end;
+end;
+
+procedure TKMemoRTFReader.ReadFieldGroup(ACtrl: Integer; var AText: AnsiString;
+  AParam: Integer);
+begin
+  case TKMemoRTFFieldProp(ACtrl) of
+    rpfiField: FActiveState.Group := rgField;
+    rpfiResult:
+    begin
+      FlushText;
+      FActiveState.Group := rgFieldResult;
+    end
+  else
+    case FActiveState.Group of
+      rgFieldInst:
+      begin
+        if AText <> '' then
+        begin
+          if Pos(cRTFHyperlink, AText) = 1 then
+          begin
+            Delete(AText, 1, Length(cRTFHyperlink));
+            FActiveURL := AText;
+          end else
+          begin
+            if FActiveURL <> '' then
+              FActiveURL := FActiveURL + AText;
+          end;
+          AText := '';
+        end;
+      end;
+      rgFieldResult:
+      begin
+        AddText(AText);
+      end;
+    end;
   end;
 end;
 
@@ -2047,6 +2123,7 @@ begin
         // if Method did not use Text use it according to active group
         case FActiveState.Group of
           rgColorTable: ReadColorGroup(-1, Text, 0);
+          rgFieldInst, rgFieldResult: ReadFieldGroup(-1, Text, 0);
           rgFontTable: ReadFontGroup(-1, Text, 0);
           rgPicture: ReadPictureGroup(-1, Text, 0);
           rgNone, rgTextBox: AddText(TKString(Text));
@@ -2128,32 +2205,36 @@ begin
   end;
   // read row/cell formatting (if any)
   if (FActiveTableRow <> nil) and (FActiveTableCell <> nil) then case TKMemoRTFTableProp(ACtrl) of
-    rptbPaddBottom:
-    begin
-      for I := 0 to FActiveTableRow.CellCount - 1 do
-        FActiveTableRow.Cells[I].BlockStyle.BottomPadding := TwipsToPoints(AParam);
-    end;
-    rptbPaddLeft:
-    begin
-      for I := 0 to FActiveTableRow.CellCount - 1 do
-        FActiveTableRow.Cells[I].BlockStyle.LeftPadding := TwipsToPoints(AParam);
-    end;
-    rptbPaddRight:
-    begin
-      for I := 0 to FActiveTableRow.CellCount - 1 do
-        FActiveTableRow.Cells[I].BlockStyle.RightPadding := TwipsToPoints(AParam);
-    end;
-    rptbPaddTop:
-    begin
-      for I := 0 to FActiveTableRow.CellCount - 1 do
-        FActiveTableRow.Cells[I].BlockStyle.TopPadding := TwipsToPoints(AParam);
-    end;
     rptbPaddAll:
     begin
-      // we silently assume this will come before other rptbPaddxx ctrls
+      // we silently assume this will come before other rptbRowPaddxx ctrls
       Value := TwipsToPoints(AParam);
       for I := 0 to FActiveTableRow.CellCount - 1 do
         FActiveTableRow.Cells[I].BlockStyle.ContentPadding.AssignFromValues(Value, Value, Value, Value);
+    end;
+    rptbRowPaddBottom:
+    begin
+      FActiveTableRowPadd.Bottom := TwipsToPoints(AParam);
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.BottomPadding := FActiveTableRowPadd.Bottom;
+    end;
+    rptbRowPaddLeft:
+    begin
+      FActiveTableRowPadd.Left := TwipsToPoints(AParam);
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.LeftPadding := FActiveTableRowPadd.Left;
+    end;
+    rptbRowPaddRight:
+    begin
+      FActiveTableRowPadd.Right := TwipsToPoints(AParam);
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.RightPadding := FActiveTableRowPadd.Right;
+    end;
+    rptbRowPaddTop:
+    begin
+      FActiveTableRowPadd.Top := TwipsToPoints(AParam);
+      for I := 0 to FActiveTableRow.CellCount - 1 do
+        FActiveTableRow.Cells[I].BlockStyle.TopPadding := FActiveTableRowPadd.Top;
     end;
     rptbBorderBottom: FActiveTableBorder := alBottom;
     rptbBorderLeft: FActiveTableBorder := alLeft;
@@ -2181,6 +2262,10 @@ begin
     rptbBackColor: FActiveTableCell.BlockStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
     rptbHorzMerge: FActiveTableCell.ColSpan := 0; // indicate for later fixup
     rptbVertMerge: FActiveTableCell.RowSpan := 0; // indicate for later fixup
+    rptbCellPaddBottom: FActiveTableCell.BlockStyle.BottomPadding := TwipsToPoints(AParam);
+    rptbCellPaddLeft: FActiveTableCell.BlockStyle.LeftPadding := TwipsToPoints(AParam);
+    rptbCellPaddRight: FActiveTableCell.BlockStyle.RightPadding := TwipsToPoints(AParam);
+    rptbCellPaddTop: FActiveTableCell.BlockStyle.TopPadding := TwipsToPoints(AParam);
     rptbCellWidth:
     begin
       FActiveTableCell.FixedWidth := True;
@@ -2203,7 +2288,7 @@ end;
 
 procedure TKMemoRTFReader.ReadTextFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  if FActiveState.Group in [rgNone, rgTextBox] then case TKMemoRTFTextProp(ACtrl) of
+  if FActiveState.Group in [rgNone, rgTextBox, rgFieldResult] then case TKMemoRTFTextProp(ACtrl) of
     rptPlain: FActiveState.TextStyle.Assign(FMemo.TextStyle);
     rptFontIndex: ApplyFont(FActiveState.TextStyle, AParam);
     rptBold:
@@ -2249,6 +2334,7 @@ begin
     rpuNonShapePict: FActiveState.Group := rgUnknown; // we ignore this picture
   end;
   if FActiveState.Group = rgUnknown then case TKMemoRTFUnknownProp(ACtrl) of
+    rpuFieldInst: FActiveState.Group := rgFieldInst; // field inside text
     rpuShapeInst: FActiveState.Group := rgShapeInst; // picture inside text
     rpuShapePict: FActiveState.Group := rgShapePict; // picture inside text
     rpuPageBackground: FActiveState.Group := rgPageBackground; // this is the page background, read it
@@ -2484,31 +2570,53 @@ procedure TKMemoRTFWriter.WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean
 var
   I: Integer;
   Item: TKMemoBlock;
+  URL: TKString;
 begin
   if ABlocks <> nil then
   begin
+    URL := '';
     for I := 0 to ABlocks.Count - 1 do
     begin
       Item := ABlocks[I];
       if CanSave(Item) then
       begin
-        if Item is TKMemoParagraph then
-          WriteParagraph(TKMemoParagraph(Item), AInsideTable)
-        else if Item is TKMemoTextBlock then
-          WriteTextBlock(TKMemoTextBlock(Item))
-        else if Item is TKMemoImageBlock then
-          WriteImageBlock(TKMemoImageBlock(Item), AInsideTable)
-        else if Item is TKMemoContainer then
+        if Item is TKMemoHyperlink then
         begin
-          if Item is TKMemoTable then
-            WriteTable(TKMemoTable(Item))
-          else if Item.Position <> mbpText then
-            WriteContainer(TKMemoContainer(Item), AInsideTable)
-          else
-            WriteBody(TKMemoContainer(Item).Blocks, AInsideTable) // just save the contents
+          if URL <> TKMemoHyperlink(Item).URL then
+          begin
+            if URL <> '' then
+              WriteHyperlinkEnd;
+            WriteHyperlinkBegin(TKMemoHyperlink(Item));
+            URL := TKMemoHyperlink(Item).URL;
+          end;
+          WriteTextBlock(TKMemoTextBlock(Item))
+        end else
+        begin
+          if URL <> '' then
+          begin
+            WriteHyperlinkEnd;
+            URL := '';
+          end;
+          if Item is TKMemoParagraph then
+            WriteParagraph(TKMemoParagraph(Item), AInsideTable)
+          else if Item is TKMemoTextBlock then
+            WriteTextBlock(TKMemoTextBlock(Item))
+          else if Item is TKMemoImageBlock then
+            WriteImageBlock(TKMemoImageBlock(Item), AInsideTable)
+          else if Item is TKMemoContainer then
+          begin
+            if Item is TKMemoTable then
+              WriteTable(TKMemoTable(Item))
+            else if Item.Position <> mbpText then
+              WriteContainer(TKMemoContainer(Item), AInsideTable)
+            else
+              WriteBody(TKMemoContainer(Item).Blocks, AInsideTable) // just save the contents
+          end;
         end;
       end;
     end;
+    if URL <> '' then
+      WriteHyperlinkEnd;
   end;
 end;
 
@@ -2627,6 +2735,31 @@ begin
   WriteCtrlParam('uc', 1);
   WriteFontTable;
   WriteColorTable;
+end;
+
+procedure TKMemoRTFWriter.WriteHyperlinkBegin(AItem: TKMemoHyperlink);
+begin
+  WriteGroupBegin;
+  WriteCtrl('field');
+  WriteGroupBegin;
+  try
+    WriteUnknownGroup;
+    WriteCtrl('fldinst');
+    WriteSpace;
+    WriteString(cRTFHyperlink);
+    WriteSpace;
+    WriteString(TKMemoHyperLink(AItem).URL);
+  finally
+    WriteGroupEnd;
+  end;
+  WriteGroupBegin;
+  WriteCtrl('fldrslt');
+end;
+
+procedure TKMemoRTFWriter.WriteHyperlinkEnd;
+begin
+  WriteGroupEnd;
+  WriteGroupEnd;
 end;
 
 procedure TKMemoRTFWriter.WriteImage(AItem: TKmemoImageBlock);
@@ -3060,22 +3193,37 @@ var
   Cell: TKMemoTableCell;
   Row: TKMemoTableRow;
   I, W, XPos: Integer;
+  RowPadd: TRect;
 begin
   WriteCtrlParam('irow', ASavedRowIndex);
   Xpos := 0;
   Row := ATable.Rows[ARowIndex];
+  RowPadd := CreateEmptyRect;
+  for I := 0 to Row.CellCount - 1 do
+  begin
+    Cell := Row.Cells[I];
+    RowPadd.Bottom := Max(RowPadd.Bottom, Cell.BlockStyle.BottomPadding);
+    RowPadd.Left := Max(RowPadd.Left, Cell.BlockStyle.LeftPadding);
+    RowPadd.Right := Max(RowPadd.Right, Cell.BlockStyle.BottomPadding);
+    RowPadd.Top := Max(RowPadd.Top, Cell.BlockStyle.BottomPadding);
+  end;
+  WriteCtrlParam('trpaddb', PointsToTwips(RowPadd.Bottom));
+  WriteCtrlParam('trpaddl', PointsToTwips(RowPadd.Left));
+  WriteCtrlParam('trpaddr', PointsToTwips(RowPadd.Right));
+  WriteCtrlParam('trpaddt', PointsToTwips(RowPadd.Top));
   for I := 0 to Row.CellCount - 1 do
   begin
     Cell := Row.Cells[I];
     if Cell.ColSpan >= 0 then
     begin
-      if I = 0 then
-      begin
-        WriteCtrlParam('trpaddb', PointsToTwips(Cell.BlockStyle.BottomPadding));
-        WriteCtrlParam('trpaddl', PointsToTwips(Cell.BlockStyle.LeftPadding));
-        WriteCtrlParam('trpaddr', PointsToTwips(Cell.BlockStyle.RightPadding));
-        WriteCtrlParam('trpaddt', PointsToTwips(Cell.BlockStyle.TopPadding));
-      end;
+      if Cell.BlockStyle.BottomPadding <> RowPadd.Bottom then
+        WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Bottom));
+      if Cell.BlockStyle.LeftPadding <> RowPadd.Left then
+        WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Left));
+      if Cell.BlockStyle.RightPadding <> RowPadd.Right then
+        WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Right));
+      if Cell.BlockStyle.TopPadding <> RowPadd.Top then
+        WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Top));
       if Cell.RowSpan > 1 then
         WriteCtrl('clvmgf')
       else if Cell.RowSpan <= 0 then

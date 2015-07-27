@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 566
   Top = 256
   Caption = 'KMemoDemo'
-  ClientHeight = 406
-  ClientWidth = 980
+  ClientHeight = 550
+  ClientWidth = 988
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,30 +15,56 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   OnPaint = FormPaint
   OnResize = FormResize
-  OnShow = FormShow
+  DesignSize = (
+    988
+    550)
   PixelsPerInch = 96
   TextHeight = 13
-  object Splitter1: TSplitter
-    Left = 500
-    Top = 0
-    Height = 406
-  end
-  object Panel1: TPanel
+  object PNMain: TPanel
     Left = 0
     Top = 0
-    Width = 500
-    Height = 406
-    Align = alLeft
+    Width = 988
+    Height = 505
+    Align = alTop
+    Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
     TabOrder = 0
+    object Splitter1: TSplitter
+      Left = 500
+      Top = 0
+      Height = 505
+      ExplicitHeight = 513
+    end
+    object Panel1: TPanel
+      Left = 0
+      Top = 0
+      Width = 500
+      Height = 505
+      Align = alLeft
+      BevelOuter = bvNone
+      TabOrder = 0
+      ExplicitHeight = 406
+    end
+    object Panel2: TPanel
+      Left = 503
+      Top = 0
+      Width = 485
+      Height = 505
+      Align = alClient
+      BevelOuter = bvNone
+      TabOrder = 1
+      ExplicitWidth = 477
+      ExplicitHeight = 406
+    end
   end
-  object Panel2: TPanel
-    Left = 503
-    Top = 0
-    Width = 477
-    Height = 406
-    Align = alClient
-    BevelOuter = bvNone
+  object Button1: TButton
+    Left = 24
+    Top = 517
+    Width = 75
+    Height = 25
+    Anchors = [akLeft, akBottom]
+    Caption = 'Load files'
     TabOrder = 1
+    OnClick = Button1Click
   end
 end

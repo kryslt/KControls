@@ -422,7 +422,12 @@ type
     procedure GetSelColors(out Foreground, Background: TColor);
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
+    procedure SetReqMouseCursor(ACursor: TCursor);
   end;
+
+  TKMemoMouseAction = (maMove, maLeftDown, maLeftUp, maRightDown, maRightUp, maMidDown, maMidUp);
+
+  TKMemoBlockClass = class of TKMemoBlock;
 
   TKMemoBlock = class(TObject)
   private
@@ -499,6 +504,7 @@ type
     function SelectableLength(ALocalCalc: Boolean = False): Integer; virtual;
     function Split(At: Integer): TKMemoBlock; virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; virtual;
+    function WordMouseAction(AWordIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; virtual;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AWordIndex, ALeft, ATop: Integer); virtual;
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; virtual;
     property BoundsRect: TRect read GetBoundsRect;
@@ -613,6 +619,17 @@ type
     property Text: TKString read GetText write SetText;
     property TextStyle: TKMemoTextStyle read FTextStyle;
     property WordBreaks: TKSysCharSet read GetWordBreaks;
+  end;
+
+  TKMemoHyperlink = class(TKMemoTextBlock)
+  private
+    FURL: TKString;
+  public
+    constructor Create(AParent: TKMemoBlocks); override;
+    procedure Assign(AItem: TKMemoBlock); override;
+    procedure DefaultStyle; virtual;
+    function WordMouseAction(AWordIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
+    property URL: TKString read FURL write FURL;
   end;
 
   TKMemoParagraph = class(TKMemoTextBlock)
@@ -767,6 +784,7 @@ type
     procedure SetBlockExtent(AWidth, AHeight: Integer); virtual;
     procedure UpdateAttributes; virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
+    function WordMouseAction(AIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property Blocks: TKMemoBlocks read FBlocks;
@@ -873,6 +891,7 @@ type
     procedure LockUpdate;
     function MeasureWordExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
     function RowValid(ARow: Integer): Boolean; virtual;
+    function WordMouseAction(AIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer;
       AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure UnlockUpdate;
@@ -886,8 +905,6 @@ type
     property RowHeights[Index: Integer]: Integer read GetRowHeights write SetRowHeights;
     property Rows[Index: Integer]: TKMemoTableRow read GetRows;
   end;
-
-  TKMemoBlockClass = class of TKMemoBlock;
 
   TKMemoUpdateEvent = procedure(Reasons: TKMemoUpdateReasons) of object;
 
@@ -953,10 +970,11 @@ type
     destructor Destroy; override;
     function AddAt(AObject: TKMemoBlock; At: Integer = -1): Integer; virtual;
     function AddContainer(At: Integer = -1): TKMemoContainer;
-    function AddImageBlock(APath: TKString; At: Integer = -1): TKMemoImageBlock;
+    function AddHyperlink(const AText, AURL: TKString; At: Integer = -1): TKMemoHyperlink;
+    function AddImageBlock(const APath: TKString; At: Integer = -1): TKMemoImageBlock;
     function AddParagraph(At: Integer = -1): TKMemoParagraph;
     function AddTable(At: Integer = -1): TKMemoTable;
-    function AddTextBlock(AText: TKString; At: Integer = -1): TKMemoTextBlock;
+    function AddTextBlock(const AText: TKString; At: Integer = -1): TKMemoTextBlock;
     procedure Clear; override;
     procedure ClearSelection(ATextOnly: Boolean = True); virtual;
     procedure ConcatEqualBlocks; virtual;
@@ -990,6 +1008,7 @@ type
     function LineStartIndexByIndex(AIndex: Integer; AAdjust: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     procedure LockUpdate;
     procedure MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer); virtual;
+    function MouseAction(AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; virtual;
     procedure NotifyDefaultParaChange; virtual;
     procedure NotifyDefaultTextChange; virtual;
     function NextIndexByCharCount(AIndex, ACharCount: Integer): Integer;
@@ -1289,6 +1308,7 @@ type
     FLinePosition: TKMemoLinePosition;
     FOldCaretRect: TRect;
     FPreferredCaretPos: Integer;
+    FRequiredMouseCursor: TCursor;
     FVertExtent: Integer;
     FVertScrollExtent: Integer;
     FVertScrollStep: Integer;
@@ -1321,6 +1341,7 @@ type
     procedure BeginUndoGroup(AGroupKind: TKMemoChangeKind);
     { Converts a rectangle relative to active blocks to a rectangle relative to TKMemo. }
     function BlockRectToRect(const ARect: TRect): TRect; virtual;
+    procedure BlocksMouseMove; virtual;
     { Determines whether an ecScroll* command can be executed. }
     function CanScroll(ACommand: TKEditCommand): Boolean; virtual;
     { Called by ContentPadding class to update the memo control. }
@@ -1384,6 +1405,8 @@ type
     { Overriden method - processes character key strokes - data editing. }
     procedure KeyPress(var Key: Char); override;
  {$ENDIF}
+    { Overriden method - processes virtual key strokes. }
+    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
     { Overriden method - updates caret position/selection. }
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     { Overriden method - updates caret position/selection and initializes scrolling
@@ -1419,6 +1442,8 @@ type
     procedure SelectionInit(ASelStart: Integer; ADoScroll: Boolean = True; APosition: TKMemoLinePosition = eolInside); overload; virtual;
     { Initializes the current selection and performs all necessary adjustments. }
     procedure SelectionInit(const APoint: TPoint; ADoScroll: Boolean = True); overload; virtual;
+    { IKMemoNotifier implementation. }
+    procedure SetReqMouseCursor(ACursor: TCursor);
     { Updates mouse cursor according to the state determined from current mouse
       position. Returns True if cursor has been changed. }
     function SetMouseCursor(X, Y: Integer): Boolean; override;
@@ -2728,6 +2753,7 @@ begin
   FBlocks.MemoNotifier := Self;
   FBlocks.OnUpdate := DoUpdate;
   FActiveBlocks := FBlocks;
+  FRequiredMouseCursor := crIBeam;
   FCaretRect := CreateEmptyRect;
   FColors := TKMemoColors.Create(Self);
   FContentPadding := TKRect.Create;
@@ -2768,7 +2794,9 @@ begin
   FOnChange := nil;
   FOnReplaceText := nil;
   if csDesigning in ComponentState then
-    Text := 'This is beta state control.'+cEOL+'You may already use it in your programs'+cEOL+'but some important functions may still be missing.'+cEOL;
+    Text := 'This is beta state control.'+cEOL+'You may already use it in your programs'+cEOL+'but some important functions may still be missing.'+cEOL
+  else
+    Text := cEOL;
   UpdateEditorCaret;
 end;
 
@@ -2873,6 +2901,18 @@ begin
   begin
     OffsetRect(Result, FActiveBlocks.TotalLeftOffset, FActiveBlocks.TotalTopOffset);
   end;
+end;
+
+procedure TKCustomMemo.BlocksMouseMove;
+var
+  P: TPoint;
+  OldCursor: TCursor;
+begin
+  P := ScreenToClient(Mouse.CursorPos);
+  OldCursor := FRequiredMouseCursor;
+  FBlocks.MouseAction(maMove, PointToBlockPoint(P, False), GetShiftState);
+  if FRequiredMouseCursor <> OldCursor then
+    SetMouseCursor(P.X, P.Y);
 end;
 
 function TKCustomMemo.CanScroll(ACommand: TKEditCommand): Boolean;
@@ -3706,8 +3746,10 @@ begin
       Key := 0;
       Include(FStates, elIgnoreNextChar);
     end;
-    if Key = VK_ESCAPE then
-      Include(FStates, elIgnoreNextChar);
+    case Key of
+      VK_ESCAPE: Include(FStates, elIgnoreNextChar);
+      VK_SHIFT, VK_CONTROL, VK_MENU: BlocksMouseMove;
+    end;
   end;
 end;
 
@@ -3732,6 +3774,17 @@ begin
       ExecuteCommand(ecInsertChar, @C);
     end else
       Exclude(FStates, elIgnoreNextChar);
+  end;
+end;
+
+procedure TKCustomMemo.KeyUp(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+  if not (csDesigning in ComponentState) then
+  begin
+    case Key of
+      VK_SHIFT, VK_CONTROL, VK_MENU: BlocksMouseMove;
+    end;
   end;
 end;
 
@@ -3784,15 +3837,27 @@ procedure TKCustomMemo.MouseDown(Button: TMouseButton; Shift: TShiftState;
   X, Y: Integer);
 var
   P: TPoint;
+  Action: TKMemoMouseAction;
 begin
   inherited;
-  if Enabled and (Button = mbLeft) and not (ssDouble in Shift) then
+  if Enabled then
   begin
     SafeSetFocus;
     P := Point(X, Y);
-    Include(FStates, elMouseCapture);
-    SelectionInit(P, False);
-    ClampInView(@P, True);
+    case Button of
+      mbLeft: Action := maLeftDown;
+      mbRight: Action := maRightDown;
+      mbMiddle: Action := maMidDown;
+    end;
+    if not FBlocks.MouseAction(Action, PointToBlockPoint(P, False), Shift) then
+    begin
+      if (Button = mbLeft) and not (ssDouble in Shift) then
+      begin
+        Include(FStates, elMouseCapture);
+        SelectionInit(P, False);
+        ClampInView(@P, True);
+      end;
+    end;
   end;
 end;
 
@@ -3801,22 +3866,36 @@ var
   P: TPoint;
 begin
   inherited;
+  P := Point(X, Y);
   if (elMouseCapture in FStates) then
   begin
     if not FScrollTimer.Enabled then
     begin
-      P := Point(X, Y);
       SelectionExpand(P, True);
     end;
+  end else
+  begin
+    FRequiredMouseCursor := crIBeam;
+    FBlocks.MouseAction(maMove, PointToBlockPoint(P, False), GetShiftState);
   end;
 end;
 
 procedure TKCustomMemo.MouseUp(Button: TMouseButton; Shift: TShiftState;
   X, Y: Integer);
+var
+  Action: TKMemoMouseAction;
+  P: TPoint;
 begin
   inherited;
   Exclude(FStates, elMouseCapture);
   UpdateEditorCaret;
+  case Button of
+    mbLeft: Action := maLeftUp;
+    mbRight: Action := maRightUp;
+    mbMiddle: Action := maMidUp;
+  end;
+  P := Point(X, Y);
+  FBlocks.MouseAction(Action, PointToBlockPoint(P, False), Shift);
 end;
 
 procedure TKCustomMemo.PaintToCanvas(ACanvas: TCanvas);
@@ -4138,15 +4217,21 @@ begin
   end;
 end;
 
+procedure TKCustomMemo.SetReqMouseCursor(ACursor: TCursor);
+begin
+  FRequiredMouseCursor := ACursor;
+end;
+
 function TKCustomMemo.SetMouseCursor(X, Y: Integer): Boolean;
 var
   ACursor: TCursor;
   P: TPoint;
+  Index: Integer;
 begin
   P := Point(X, Y);
   if PtInRect(ContentRect, P) then
   begin
-    ACursor := crIBeam;
+    ACursor := FRequiredMouseCursor;
   end else
     ACursor := crDefault;
 {$IFDEF FPC}
@@ -4967,6 +5052,11 @@ begin
   Result := CreateEmptyRect;
 end;
 
+function TKMemoBlock.WordMouseAction(AWordIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
+begin
+  Result := False;
+end;
+
 procedure TKMemoBlock.WordPaintToCanvas(ACanvas: TCanvas; AWordIndex, ALeft, ATop: Integer);
 begin
 end;
@@ -5413,10 +5503,12 @@ function TKMemoTextBlock.Split(At: Integer): TKMemoBlock;
 var
   Item: TKMemoTextBlock;
   S, Part1, Part2: TKString;
+  Cls: TKMemoBlockClass;
 begin
   if (At > 0) and (At < ContentLength) then
   begin
-    Item := TKMemoTextBlock.Create(FParent);
+    Cls := TKMemoBlockClass(Self.ClassType);
+    Item := Cls.Create(FParent) as TKMemoTextBlock;
     Item.Assign(Self);
     S := GetText;
     SplitText(S, At + 1, Part1, Part2);
@@ -5741,6 +5833,63 @@ begin
           Break;
         end;
         Inc(WPos, Size.X);
+      end;
+    end;
+  end;
+end;
+
+{ TKMemoHyperlink }
+
+constructor TKMemoHyperlink.Create(AParent: TKMemoBlocks);
+begin
+  inherited;
+  FURL := '';
+  DefaultStyle;
+end;
+
+procedure TKMemoHyperlink.Assign(AItem: TKMemoBlock);
+begin
+  inherited;
+  if AItem is TKMemoHyperlink then
+    FURL := TKMemoHyperlink(AItem).URL;
+end;
+
+procedure TKMemoHyperlink.DefaultStyle;
+begin
+  FTextStyle.Font.Color := clBlue;
+  FTextStyle.Font.Style := FTextStyle.Font.Style + [fsUnderline];
+end;
+
+function TKMemoHyperlink.WordMouseAction(AWordIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
+var
+  R: TRect;
+  Word: TKMemoWord;
+  Shift: TShiftState;
+begin
+  Result := False;
+  Word := FWords[AWordIndex];
+  R := Rect(Word.Position.X, Word.Position.Y, Word.Position.X + Word.Extent.X, Word.Position.Y + Word.Extent.Y);
+  if PtInRect(R, APoint) then
+  begin
+    if MemoNotifier <> nil then
+    begin
+      case AAction of
+        maMove:
+        begin
+          if ssCtrl in AShift then
+            MemoNotifier.SetReqMouseCursor(crHandPoint)
+          else
+            MemoNotifier.SetReqMouseCursor(crIBeam);
+          Result := True;
+        end;
+        maLeftDown:
+        begin
+          if (ssCtrl in AShift) and (FURL <> '') then
+          begin
+            OpenURLWithShell(FURL);
+            Result := True;
+          end;
+        end;
       end;
     end;
   end;
@@ -6187,7 +6336,6 @@ begin
   else
     Result := -1;
 end;
-
 { TKMemoContainer }
 
 constructor TKMemoContainer.Create(AParent: TKMemoBlocks);
@@ -6552,6 +6700,22 @@ begin
     Top + InternalTopOffset + FBlockStyle.AllPaddingsTop + FWordTopPadding);
 end;
 
+function TKMemoContainer.WordMouseAction(AIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
+var
+  P: TPoint;
+  R: TRect;
+begin
+  Result := False;
+  P := APoint;
+  R := Rect(0, 0, Width, Height);
+  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FWordTopPadding);
+  if PtInRect(R, P) then
+  begin
+    OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
+    Result := FBlocks.MouseAction(AAction, P, AShift);
+  end;
+end;
+
 procedure TKMemoContainer.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
 var
   R, ClipRect: TRect;
@@ -6885,8 +7049,7 @@ procedure TKMemoTable.ApplyDefaultCellStyle;
 var
   Cell: TKMemoTableCell;
   Row: TKMemoTableRow;
-  LastCol, LastRow: Boolean;
-  I, J: Integer;
+  I, J, W: Integer;
 begin
   for I := 0 to RowCount - 1 do
   begin
@@ -6896,19 +7059,15 @@ begin
       Cell := Row.Cells[J];
       if (Cell.ColSpan > 0) and (Cell.RowSpan > 0) then
       begin
-        LastRow := I + Cell.RowSpan >= RowCount;
-        LastCol := J + Cell.ColSpan >= Row.CellCount;
+        W := FCellStyle.BorderWidth;
         Cell.BlockStyle.Assign(FCellStyle);
         Cell.BlockStyle.BorderWidth := 0;
-        Cell.BlockStyle.BorderWidths.Left := FCellStyle.BorderWidth;
-        Cell.BlockStyle.BorderWidths.Top := FCellStyle.BorderWidth;
-        if LastCol then
-          Cell.BlockStyle.BorderWidths.Right := FCellStyle.BorderWidth;
-        if LastRow then
-          Cell.BlockStyle.BorderWidths.Bottom := FCellStyle.BorderWidth;
+        Cell.BlockStyle.BorderWidths.AssignFromValues(0, 0, 0, 0);
+        Cell.RequiredBorderWidths.AssignFromValues(W, W, W, W);
       end;
     end;
   end;
+  FixupBorders;
 end;
 
 function TKMemoTable.CalcTotalCellWidth(ACol, ARow: Integer): Integer;
@@ -6925,10 +7084,14 @@ begin
   for I := BaseCol to BaseCol + Cell.ColSpan - 1 do
   begin
     Cell := Row.Cells[I];
-    if Cell.CurrentRequiredWidth = 0 then
+    if Cell.ColSpan > 1 then
+    asm
+      nop; // debug line
+    end;
+    if Cell.RequiredWidth > 0 then
       W := Cell.RequiredWidth
     else
-      W := Cell.CurrentRequiredWidth;
+      W := Cell.Width;
     Inc(Result, W);
   end;
 end;
@@ -7732,6 +7895,37 @@ begin
   Result := FUpdateLock <= 0;
 end;
 
+function TKMemoTable.WordMouseAction(AIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
+var
+  P: TPoint;
+  R: TRect;
+  I, J: Integer;
+  Row: TKMemoTableRow;
+  Cell: TKMemoTableCell;
+begin
+  Result := False;
+  P := APoint;
+  R := Rect(0, 0, Width, Height);
+  OffsetPoint(P, -Left - InternalLeftOffset, -Top - InternalTopOffset - FWordTopPadding);
+  if PtInRect(R, P) then
+  begin
+    OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
+    for I := 0 to RowCount - 1 do
+    begin
+      Row := Rows[I];
+      for J := 0 to Row.CellCount - 1 do
+      begin
+        Cell := Row.Cells[J];
+        if (Cell.ColSpan > 0) and (Cell.RowSpan > 0) then
+        begin
+          Result := Result or Cell.WordMouseAction(0, AAction, P, AShift);
+        end;
+      end;
+      Dec(P.Y, Row.Height);
+    end;
+  end;
+end;
+
 function TKMemoTable.WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint;
   AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean;
   out APosition: TKMemoLinePosition): Integer;
@@ -7843,7 +8037,22 @@ begin
   end;
 end;
 
-function TKMemoBlocks.AddImageBlock(APath: TKString; At: Integer): TKMemoImageBlock;
+function TKMemoBlocks.AddHyperlink(const AText, AURL: TKString; At: Integer): TKMemoHyperlink;
+begin
+  LockUpdate;
+  try
+    Result := TKMemoHyperLink.Create(Self);
+    Result.TextStyle.Assign(GetDefaultTextStyle);
+    Result.DefaultStyle;
+    Result.Text := AText;
+    Result.URL := AURL;
+    AddAt(Result, At);
+  finally
+    UnlockUpdate;
+  end;
+end;
+
+function TKMemoBlocks.AddImageBlock(const APath: TKString; At: Integer): TKMemoImageBlock;
 begin
   LockUpdate;
   try
@@ -7887,7 +8096,7 @@ begin
   end;
 end;
 
-function TKMemoBlocks.AddTextBlock(AText: TKString; At: Integer): TKMemoTextBlock;
+function TKMemoBlocks.AddTextBlock(const AText: TKString; At: Integer): TKMemoTextBlock;
 begin
   LockUpdate;
   try
@@ -8724,7 +8933,7 @@ begin
         begin
           S := Copy(AValue, St, I - St);
           S := UnicodeStringReplace(S, cCR, '', [rfReplaceAll]); // on Unix systems
-          if InsertString(AIndex, False, S) then
+          if (S <> '') and InsertString(AIndex, False, S) then
             Inc(AIndex, StringLength(S));
         end;
         if InsertParagraph(AIndex, True) then
@@ -8736,7 +8945,8 @@ begin
     if I > St then
     begin
       S := Copy(AValue, St, I - St + 1);
-      InsertString(AIndex, True, S);
+      if S <> '' then
+        InsertString(AIndex, True, S);
     end;
   finally
     UnlockUpdate;
@@ -9367,6 +9577,30 @@ begin
   end;
   if CurIndex > LastIndex then
     AddLine;
+end;
+
+function TKMemoBlocks.MouseAction(AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
+var
+  I, J, K, St, En: Integer;
+  Item: TKmemoBlock;
+begin
+  Result := False;
+  for I := 0 to LineCount - 1 do
+  begin
+    if (LineTop[I] <= APoint.Y) and (APoint.Y < LineBottom[I]) then
+    begin
+      for J := FLines[I].StartBlock to FLines[I].EndBlock do
+      begin
+        Item := Items[J];
+        if Item.Position = mbpText then
+        begin
+          GetWordIndexes(J, I, St, En);
+          for K := St to En do
+            Result := Result or Item.WordMouseAction(K, AAction, APoint, AShift);
+        end;
+      end;
+    end;
+  end;
 end;
 
 function TKMemoBlocks.NextIndexByCharCount(AIndex, ACharCount: Integer): Integer;

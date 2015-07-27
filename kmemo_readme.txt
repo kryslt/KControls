@@ -7,18 +7,25 @@ NOTE:
 This readme only covers the KMemo component.
 Refer to kcontrols_readme.txt for installation requirements and other information.
 
-PLANNED:
+PLANNED/STILL MISSING:
 -------------------
-- other paragraph styles (bullets and numbering, tab stops, line spacing)
+- bullets and numbering
+- tab stops
+- line spacing
+- justify paragraph alignment
+- moving and resizing of relative objects (images, text boxes), anchors
 - undo/redo commands
 - search/replace commands
-- readers/writers from/into other formats (HTML, ODT?)
+- readers/writers from/into other formats (HTML, ODT, PDF?)
 
 KNOWN PROBLEMS:
 -------------------
+- The word processor may still wrap words incorrectly around relative or absolute shapes in certain cases. 
+  This is because of missing repositioning of whole line after it has been completely measured
+  and its height increased (e.g. due to bigger font or in-line embedded object).
 - Loading/Saving RTF documents created in different text processors may result in substantial differences in produced documents,
   as only a subset of RTF tags from the RTF specification v 1.9 is supported. RTF compatibility has been primarilly tested 
-  with Microsoft Word which seems to comply with this RTF specification the most. Other text processors (such as LibreOffice Writer)
+  with Microsoft Word which seems to comply with the RTF specification the most. Other text processors (such as LibreOffice Writer)
   may show completely different results for RTF documents created by KMemo.
 
 
@@ -34,7 +41,7 @@ Version 1.7 (July 2015):
     -Advanced table support through TKMemoTable, TKMemoTableRow and TKMemoTableCell classes
     -many new paragraph and text formatting styles
     -Hyperlinks through TKMemoHyperlink class
-    -advanced RTF reader and writer (KMemoRTF.pas)
+    -Rich Text Format reader and writer (KMemoRTF.pas)
     -clipboard operations (copy, cut, paste), also with full Rich Text Format support
     -print/preview support 
   Modified:

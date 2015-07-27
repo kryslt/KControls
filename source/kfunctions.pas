@@ -687,6 +687,9 @@ function MinMax(Value, Min, Max: Extended): Extended; overload;
 { Converts nibble to hexadecimal digit. }
 function NibbleToDigit(Nibble: Byte; UpperCase: Boolean): AnsiChar;
 
+{ Open URL in external browser. }
+procedure OpenURLWithShell(const AText: TKString);
+
 type
   { Callback for quicksort data item comparison. }
   TQsCompareProc = function(Data: Pointer; Index1, Index2: Integer): Integer;
@@ -799,7 +802,7 @@ implementation
 uses
   Math, TypInfo
 {$IFDEF USE_WINAPI}
-  , ShlObj
+  , ShlObj, ShellApi
 {$ELSE}
   , versionresource
 {$ENDIF}
@@ -2043,6 +2046,15 @@ begin
     Result := AnsiChar(Ord('A') + Nibble - 10)
   else
     Result := AnsiChar(Ord('a') + Nibble - 10);
+end;
+
+procedure OpenURLWithShell(const AText: TKString);
+begin
+{$IFDEF FPC}
+  OpenURL(AText);
+{$ELSE}
+  ShellExecuteW(Application.MainForm.Handle, 'open', PWideChar(AText), nil, nil, SW_SHOWNORMAL);
+{$ENDIF}
 end;
 
 procedure QuickSortNR(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareProc;

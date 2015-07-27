@@ -12,27 +12,30 @@ uses
   {$ENDIF}
     SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs, KGrids,
     KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon,
-    KSplitter, KControls;
+    KSplitter, KControls, KLabels;
 
 type
 
   { TMainForm }
 
   TMainForm = class(TForm)
+    PNMain: TPanel;
     Panel1: TPanel;
-    Splitter1: TSplitter;
     Panel2: TPanel;
+    Button1: TButton;
+    Splitter1: TSplitter;
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure KMemo1DropFiles(Sender: TObject; X, Y: Integer; Files: TStrings);
-    procedure FormShow(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
     Memo: TKMemo;
     MemoCopy: TKMemo;
 //    MF: TKMetafile;
+    procedure LoadFiles;
   public
     { Public declarations }
   end;
@@ -41,6 +44,12 @@ var
   MainForm: TMainForm;
 
 implementation
+
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
 
 {$IFDEF USE_PNG_SUPPORT}
 uses
@@ -77,6 +86,8 @@ procedure TMainForm.FormCreate(Sender: TObject);
         CO.Blocks.AddParagraph;
         CO.Blocks.AddTextBlock('This is test text 4');
         CO.Blocks.AddParagraph;
+        CO.Blocks.AddHyperlink('www.solarcontrols.cz', 'www.solarcontrols.cz');
+        CO.Blocks.AddParagraph;
       end else
       begin
         TB := CO.Blocks.AddTextBlock('This is other text 1');
@@ -111,6 +122,7 @@ begin
   Memo.Align := alClient;
   Memo.Options := Memo.Options + [eoDropFiles, eoShowFormatting, eoWantTab];
   Memo.OnDropFiles := KMemo1DropFiles;
+  Memo.Parent := Panel1;
 //  Memo.Colors.BkGnd := clWhite;
 //  Memo.Font.Name := 'Arial';
 //  Memo.Font.Size := 20;
@@ -163,7 +175,8 @@ begin
     //AddTextField;
     //AddTextField;
 
-{
+
+//    Memo.Blocks.AddParagraph;
     TBL := Memo.Blocks.AddTable;
     TBL.BlockStyle.TopPadding := 20;
     TBL.BlockStyle.BottomPadding := 30;
@@ -197,7 +210,7 @@ begin
     PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
     PA.ParaStyle.HAlign := halCenter;
-}
+
 
 //    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
 
@@ -264,51 +277,22 @@ begin
 //    IB.ScaleHeight := 400;
 //    PA := Memo.Blocks.AddParagraph;
 
-    Memo.BackgroundImage.LoadFromFile('../../resource_src/clouds.jpg');
+//    Memo.BackgroundImage.LoadFromFile('../../resource_src/clouds.jpg');
+    Memo.Colors.BkGnd := clGreen;
   finally
     //Memo.UnlockUpdate;
     Memo.Blocks.UnlockUpdate;
   end;
-
-//  Memo.LoadFromRTF('test.rtf');
-//  Memo.LoadFromRTF('test1.rtf');
-//  Memo.LoadFromRTF('test_no_img.rtf');
-//  Memo.LoadFromRTF('test_simple.rtf');
-//  Memo.LoadFromRTF('kgrid_manual.rtf');
-  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
-//  Memo.LoadFromRTF('simpletable.rtf');
-//  Memo.LoadFromRTF('advancedtable.rtf');
-//  Memo.Select(10, 510);
-  Memo.SaveToRTF('test_save.rtf');
-
-{
-  Memo.ContentPadding.Left := 50;
-  Memo.ContentPadding.Top := 30;
-  Memo.ContentPadding.Right := 60;
-  Memo.Blocks.Lines[2] := 'This is replacement.';
-  Memo.Select(0, 5);}
-{  W := Memo.Text;
-  Memo.Text := W;
-  W := Memo.Text;
-  Memo.Text := W;}
-  Memo.Parent := Panel1;
-//  Mainform.Canvas.StretchDraw(ClientRect, MF);
   MemoCopy := TKMemo.Create(Self);
   MemoCopy.ContentPadding.Top := 20;
   MemoCopy.ContentPadding.Left := 20;
   MemoCopy.ContentPadding.Right := 20;
+  MemoCopy.ContentPadding.Bottom := 20;
   MemoCopy.Align := alClient;
   MemoCopy.Options := MemoCopy.Options + [eoShowFormatting, eoWantTab];
-  MemoCopy.LoadFromRTF('test_save.rtf');
-  MemoCopy.SaveToRTF('test_copy_save.rtf');
   MemoCopy.Parent := Panel2;
 end;
 
-{$IFDEF FPC}
-  {$R *.lfm}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 procedure TMainForm.FormDestroy(Sender: TObject);
 var
   S: string;
@@ -333,12 +317,40 @@ end;
 
 procedure TMainForm.FormResize(Sender: TObject);
 begin
-  Panel1.Width := ClientWidth div 2;
+  PNMain.Width := ClientWidth div 2;
 end;
 
-procedure TMainForm.FormShow(Sender: TObject);
+procedure TMainForm.Button1Click(Sender: TObject);
 begin
-  //Memo.Clear;
+  LoadFiles;
+end;
+
+procedure TMainForm.LoadFiles;
+begin
+  Memo.LoadFromRTF('test.rtf');
+//  Memo.LoadFromRTF('test1.rtf');
+//  Memo.LoadFromRTF('test_no_img.rtf');
+//  Memo.LoadFromRTF('test_simple.rtf');
+//  Memo.LoadFromRTF('kgrid_manual.rtf');
+//  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
+//  Memo.LoadFromRTF('simpletable.rtf');
+//  Memo.LoadFromRTF('advancedtable.rtf');
+//  Memo.Select(10, 510);
+  Memo.SaveToRTF('test_save.rtf');
+
+{
+  Memo.ContentPadding.Left := 50;
+  Memo.ContentPadding.Top := 30;
+  Memo.ContentPadding.Right := 60;
+  Memo.Blocks.Lines[2] := 'This is replacement.';
+  Memo.Select(0, 5);}
+{  W := Memo.Text;
+  Memo.Text := W;
+  W := Memo.Text;
+  Memo.Text := W;}
+//  Mainform.Canvas.StretchDraw(ClientRect, MF);
+  MemoCopy.LoadFromRTF('test_save.rtf');
+  MemoCopy.SaveToRTF('test_copy_save.rtf');
 end;
 
 procedure TMainForm.KMemo1DropFiles(Sender: TObject; X, Y: Integer;  Files: TStrings);
@@ -346,4 +358,4 @@ begin
   Memo.LoadFromFile(Files[0]);
 end;
 
-end.
+end.
