@@ -28,7 +28,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Contnrs, Types,
+  SysUtils, Classes, Graphics, Controls, Contnrs, Types, ActnList,
   ExtCtrls, StdCtrls, Forms, KFunctions, KControls, KGraphics, KEditCommon;
 
 const
@@ -1794,6 +1794,36 @@ type
     property OnStartDrag;
     { Inherited property - see Delphi help. }
     property OnUnDock;
+  end;
+
+  { Base class for standard actions targeting TKMemo. }
+  TKMemoEditAction = class(TAction)
+  protected
+    function GetEditCommand: TKEditCommand; virtual; abstract;
+  public
+    function HandlesTarget(Target: TObject): Boolean; override;
+    procedure UpdateTarget(Target: TObject); override;
+    procedure ExecuteTarget(Target: TObject); override;
+  end;
+
+  TKMemoEditCopyAction = class(TKMemoEditAction)
+  protected
+    function GetEditCommand: TKEditCommand; override;
+  end;
+
+  TKMemoEditCutAction = class(TKMemoEditAction)
+  protected
+    function GetEditCommand: TKEditCommand; override;
+  end;
+
+  TKMemoEditPasteAction = class(TKMemoEditAction)
+  protected
+    function GetEditCommand: TKEditCommand; override;
+  end;
+
+  TKMemoEditSelectAllAction = class(TKMemoEditAction)
+  protected
+    function GetEditCommand: TKEditCommand; override;
   end;
 
 function NewLineChar: TKString;
@@ -10058,6 +10088,51 @@ end;
 function TKMemoBlocks.UpdateUnlocked: Boolean;
 begin
   Result := FUpdateLock <= 0;
+end;
+
+{ TKMemoEditAction }
+
+function TKMemoEditAction.HandlesTarget(Target: TObject): Boolean;
+begin
+  Result := Target is TKMemo;
+end;
+
+procedure TKMemoEditAction.ExecuteTarget(Target: TObject);
+begin
+  TKMemo(Target).ExecuteCommand(GetEditCommand);
+end;
+
+procedure TKMemoEditAction.UpdateTarget(Target: TObject);
+begin
+  Enabled := TKMemo(Target).CommandEnabled(GetEditCommand);
+end;
+
+{ TKMemoEditSelectAllAction }
+
+function TKMemoEditSelectAllAction.GetEditCommand: TKEditCommand;
+begin
+  Result := ecSelectAll;
+end;
+
+{ TKMemoEditCopyAction }
+
+function TKMemoEditCopyAction.GetEditCommand: TKEditCommand;
+begin
+  Result := ecCopy;
+end;
+
+{ TKMemoEditCutAction }
+
+function TKMemoEditCutAction.GetEditCommand: TKEditCommand;
+begin
+  Result := ecCut;
+end;
+
+{ TKMemoEditPasteAction }
+
+function TKMemoEditPasteAction.GetEditCommand: TKEditCommand;
+begin
+  Result := ecPaste;
 end;
 
 end.

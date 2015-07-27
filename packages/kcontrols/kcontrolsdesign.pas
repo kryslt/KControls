@@ -44,7 +44,7 @@ implementation
 {$ENDIF}
 
 uses
-  Classes, Dialogs, Controls, SysUtils, Forms, Graphics,
+  Classes, Dialogs, Controls, SysUtils, Forms, Graphics, ActnList,
   KGraphics, KControls, KButtons, KDialogs, KGrids, KHexEditor,
   KEdits, KLabels, KLog, KMemo, KProgress, KSplitter,
   KPageControl, KRes
@@ -87,6 +87,10 @@ begin
   RegisterPropertyEditor(TypeInfo(TFileName), nil, 'FileName', TKFileNameEditor);
   RegisterPropertyEditor(TypeInfo(TFolder), nil, '', TKFolderEditor);
   RegisterPropertyEditor(TypeInfo(TKAlphaBitmap), nil, '', TKGraphicEditor);
+
+  // actions
+  RegisterActions('KMemo', [TKMemoEditCopyAction, TKMemoEditCutAction,
+    TKMemoEditPasteAction, TKMemoEditSelectAllAction], nil);
 
   // images
 {$IFDEF REGISTER_PICTURE_FORMATS}
