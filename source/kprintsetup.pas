@@ -259,6 +259,7 @@ procedure TKPrintSetupForm.BUConfigureClick(Sender: TObject);
 var
   PrinterCount: Integer;
 begin
+  PrinterCount := 0;
   FormToPageSetup;
   try
     PrinterCount := Printer.Printers.Count;

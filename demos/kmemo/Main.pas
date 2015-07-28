@@ -324,7 +324,7 @@ end;
 
 procedure TMainForm.FormResize(Sender: TObject);
 begin
-  PNMain.Width := ClientWidth div 2;
+  Panel1.Width := ClientWidth div 2;
 end;
 
 procedure TMainForm.BUPreviewClick(Sender: TObject);
@@ -346,11 +346,11 @@ end;
 
 procedure TMainForm.LoadFiles;
 begin
-  Memo.LoadFromRTF('test.rtf');
+//  Memo.LoadFromRTF('test.rtf');
 //  Memo.LoadFromRTF('test1.rtf');
 //  Memo.LoadFromRTF('test_no_img.rtf');
 //  Memo.LoadFromRTF('test_simple.rtf');
-//  Memo.LoadFromRTF('kgrid_manual.rtf');
+  Memo.LoadFromRTF('kgrid_manual.rtf');
 //  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
 //  Memo.LoadFromRTF('simpletable.rtf');
 //  Memo.LoadFromRTF('advancedtable.rtf');
@@ -368,7 +368,8 @@ begin
   W := Memo.Text;
   Memo.Text := W;}
 //  Mainform.Canvas.StretchDraw(ClientRect, MF);
-  MemoCopy.LoadFromRTF('test_save.rtf');
+  MemoCopy.LoadFromRTF('test.rtf');
+//  MemoCopy.LoadFromRTF('test_save.rtf');
   MemoCopy.SaveToRTF('test_copy_save.rtf');
 end;
 

@@ -668,9 +668,10 @@ type
     FCrop: TKRect;
     FImage: TPicture;
     FImageStyle: TKMemoBlockStyle;
-    FExtent: TPoint;
+    FExtent: TPoint; // extent given by word processor
+    FOriginalExtent: TPoint; // original extent
     FPosition: TPoint;
-    FScaleExtent: TPoint;
+    FScale: TPoint; // scaled extent
     FScaledImage: TKAlphaBitmap;
     FWordBottomPadding: Integer;
     FWordTopPadding: Integer;
@@ -679,6 +680,14 @@ type
     procedure SetImagePath(const Value: TKString);
     procedure SetScaleHeight(const Value: Integer);
     procedure SetScaleWidth(const Value: Integer);
+    function GetOriginalHeight: Integer;
+    function GetOriginalWidth: Integer;
+    procedure SetOriginalHeight(const Value: Integer);
+    procedure SetOriginalWidth(const Value: Integer);
+    function GetScaleHeight: Integer;
+    function GetScaleWidth: Integer;
+    procedure SetScaleX(const Value: Integer);
+    procedure SetScaleY(const Value: Integer);
   protected
     FCalcBaseLine: Integer;
     function ContentLength: Integer; override;
@@ -718,9 +727,13 @@ type
     property ImageStyle: TKMemoBlockStyle read FImageStyle;
     property ImageHeight: Integer read GetImageHeight;
     property ImageWidth: Integer read GetImageWidth;
+    property OriginalHeight: Integer read GetOriginalHeight write SetOriginalHeight;
+    property OriginalWidth: Integer read GetOriginalWidth write SetOriginalWidth;
     property Path: TKString write SetImagePath;
-    property ScaleHeight: Integer read FScaleExtent.Y write SetScaleHeight;
-    property ScaleWidth: Integer read FScaleExtent.X write SetScaleWidth;
+    property ScaleHeight: Integer read GetScaleHeight write SetScaleHeight;
+    property ScaleWidth: Integer read GetScaleWidth write SetScaleWidth;
+    property ScaleX: Integer read FScale.X write SetScaleX;
+    property ScaleY: Integer read FScale.Y write SetScaleY;
   end;
 
   TKMemoContainer = class(TKMemoBlock)
@@ -6105,8 +6118,9 @@ begin
   FImageStyle := TKMemoBlockStyle.Create;
   FImageStyle.ContentMargin.AssignFromValues(5, 5, 5, 5);
   FImageStyle.OnChanged := ImageStyleChanged;
+  FOriginalExtent := CreateEmptyPoint;
   FPosition := CreateEmptyPoint;
-  FScaleExtent := CreateEmptyPoint;
+  FScale := Point(100, 100);
   FScaledImage := nil;
   FWordTopPadding := 0;
 end;
@@ -6178,8 +6192,8 @@ end;
 
 function TKMemoImageBlock.GetImageHeight: Integer;
 begin
-  if FScaleExtent.Y <> 0 then
-    Result := FScaleExtent.Y
+  if FScale.Y <> 0 then
+    Result := ScaleHeight
   else
     Result := FImage.Height;
   Dec(Result, FCrop.Top + FCrop.Bottom);
@@ -6187,11 +6201,37 @@ end;
 
 function TKMemoImageBlock.GetImageWidth: Integer;
 begin
-  if FScaleExtent.X <> 0 then
-    Result := FScaleExtent.X
+  if FScale.X <> 0 then
+    Result := ScaleWidth
   else
     Result := FImage.Width;
   Dec(Result, FCrop.Left + FCrop.Right);
+end;
+
+function TKMemoImageBlock.GetOriginalHeight: Integer;
+begin
+  if FOriginalExtent.Y <> 0 then
+    Result := FOriginalExtent.Y
+  else
+    Result := FImage.Height;
+end;
+
+function TKMemoImageBlock.GetOriginalWidth: Integer;
+begin
+  if FOriginalExtent.X <> 0 then
+    Result := FOriginalExtent.X
+  else
+    Result := FImage.Width;
+end;
+
+function TKMemoImageBlock.GetScaleHeight: Integer;
+begin
+  Result := MulDiv(OriginalHeight, FScale.Y, 100);
+end;
+
+function TKMemoImageBlock.GetScaleWidth: Integer;
+begin
+  Result := MulDiv(OriginalWidth, FScale.X, 100);
 end;
 
 function TKMemoImageBlock.GetWordBottomPadding(Index: Integer): Integer;
@@ -6274,10 +6314,10 @@ begin
   if (FScaledImage = nil) and (FImage.Graphic <> nil) then
   begin
     // get scaled image only on demand
-    ExtentX := FScaleExtent.X;
+    ExtentX := ScaleWidth;
     if ExtentX = 0 then
       ExtentX := FImage.Width;
-    ExtentY := FScaleExtent.Y;
+    ExtentY := ScaleHeight;
     if ExtentY = 0 then
       ExtentY := FImage.Height;
     RatioX := ExtentX / FImage.Width;
@@ -6345,11 +6385,21 @@ begin
   Update([muContent]);
 end;
 
+procedure TKMemoImageBlock.SetOriginalHeight(const Value: Integer);
+begin
+  FOriginalExtent.Y := Value;
+end;
+
+procedure TKMemoImageBlock.SetOriginalWidth(const Value: Integer);
+begin
+  FOriginalExtent.X := Value;
+end;
+
 procedure TKMemoImageBlock.SetScaleHeight(const Value: Integer);
 begin
-  if Value <> FScaleExtent.Y then
+  if Value <> ScaleHeight then
   begin
-    FScaleExtent.Y := Value;
+    FScale.Y := MulDiv(Value, 100, OriginalHeight);
     FreeAndNil(FScaledImage);
     Update([muExtent]);
   end;
@@ -6357,9 +6407,29 @@ end;
 
 procedure TKMemoImageBlock.SetScaleWidth(const Value: Integer);
 begin
-  if Value <> FScaleExtent.X then
+  if Value <> ScaleWidth then
   begin
-    FScaleExtent.X := Value;
+    FScale.X := MulDiv(Value, 100, OriginalWidth);
+    FreeAndNil(FScaledImage);
+    Update([muExtent]);
+  end;
+end;
+
+procedure TKMemoImageBlock.SetScaleX(const Value: Integer);
+begin
+  if Value <> FScale.X then
+  begin
+    FScale.X := Value;
+    FreeAndNil(FScaledImage);
+    Update([muExtent]);
+  end;
+end;
+
+procedure TKMemoImageBlock.SetScaleY(const Value: Integer);
+begin
+  if Value <> FScale.Y then
+  begin
+    FScale.Y := Value;
     FreeAndNil(FScaledImage);
     Update([muExtent]);
   end;

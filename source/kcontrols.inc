@@ -360,8 +360,8 @@
 
 { Disable kerning pairs. This is done by very simple manner - character by character measuring and output.
   Because different OSes output kerning pairs differently and there is no dedicated kerning pair API in Lazarus.
-  My approach is slower but safe. Uncomment only when the memo rendering is slow but you may get unpredictable
-  behavior when selecting text etc. }
+  My approach is slower but safe. Uncomment only when the memo rendering is slow.
+  With kerning enabled you may get unpredictable behavior when selecting text on some fonts etc. }
 {$DEFINE KMEMO_DISABLE_KERNING}
 
 {$ENDIF ~KCONTROLS_INC}
