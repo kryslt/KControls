@@ -12,24 +12,30 @@ uses
   {$ENDIF}
     SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs, KGrids,
     KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon,
-    KSplitter, KControls, KLabels;
+    KSplitter, KControls, KLabels, KDialogs;
 
 type
 
   { TMainForm }
 
   TMainForm = class(TForm)
+    BUPreview: TButton;
+    BUPrint: TButton;
     PNMain: TPanel;
     Panel1: TPanel;
     Panel2: TPanel;
-    Button1: TButton;
+    BULoad: TButton;
     Splitter1: TSplitter;
+    KPrintPreviewDialog1: TKPrintPreviewDialog;
+    KPrintSetupDialog1: TKPrintSetupDialog;
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure KMemo1DropFiles(Sender: TObject; X, Y: Integer; Files: TStrings);
-    procedure Button1Click(Sender: TObject);
+    procedure BULoadClick(Sender: TObject);
+    procedure BUPreviewClick(Sender: TObject);
+    procedure BUPrintClick(Sender: TObject);
   private
     { Private declarations }
     Memo: TKMemo;
@@ -123,6 +129,7 @@ begin
   Memo.Options := Memo.Options + [eoDropFiles, eoShowFormatting, eoWantTab];
   Memo.OnDropFiles := KMemo1DropFiles;
   Memo.Parent := Panel1;
+  Memo.PageSetup.Title := 'test_document';
 //  Memo.Colors.BkGnd := clWhite;
 //  Memo.Font.Name := 'Arial';
 //  Memo.Font.Size := 20;
@@ -207,9 +214,9 @@ begin
 //    TBL.FixedWidth := True;
     TBL.ApplyDefaultCellStyle;
 
-    PA := Memo.Blocks.AddParagraph;
+{    PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
-    PA.ParaStyle.HAlign := halCenter;
+    PA.ParaStyle.HAlign := halCenter;}
 
 
 //    TB := Memo.Blocks.AddTextBlock('This is big bold text.');
@@ -317,21 +324,33 @@ end;
 
 procedure TMainForm.FormResize(Sender: TObject);
 begin
-  PNMain.Width := ClientWidth div 2;
+  Panel1.Width := ClientWidth div 2;
 end;
 
-procedure TMainForm.Button1Click(Sender: TObject);
+procedure TMainForm.BUPreviewClick(Sender: TObject);
+begin
+  KPrintPreviewDialog1.Control := Memo;
+  KPrintPreviewDialog1.Execute;
+end;
+
+procedure TMainForm.BUPrintClick(Sender: TObject);
+begin
+  KPrintSetupDialog1.Control := Memo;
+  KPrintSetupDialog1.Execute;
+end;
+
+procedure TMainForm.BULoadClick(Sender: TObject);
 begin
   LoadFiles;
 end;
 
 procedure TMainForm.LoadFiles;
 begin
-  Memo.LoadFromRTF('test.rtf');
+//  Memo.LoadFromRTF('test.rtf');
 //  Memo.LoadFromRTF('test1.rtf');
 //  Memo.LoadFromRTF('test_no_img.rtf');
 //  Memo.LoadFromRTF('test_simple.rtf');
-//  Memo.LoadFromRTF('kgrid_manual.rtf');
+  Memo.LoadFromRTF('kgrid_manual.rtf');
 //  Memo.LoadFromRTF('../../../../_SC/wattrouter_eco/docu/manual_CZ/WATTrouterECO_CZ.rtf');
 //  Memo.LoadFromRTF('simpletable.rtf');
 //  Memo.LoadFromRTF('advancedtable.rtf');
@@ -349,7 +368,8 @@ begin
   W := Memo.Text;
   Memo.Text := W;}
 //  Mainform.Canvas.StretchDraw(ClientRect, MF);
-  MemoCopy.LoadFromRTF('test_save.rtf');
+  MemoCopy.LoadFromRTF('test.rtf');
+//  MemoCopy.LoadFromRTF('test_save.rtf');
   MemoCopy.SaveToRTF('test_copy_save.rtf');
 end;
 

@@ -1071,8 +1071,11 @@ var
   DC: HDC;
 begin
   DC := Canvas.Handle;
-  SetBkMode(DC, OPAQUE);
-  SetBkColor(DC, ColorToRGB(BackColor));
+  if BackColor <> clNone then
+  begin
+    SetBkMode(DC, OPAQUE);
+    SetBkColor(DC, ColorToRGB(BackColor));
+  end;
   FillRect(DC, ARect, Canvas.Brush.Handle);
 end;
 

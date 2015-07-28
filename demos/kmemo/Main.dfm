@@ -43,7 +43,6 @@ object MainForm: TMainForm
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
-      ExplicitHeight = 406
     end
     object Panel2: TPanel
       Left = 503
@@ -53,11 +52,9 @@ object MainForm: TMainForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
-      ExplicitWidth = 477
-      ExplicitHeight = 406
     end
   end
-  object Button1: TButton
+  object BULoad: TButton
     Left = 24
     Top = 517
     Width = 75
@@ -65,6 +62,34 @@ object MainForm: TMainForm
     Anchors = [akLeft, akBottom]
     Caption = 'Load files'
     TabOrder = 1
-    OnClick = Button1Click
+    OnClick = BULoadClick
+  end
+  object BUPreview: TButton
+    Left = 105
+    Top = 517
+    Width = 75
+    Height = 25
+    Anchors = [akLeft, akBottom]
+    Caption = 'Preview'
+    TabOrder = 2
+    OnClick = BUPreviewClick
+  end
+  object BUPrint: TButton
+    Left = 186
+    Top = 517
+    Width = 75
+    Height = 25
+    Anchors = [akLeft, akBottom]
+    Caption = 'Print'
+    TabOrder = 3
+    OnClick = BUPrintClick
+  end
+  object KPrintPreviewDialog1: TKPrintPreviewDialog
+    Left = 408
+    Top = 512
+  end
+  object KPrintSetupDialog1: TKPrintSetupDialog
+    Left = 448
+    Top = 512
   end
 end
