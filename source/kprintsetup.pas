@@ -114,7 +114,7 @@ type
 implementation
 
 uses
-  Printers, KFunctions, KRes;
+  Printers, KFunctions, KRes, KMessageBox;
 
 procedure TKPrintSetupForm.FormCreate(Sender: TObject);
 begin
@@ -256,9 +256,12 @@ begin
 end;
 
 procedure TKPrintSetupForm.BUConfigureClick(Sender: TObject);
+var
+  PrinterCount: Integer;
 begin
   FormToPageSetup;
   try
+    PrinterCount := Printer.Printers.Count;
     Printer.Orientation := FPageSetup.Orientation;
     Printer.Copies := FPageSetup.Copies;
     if PSDMain.Execute then
@@ -273,7 +276,8 @@ begin
       PageSetupToForm;
     end;
   except
-    MessageBox(Handle, PChar(sPSErrNoPrinterInstalled), PChar(sPSErrPrintSetup), MB_OK);
+    if PrinterCount = 0 then
+      KMsgBox(sPSErrPrintSetup, sPSErrNoPrinterInstalled, [mbOk], miStop);
   end;
 end;
 
