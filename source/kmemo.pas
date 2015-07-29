@@ -10094,7 +10094,7 @@ end;
 
 function TKMemoEditAction.HandlesTarget(Target: TObject): Boolean;
 begin
-  Result := Target is TKMemo;
+  Result := Target is TKCustomMemo;
 end;
 
 procedure TKMemoEditAction.ExecuteTarget(Target: TObject);
