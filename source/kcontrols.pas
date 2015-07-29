@@ -394,6 +394,10 @@ type
     procedure PrintNotify(Status: TKPrintStatus; var Abort: Boolean); virtual;
     { Calls the @link(TKCustomControl.OnPrintPaint) event }
     procedure PrintPaint; virtual;
+    { Allows descendant to make necessary adjustments before printing or painting to preview starts. }
+    procedure PrintPaintBegin; virtual;
+    { Allows descendant to make necessary adjustments after printing or painting to preview ended. }
+    procedure PrintPaintEnd; virtual;
     { Removse a preview control to the internal list of associated previews. }
     procedure RemovePreview(APreview: TKPrintPreview);
     { Updates mouse cursor according to the state determined from current mouse
@@ -1582,6 +1586,14 @@ begin
     FOnPrintPaint(Self);
 end;
 
+procedure TKCustomControl.PrintPaintBegin;
+begin
+end;
+
+procedure TKCustomControl.PrintPaintEnd;
+begin
+end;
+
 procedure TKCustomControl.PrintOut;
 begin
   GetPageSetup.PrintOut;
@@ -2047,79 +2059,86 @@ var
 begin
   if UpdateUnlocked and Assigned(FControl) then
   begin
-    FCanvas := APreview.Canvas;
-    FActive := True;
-    FPreviewing := True;
-    try
-      FCurrentCopy := 1;
-      FCurrentPage := APreview.Page;
-      if (poMirrorMargins in FOptions) and (FCurrentPage and 1 <> 0) then
-      begin
-        FPrinterMarginLeftMirrored := FPrinterMarginRight;
-        FPrinterMarginRightMirrored := FPrinterMarginLeft;
-      end else
-      begin
-        FPrinterMarginLeftMirrored := FPrinterMarginLeft;
-        FPrinterMarginRightMirrored := FPrinterMarginRight;
-      end;
-      R := APreview.PageRect;
-      PaperWidth := R.Right - R.Left;
-      PaperHeight := R.Bottom - R.Top;
+    if FActive then
+      Invalidate
+    else
+    begin
+      FCanvas := APreview.Canvas;
+      FActive := True;
+      FPreviewing := True;
+      try
+        FControl.PrintPaintBegin;
+        FCurrentCopy := 1;
+        FCurrentPage := APreview.Page;
+        if (poMirrorMargins in FOptions) and (FCurrentPage and 1 <> 0) then
+        begin
+          FPrinterMarginLeftMirrored := FPrinterMarginRight;
+          FPrinterMarginRightMirrored := FPrinterMarginLeft;
+        end else
+        begin
+          FPrinterMarginLeftMirrored := FPrinterMarginLeft;
+          FPrinterMarginRightMirrored := FPrinterMarginRight;
+        end;
+        R := APreview.PageRect;
+        PaperWidth := R.Right - R.Left;
+        PaperHeight := R.Bottom - R.Top;
 
-      if CurrentPageControl > 0 then
-      begin
+        if CurrentPageControl > 0 then
+        begin
+          SaveIndex := SaveDC(FCanvas.Handle);
+          try
+            if poFitToPage in FOptions then
+              LeftOffset := FPrinterExtraSpaceLeft
+            else
+              LeftOffset := 0;
+            // change the canvas mapping mode to scale the page outline
+            CanvasSetOffset(FCanvas,
+              R.Left + MulDiv(FPrinterMarginLeftMirrored + LeftOffset, PaperWidth, FPrinterPageWidth),
+              R.Top + MulDiv(FPrinterMarginTop + FPrinterHeaderSpace, PaperHeight, FPrinterPageHeight));
+            if FPrintingMapped then
+            begin
+              DesktopPageWidth := MulDiv(FPrinterPageWidth, FDesktopPixelsPerInchX, FPrinterPixelsPerInchX);
+              DesktopPageHeight := MulDiv(FPrinterPageHeight, FDesktopPixelsPerInchY, FPrinterPixelsPerInchY);
+              CanvasSetScale(FCanvas, Round(PaperWidth * FCurrentScale), Round(PaperHeight * FCurrentScale), DesktopPageWidth, DesktopPageHeight);
+            end
+            else
+              CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPrinterPageWidth, FPrinterPageHeight);
+            FControl.PaintPage;
+          finally
+            RestoreDC(FCanvas.Handle, SaveIndex);
+          end;
+        end;
+        PaperWidth := R.Right - R.Left;
+        PaperHeight := R.Bottom - R.Top;
         SaveIndex := SaveDC(FCanvas.Handle);
         try
-          if poFitToPage in FOptions then
-            LeftOffset := FPrinterExtraSpaceLeft
-          else
-            LeftOffset := 0;
-          // change the canvas mapping mode to scale the page outline
-          CanvasSetOffset(FCanvas,
-            R.Left + MulDiv(FPrinterMarginLeftMirrored + LeftOffset, PaperWidth, FPrinterPageWidth),
-            R.Top + MulDiv(FPrinterMarginTop + FPrinterHeaderSpace, PaperHeight, FPrinterPageHeight));
-          if FPrintingMapped then
-          begin
-            DesktopPageWidth := MulDiv(FPrinterPageWidth, FDesktopPixelsPerInchX, FPrinterPixelsPerInchX);
-            DesktopPageHeight := MulDiv(FPrinterPageHeight, FDesktopPixelsPerInchY, FPrinterPixelsPerInchY);
-            CanvasSetScale(FCanvas, Round(PaperWidth * FCurrentScale), Round(PaperHeight * FCurrentScale), DesktopPageWidth, DesktopPageHeight);
-          end
-          else
-            CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPrinterPageWidth, FPrinterPageHeight);
-          FControl.PaintPage;
+          CanvasSetOffset(FCanvas, R.Left, R.Top);
+          CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPrinterPageWidth, FPrinterPageHeight);
+          PageRect := Rect(0, 0, FPrinterPageWidth, FPrinterPageHeight);
+          TranslateRectToDevice(FCanvas.Handle, PageRect);
+          SelectClipRect(FCanvas.Handle, PageRect);
+          FControl.PrintPaint;
         finally
           RestoreDC(FCanvas.Handle, SaveIndex);
         end;
-      end;
-      PaperWidth := R.Right - R.Left;
-      PaperHeight := R.Bottom - R.Top;
-      SaveIndex := SaveDC(FCanvas.Handle);
-      try
-        CanvasSetOffset(FCanvas, R.Left, R.Top);
-        CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPrinterPageWidth, FPrinterPageHeight);
-        PageRect := Rect(0, 0, FPrinterPageWidth, FPrinterPageHeight);
-        TranslateRectToDevice(FCanvas.Handle, PageRect);
-        SelectClipRect(FCanvas.Handle, PageRect);
-        FControl.PrintPaint;
+        SaveIndex := SaveDC(FCanvas.Handle);
+        try
+          CanvasSetOffset(FCanvas, R.Left, R.Top);
+          CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPrinterPageWidth, FPrinterPageHeight);
+          PageRect := Rect(0, 0, FPrinterPageWidth, FPrinterPageHeight);
+          TranslateRectToDevice(FCanvas.Handle, PageRect);
+          SelectClipRect(FCanvas.Handle, PageRect);
+          PrintTitle;
+          PrintPageNumber(FCurrentPage);
+        finally
+          RestoreDC(FCanvas.Handle, SaveIndex);
+        end;
+        FControl.PrintPaintEnd;
       finally
-        RestoreDC(FCanvas.Handle, SaveIndex);
+        FActive := False;
+        FPreviewing := False;
+        FCanvas := nil;
       end;
-      SaveIndex := SaveDC(FCanvas.Handle);
-      try
-        CanvasSetOffset(FCanvas, R.Left, R.Top);
-        CanvasSetScale(FCanvas, PaperWidth, PaperHeight, FPrinterPageWidth, FPrinterPageHeight);
-        PageRect := Rect(0, 0, FPrinterPageWidth, FPrinterPageHeight);
-        TranslateRectToDevice(FCanvas.Handle, PageRect);
-        SelectClipRect(FCanvas.Handle, PageRect);
-        PrintTitle;
-        PrintPageNumber(FCurrentPage);
-      finally
-        RestoreDC(FCanvas.Handle, SaveIndex);
-      end;
-    finally
-      FActive := False;
-      FPreviewing := False;
-      FCanvas := nil;
     end;
   end;
 end;
@@ -2130,6 +2149,7 @@ var
 begin
   if poPageNumbers in FOptions then
   begin
+    SetBkMode(FCanvas.Handle, TRANSPARENT);
     FCanvas.Brush.Style := bsClear;
     FCanvas.Font.Color := clBlack;
     FCanvas.Font.Height := 1;
@@ -2147,6 +2167,7 @@ procedure TKPrintPageSetup.PrintTitle;
 begin
   if poTitle in FOptions then
   begin
+    SetBkMode(FCanvas.Handle, TRANSPARENT);
     FCanvas.Brush.Style := bsClear;
     FCanvas.Font.Color := clBlack;
     FCanvas.Font.Height := 1;
@@ -2235,13 +2256,12 @@ var
   PrinterType: TPrinterType;
   APaperRect: TPaperRect;}
 begin
-  if UpdateUnlocked and Assigned(FControl) then
+  if UpdateUnlocked and Assigned(FControl) and not FActive then
   begin
     UpdateSettings;
     if FPageCount > 0 then
     begin
       AbortPrint := False;
-      FCanvas := Printer.Canvas;
       Printer.Title := FTitle;
       Printer.Copies := 1;
 {      PrinterType := Printer.PrinterType;
@@ -2252,6 +2272,8 @@ begin
       Printer.BeginDoc;
       FActive := True;
       try
+        FControl.PrintPaintBegin;
+        FCanvas := Printer.Canvas;
         FControl.PrintNotify(epsBegin, AbortPrint);
 {        Printer.Canvas.Font.Name := 'Arial';
         Printer.Canvas.Font.color := clBlack;
@@ -2287,6 +2309,7 @@ begin
         FCurrentPage := 0;
         FCurrentCopy := 0;
         FControl.PrintNotify(epsEnd, AbortPrint);
+        FControl.PrintPaintEnd;
       finally
         FActive := False;
         Printer.EndDoc;

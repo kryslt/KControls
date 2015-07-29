@@ -178,7 +178,8 @@ type
   TKMemoRTFColorProp = (rpcRed, rpcGreen, rpcBlue);
   TKMemoRTFFieldProp = (rpfiField, rpfiResult);
   TKMemoRTFFontProp = (rpfIndex, rpfCharset, rpfPitch);
-  TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop, rpiReqWidth, rpiReqHeight);
+  TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop,
+    rpiReqWidth, rpiReqHeight, rpiScaleX, rpiScaleY);
   TKMemoRTFShapeProp = (rpsShape, rpsBottom, rpsLeft, rpsRight, rpsTop, rpsXColumn, rpsYPara, rpsWrap, rpsWrapSide, rpsSn, rpsSv, rpsShapeText);
   TKMemoRTFParaProp = (rppParD, rppIndentFirst, rppIndentBottom, rppIndentLeft, rppIndentRight, rppIndentTop, rppAlignLeft, rppAlignCenter, rppAlignRight, rppAlignJustify,
     rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor, rppPar);
@@ -207,8 +208,6 @@ type
     FActiveImage: TKMemoImageBlock;
     FActiveImageClass: TGraphicClass;
     FActiveImageIsEMF: Boolean;
-    FActiveImageOriginalHeight: Integer;
-    FActiveImageOriginalWidth: Integer;
     FActiveParaBorder: TAlign;
     FActiveShape: TKMemoRTFShape;
     FActiveString: TKString;
@@ -273,7 +272,6 @@ type
     procedure ReadTableFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadTextFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadUnknownGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
-    function TwipsToPoints(AValue: Integer): Integer; virtual;
     property ActiveColor: TKMemoRTFColor read GetActiveColor;
     property ActiveContainer: TKMemoContainer read GetActiveContainer;
     property ActiveFont: TKMemoRTFFont read GetActiveFont;
@@ -305,7 +303,6 @@ type
     procedure FillColorTable(ABlocks: TKMemoBlocks); virtual;
     procedure FillFontTable(ABlocks: TKMemoBlocks); virtual;
     function PointsToEMU(AValue: Integer): Integer; virtual;
-    function PointsToTwips(AValue: Integer): Integer; virtual;
     procedure WriteBackground; virtual;
     procedure WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean); virtual;
     procedure WriteColorTable; virtual;
@@ -344,12 +341,17 @@ type
     procedure SaveToStream(AStream: TStream; ASelectedOnly: Boolean); virtual;
   end;
 
+function CharSetToCP(ACharSet: TFontCharSet): Integer;
+function CPToCharSet(ACodePage: Integer): TFontCharSet;
+function TwipsToPoints(AValue: Integer): Integer;
+function PointsToTwips(AValue: Integer): Integer;
+
 implementation
 
 uses
   Math, SysUtils, KHexEditor, KRes
 {$IFDEF FPC}
-  , LCLProc, LConvEncoding
+  , LCLProc, LConvEncoding, LCLType
 {$ELSE}
   , JPeg, Windows
 {$ENDIF}
@@ -634,6 +636,16 @@ begin
   else
     Result := AValue;
   end;
+end;
+
+function TwipsToPoints(AValue: Integer): Integer;
+begin
+  Result := DivUp(AValue, 20);
+end;
+
+function PointsToTwips(AValue: Integer): Integer;
+begin
+  Result := AValue * 20;
 end;
 
 { TKMemoRTFCtrlItem }
@@ -1091,6 +1103,8 @@ begin
   FCtrlTable.AddCtrl('piccropl', Integer(rpiCropLeft), ReadPictureGroup);
   FCtrlTable.AddCtrl('piccropr', Integer(rpiCropRight), ReadPictureGroup);
   FCtrlTable.AddCtrl('piccropt', Integer(rpiCropTop), ReadPictureGroup);
+  FCtrlTable.AddCtrl('picscalex', Integer(rpiScaleX), ReadPictureGroup);
+  FCtrlTable.AddCtrl('picscaley', Integer(rpiScaleY), ReadPictureGroup);
   FCtrlTable.AddCtrl('picwgoal', Integer(rpiReqWidth), ReadPictureGroup);
   FCtrlTable.AddCtrl('pichgoal', Integer(rpiReqHeight), ReadPictureGroup);
   // shape ctrls
@@ -1752,21 +1766,17 @@ begin
       begin
         if AText <> '' then
         begin
-          if Pos(cRTFHyperlink, AText) = 1 then
+          if Pos(cRTFHyperlink, string(AText)) = 1 then
           begin
             Delete(AText, 1, Length(cRTFHyperlink));
-            FActiveURL := AText;
+            FActiveURL := TKString(AText);
           end else
           begin
             if FActiveURL <> '' then
-              FActiveURL := FActiveURL + AText;
+              FActiveURL := FActiveURL + TKString(AText);
           end;
           AText := '';
         end;
-      end;
-      rgFieldResult:
-      begin
-        AddText(AText);
       end;
     end;
   end;
@@ -1831,7 +1841,7 @@ end;
 
 procedure TKMemoRTFReader.ReadParaFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  if FActiveState.Group in [rgNone, rgTextBox] then case TKMemoRTFParaProp(ACtrl) of
+  if FActiveState.Group in [rgNone, rgTextBox, rgFieldResult] then case TKMemoRTFParaProp(ACtrl) of
     rppParD: FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
     rppIndentFirst: FActiveState.ParaStyle.FirstIndent := TwipsToPoints(AParam);
     rppIndentBottom: FActiveState.ParaStyle.BottomPadding := TwipsToPoints(AParam);
@@ -1892,6 +1902,7 @@ var
   S: AnsiString;
   MS: TMemoryStream;
   Image: TGraphic;
+  Tmp: Integer;
 begin
   if FActiveState.Group in [rgShapeInst, rgShapePict, rgNone, rgTextBox] then
   begin
@@ -1921,14 +1932,34 @@ begin
         FActiveImageIsEMF := False;
       end;
     {$ENDIF}
-      rpiWidth: FActiveImageOriginalWidth := AParam;
-      rpiHeight: FActiveImageOriginalHeight := AParam;
+      rpiWidth: ActiveImage.OriginalWidth := TwipsToPoints(AParam);
+      rpiHeight: ActiveImage.OriginalHeight := TwipsToPoints(AParam);
       rpiCropBottom: ActiveImage.Crop.Bottom := TwipsToPoints(AParam);
       rpiCropLeft: ActiveImage.Crop.Left := TwipsToPoints(AParam);
       rpiCropRight: ActiveImage.Crop.Right := TwipsToPoints(AParam);
       rpiCropTop: ActiveImage.Crop.Top := TwipsToPoints(AParam);
-      rpiReqWidth: ActiveImage.ScaleWidth := TwipsToPoints(AParam);
-      rpiReqHeight: ActiveImage.ScaleHeight := TwipsToPoints(AParam);
+      rpiScaleX:
+      begin
+        if AParam > 0 then
+          ActiveImage.ScaleX := AParam;
+      end;
+      rpiScaleY:
+      begin
+        if AParam > 0 then
+          ActiveImage.ScaleY := AParam;
+      end;
+      rpiReqWidth: if ActiveImage.OriginalWidth > 0 then
+      begin
+        Tmp := MulDiv(TwipsToPoints(AParam), 100, ActiveImage.OriginalWidth);
+        if Tmp < ActiveImage.ScaleX then
+          ActiveImage.ScaleX := Tmp;
+      end;
+      rpiReqHeight: if ActiveImage.OriginalHeight > 0 then
+      begin
+        Tmp := MulDiv(TwipsToPoints(AParam), 100, ActiveImage.OriginalHeight);
+        if Tmp < ActiveImage.ScaleY then
+          ActiveImage.ScaleY := Tmp;
+      end;
     end;
     if AText <> '' then
     begin
@@ -1955,8 +1986,8 @@ begin
                   if not FActiveImageIsEMF then
                   begin
                     // WMF extent could be incorrect here, so use RTF info
-                    TKMetafile(Image).Width := FActiveImageOriginalWidth;
-                    TKMetafile(Image).Height := FActiveImageOriginalHeight;
+                    TKMetafile(Image).Width := PointsToTwips(ActiveImage.OriginalWidth);
+                    TKMetafile(Image).Height := PointsToTwips(ActiveImage.OriginalHeight);
                   end;
                 end else
               {$ENDIF}
@@ -2063,7 +2094,7 @@ var
   CodePage: Integer;
 begin
   // we must suppose here selected font supports these Unicode characters
-  if FActiveState.Group in [rgNone, rgTextBox] then case TKMemoRTFSpecialCharProp(ACtrl) of
+  if FActiveState.Group in [rgNone, rgTextBox, rgFieldResult] then case TKMemoRTFSpecialCharProp(ACtrl) of
     rpscTab: AddText(#9); // tab is rendered with an arrow symbol
     rpscLquote: AddText(UnicodeToNativeUTF(#$2018));
     rpscRQuote: AddText(UnicodeToNativeUTF(#$2019));
@@ -2123,10 +2154,10 @@ begin
         // if Method did not use Text use it according to active group
         case FActiveState.Group of
           rgColorTable: ReadColorGroup(-1, Text, 0);
-          rgFieldInst, rgFieldResult: ReadFieldGroup(-1, Text, 0);
+          rgFieldInst: ReadFieldGroup(-1, Text, 0);
           rgFontTable: ReadFontGroup(-1, Text, 0);
           rgPicture: ReadPictureGroup(-1, Text, 0);
-          rgNone, rgTextBox: AddText(TKString(Text));
+          rgNone, rgTextBox, rgFieldResult: AddText(TKString(Text));
         end;
       end;
     end;
@@ -2342,11 +2373,6 @@ begin
   end;
 end;
 
-function TKMemoRTFReader.TwipsToPoints(AValue: Integer): Integer;
-begin
-  Result := DivUp(AValue, 20);
-end;
-
 { TKMemoRTFWriter }
 
 constructor TKMemoRTFWriter.Create(AMemo: TKCustomMemo);
@@ -2471,11 +2497,6 @@ end;
 function TKMemoRTFWriter.PointsToEMU(AValue: Integer): Integer;
 begin
   Result := AValue * 12700;
-end;
-
-function TKMemoRTFWriter.PointsToTwips(AValue: Integer): Integer;
-begin
-  Result := AValue * 20;
 end;
 
 procedure TKMemoRTFWriter.SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean);
@@ -2748,7 +2769,7 @@ begin
     WriteSpace;
     WriteString(cRTFHyperlink);
     WriteSpace;
-    WriteString(TKMemoHyperLink(AItem).URL);
+    WriteUnicodeString(TKMemoHyperLink(AItem).URL);
   finally
     WriteGroupEnd;
   end;
@@ -2764,12 +2785,16 @@ end;
 
 procedure TKMemoRTFWriter.WriteImage(AItem: TKmemoImageBlock);
 begin
+  WriteCtrlParam('picw', PointsToTwips(AItem.OriginalWidth));
+  WriteCtrlParam('pich', PointsToTwips(AItem.OriginalHeight));
+  WriteCtrlParam('picscalex', MulDiv(AItem.ScaleWidth, 100, AItem.OriginalWidth));
+  WriteCtrlParam('picscaley', MulDiv(AItem.ScaleHeight, 100, AItem.OriginalHeight));
+  WriteCtrlParam('picwgoal', PointsToTwips(AItem.ScaleWidth));
+  WriteCtrlParam('pichgoal', PointsToTwips(AItem.ScaleHeight));
   WriteCtrlParam('piccropb', PointsToTwips(AItem.Crop.Bottom));
   WriteCtrlParam('piccropl', PointsToTwips(AItem.Crop.Left));
   WriteCtrlParam('piccropr', PointsToTwips(AItem.Crop.Right));
   WriteCtrlParam('piccropt', PointsToTwips(AItem.Crop.Top));
-  WriteCtrlParam('picwgoal', PointsToTwips(AItem.ScaleWidth));
-  WriteCtrlParam('pichgoal', PointsToTwips(AItem.ScaleHeight));
   WritePicture(AItem.Image.Graphic);
 end;
 
@@ -2928,8 +2953,8 @@ begin
     end
   {$ENDIF}
     ;
-    WriteCtrlParam('picw', W);
-    WriteCtrlParam('pich', H);
+    {WriteCtrlParam('picw', W);
+    WriteCtrlParam('pich', H);}
     MS := TMemoryStream.Create;
     try
       AImage.SaveToStream(MS);
@@ -3204,8 +3229,8 @@ begin
     Cell := Row.Cells[I];
     RowPadd.Bottom := Max(RowPadd.Bottom, Cell.BlockStyle.BottomPadding);
     RowPadd.Left := Max(RowPadd.Left, Cell.BlockStyle.LeftPadding);
-    RowPadd.Right := Max(RowPadd.Right, Cell.BlockStyle.BottomPadding);
-    RowPadd.Top := Max(RowPadd.Top, Cell.BlockStyle.BottomPadding);
+    RowPadd.Right := Max(RowPadd.Right, Cell.BlockStyle.RightPadding);
+    RowPadd.Top := Max(RowPadd.Top, Cell.BlockStyle.TopPadding);
   end;
   WriteCtrlParam('trpaddb', PointsToTwips(RowPadd.Bottom));
   WriteCtrlParam('trpaddl', PointsToTwips(RowPadd.Left));
@@ -3219,11 +3244,11 @@ begin
       if Cell.BlockStyle.BottomPadding <> RowPadd.Bottom then
         WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Bottom));
       if Cell.BlockStyle.LeftPadding <> RowPadd.Left then
-        WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Left));
+        WriteCtrlParam('clpadl', PointsToTwips(RowPadd.Left));
       if Cell.BlockStyle.RightPadding <> RowPadd.Right then
-        WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Right));
+        WriteCtrlParam('clpadr', PointsToTwips(RowPadd.Right));
       if Cell.BlockStyle.TopPadding <> RowPadd.Top then
-        WriteCtrlParam('clpadb', PointsToTwips(RowPadd.Top));
+        WriteCtrlParam('clpadt', PointsToTwips(RowPadd.Top));
       if Cell.RowSpan > 1 then
         WriteCtrl('clvmgf')
       else if Cell.RowSpan <= 0 then
