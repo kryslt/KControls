@@ -38,7 +38,7 @@ of the original or modified source code must retain the original copyright
 notice. The Author accepts no liability for any damage that may result
 from using this code."/>
     <Version Major="1" Minor="6"/>
-    <Files Count="30">
+    <Files Count="39">
       <Item1>
         <Filename Value="..\..\source\kfunctions.pas"/>
         <UnitName Value="KFunctions"/>
@@ -160,6 +160,42 @@ from using this code."/>
         <Filename Value="..\..\source\KPageControl.pas"/>
         <UnitName Value="KPageControl"/>
       </Item30>
+      <Item31>
+        <Filename Value="..\..\source\kmemodlghyperlink.lfm"/>
+        <Type Value="LFM"/>
+      </Item31>
+      <Item32>
+        <Filename Value="..\..\source\kmemodlghyperlink.pas"/>
+        <UnitName Value="KMemoDlgHyperlink"/>
+      </Item32>
+      <Item33>
+        <Filename Value="..\..\source\kmemodlgparastyle.lfm"/>
+        <Type Value="LFM"/>
+      </Item33>
+      <Item34>
+        <Filename Value="..\..\source\kmemodlgparastyle.pas"/>
+        <UnitName Value="KMemoDlgParaStyle"/>
+      </Item34>
+      <Item35>
+        <Filename Value="..\..\source\kmemodlgtextstyle.lfm"/>
+        <Type Value="LFM"/>
+      </Item35>
+      <Item36>
+        <Filename Value="..\..\source\kmemodlgtextstyle.pas"/>
+        <UnitName Value="KMemoDlgTextStyle"/>
+      </Item36>
+      <Item37>
+        <Filename Value="..\..\source\kmemofrm.lfm"/>
+        <Type Value="LFM"/>
+      </Item37>
+      <Item38>
+        <Filename Value="..\..\source\kmemofrm.pas"/>
+        <UnitName Value="kmemofrm"/>
+      </Item38>
+      <Item39>
+        <Filename Value="..\..\source\kmemortf.pas"/>
+        <UnitName Value="KMemoRTF"/>
+      </Item39>
     </Files>
     <Type Value="RunAndDesignTime"/>
     <RequiredPkgs Count="4">

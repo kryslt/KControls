@@ -125,10 +125,18 @@ resourcestring
   // KDBGrids texts
   sDataSetUnidirectional = 'Cannot use KDBGrid with a unidirectional dataset.';
 
-  // KMemoXXX texts
+  // KMemoRTF texts
   sErrMemoLoadFromRTF = 'Error while reading RTF file.';
   sErrMemoLoadImageFromRTF = 'Error while loading image from RTF file.';
   sErrMemoSaveToRTF = 'Error while saving RTF file.';
+
+  // KMemoFrame texts
+  sAppError = 'Application error';
+  sAppQuery = 'Application query';
+  sMemoDefaultFileName = 'document';
+  sQueryFileSave = 'File "%s" has been changed. Do you want to save it?';
+  sErrMemoLoadFromFile = 'Error while loading file "%s".';
+  sErrMemoSaveToFile = 'Error while saving file "%s".';
 
 { Localize given resourcestring directly.
   Usage: ResMod(@sYourResourceString, 'New text');
@@ -290,6 +298,19 @@ begin
 
   // KDBGrids texts
   ResMod(@sDataSetUnidirectional, 'Nelze použít KDBGrid s jednosmìrným datasetem.');
+
+  // KMemoRTF texts
+  ResMod(@sErrMemoLoadFromRTF, 'Chyba pøi ètení souboru RTF.');
+  ResMod(@sErrMemoLoadImageFromRTF, 'Chyba pøi ètení obrázku z RTF souboru.');
+  ResMod(@sErrMemoSaveToRTF, 'Chyba pøi zápisu souboru RTF.');
+
+  // KMemoFrame texts
+  ResMod(@sAppError, 'Chyba aplikace');
+  ResMod(@sAppQuery, 'Dotaz aplikace');
+  ResMod(@sMemoDefaultFileName, 'dokument');
+  ResMod(@sQueryFileSave, 'Soubor "%s" byl zmìnìn. Pøejete si jej uložit?');
+  ResMod(@sErrMemoLoadFromFile, 'Chyba pøi ètení souboru "%s".');
+  ResMod(@sErrMemoSaveToFile, 'Chyba pøi zápisu souboru "%s".');
 
 end;
 

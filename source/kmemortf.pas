@@ -1136,6 +1136,7 @@ begin
   FCtrlTable.AddCtrl('u', Integer(rpscUnicodeChar), ReadSpecialCharacter);
   // table formatting ctrls
   FCtrlTable.AddCtrl('trowd', Integer(rptbRowBegin), ReadTableFormatting);
+  FCtrlTable.AddCtrl('intbl', Integer(rptbRowBegin), ReadTableFormatting);
   FCtrlTable.AddCtrl('cell', Integer(rptbCellEnd), ReadTableFormatting);
   FCtrlTable.AddCtrl('row', Integer(rptbRowEnd), ReadTableFormatting);
   FCtrlTable.AddCtrl('lastrow', Integer(rptbLastRow), ReadTableFormatting);
@@ -1505,10 +1506,6 @@ begin
     if AtIndex < 0 then
     begin
       FMemo.Clear;
-      FMemo.TextStyle.Defaults;
-      FMemo.ParaStyle.Defaults;
-      FMemo.Colors.BkGnd := cBkGndDef;
-      FMemo.BackgroundImage.Graphic := nil;
       FActiveBlocks := FMemo.Blocks;
       FAtIndex := 0; // just append new blocks to active blocks
     end else
@@ -2540,6 +2537,7 @@ begin
       ActiveBlocks := Blocks1;
     end else
       ActiveBlocks := FMemo.Blocks;
+    ActiveBlocks.ConcatEqualBlocks;
     FCodePage := SystemCodepage;
     WriteGroupBegin;
     try
@@ -2619,7 +2617,10 @@ begin
             URL := '';
           end;
           if Item is TKMemoParagraph then
-            WriteParagraph(TKMemoParagraph(Item), AInsideTable)
+          begin
+            if not AInsideTable or (I < ABlocks.Count - 1) then
+              WriteParagraph(TKMemoParagraph(Item), AInsideTable)
+          end
           else if Item is TKMemoTextBlock then
             WriteTextBlock(TKMemoTextBlock(Item))
           else if Item is TKMemoImageBlock then
@@ -2926,12 +2927,9 @@ procedure TKMemoRTFWriter.WritePicture(AImage: TGraphic);
 var
   MS: TMemoryStream;
   S, ImgData: AnsiString;
-  W, H: Integer;
 begin
   if AImage <> nil then
   begin
-    W := PointsToTwips(AImage.Width);
-    H := PointsToTwips(AImage.Height);
     if AImage is TJPegImage then
       WriteCtrl('jpegblip')
   {$IFDEF USE_PNG_SUPPORT}
@@ -2944,17 +2942,10 @@ begin
       if TKMetafile(AImage).Enhanced then
         WriteCtrl('emfblip')
       else
-      begin
         WriteCtrlParam('wmetafile', 8);
-        // store original extent here
-        W := AImage.Width;
-        H := AImage.Height;
-      end;
     end
   {$ENDIF}
     ;
-    {WriteCtrlParam('picw', W);
-    WriteCtrlParam('pich', H);}
     MS := TMemoryStream.Create;
     try
       AImage.SaveToStream(MS);
@@ -3381,4 +3372,4 @@ end;
 
 end.
 
-
+

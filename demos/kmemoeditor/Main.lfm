@@ -1,0 +1,15 @@
+object MainForm: TMainForm
+  Left = 433
+  Height = 457
+  Top = 317
+  Width = 684
+  Caption = 'KMemo editor'
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '1.2.4.0'
+end
