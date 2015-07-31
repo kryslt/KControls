@@ -22,6 +22,7 @@ object KMemoFrame: TKMemoFrame
       'This is beta state control.'#13#10'You may already use it in your prog' +
       'rams'#13#10'but some important functions may still be missing.'#13#10
     OnDropFiles = EditorDropFiles
+    OnMouseDown = EditorMouseDown
     OnMouseUp = EditorMouseUp
   end
   object ToBMain: TToolBar
@@ -203,7 +204,7 @@ object KMemoFrame: TKMemoFrame
     Left = 280
     Top = 72
     Bitmap = {
-      494C01011D002C009C0010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C01011D002C00A00010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000008000000001002000000000000080
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1497,7 +1498,6 @@ object KMemoFrame: TKMemoFrame
   end
   object PMMain: TPopupMenu
     Images = ILMain
-    OnPopup = PMMainPopup
     Left = 504
     Top = 128
     object MIEditCopy: TMenuItem

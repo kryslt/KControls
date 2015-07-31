@@ -11,6 +11,9 @@ uses
   KDialogs, KMemoDlgParaStyle, KMemoDlgTextStyle, KMemoDlgHyperlink, Menus;
 
 type
+
+  { TKMemoFrame }
+
   TKMemoFrame = class(TFrame)
     Editor: TKMemo;
     ILMain: TImageList;
@@ -121,7 +124,7 @@ type
     procedure ACShowFormattingUpdate(Sender: TObject);
     procedure ACInsertHyperlinkExecute(Sender: TObject);
     procedure ACEditHyperlinkUpdate(Sender: TObject);
-    procedure PMMainPopup(Sender: TObject);
+    procedure EditorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
   private
     { Private declarations }
     FNewFile: Boolean;
@@ -459,6 +462,12 @@ begin
   end;
 end;
 
+procedure TKMemoFrame.EditorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button = mbRight then
+    Editor.MoveCaretToMouseCursor(True);
+end;
+
 procedure TKMemoFrame.EditorMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
@@ -510,11 +519,6 @@ end;
 procedure TKMemoFrame.ParaStyleChanged(Sender: TObject);
 begin
   Editor.SelectionParaStyle := FParaStyle;
-end;
-
-procedure TKMemoFrame.PMMainPopup(Sender: TObject);
-begin
-  Editor.MoveCaretToMouseCursor(True);
 end;
 
 function TKMemoFrame.SaveFile(SaveAs, NeedAnotherOp: Boolean): Boolean;

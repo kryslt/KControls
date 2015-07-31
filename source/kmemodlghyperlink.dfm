@@ -28,9 +28,9 @@ object KMemoHyperlinkForm: TKMemoHyperlinkForm
   object LBHyperlink: TLabel
     Left = 24
     Top = 56
-    Width = 73
+    Width = 23
     Height = 13
-    Caption = 'Displayed text:'
+    Caption = 'URL:'
   end
   object BUOk: TButton
     Left = 341
