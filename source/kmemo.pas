@@ -4018,7 +4018,7 @@ var
 begin
   Reader := TKMemoRTFReader.Create(Self);
   try
-    Reader.LoadFromStream(AStream, SelEnd);
+    Reader.LoadFromStream(AStream, AtIndex);
   finally
     Reader.Free;
   end;
