@@ -109,6 +109,12 @@ const
   cSpaceChar = #$B7;
   { This is the character for tab visualisation. }
   cTabChar = #$2192;
+  { This is the character for standard bullet. }
+  cBullet = #$2022;
+  { This is the character for square bullet. }
+  cSquareBullet = #$25AB;
+  { This is the character for arrow bullet. }
+  cArrowBullet = #$25BA;
 
   { Default characters used to break the text words. }
   cDefaultWordBreaks = [cNULL, cSPACE, '/', '\', ';', ':', '?', '!'];
@@ -314,17 +320,24 @@ type
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   end;
 
+  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquares, pnuArrows, pnuArabic, pnuRoman, pnuLatin);
+
   TKMemoParaStyle = class(TKMemoBlockStyle)
   private
     FFirstIndent: Integer;
+    FNumbering: TKmemoParaNumbering;
     FWordWrap: Boolean;
+    FFirstNumber: Boolean;
     procedure SetFirstIndent(const Value: Integer);
+    procedure SetFirstNumber(const Value: Boolean);
+    procedure SetNumbering(const Value: TKmemoParaNumbering);
     procedure SetWordWrap(const Value: Boolean);
   public
-    constructor Create; override;
     procedure Assign(ASource: TPersistent); override;
     procedure Defaults; override;
     property FirstIndent: Integer read FFirstIndent write SetFirstIndent;
+    property FirstNumber: Boolean read FFirstNumber write SetFirstNumber;
+    property Numbering: TKmemoParaNumbering read FNumbering write SetNumbering;
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
   end;
 
@@ -648,7 +661,9 @@ type
     FPosition: TPoint;
     FParaStyle: TKMemoParaStyle;
   protected
+    FNumberBlock: TKMemoTextBlock;
     function GetCanAddText: Boolean; override;
+    function GetNumberBlock: TKMemoTextBlock; virtual;
     function GetParaStyle: TKMemoParaStyle; override;
     function GetWordBreakable(Index: Integer): Boolean; override;
     procedure ParaStyleChanged(Sender: TObject);
@@ -659,8 +674,10 @@ type
     function Concat(AItem: TKMemoBlock): Boolean; override;
     procedure NotifyDefaultParaChange; override;
     function Split(At: Integer; AllowEmpty: Boolean = False): TKMemoBlock; override;
+    procedure WordPaintToCanvas(ACanvas: TCanvas; AWordIndex, ALeft, ATop: Integer); override;
     property Height: Integer read FExtent.Y write FExtent.Y;
     property Left: Integer read FPosition.X write FPosition.X;
+    property NumberBlock: TKMemoTextBlock read GetNumberBlock;
     property Top: Integer read FPosition.Y write FPosition.Y;
     property Width: Integer read FExtent.X write FExtent.X;
   end;
@@ -1247,6 +1264,8 @@ type
     property OnChange: TKMemoUndoChangeEvent read FOnChange write FOnChange;
   end;
 
+  TKMemoRTFString = type string;
+
   { @abstract(Multi line text editor base component). }
   TKCustomMemo = class(TKCustomControl, IKMemoNotifier)
   private
@@ -1289,6 +1308,7 @@ type
     function GetModified: Boolean;
     function GetReadOnly: Boolean;
     function GetRequiredContentWidth: Integer;
+    function GetRTF: TKMemoRTFString;
     function GetSelAvail: Boolean;
     function GetSelectableLength: Integer;
     function GetSelectionHasPara: Boolean;
@@ -1309,6 +1329,7 @@ type
     procedure SetOptions(const Value: TKEditOptions);
     procedure SetReadOnly(Value: Boolean);
     procedure SetRequiredContentWidth(const Value: Integer);
+    procedure SetRTF(const Value: TKMemoRTFString);
     procedure SetScrollBars(Value: TScrollStyle);
     procedure SetScrollPadding(Value: Integer);
     procedure SetScrollSpeed(Value: Cardinal);
@@ -1700,6 +1721,8 @@ type
     property RealSelStart: Integer read GetRealSelStart;
     { Specifies the required content width. }
     property RequiredContentWidth: Integer read GetRequiredContentWidth write SetRequiredContentWidth;
+    { Allows to save and load the memo contents to/from RTF string.}
+    property RTF: TKMemoRTFString read GetRTF write SetRTF;
     { Defines visible scrollbars - horizontal, vertical or both. }
     property ScrollBars: TScrollStyle read FScrollBars write SetScrollBars default ssBoth;
     { Specifies how fast the scrolling by timer should be. }
@@ -1805,8 +1828,6 @@ type
     property TabOrder;
     { Inherited property - see Delphi help. }
     property TabStop default True;
-    { See TKCustomMemo.@link(TKCustomMemo.Text) for details. }
-    property Text;
     { See TKCustomMemo.@link(TKCustomMemo.UndoLimit) for details. }
     property UndoLimit;
     { Inherited property - see Delphi help. }
@@ -2475,15 +2496,12 @@ end;
 
 { TKMemoParagraphStyle }
 
-constructor TKMemoParaStyle.Create;
-begin
-  inherited;
-end;
-
 procedure TKMemoParaStyle.Defaults;
 begin
   inherited;
   FFirstIndent := 0;
+  FFirstNumber := False;
+  FNumbering := pnuNone;
   FWordWrap := True;
 end;
 
@@ -2493,6 +2511,8 @@ begin
   if ASource is TKMemoParaStyle then
   begin
     FirstIndent := TKMemoParaStyle(ASource).FirstIndent;
+    FirstNumber := TKMemoParaStyle(ASource).FirstNumber;
+    Numbering := TKMemoParaStyle(ASource).Numbering;
     WordWrap := TKMemoParaStyle(ASource).WordWrap;
   end;
 end;
@@ -2502,6 +2522,24 @@ begin
   if Value <> FFirstIndent then
   begin
     FFirstIndent := Value;
+    Changed;
+  end;
+end;
+
+procedure TKMemoParaStyle.SetFirstNumber(const Value: Boolean);
+begin
+  if Value <> FFirstNumber then
+  begin
+    FFirstNumber := Value;
+    Changed;
+  end;
+end;
+
+procedure TKMemoParaStyle.SetNumbering(const Value: TKmemoParaNumbering);
+begin
+  if Value <> FNumbering then
+  begin
+    FNumbering := Value;
     Changed;
   end;
 end;
@@ -3794,6 +3832,19 @@ begin
     Result := ClientWidth - FContentPadding.Left - FContentPadding.Right;
 end;
 
+function TKCustomMemo.GetRTF: TKMemoRTFString;
+var
+  Stream: TStringStream;
+begin
+  Stream := TStringStream.Create{$IFnDEF COMPILER12_UP}(''){$ENDIF};
+  try
+    SaveToRTFStream(Stream, False);
+    Result := Stream.DataString;
+  finally
+    Stream.Free;
+  end;
+end;
+
 function TKCustomMemo.GetSelAvail: Boolean;
 begin
   Result := SelLength <> 0;
@@ -4597,6 +4648,20 @@ begin
   begin
     FRequiredContentWidth := Value;
     UpdateScrollRange(True);
+  end;
+end;
+
+procedure TKCustomMemo.SetRTF(const Value: TKMemoRTFString);
+var
+  Stream: TStringStream;
+begin
+  Stream := TStringStream.Create{$IFnDEF COMPILER12_UP}(''){$ENDIF};
+  try
+    Stream.WriteString(Value);
+    Stream.Seek(0, soFromBeginning);
+    LoadFromRTFStream(Stream, -1);
+  finally
+    Stream.Free;
   end;
 end;
 
@@ -6307,6 +6372,7 @@ begin
   inherited;
   FExtent := CreateEmptyPoint;
   FTextStyle.AllowBrush := False;
+  FNumberBlock := nil;
   FParaStyle := TKMemoParaStyle.Create;
   FParaStyle.OnChanged := ParaStyleChanged;
   FPosition := CreateEmptyPoint;
@@ -6315,6 +6381,7 @@ end;
 
 destructor TKMemoParagraph.Destroy;
 begin
+  FNumberBlock.Free;
   FParaStyle.Free;
   inherited;
 end;
@@ -6341,6 +6408,26 @@ begin
   Result := False;
 end;
 
+function TKMemoParagraph.GetNumberBlock: TKMemoTextBlock;
+begin
+  if FParaStyle.Numbering <> pnuNone then
+  begin
+    if FNumberBlock = nil then
+      FNumberBlock := TKMemoTextBlock.Create(nil);
+    FNumberBlock.TextStyle.Assign(TextStyle);
+    case FParaStyle.Numbering of
+      pnuBullets: FNumberBlock.Text := UnicodeToNativeUTF(cBullet) + cTab;
+      pnuSquares: FNumberBlock.Text := UnicodeToNativeUTF(cSquareBullet) + cTab;
+      pnuArrows: FNumberBlock.Text := UnicodeToNativeUTF(cArrowBullet) + cTab;
+      pnuArabic: ;
+      pnuRoman: ;
+      pnuLatin: ;
+    end;
+  end else
+    FreeAndNil(FNumberBlock);
+  Result := FNumberBlock;
+end;
+
 function TKMemoParagraph.GetParaStyle: TKMemoParaStyle;
 begin
   Result := FParaStyle;
@@ -6359,6 +6446,13 @@ end;
 function TKMemoParagraph.Split(At: Integer; AllowEmpty: Boolean): TKMemoBlock;
 begin
   Result := nil;
+end;
+
+procedure TKMemoParagraph.WordPaintToCanvas(ACanvas: TCanvas; AWordIndex, ALeft, ATop: Integer);
+begin
+  inherited;
+  if FNumberBlock <> nil then
+    FNumberBlock.PaintToCanvas(ACanvas, ALeft, ATop);
 end;
 
 { TKImageMemoBlock }
@@ -9726,22 +9820,22 @@ var
   PosX, PosY, Right, CurBlock, CurIndex, CurWord, CurTotalWord, LineHeight, ParaWidth, ParaPosY, LastBlock, LastIndex, LastWord, LastTotalWord: Integer;
   CurParaStyle: TKMemoParaStyle;
 
-  function GetParaStyle(ABlockIndex: Integer): TKMemoParaStyle;
+  function GetParaStyle(AParagraph: TKMemoParagraph): TKMemoParaStyle;
   var
     Para: TKMemoParagraph;
   begin
-    if (ABlockIndex >= 0) and (ABlockIndex < Count) then
+{    if (ABlockIndex >= 0) and (ABlockIndex < Count) then
       Result := Items[ABlockIndex].ParaStyle
     else
       Result := nil;
     if Result = nil then
     begin
-      Para := GetNearestParagraph(ABlockIndex);
-      if Para <> nil then
-        Result := Para.ParaStyle
+      Para := GetNearestParagraph(ABlockIndex);}
+      if AParagraph <> nil then
+        Result := AParagraph.ParaStyle
       else
         Result := DefaultParaStyle;
-    end;
+//    end;
   end;
 
   function RectCollidesWithNonText(const ARect: TRect; var ACollisionRect: TRect): Boolean;
@@ -9949,7 +10043,7 @@ var
         TKMemoParagraph(EndItem).Top := ParaPosY;
         TKmemoParagraph(EndItem).Width := ParaWidth;
         TKmemoParagraph(EndItem).Height := PosY + LineHeight - ParaPosY - CurParaStyle.BottomPadding;
-        CurParaStyle := GetParaStyle(CurBlock);
+        CurParaStyle := GetParaStyle(GetNearestParagraph(CurBlock));
         ParaWidth := 0;
         ParaPosY := PosY + LineHeight + CurParaStyle.TopPadding;
       end;
@@ -10036,10 +10130,12 @@ var
 var
   Extent, NBExtent: TPoint;
   WLen, PrevPosX, PrevPosY: Integer;
-  IsBreakable, IsParagraph, OutSide, WasBreakable, WasParagraph: Boolean;
+  ExtraItem: Boolean; IsBreakable, IsParagraph, OutSide, WasBreakable, WasParagraph: Boolean;
   Item: TKMemoBlock;
+  NextParagraph: TKMemoParagraph;
   NextParaStyle: TKMemoParaStyle;
 begin
+  // this is the main word processing calculation
   FRequiredWidth := ARequiredWidth;
   FLines.Clear;
   FExtent := CreateEmptyPoint;
@@ -10051,7 +10147,7 @@ begin
   LastTotalWord := 0;
   CurTotalWord := 0;
   CurIndex := 0;
-  CurParaStyle := GetParaStyle(0);
+  CurParaStyle := GetParaStyle(GetNearestParagraph(0));
   PosX := CurParaStyle.LeftPadding + CurParaStyle.FirstIndent;
   PosY := 0;
   ParaPosY := CurParaStyle.TopPadding;
@@ -10068,7 +10164,25 @@ begin
   IsParagraph := False;
   while CurBlock < Count do
   begin
-    Item := Items[CurBlock];
+    if IsParagraph then
+    begin
+      NextParagraph := GetNearestParagraph(CurBlock);
+      NextParaStyle := GetParaStyle(NextParagraph);
+      if NextParaStyle.Numbering <> pnuNone then
+      begin
+        Item := NextParagraph.NumberBlock;
+        ExtraItem := True;
+      end else
+      begin
+        Item := Items[CurBlock];
+        ExtraItem := False;
+      end;
+    end else
+    begin
+      NextParaStyle := CurParaStyle;
+      Item := Items[CurBlock];
+      ExtraItem := False;
+    end;
     case Item.Position of
       mbpText:
       begin
@@ -10078,10 +10192,6 @@ begin
           WasParagraph := IsParagraph;
           IsParagraph := (Item is TKMemoParagraph) and (CurWord = Item.WordCount - 1);
           WLen := Item.WordLength[CurWord];
-          if WasParagraph then
-            NextParaStyle := GetParaStyle(CurBlock)
-          else
-            NextParaStyle := CurParaStyle;
           WasBreakable := IsBreakable or not (Item is TKMemoTextBlock);
           IsBreakable := Item.WordBreakable[CurWord];
           Extent := MeasureNextWords(ACanvas, CurBlock, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - NextParaStyle.FirstIndent, IsBreakable, NBExtent);
@@ -10093,9 +10203,12 @@ begin
           Item.WordTop[CurWord] := PosY;
           Inc(PosX, Extent.X);
           LineHeight := Max(LineHeight, Extent.Y);
-          Inc(CurIndex, WLen);
           Inc(CurWord);
-          Inc(CurTotalWord);
+          if not ExtraItem then
+          begin
+            Inc(CurIndex, WLen);
+            Inc(CurTotalWord);
+          end;
         end;
       end;
       mbpRelative:
@@ -10122,7 +10235,8 @@ begin
         end;
       end;
     end;
-    Inc(CurBlock);
+    if not ExtraItem then
+      Inc(CurBlock);
   end;
   if CurIndex > LastIndex then
     AddLine;

@@ -18,9 +18,6 @@ object KMemoFrame: TKMemoFrame
     Options = [eoDropFiles, eoGroupUndo, eoWantTab]
     PopupMenu = PMMain
     TabOrder = 0
-    Text = 
-      'This is beta state control.'#13#10'You may already use it in your prog' +
-      'rams'#13#10'but some important functions may still be missing.'#13#10
     OnDropFiles = EditorDropFiles
     OnMouseDown = EditorMouseDown
     OnMouseUp = EditorMouseUp
@@ -204,7 +201,7 @@ object KMemoFrame: TKMemoFrame
     Left = 280
     Top = 72
     Bitmap = {
-      494C01011D002C00A00010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C01011D002C00AC0010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000008000000001002000000000000080
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

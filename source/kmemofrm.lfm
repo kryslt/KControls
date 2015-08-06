@@ -6,8 +6,8 @@ object KMemoFrame: TKMemoFrame
   ClientHeight = 435
   ClientWidth = 597
   TabOrder = 0
-  DesignLeft = 546
-  DesignTop = 280
+  DesignLeft = 630
+  DesignTop = 275
   object Editor: TKMemo
     Left = 0
     Height = 411
@@ -20,7 +20,6 @@ object KMemoFrame: TKMemoFrame
     Options = [eoDropFiles, eoGroupUndo, eoWantTab]
     PopupMenu = PMMain
     TabOrder = 0
-    Text = 'This is beta state control.'#13#10'You may already use it in your programs'#13#10'but some important functions may still be missing.'#13#10
     OnDropFiles = EditorDropFiles
     OnMouseDown = EditorMouseDown
     OnMouseUp = EditorMouseUp
@@ -69,6 +68,7 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBSep1: TToolButton
       Left = 139
+      Height = 22
       Top = 2
       Width = 10
       Caption = 'ToBSep1'
@@ -92,6 +92,7 @@ object KMemoFrame: TKMemoFrame
     end
     object ToolButton3: TToolButton
       Left = 218
+      Height = 22
       Top = 2
       Width = 10
       Caption = 'ToolButton3'
@@ -112,6 +113,7 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBSep2: TToolButton
       Left = 274
+      Height = 22
       Top = 2
       Width = 10
       Caption = 'ToBSep2'
@@ -143,6 +145,7 @@ object KMemoFrame: TKMemoFrame
     end
     object ToolButton1: TToolButton
       Left = 376
+      Height = 22
       Top = 2
       Width = 10
       Caption = 'ToolButton1'
@@ -184,6 +187,7 @@ object KMemoFrame: TKMemoFrame
     end
     object ToolButton2: TToolButton
       Left = 524
+      Height = 22
       Top = 2
       Width = 10
       Caption = 'ToolButton2'

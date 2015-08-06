@@ -3,7 +3,12 @@ unit KMemoDlgTextStyle;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+{$IFDEF FPC}
+  LCLType, LCLIntf, LMessages, LCLProc, LResources,
+{$ELSE}
+  Windows, Messages,
+{$ENDIF}
+  SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, KEdits, KControls, KButtons, KMemo;
 
 type
@@ -59,7 +64,7 @@ implementation
 {$ENDIF}
 
 uses
-  Math, KGraphics;
+  Math, Types, KGraphics;
 
 { TKMemoTextStyleForm }
 
@@ -196,11 +201,25 @@ procedure TKMemoTextStyleForm.LiBFontDrawItem(Control: TWinControl;
 var
   Size: TSize;
   FontName: string;
+  FontColor, BrushColor: TColor;
 begin
+  if odSelected in State then
+  begin
+    FontColor := clHighlightText;
+    BrushColor := clHighlight;
+  end else
+  begin
+    FontColor := clWindowText;
+    BrushColor := clWindow;
+  end;
   FontName := LiBFont.Items[Index];
+  LiBFont.Canvas.Font.Color := FontColor;
   LiBFont.Canvas.Font.Name := FontName;
   LiBFont.Canvas.Font.Height := 18;
   Size := LiBFont.Canvas.TextExtent(FontName);
+  LiBFont.Canvas.Brush.Style := bsClear;
+  LiBFont.Canvas.Brush.Color := BrushColor;
+  LiBFont.Canvas.FillRect(Rect);
   LiBFont.Canvas.TextRect(Rect, Rect.Left + 2, Rect.Top + (LiBFont.ItemHeight - Size.cy) div 2, LiBFont.Canvas.Font.Name);
 end;
 

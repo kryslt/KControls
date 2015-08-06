@@ -6,7 +6,12 @@ unit kmemofrm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, 
+{$IFDEF FPC}
+  LCLType, LCLIntf, LMessages, LCLProc, LResources,
+{$ELSE}
+  Windows, Messages,
+{$ENDIF}
+  SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ToolWin, ComCtrls, ImgList, KFunctions, KControls, KMemo, ActnList,
   KDialogs, KMemoDlgParaStyle, KMemoDlgTextStyle, KMemoDlgHyperlink, Menus;
 

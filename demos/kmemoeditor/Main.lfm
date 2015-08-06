@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 483
+  Left = 469
   Height = 457
-  Top = 336
+  Top = 328
   Width = 684
   Caption = 'KMemo editor'
   Color = clBtnFace

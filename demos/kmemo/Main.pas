@@ -130,6 +130,7 @@ begin
   Memo.OnDropFiles := KMemo1DropFiles;
   Memo.Parent := Panel1;
   Memo.PageSetup.Title := 'test_document';
+  Memo.Clear;
 //  Memo.Colors.BkGnd := clWhite;
 //  Memo.Font.Name := 'Arial';
 //  Memo.Font.Size := 20;
@@ -137,18 +138,19 @@ begin
 //  Memo.ParaStyle.HAlign := halCenter;
   Memo.Blocks.LockUpdate;
   try
-    Memo.Blocks.Clear;
-{    Memo.Blocks.AddTextBlock('This is test text 1.');
+    Memo.Blocks.AddTextBlock('This is test text 1.');
     PA := Memo.Blocks.AddParagraph;
-    IB := Memo.Blocks.AddImageBlock('label_wre.png');}
+    PA.ParaStyle.Numbering := pnuBullets;
+    TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
+    PA := Memo.Blocks.AddParagraph;
+    PA.ParaStyle.Numbering := pnuBullets;
+//    IB := Memo.Blocks.AddImageBlock('label_wre.png');
 //    IB.ImageStyle.BorderWidth := 1;
 //    IB.ImageStyle.BorderRadius := 10;
 //    IB.ImageStyle.Brush.Color := clLime;
 //    IB.LeftOffset := 0;
 //    IB.TopOffset := 0;
 //    IB.Position := mbpRelative;
-{    TB := Memo.Blocks.AddTextBlock('This is a test text 2.');
-    PA := Memo.Blocks.AddParagraph;}
    {    Memo.Blocks.AddImageBlock('../../resource_src/kmessagebox_info.png');
     IB := Memo.Blocks.AddImageBlock('label_wre.png');
     IB.LeftOffset := 20;
@@ -183,8 +185,7 @@ begin
     //AddTextField;
 
 
-//    Memo.Blocks.AddParagraph;
-    TBL := Memo.Blocks.AddTable;
+{    TBL := Memo.Blocks.AddTable;
     TBL.BlockStyle.TopPadding := 20;
     TBL.BlockStyle.BottomPadding := 30;
     TBL.CellStyle.BorderWidth := 2;
@@ -212,7 +213,7 @@ begin
     AddTextField(TBL.Rows[2].Cells[2], True);
 //    TBL.RequiredWidth := 600;
 //    TBL.FixedWidth := True;
-    TBL.ApplyDefaultCellStyle;
+    TBL.ApplyDefaultCellStyle;}
 
 {    PA := Memo.Blocks.AddParagraph;
     PA.ParaStyle.FirstIndent := 0;
@@ -285,7 +286,7 @@ begin
 //    PA := Memo.Blocks.AddParagraph;
 
 //    Memo.BackgroundImage.LoadFromFile('../../resource_src/clouds.jpg');
-    Memo.Colors.BkGnd := clGreen;
+//    Memo.Colors.BkGnd := clGreen;
   finally
     //Memo.UnlockUpdate;
     Memo.Blocks.UnlockUpdate;
