@@ -353,6 +353,8 @@ type
     { Adds a new image to the end of the internal image list. You should always
       specify valid color and mask bitmap handles else an exception will occur. }
     procedure Add(const Handles: TKIconHandles);
+    { Adds a new image from TKAlphaBitmap to the end of the internal image list. }
+    procedure AddFromAlphaBitmap(ABitmap: TKAlphaBitmap);
     { Adds a new image from bitmap to the end of the internal image list. }
     procedure AddFromBitmap(ABitmap: TBitmap);
   {$IFDEF USE_PNG_SUPPORT}
@@ -958,6 +960,23 @@ begin
   SetLength(FIconData, FIconCount);
   FillChar(FIconData[FIconCount - 1], SizeOf(TKIconData), 0);
   LoadHandles(FIconCount - 1, Handles, True);
+end;
+
+procedure TKIcon.AddFromAlphaBitmap(ABitmap: TKAlphaBitmap);
+begin
+  if ABitmap <> nil then
+  begin
+    Inc(FIconCount);
+    SetLength(FIconData, FIconCount);
+    FillChar(FIconData[FIconCount - 1], SizeOf(TKIconData), 0);
+    FIconData[FIconCount - 1].Width := ABitmap.Width;
+    FIconData[FIconCount - 1].Height := ABitmap.Height;
+    FIconData[FIconCount - 1].Bpp := 32;
+    begin
+      FIconData[FIconCount - 1].IsPNG := False;
+      LoadHandles(FIconCount - 1, MakeHandles(ABitmap.Handle, CreateMonochromeBitmap(ABitmap.Width, ABitmap.Height)), True);
+    end;
+  end;
 end;
 
 procedure TKIcon.AddFromBitmap(ABitmap: TBitmap);

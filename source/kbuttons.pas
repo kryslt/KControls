@@ -1159,7 +1159,7 @@ begin
     FImages.Draw(ACanvas,
       ARect.Left + (ARect.Right - ARect.Left - FImages.Width) div 2,
       ARect.Top + (ARect.Bottom - ARect.Top - FImages.Height) div 2,
-      FImageIndex);
+      FImageIndex, Enabled);
   end else
     FGlyph.AlphaDrawTo(ACanvas,
       ARect.Left + (ARect.Right - ARect.Left - FGlyph.Width) div 2,
