@@ -102,6 +102,62 @@ type
     property Items[Index: Integer]: TKMemoRTFFont read GetItem write SetItem; default;
   end;
 
+  { Specifies the RTF list level descriptor. }
+  TKMemoRTFListLevel = class(TObject)
+  private
+    FFormatString: TKString;
+    FJustify: Integer;
+    FNumberType: Integer;
+    FStartAt: Integer;
+    function GetNumberTypeAsNumbering: TKMemoParaNumbering;
+    procedure SetNumberTypeAsNumbering(const Value: TKMemoParaNumbering);
+  public
+    constructor Create;
+    property FormatString: TKString read FFormatString write FFormatString;
+    property Justify: Integer read FJustify write FJustify;
+    property NumberType: Integer read FNumberType write FNumberType;
+    property NumberTypeAsNumbering: TKMemoParaNumbering read GetNumberTypeAsNumbering write SetNumberTypeAsNumbering;
+    property StartAt: Integer read FStartAt write FStartAt;
+  end;
+
+  { Specifies the RTF list levels. }
+  TKMemoRTFListLevels = class(TObjectList)
+  private
+    function GetItem(Index: Integer): TKMemoRTFListLevel;
+    procedure SetItem(Index: Integer; const Value: TKMemoRTFListLevel);
+  public
+    property Items[Index: Integer]: TKMemoRTFListLevel read GetItem write SetItem; default;
+  end;
+
+  { Specifies the RTF list descriptor. }
+  TKMemoRTFList = class(TObject)
+  private
+    FID: Integer;
+    FLevels: TKMemoRTFListLevels;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property ID: Integer read FID write FID;
+    property Levels: TKMemoRTFListLevels read FLevels;
+  end;
+
+  { Specifies the RTF list table. }
+  TKMemoRTFListTable = class(TObjectList)
+  private
+    FOverrides: TKMemoDictionary;
+    function GetItem(Index: Integer): TKMemoRTFList;
+    procedure SetItem(Index: Integer; const Value: TKMemoRTFList);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function FindByID(AListID: Integer): TKMemoRTFList;
+    function FindByIndex(AIndex: Integer): TKMemoRTFList;
+    procedure SetNumbering(AIndex, ALevelIndex: Integer; AParaStyle: TKMemoParaStyle);
+    property Items[Index: Integer]: TKMemoRTFList read GetItem write SetItem; default;
+    property Overrides: TKMemoDictionary read FOverrides;
+  end;
+
+  { Specifies the supported RTF shape object type. }
   TKMemoRTFShapeContentType = (sctUnknown, sctTextBox, sctImage, sctRectangle, sctText);
 
   { Specifies the RTF shape object since KMemo has no generic drawing object support. }
@@ -148,7 +204,8 @@ type
   end;
 
   TKMemoRTFGroup = (rgNone, rgUnknown, rgColorTable, rgField, rgFieldInst, rgFieldResult, rgFontTable, rgFooter, rgHeader, rgInfo,
-    rgPageBackground, rgPicture, rgPicProp, rgShape, rgShapeInst, rgShapePict, rgStyleSheet, rgTextBox);
+    rgListTable, rgList, rgListLevel, rgListLevelText, rgListOverrideTable, rgListOverride, rgPageBackground, rgPicture, rgPicProp,
+    rgShape, rgShapeInst, rgShapePict, rgStyleSheet, rgTextBox);
 
   { Specifies the RTF reader state. This class is used by RTF reader to store reader state on the stack. }
   TKMemoRTFState = class(TObject)
@@ -180,16 +237,18 @@ type
   TKMemoRTFFontProp = (rpfIndex, rpfCharset, rpfPitch);
   TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop,
     rpiReqWidth, rpiReqHeight, rpiScaleX, rpiScaleY);
-  TKMemoRTFShapeProp = (rpsShape, rpsBottom, rpsLeft, rpsRight, rpsTop, rpsXColumn, rpsYPara, rpsWrap, rpsWrapSide, rpsSn, rpsSv, rpsShapeText);
+  TKMemoRTFListProp = (rplList, rplListOverride, rplListLevel, rplListId, rplListIndex, rplListText, rplLevelStartAt, rplLevelNumberType, rplLevelJustify, rplLevelText);
   TKMemoRTFParaProp = (rppParD, rppIndentFirst, rppIndentBottom, rppIndentLeft, rppIndentRight, rppIndentTop, rppAlignLeft, rppAlignCenter, rppAlignRight, rppAlignJustify,
-    rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor, rppPar);
+    rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor,
+    rppPar, rppListIndex, rppListLevel);
+  TKMemoRTFShapeProp = (rpsShape, rpsBottom, rpsLeft, rpsRight, rpsTop, rpsXColumn, rpsYPara, rpsWrap, rpsWrapSide, rpsSn, rpsSv, rpsShapeText);
   TKMemoRTFSpecialCharProp = (rpscTab, rpscLquote, rpscRQuote, rpscLDblQuote, rpscRDblQuote, rpscEnDash, rpscEmDash, rpscBullet, rpscNBSP, rpscEmSpace, rpscEnSpace,
     rpscAnsiChar, rpscUnicodeChar);
   TKMemoRTFTableProp = (rptbRowBegin, rptbCellEnd, rptbRowEnd, rptbLastRow, rptbRowPaddBottom, rptbRowPaddLeft, rptbRowPaddRight, rptbRowPaddTop, rptbBorderBottom, rptbBorderLeft,
     rptbPaddAll, rptbBorderRight, rptbBorderTop, rptbBorderWidth, rptbBorderNone, rptbBorderColor, rptbBackColor, rptbHorzMergeBegin, rptbHorzMerge,
     rptbVertMergeBegin, rptbVertMerge, rptbCellPaddBottom, rptbCellPaddLeft, rptbCellPaddRight, rptbCellPaddTop, rptbCellWidth, rptbCellX);
   TKMemoRTFTextProp = (rptPlain, rptFontIndex, rptBold, rptItalic, rptUnderline, rptStrikeout, rptCaps, rptSmallCaps, rptFontSize, rptForeColor, rptBackColor);
-  TKMemoRTFUnknownProp = (rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict, rpuFieldInst);
+  TKMemoRTFUnknownProp = (rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict, rpuFieldInst, rpuListTable, rpuListOverrideTable);
 
   { Specifies the RTF reader. }
   TKMemoRTFReader = class(TObject)
@@ -200,6 +259,9 @@ type
     function GetActiveShape: TKMemoRTFShape;
     function GetActiveContainer: TKMemoContainer;
     function GetActiveTable: TKMemoTable;
+    function GetActiveList: TKMemoRTFList;
+    function GetActiveListLevel: TKMemoRTFListLevel;
+    function GetActiveListOverride: TKMemoDictionaryItem;
   protected
     FActiveBlocks: TKMemoBlocks;
     FActiveColor: TKMemoRTFColor;
@@ -208,6 +270,11 @@ type
     FActiveImage: TKMemoImageBlock;
     FActiveImageClass: TGraphicClass;
     FActiveImageIsEMF: Boolean;
+    FActiveList: TKMemoRTFList;
+    FActiveListIndex: Integer;
+    FActiveListLevel: TKMemoRTFListLevel;
+    FActiveListLevelFmtLength: Integer;
+    FActiveListOverride: TKMemoDictionaryItem;
     FActiveParaBorder: TAlign;
     FActiveShape: TKMemoRTFShape;
     FActiveString: TKString;
@@ -233,11 +300,13 @@ type
     FIgnoreCharsAfterUnicode: Integer;
     FIndexStack: TKMemoSparseStack;
     FGraphicClass: TGraphicClass;
+    FListTable: TKMemoRTFListTable;
     FMemo: TKCustomMemo;
     FStack: TKMemoRTFStack;
     FStream: TStream;
     FTmpTextStyle: TKMemoTextStyle;
     procedure AddText(const APart: TKString); virtual;
+    procedure AddTextToFormatString(const APart: TKString); virtual;
     procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer); virtual;
     procedure ApplyHighlight(ATextStyle: TKMemoTextStyle; AHighlightCode: Integer); virtual;
     procedure FillCtrlTable; virtual;
@@ -251,6 +320,9 @@ type
     procedure FlushFont; virtual;
     procedure FlushHyperlink; virtual;
     procedure FlushImage; virtual;
+    procedure FlushList; virtual;
+    procedure FlushListLevel; virtual;
+    procedure FlushListOverride; virtual;
     procedure FlushParagraph; virtual;
     procedure FlushShape; virtual;
     procedure FlushTable; virtual;
@@ -264,6 +336,7 @@ type
     procedure ReadFieldGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadFontGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadHeaderGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    procedure ReadListGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadParaFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadPictureGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadShapeGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
@@ -275,6 +348,9 @@ type
     property ActiveColor: TKMemoRTFColor read GetActiveColor;
     property ActiveContainer: TKMemoContainer read GetActiveContainer;
     property ActiveFont: TKMemoRTFFont read GetActiveFont;
+    property ActiveList: TKMemoRTFList read GetActiveList;
+    property ActiveListLevel: TKMemoRTFListLevel read GetActiveListLevel;
+    property ActiveListOverride: TKMemoDictionaryItem read GetActiveListOverride;
     property ActiveImage: TKMemoImageBlock read GetActiveImage;
     property ActiveShape: TKMemoRTFShape read GetActiveShape;
     property ActiveTable: TKMemoTable read GetActiveTable;
@@ -869,6 +945,147 @@ begin
   inherited SetItem(Index, Value);
 end;
 
+{ TKMemoRTFListLevel }
+
+constructor TKMemoRTFListLevel.Create;
+begin
+  FFormatString := '';
+  FJustify := 0;
+  FNumberType := 0;
+  FStartAt := 1;
+end;
+
+function TKMemoRTFListLevel.GetNumberTypeAsNumbering: TKMemoParaNumbering;
+begin
+  // we support only basic types of Word numberings...
+  case FNumberType of
+    1: Result := pnuRomanHi;
+    2: Result := pnuRomanLo;
+    3: Result := pnuLetterHi;
+    4: Result := pnuLetterLo;
+    23: Result := pnuBullets;
+    250: Result := pnuSquares; // our special code
+    251: Result := pnuArrows; // our special code
+    255: Result := pnuNone;
+  else
+    Result := pnuArabic;
+  end;
+end;
+
+procedure TKMemoRTFListLevel.SetNumberTypeAsNumbering(const Value: TKMemoParaNumbering);
+begin
+  case Value of
+    pnuBullets: FNumberType := 23;
+    pnuSquares: FNumberType := 250; // our special code
+    pnuArrows: FNumberType := 251; // our special code
+    pnuArabic: FNumberType := 0;
+    pnuLetterLo: FNumberType := 4;
+    pnuLetterHi: FNumberType := 3;
+    pnuRomanLo: FNumberType := 2;
+    pnuRomanHi: FNumberType := 1;
+  else
+    FNumberType := 255; // pnuNone
+  end;
+end;
+
+{ TKMemoRTFListLevels }
+
+function TKMemoRTFListLevels.GetItem(Index: Integer): TKMemoRTFListLevel;
+begin
+  Result := TKMemoRTFListLevel(inherited GetItem(Index));
+end;
+
+procedure TKMemoRTFListLevels.SetItem(Index: Integer; const Value: TKMemoRTFListLevel);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+{ TKMemoRTFList }
+
+constructor TKMemoRTFList.Create;
+begin
+  FID := Random(MaxInt);
+  FLevels := TKMemoRTFListLevels.Create;
+end;
+
+destructor TKMemoRTFList.Destroy;
+begin
+  FLevels.Free;
+  inherited;
+end;
+
+{ TKMemoRTFListTable }
+
+constructor TKMemoRTFListTable.Create;
+begin
+  inherited;
+  FOverrides := TKMemoDictionary.Create;
+end;
+
+destructor TKMemoRTFListTable.Destroy;
+begin
+  FOverrides.Free;
+  inherited;
+end;
+
+function TKMemoRTFListTable.FindByID(AListID: Integer): TKMemoRTFList;
+var
+  I: Integer;
+begin
+  Result := nil;
+  for I := 0 to Count - 1 do
+    if Items[I].ID = AListID then
+    begin
+      Result := Items[I];
+      Break;
+    end;
+end;
+
+function TKMemoRTFListTable.FindByIndex(AIndex: Integer): TKMemoRTFList;
+var
+  I: Integer;
+begin
+  Result := nil;
+  for I := 0 to FOverrides.Count - 1 do
+    if FOverrides.Items[I].Index = AIndex then
+    begin
+      Result := FindByID(FOverrides.Items[I].Value);
+      Break;
+    end;
+end;
+
+function TKMemoRTFListTable.GetItem(Index: Integer): TKMemoRTFList;
+begin
+  Result := TKMemoRTFList(inherited GetItem(Index));
+end;
+
+procedure TKMemoRTFListTable.SetItem(Index: Integer; const Value: TKMemoRTFList);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+procedure TKMemoRTFListTable.SetNumbering(AIndex, ALevelIndex: Integer; AParaStyle: TKMemoParaStyle);
+var
+  Item: TKMemoRTFList;
+  Level: TKMemoRTFListLevel;
+  S: TKString;
+  I: Integer;
+begin
+  Item := FindByIndex(AIndex);
+  if Item <> nil then
+  begin
+    Level := Item.Levels[ALevelIndex];
+    for I := 0 to Item.Levels.Count - 1 do
+      AParaStyle.Numbering[I] := Item.Levels[I].NumberTypeAsNumbering;
+    AParaStyle.NumberingList := AIndex;
+    AParaStyle.NumberingLevel := ALevelIndex;
+    S := Level.FormatString;
+    if (S <> '') and (S[Length(S)] = ';') then
+      System.Delete(S, Length(S), 1);
+    AParaStyle.NumberingFormat := S;
+  end;
+end;
+
 { TKMemoRTFShape }
 
 constructor TKMemoRTFShape.Create;
@@ -1010,6 +1227,7 @@ begin
   FCtrlTable := TKMemoRTFCtrlTable.Create;
   FFontTable := TKMemoRTFFontTable.Create;
   FIndexStack := TKMemoSparseStack.Create;
+  FListTable := TKMemoRTFListTable.Create;
   FMemo := AMemo;
   FStack := TKMemoRTFStack.Create;
   FStream := nil;
@@ -1024,6 +1242,7 @@ begin
   FCtrlTable.Free;
   FFontTable.Free;
   FIndexStack.Free;
+  FListTable.Free;
   FStack.Free;
   FTmpTextStyle.Free;
   inherited;
@@ -1041,6 +1260,8 @@ begin
   FCtrlTable.AddCtrl('background', Integer(rpuPageBackground), ReadUnknownGroup);
   FCtrlTable.AddCtrl('picprop', Integer(rpuPicProp), ReadUnknownGroup);
   FCtrlTable.AddCtrl('fldinst', Integer(rpuFieldInst), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('listtable', Integer(rpuListTable), ReadUnknownGroup);
+  FCtrlTable.AddCtrl('listoverridetable', Integer(rpuListOverrideTable), ReadUnknownGroup);
   // header ctrls
   FCtrlTable.AddCtrl('rtf', Integer(rphRtf), ReadHeaderGroup);
   FCtrlTable.AddCtrl('ansicpg', Integer(rphCodePage), ReadHeaderGroup);
@@ -1068,6 +1289,16 @@ begin
   FCtrlTable.AddCtrl('f', Integer(rpfIndex), ReadFontGroup);
   FCtrlTable.AddCtrl('fcharset', Integer(rpfCharset), ReadFontGroup);
   FCtrlTable.AddCtrl('fprq', Integer(rpfPitch), ReadFontGroup);
+  // list (override) table ctrls
+  FCtrlTable.AddCtrl('list', Integer(rplList), ReadListGroup);
+  FCtrlTable.AddCtrl('listoverride', Integer(rplListOverride), ReadListGroup);
+  FCtrlTable.AddCtrl('listlevel', Integer(rplListLevel), ReadListGroup);
+  FCtrlTable.AddCtrl('listid', Integer(rplListId), ReadListGroup);
+  FCtrlTable.AddCtrl('listtext', Integer(rplListText), ReadListGroup);
+  FCtrlTable.AddCtrl('levelstartat', Integer(rplLevelStartAt), ReadListGroup);
+  FCtrlTable.AddCtrl('levelnfc', Integer(rplLevelNumberType), ReadListGroup);
+  FCtrlTable.AddCtrl('leveljc', Integer(rplLevelJustify), ReadListGroup);
+  FCtrlTable.AddCtrl('leveltext', Integer(rplLevelText), ReadListGroup);
   // paragraph formatting ctrls
   FCtrlTable.AddCtrl('pard', Integer(rppParD), ReadParaFormatting);
   FCtrlTable.AddCtrl('fi', Integer(rppIndentFirst), ReadParaFormatting);
@@ -1091,6 +1322,8 @@ begin
   FCtrlTable.AddCtrl('brdrradius', Integer(rppBorderRadius), ReadParaFormatting);
   FCtrlTable.AddCtrl('brdrcf', Integer(rppBorderColor), ReadParaFormatting);
   FCtrlTable.AddCtrl('par', Integer(rppPar), ReadParaFormatting);
+  FCtrlTable.AddCtrl('ls', Integer(rppListIndex), ReadParaFormatting);
+  FCtrlTable.AddCtrl('ilvl', Integer(rppListLevel), ReadParaFormatting);
   // picture group ctrls
   FCtrlTable.AddCtrl('pict', Integer(rpiPict), ReadPictureGroup);
   FCtrlTable.AddCtrl('jpegblip', Integer(rpiJpeg), ReadPictureGroup);
@@ -1205,6 +1438,32 @@ begin
   end;
 end;
 
+procedure TKMemoRTFReader.AddTextToFormatString(const APart: TKString);
+var
+  S: TKString;
+begin
+  if APart <> '' then
+  begin
+    S := APart;
+    while (FIgnoreChars > 0) and (S <> '') do
+    begin
+      Delete(S, 1, 1);
+      Dec(FIgnoreChars);
+    end;
+    if S <> '' then
+    begin
+      if Ord(S[1]) < $20 then
+      begin
+        if FActiveListLevelFmtLength = 0 then
+          FActiveListLevelFmtLength := Ord(S[1])
+        else
+          ActiveListLevel.FormatString := ActiveListLevel.FormatString + Format('%%%d%%', [Ord(S[1])]);
+      end else
+        ActiveListLevel.FormatString := ActiveListLevel.FormatString + S
+    end;
+  end;
+end;
+
 procedure TKMemoRTFReader.ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer);
 var
   Font: TFont;
@@ -1280,6 +1539,37 @@ begin
     FActiveBlocks.AddAt(FActiveImage, FAtIndex);
     Inc(FAtIndex);
     FActiveImage := nil;
+  end;
+end;
+
+procedure TKMemoRTFReader.FlushList;
+begin
+  if FActiveList <> nil then
+  begin
+    if FActiveList.Levels.Count > 0 then
+    begin
+      FListTable.Add(FActiveList);
+      FActiveList := nil;
+    end else
+      FreeAndNil(FActiveList);
+  end;
+end;
+
+procedure TKMemoRTFReader.FlushListLevel;
+begin
+  if FActiveListLevel <> nil then
+  begin
+    ActiveList.Levels.Add(FActiveListLevel);
+    FActiveListLevel := nil;
+  end;
+end;
+
+procedure TKMemoRTFReader.FlushListOverride;
+begin
+  if FActiveListOverride <> nil then
+  begin
+    FListTable.Overrides.Add(FActiveListOverride);
+    FActiveListOverride := nil;
   end;
 end;
 
@@ -1443,6 +1733,30 @@ begin
   Result := FActiveImage;
 end;
 
+function TKMemoRTFReader.GetActiveList: TKMemoRTFList;
+begin
+  if FActiveList = nil then
+    FActiveList := TKMemoRTFList.Create;
+  Result := FActiveList;
+end;
+
+function TKMemoRTFReader.GetActiveListLevel: TKMemoRTFListLevel;
+begin
+  if FActiveListLevel = nil then
+  begin
+    FActiveListLevel := TKMemoRTFListLevel.Create;
+    FActiveListLevelFmtLength := 0;
+  end;
+  Result := FActiveListLevel;
+end;
+
+function TKMemoRTFReader.GetActiveListOverride: TKMemoDictionaryItem;
+begin
+  if FActiveListOverride = nil then
+    FActiveListOverride := TKMemoDictionaryItem.Create;
+  Result := FActiveListOverride;
+end;
+
 function TKMemoRTFReader.GetActiveShape: TKMemoRTFShape;
 begin
   if FActiveShape = nil then
@@ -1539,6 +1853,10 @@ begin
       FActiveFont := nil;
       FActiveImage := nil;
       FActiveImageClass := nil;
+      FActiveList := nil;
+      FActiveListLevel := nil;
+      FActiveListOverride := nil;
+      FActiveListIndex := -1;
       FActiveParaBorder := alNone;
       FActiveShape := nil;
       FActiveState := TKMemoRTFState.Create;
@@ -1628,6 +1946,18 @@ begin
     begin
       // we only support hyperlinks now
       FlushHyperlink;
+    end
+    else if (FActiveState.Group = rgListLevel) and (State.Group = rgList) then
+    begin
+      FlushListLevel;
+    end
+    else if (FActiveState.Group = rgList) and (State.Group = rgListTable) then
+    begin
+      FlushList;
+    end
+    else if (FActiveState.Group = rgListOverride) and (State.Group = rgListOverrideTable) then
+    begin
+      FlushListOverride;
     end;
     FActiveState.Free;
     FActiveState := FStack.Pop;
@@ -1836,61 +2166,103 @@ begin
   end;
 end;
 
+procedure TKMemoRTFReader.ReadListGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
+begin
+  case FActiveState.Group of
+    rgListTable: case TKMemoRTFListProp(ACtrl) of
+      rplList: FActiveState.Group := rgList;
+    end;
+    rgList: case TKMemoRTFListProp(ACtrl) of
+      rplListLevel: FActiveState.Group := rgListLevel;
+      rplListId: ActiveList.ID := AParam;
+    end;
+    rgListLevel: case TKMemoRTFListProp(ACtrl) of
+      rplLevelText: FActiveState.Group := rgListLevelText;
+      rplLevelStartAt: ActiveListLevel.StartAt := AParam;
+      rplLevelNumberType: ActiveListLevel.NumberType := AParam;
+      rplLevelJustify: ActiveListLevel.Justify := AParam;
+    end;
+    rgListOverrideTable: case TKMemoRTFListProp(ACtrl) of
+      rplListOverride: FActiveState.Group := rgListOverride;
+    end;
+    rgListOverride: case TKMemoRTFListProp(ACtrl) of
+      rplListId: ActiveListOverride.Value := AParam;
+      rplListIndex: ActiveListOverride.Index := AParam;
+    end;
+    rgListLevelText: AddTextToFormatString(AText);
+  else
+    case TKMemoRTFListProp(ACtrl) of
+      rplListText: FActiveState.Group := rgUnknown; // ignore text
+    end;
+  end;
+end;
+
 procedure TKMemoRTFReader.ReadParaFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
-  if FActiveState.Group in [rgNone, rgTextBox, rgFieldResult] then case TKMemoRTFParaProp(ACtrl) of
-    rppParD: FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
-    rppIndentFirst: FActiveState.ParaStyle.FirstIndent := TwipsToPoints(AParam);
-    rppIndentBottom: FActiveState.ParaStyle.BottomPadding := TwipsToPoints(AParam);
-    rppIndentLeft: FActiveState.ParaStyle.LeftPadding := TwipsToPoints(AParam);
-    rppIndentRight: FActiveState.ParaStyle.RightPadding := TwipsToPoints(AParam);
-    rppIndentTop: FActiveState.ParaStyle.TopPadding := TwipsToPoints(AParam);
-    rppAlignLeft: FActiveState.ParaStyle.HAlign := halLeft;
-    rppAlignCenter: FActiveState.ParaStyle.HAlign := halCenter;
-    rppAlignRight: FActiveState.ParaStyle.HAlign := halRight;
-    rppAlignJustify: FActiveState.ParaStyle.HAlign := halJustify;
-    rppBackColor: FActiveState.ParaStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
-    rppNoWordWrap: FActiveState.ParaStyle.WordWrap := False;
-    rppBorderBottom: FActiveParaBorder := alBottom;
-    rppBorderLeft: FActiveParaBorder := alLeft;
-    rppBorderRight: FActiveParaBorder := alRight;
-    rppBorderTop: FActiveParaBorder := alTop;
-    rppBorderAll: FActiveParaBorder := alClient;
-    rppBorderWidth:
-    case FActiveParaBorder of
-      alBottom: FActiveState.ParaStyle.BorderWidths.Bottom := TwipsToPoints(AParam);
-      alLeft: FActiveState.ParaStyle.BorderWidths.Left := TwipsToPoints(AParam);
-      alRight: FActiveState.ParaStyle.BorderWidths.Right := TwipsToPoints(AParam);
-      alTop: FActiveState.ParaStyle.BorderWidths.Top := TwipsToPoints(AParam);
-      alClient: FActiveState.ParaStyle.BorderWidth := TwipsToPoints(AParam);
-    else
-      if FActiveTableBorder <> alNone then
-        ReadTableFormatting(Integer(rptbBorderWidth), AText, AParam)
+  case FActiveState.Group of
+    rgNone, rgTextBox, rgFieldResult: case TKMemoRTFParaProp(ACtrl) of
+      rppParD: FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
+      rppIndentFirst: FActiveState.ParaStyle.FirstIndent := TwipsToPoints(AParam);
+      rppIndentBottom: FActiveState.ParaStyle.BottomPadding := TwipsToPoints(AParam);
+      rppIndentLeft: FActiveState.ParaStyle.LeftPadding := TwipsToPoints(AParam);
+      rppIndentRight: FActiveState.ParaStyle.RightPadding := TwipsToPoints(AParam);
+      rppIndentTop: FActiveState.ParaStyle.TopPadding := TwipsToPoints(AParam);
+      rppAlignLeft: FActiveState.ParaStyle.HAlign := halLeft;
+      rppAlignCenter: FActiveState.ParaStyle.HAlign := halCenter;
+      rppAlignRight: FActiveState.ParaStyle.HAlign := halRight;
+      rppAlignJustify: FActiveState.ParaStyle.HAlign := halJustify;
+      rppBackColor: FActiveState.ParaStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+      rppNoWordWrap: FActiveState.ParaStyle.WordWrap := False;
+      rppBorderBottom: FActiveParaBorder := alBottom;
+      rppBorderLeft: FActiveParaBorder := alLeft;
+      rppBorderRight: FActiveParaBorder := alRight;
+      rppBorderTop: FActiveParaBorder := alTop;
+      rppBorderAll: FActiveParaBorder := alClient;
+      rppBorderWidth:
+      case FActiveParaBorder of
+        alBottom: FActiveState.ParaStyle.BorderWidths.Bottom := TwipsToPoints(AParam);
+        alLeft: FActiveState.ParaStyle.BorderWidths.Left := TwipsToPoints(AParam);
+        alRight: FActiveState.ParaStyle.BorderWidths.Right := TwipsToPoints(AParam);
+        alTop: FActiveState.ParaStyle.BorderWidths.Top := TwipsToPoints(AParam);
+        alClient: FActiveState.ParaStyle.BorderWidth := TwipsToPoints(AParam);
+      else
+        if FActiveTableBorder <> alNone then
+          ReadTableFormatting(Integer(rptbBorderWidth), AText, AParam)
+      end;
+      rppBorderNone:
+      case FActiveParaBorder of
+        alBottom: FActiveState.ParaStyle.BorderWidths.Bottom := 0;
+        alLeft: FActiveState.ParaStyle.BorderWidths.Left := 0;
+        alRight: FActiveState.ParaStyle.BorderWidths.Right := 0;
+        alTop: FActiveState.ParaStyle.BorderWidths.Top := 0;
+        alClient: FActiveState.ParaStyle.BorderWidth := 0;
+      else
+        if FActiveTableBorder <> alNone then
+          ReadTableFormatting(Integer(rptbBorderNone), AText, AParam)
+      end;
+      rppBorderRadius: FActiveState.ParaStyle.BorderRadius := TwipsToPoints(AParam);
+      rppBorderColor:
+      begin
+        if FActiveParaBorder <> alNone then
+          FActiveState.ParaStyle.BorderColor := FColorTable.GetColor(AParam - 1)
+        else if FActiveTableBorder <> alNone then
+          ReadTableFormatting(Integer(rptbBorderColor), AText, AParam)
+      end;
+      rppPar:
+      begin
+        FlushText;
+        FlushParagraph;
+      end;
+      rppListIndex:
+      begin
+        FActiveListIndex := AParam;
+        FListTable.SetNumbering(AParam, 0, FActiveState.ParaStyle);
+      end;
+      rppListLevel: FListTable.SetNumbering(FActiveListIndex, AParam, FActiveState.ParaStyle);
     end;
-    rppBorderNone:
-    case FActiveParaBorder of
-      alBottom: FActiveState.ParaStyle.BorderWidths.Bottom := 0;
-      alLeft: FActiveState.ParaStyle.BorderWidths.Left := 0;
-      alRight: FActiveState.ParaStyle.BorderWidths.Right := 0;
-      alTop: FActiveState.ParaStyle.BorderWidths.Top := 0;
-      alClient: FActiveState.ParaStyle.BorderWidth := 0;
-    else
-      if FActiveTableBorder <> alNone then
-        ReadTableFormatting(Integer(rptbBorderNone), AText, AParam)
+    rgListOverride: case TKMemoRTFParaProp(ACtrl) of
+      rppListIndex: ReadListgroup(Integer(rplListIndex), AText, AParam);
     end;
-    rppBorderRadius: FActiveState.ParaStyle.BorderRadius := TwipsToPoints(AParam);
-    rppBorderColor:
-    begin
-      if FActiveParaBorder <> alNone then
-        FActiveState.ParaStyle.BorderColor := FColorTable.GetColor(AParam - 1)
-      else if FActiveTableBorder <> alNone then
-        ReadTableFormatting(Integer(rptbBorderColor), AText, AParam)
-    end;
-    rppPar:
-    begin
-      FlushText;
-      FlushParagraph;
-    end
   end;
 end;
 
@@ -2089,43 +2461,55 @@ procedure TKMemoRTFReader.ReadSpecialCharacter(ACtrl: Integer; var AText: AnsiSt
 var
   S: TKString;
   CodePage: Integer;
+  SetIgnoreChars: Boolean;
 begin
+  SetIgnoreChars := False;
+  S := '';
   // we must suppose here selected font supports these Unicode characters
-  if FActiveState.Group in [rgNone, rgTextBox, rgFieldResult] then case TKMemoRTFSpecialCharProp(ACtrl) of
-    rpscTab: AddText(#9); // tab is rendered with an arrow symbol
-    rpscLquote: AddText(UnicodeToNativeUTF(#$2018));
-    rpscRQuote: AddText(UnicodeToNativeUTF(#$2019));
-    rpscLDblQuote: AddText(UnicodeToNativeUTF(#$201C));
-    rpscRDblQuote: AddText(UnicodeToNativeUTF(#$201D));
-    rpscEnDash: AddText(UnicodeToNativeUTF(#$2013));
-    rpscEmDash: AddText(UnicodeToNativeUTF(#$2014));
-    rpscBullet: AddText(UnicodeToNativeUTF(#$2022));
-    rpscNBSP: AddText(' '); // nonbreaking spaces not supported
-    rpscEmSpace: AddText(' ');
-    rpscEnSpace: AddText(' ');
+  case TKMemoRTFSpecialCharProp(ACtrl) of
+    rpscTab: S := #9; // tab is rendered with an arrow symbol
+    rpscLquote: S := UnicodeToNativeUTF(#$2018);
+    rpscRQuote: S := UnicodeToNativeUTF(#$2019);
+    rpscLDblQuote: S := UnicodeToNativeUTF(#$201C);
+    rpscRDblQuote: S := UnicodeToNativeUTF(#$201D);
+    rpscEnDash: S := UnicodeToNativeUTF(#$2013);
+    rpscEmDash: S := UnicodeToNativeUTF(#$2014);
+    rpscBullet: S := UnicodeToNativeUTF(#$2022);
+    rpscNBSP: S := ' '; // nonbreaking spaces not supported
+    rpscEmSpace: S := ' ';
+    rpscEnSpace: S := ' ';
     rpscAnsiChar:
     begin
-      if FActiveState.TextStyle.Font.Name = 'Symbol' then
-        S := UnicodeToNativeUTF(WideChar(AdobeSymbolToUTF16(AParam)))
+      if AParam < $20 then
+        S := Chr(AParam)
       else
       begin
-        if FActiveState.TextStyle.Font.Charset = 0 then
-          CodePage := FDefaultCodePage
+        if FActiveState.TextStyle.Font.Name = 'Symbol' then
+          S := UnicodeToNativeUTF(WideChar(AdobeSymbolToUTF16(AParam)))
         else
-          CodePage := CharSetToCP(FActiveState.TextStyle.Font.Charset);
-        S := AnsiStringToString(AnsiChar(AParam), CodePage);
+        begin
+          if FActiveState.TextStyle.Font.Charset = 0 then
+            CodePage := FDefaultCodePage
+          else
+            CodePage := CharSetToCP(FActiveState.TextStyle.Font.Charset);
+          S := AnsiStringToString(AnsiChar(AParam), CodePage);
+        end;
       end;
-      AddText(S);
     end;
     rpscUnicodeChar:
     begin
       if FActiveState.TextStyle.Font.Name = 'Symbol' then
         AParam := AdobeSymbolToUTF16(AParam);
       S := UnicodeToNativeUTF(WideChar(AParam));
-      AddText(S);
-      FIgnoreChars := FIgnoreCharsAfterUnicode;
+      SetIgnoreChars := True;
     end;
   end;
+  case FActiveState.Group of
+    rgNone, rgTextBox, rgFieldResult: AddText(S);
+    rgListLevelText: AddTextToFormatString(S);
+  end;
+  if SetIgnoreChars then
+    FIgnoreChars := FIgnoreCharsAfterUnicode;
 end;
 
 procedure TKMemoRTFReader.ReadStream;
@@ -2154,6 +2538,7 @@ begin
           rgFieldInst: ReadFieldGroup(-1, Text, 0);
           rgFontTable: ReadFontGroup(-1, Text, 0);
           rgPicture: ReadPictureGroup(-1, Text, 0);
+          rgListLevelText: ReadListGroup(-1, Text, 0);
           rgNone, rgTextBox, rgFieldResult: AddText(TKString(Text));
         end;
       end;
@@ -2367,6 +2752,8 @@ begin
     rpuShapePict: FActiveState.Group := rgShapePict; // picture inside text
     rpuPageBackground: FActiveState.Group := rgPageBackground; // this is the page background, read it
     rpuPicProp: FActiveState.Group := rgPicProp; // non shape picture has some shape properties, read them
+    rpuListTable: FActiveState.Group := rgListTable;
+    rpuListOverrideTable: FActiveState.Group := rgListOverrideTable;
   end;
 end;
 

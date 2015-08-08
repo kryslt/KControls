@@ -138,8 +138,6 @@ function ExtractFileRawName(const Path: string): string;
 { color count reduction with Floyd Steinberg dithering }
 procedure MedianCutQuantize(Bitmap: TBitmap; NewBpp: TPixelFormat; Mode: TKColorConversionMode);
 
-function IntToRoman(Value: Integer): string;
-
 function StreamReadString(Stream: TStream): string;
 function StreamReadStringW(Stream: TStream): WideString;
 
@@ -1050,75 +1048,6 @@ begin
       Palette := nil;
     end;
   end;
-end;
-
-function IntToRoman(Value: Integer): string;
-begin
-  Result := '';
-  while Value >= 1000 do begin
-    Result := Result + 'M';
-    Value := Value - 1000;
-  end; { while }
-
-  if Value >= 900 then begin
-    Result := Result + 'CM';
-    Value := Value - 900;
-  end; { if }
-
-  while Value >= 500 do begin
-    Result := Result + 'D';
-    Value := Value - 500;
-  end; { while }
-
-  if Value >= 400 then begin
-    Result := Result + 'CD';
-    Value := Value - 400;
-  end; { if }
-
-  while Value >= 100 do begin
-    Result := Result + 'C';
-    Value := Value - 100;
-  end; { while }
-
-  if Value >= 90 then begin
-    Result := Result + 'XC';
-    Value := Value - 90;
-  end; { if }
-
-  while Value >= 50 do begin
-    Result := Result + 'L';
-    Value := Value - 50;
-  end; { while }
-
-  if Value >= 40 then begin
-    Result := Result + 'XL';
-    Value := Value - 40;
-  end; { while }
-
-  while Value >= 10 do begin
-    Result := Result + 'X';
-    Value := Value - 10;
-  end; { while }
-
-  if Value >= 9 then begin
-    Result := Result + 'IX';
-    Value := Value - 9;
-  end; { if }
-
-  while Value >= 5 do begin
-    Result := Result + 'V';
-    Value := Value - 5;
-  end; { while }
-
-  if Value >= 4 then begin
-    Result := Result + 'IV';
-    Value := Value - 4;
-  end; { if }
-
-  while Value > 0 do begin
-    Result := Result + 'I';
-    DEC(Value);
-  end; { while }
 end;
 
 function StreamReadString(Stream: TStream): string;

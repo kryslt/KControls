@@ -172,6 +172,57 @@ type
 
   TKMemoUpdateReasons = set of TKMemoUpdateReason;
 
+  TKMemoSparseItem = class(TKObject)
+  private
+    FIndex: Integer;
+  public
+    constructor Create;
+    procedure Assign(ASource: TKObject); override;
+    property Index: Integer read FIndex write FIndex;
+  end;
+
+  TKMemoSparseList = class(TKObjectList)
+  private
+    function GetItem(Index: Integer): TKMemoSparseItem;
+    procedure SetItem(Index: Integer; const Value: TKMemoSparseItem);
+  public
+    procedure AddItem(AValue: Integer);
+    procedure SetSize(ACount: Integer); virtual;
+    property Items[Index: Integer]: TKMemoSparseItem read GetItem write SetItem; default;
+  end;
+
+  TKMemoSparseStack = class(TStack)
+  public
+    function Push(AObject: TKMemoSparseItem): TKMemoSparseItem;
+    function Pop: TKMemoSparseItem;
+    function Peek: TKMemoSparseItem;
+    procedure PushValue(Value: Integer);
+    function PopValue: Integer;
+  end;
+
+  TKMemoDictionaryItem = class(TKObject)
+  private
+    FIndex,
+    FValue: Integer;
+  public
+    constructor Create;
+    procedure Assign(ASource: TKObject); override;
+    property Index: Integer read FIndex write FIndex;
+    property Value: Integer read FValue write FValue;
+  end;
+
+  TKMemoDictionary = class(TKObjectList)
+  private
+    function GetItem(Index: Integer): TKMemoDictionaryItem;
+    procedure SetItem(Index: Integer; const Value: TKMemoDictionaryItem);
+  public
+    procedure AddItem(AIndex, AValue: Integer);
+    function FindItem(AIndex: Integer): TKMemoDictionaryItem;
+    function GetValue(AIndex, ADefault: Integer): Integer;
+    procedure SetValue(AIndex, AValue: Integer);
+    property Items[Index: Integer]: TKMemoDictionaryItem read GetItem write SetItem; default;
+  end;
+
   TKMemoTextCapitals = (tcaNone, tcaNormal, tcaSmall);
 
   TKMemoTextStyle = class(TPersistent)
@@ -320,24 +371,42 @@ type
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   end;
 
-  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquares, pnuArrows, pnuArabic, pnuRoman, pnuLatin);
+  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquares, pnuArrows,
+    pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
 
   TKMemoParaStyle = class(TKMemoBlockStyle)
   private
     FFirstIndent: Integer;
-    FNumbering: TKmemoParaNumbering;
+    FNumberingFormat: TKString;
+    FNumberingLevel: Integer;
+    FNumberingList: Integer;
+    FNumberings: TKMemoDictionary;
+    FNumberStartAt: Integer;
     FWordWrap: Boolean;
-    FFirstNumber: Boolean;
+    function GetNumbering(Index: Integer): TKMemoParaNumbering;
     procedure SetFirstIndent(const Value: Integer);
-    procedure SetFirstNumber(const Value: Boolean);
-    procedure SetNumbering(const Value: TKmemoParaNumbering);
+    procedure SetNumbering(Index: Integer; const Value: TKMemoParaNumbering);
+    procedure SetNumberingFormat(const Value: TKString);
+    procedure SetNumberingLevel(const Value: Integer);
+    procedure SetNumberingList(const Value: Integer);
+    procedure SetNumberStartAt(const Value: Integer);
     procedure SetWordWrap(const Value: Boolean);
+    function GetNumberingAtLevel: TKMemoParaNumbering;
+    procedure SetNumberingAtLevel(const Value: TKMemoParaNumbering);
   public
+    constructor Create; override;
+    destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
     procedure Defaults; override;
+    class function CalcLevelCount(const ANumberFormat: TKString): Integer;
     property FirstIndent: Integer read FFirstIndent write SetFirstIndent;
-    property FirstNumber: Boolean read FFirstNumber write SetFirstNumber;
-    property Numbering: TKmemoParaNumbering read FNumbering write SetNumbering;
+    property Numbering[Index: Integer]: TKMemoParaNumbering read GetNumbering write SetNumbering;
+    property Numberings: TKMemoDictionary read FNumberings;
+    property NumberingFormat: TKString read FNumberingFormat write SetNumberingFormat;
+    property NumberingLevel: Integer read FNumberingLevel write SetNumberingLevel;
+    property NumberingAtLevel: TKMemoParaNumbering read GetNumberingAtLevel write SetNumberingAtLevel;
+    property NumberingList: Integer read FNumberingList write SetNumberingList;
+    property NumberStartAt: Integer read FNumberStartAt write SetNumberStartAt;
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
   end;
 
@@ -375,6 +444,7 @@ type
   private
     FBaseLine: Integer;
     FBottomPadding: Integer;
+    FClipped: Boolean;
     FExtent: TPoint;
     FEndIndex: Integer;
     FPosition: TPoint;
@@ -384,6 +454,7 @@ type
     constructor Create;
     property BaseLine: Integer read FBaseLine write FBaseLine;
     property BottomPadding: Integer read FBottomPadding write FBottomPadding;
+    property Clipped: Boolean read FClipped write FClipped;
     property EndIndex: Integer read FEndIndex write FEndIndex;
     property Extent: TPoint read FExtent write FExtent;
     property Position: TPoint read FPosition write FPosition;
@@ -397,33 +468,6 @@ type
     procedure SetItem(Index: Integer; const Value: TKMemoWord);
   public
     property Items[Index: Integer]: TKMemoWord read GetItem write SetItem; default;
-  end;
-
-  TKMemoSparseItem = class(TObject)
-  private
-    FIndex: Integer;
-  public
-    constructor Create;
-    property Index: Integer read FIndex write FIndex;
-  end;
-
-  TKMemoSparseList = class(TObjectList)
-  private
-    function GetItem(Index: Integer): TKMemoSparseItem;
-    procedure SetItem(Index: Integer; const Value: TKMemoSparseItem);
-  public
-    procedure AddItem(AValue: Integer);
-    procedure SetSize(ACount: Integer); virtual;
-    property Items[Index: Integer]: TKMemoSparseItem read GetItem write SetItem; default;
-  end;
-
-  TKMemoSparseStack = class(TStack)
-  public
-    function Push(AObject: TKMemoSparseItem): TKMemoSparseItem;
-    function Pop: TKMemoSparseItem;
-    function Peek: TKMemoSparseItem;
-    procedure PushValue(Value: Integer);
-    function PopValue: Integer;
   end;
 
   TKMemoBlocks = class;
@@ -479,6 +523,7 @@ type
     function GetWordBottomPadding(Index: Integer): Integer; virtual;
     function GetWordBoundsRect(Index: Integer): TRect; virtual;
     function GetWordBreakable(Index: Integer): Boolean; virtual;
+    function GetWordClipped(Index: Integer): Boolean; virtual;
     function GetWordCount: Integer; virtual;
     function GetWordHeight(Index: Integer): Integer; virtual;
     function GetWordLeft(Index: Integer): Integer; virtual;
@@ -494,6 +539,7 @@ type
     procedure SetTopOffset(const Value: Integer); virtual;
     procedure SetWordBaseLine(Index: Integer; const Value: Integer); virtual;
     procedure SetWordBottomPadding(Index: Integer; const Value: Integer); virtual;
+    procedure SetWordClipped(Index: Integer; const Value: Boolean); virtual;
     procedure SetWordHeight(Index: Integer; const Value: Integer); virtual;
     procedure SetWordLeft(Index: Integer; const Value: Integer); virtual;
     procedure SetWordTop(Index: Integer; const Value: Integer); virtual;
@@ -555,6 +601,7 @@ type
     property WordBreakable[Index: Integer]: Boolean read GetWordBreakable;
     property WordBottomPadding[Index: Integer]: Integer read GetWordBottomPadding write SetWordBottomPadding;
     property WordBoundsRect[Index: Integer]: TRect read GetWordBoundsRect;
+    property WordClipped[Index: Integer]: Boolean read GetWordClipped write SetWordClipped;
     property WordHeight[Index: Integer]: Integer read GetWordHeight write SetWordHeight;
     property WordLeft[Index: Integer]: Integer read GetWordLeft write SetWordLeft;
     property WordLength[Index: Integer]: Integer read GetWordLength;
@@ -597,6 +644,7 @@ type
     function GetWordBottomPadding(Index: Integer): Integer; override;
     function GetWordBoundsRect(Index: Integer): TRect; override;
     function GetWordBreakable(Index: Integer): Boolean; override;
+    function GetWordClipped(Index: Integer): Boolean; override;
     function GetWordCount: Integer; override;
     function GetWordHeight(Index: Integer): Integer; override;
     function GetWordLeft(Index: Integer): Integer; override;
@@ -611,10 +659,12 @@ type
     procedure SetText(const Value: TKString); virtual;
     procedure SetWordBaseLine(Index: Integer; const Value: Integer); override;
     procedure SetWordBottomPadding(Index: Integer; const Value: Integer); override;
+    procedure SetWordClipped(Index: Integer; const Value: Boolean); override;
     procedure SetWordHeight(Index: Integer; const Value: Integer); override;
     procedure SetWordLeft(Index: Integer; const Value: Integer); override;
     procedure SetWordTop(Index: Integer; const Value: Integer); override;
     procedure SetWordTopPadding(Index: Integer; const Value: Integer); override;
+    procedure SetWordWidth(Index: Integer; const Value: Integer); override;
     class procedure SplitText(const ASource: TKString; At: Integer; out APart1, APart2: TKString);
     function TextExtentDepOnKerning(ACanvas: TCanvas; const AText: TKString): TSize; virtual;
     function TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer; virtual;
@@ -1003,6 +1053,8 @@ type
     function LineToRect(ACanvas: TCanvas; AIndex, ALineIndex: Integer; ACaret: Boolean): TRect; virtual;
     function NormalToEOL(var AIndex: Integer): Boolean; virtual;
     procedure Notify(Ptr: Pointer; Action: TListNotification); override;
+    procedure PaintLineBackground(ACanvas: TCanvas; ALineIndex, ALeft, ATop: Integer); virtual;
+    procedure PaintLineInfo(ACanvas: TCanvas; ALineIndex, ALeft, ATop: Integer); virtual;
     function Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean = True; ATextOnly: Boolean = False): Boolean; virtual;
     procedure SetLineText(ALineIndex: Integer; const AValue: TKString); virtual;
     procedure SetSelectionParaStyle(const Value: TKMemoParaStyle); virtual;
@@ -2496,13 +2548,77 @@ end;
 
 { TKMemoParagraphStyle }
 
+constructor TKMemoParaStyle.Create;
+begin
+  FNumberings := TKMemoDictionary.Create;
+  inherited;
+end;
+
+destructor TKMemoParaStyle.Destroy;
+begin
+  if FNumberings.Count > 0 then
+  asm
+    nop
+  end;
+  FNumberings.Free;
+  inherited;
+end;
+
+class function TKMemoParaStyle.CalcLevelCount(const ANumberFormat: TKString): Integer;
+var
+  I, Level: Integer;
+  Special, NumberBlock: Boolean;
+  LevelText: TKString;
+begin
+  Result := 0;
+  Special := False;
+  NumberBlock := False;
+  for I := 1 to Length(ANumberFormat) do
+  begin
+    if ANumberFormat[I] = '%' then
+    begin
+      if Special then
+      begin
+        Special := False;
+      end
+      else if NumberBlock then
+      begin
+        NumberBlock := False;
+        Level := StrToIntDef(LevelText, -1);
+        if Level >= 0 then
+          Inc(Result);
+      end else
+        Special := True;
+    end
+    else if Special then
+    begin
+      NumberBlock := True;
+      LevelText := ANumberFormat[I];
+      Special := False;
+    end
+  end;
+end;
+
 procedure TKMemoParaStyle.Defaults;
 begin
   inherited;
   FFirstIndent := 0;
-  FFirstNumber := False;
-  FNumbering := pnuNone;
+  FNumberings.Clear;
+  FNumberingLevel := 0;
+  FNumberingList := 0;
+  FNumberingFormat := '%0%.';
+  FNumberStartAt := 0;
   FWordWrap := True;
+end;
+
+function TKMemoParaStyle.GetNumbering(Index: Integer): TKMemoParaNumbering;
+begin
+  Result := TKMemoParaNumbering(FNumberings.GetValue(Index, Integer(pnuNone)));
+end;
+
+function TKMemoParaStyle.GetNumberingAtLevel: TKMemoParaNumbering;
+begin
+  Result := Numbering[FNumberingLevel];
 end;
 
 procedure TKMemoParaStyle.Assign(ASource: TPersistent);
@@ -2511,8 +2627,11 @@ begin
   if ASource is TKMemoParaStyle then
   begin
     FirstIndent := TKMemoParaStyle(ASource).FirstIndent;
-    FirstNumber := TKMemoParaStyle(ASource).FirstNumber;
-    Numbering := TKMemoParaStyle(ASource).Numbering;
+    NumberStartAt := TKMemoParaStyle(ASource).NumberStartAt;
+    Numberings.Assign(TKMemoParaStyle(ASource).Numberings);
+    NumberingLevel := TKMemoParaStyle(ASource).NumberingLevel;
+    NumberingList := TKMemoParaStyle(ASource).NumberingList;
+    NumberingFormat := TKMemoParaStyle(ASource).NumberingFormat;
     WordWrap := TKMemoParaStyle(ASource).WordWrap;
   end;
 end;
@@ -2526,20 +2645,56 @@ begin
   end;
 end;
 
-procedure TKMemoParaStyle.SetFirstNumber(const Value: Boolean);
+procedure TKMemoParaStyle.SetNumberStartAt(const Value: Integer);
 begin
-  if Value <> FFirstNumber then
+  if Value <> FNumberStartAt then
   begin
-    FFirstNumber := Value;
+    FNumberStartAt := Value;
     Changed;
   end;
 end;
 
-procedure TKMemoParaStyle.SetNumbering(const Value: TKmemoParaNumbering);
+procedure TKMemoParaStyle.SetNumbering(Index: Integer; const Value: TKmemoParaNumbering);
 begin
-  if Value <> FNumbering then
+  if Value <> GetNumbering(Index) then
   begin
-    FNumbering := Value;
+    FNumberings.SetValue(Index, Integer(Value));
+    Changed;
+  end;
+end;
+
+procedure TKMemoParaStyle.SetNumberingAtLevel(const Value: TKMemoParaNumbering);
+begin
+  if Value <> GetNumbering(FNumberingLevel) then
+  begin
+    FNumberings.SetValue(FNumberingLevel, Integer(Value));
+    Changed;
+  end;
+end;
+
+procedure TKMemoParaStyle.SetNumberingFormat(const Value: TKString);
+begin
+  if Value <> FNumberingFormat then
+  begin
+    FNumberingFormat := Value;
+    Changed;
+  end;
+end;
+
+procedure TKMemoParaStyle.SetNumberingLevel(const Value: Integer);
+begin
+  if Value <> FNumberingLevel then
+  begin
+    FNumberingLevel := Value;
+    Changed;
+  end;
+end;
+
+procedure TKMemoParaStyle.SetNumberingList(const Value: Integer);
+begin
+  if Value <> FNumberingList then
+  begin
+    FNumberingList := Value;
     Changed;
   end;
 end;
@@ -2585,6 +2740,7 @@ constructor TKMemoWord.Create;
 begin
   FBaseLine := 0;
   FBottomPadding := 0;
+  FClipped := False;
   FExtent := CreateEmptyPoint;
   FEndIndex := 0;
   FPosition := CreateEmptyPoint;
@@ -2605,6 +2761,12 @@ begin
 end;
 
 { TKMemoSparseItem }
+
+procedure TKMemoSparseItem.Assign(ASource: TKObject);
+begin
+  if ASource is TKMemoSparseitem then
+    FIndex := TKMemoSparseItem(ASource).Index;
+end;
 
 constructor TKMemoSparseItem.Create;
 begin
@@ -2688,6 +2850,81 @@ begin
   Item := TKMemoSparseItem.Create;
   Item.Index := Value;
   Push(Item);
+end;
+
+{ TKMemoDictionaryItem }
+
+procedure TKMemoDictionaryItem.Assign(ASource: TKObject);
+begin
+  if ASource is TKMemoDictionaryItem then
+  begin
+    FIndex := TKMemoDictionaryItem(ASource).Index;
+    FValue := TKMemoDictionaryItem(ASource).Value;
+  end;
+end;
+
+constructor TKMemoDictionaryItem.Create;
+begin
+  FIndex := 0;
+  FValue := 0;
+end;
+
+{ TKMemoDictionary }
+
+procedure TKMemoDictionary.AddItem(AIndex, AValue: Integer);
+var
+  Item: TKMemoDictionaryItem;
+begin
+  Item := TKMemoDictionaryItem.Create;
+  Item.Index := AIndex;
+  Item.Value := AValue;
+  Add(Item);
+end;
+
+function TKMemoDictionary.FindItem(AIndex: Integer): TKMemoDictionaryItem;
+var
+  I: Integer;
+begin
+  // this is slow index based search but we don't need fast hash table here
+  Result := nil;
+  for I := 0 to Count - 1 do
+    if Items[I].Index = AIndex then
+    begin
+      Result := Items[I];
+      Break;
+    end;
+end;
+
+function TKMemoDictionary.GetValue(AIndex, ADefault: Integer): Integer;
+var
+  Item: TKMemoDictionaryItem;
+begin
+  Item := FindItem(AIndex);
+  if Item <> nil then
+    Result := Item.Value
+  else
+    Result := ADefault;
+end;
+
+function TKMemoDictionary.GetItem(Index: Integer): TKMemoDictionaryItem;
+begin
+  Result := TKMemoDictionaryItem(inherited GetItem(Index));
+end;
+
+procedure TKMemoDictionary.SetItem(Index: Integer; const Value: TKMemoDictionaryItem);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+procedure TKMemoDictionary.SetValue(AIndex, AValue: Integer);
+var
+  Item: TKMemoDictionaryItem;
+begin
+  Item := FindItem(AIndex);
+  if Item <> nil then
+    Item.Value := AValue
+  else
+    AddItem(AIndex, AValue);
 end;
 
 { TKMemoColors }
@@ -5233,6 +5470,11 @@ begin
   Result := True;
 end;
 
+function TKMemoBlock.GetWordClipped(Index: Integer): Boolean;
+begin
+  Result := False;
+end;
+
 function TKMemoBlock.GetWordCount: Integer;
 begin
   Result := 0;
@@ -5455,6 +5697,11 @@ end;
 
 procedure TKMemoBlock.SetWordBottomPadding(Index: Integer; const Value: Integer);
 begin
+end;
+
+procedure TKMemoBlock.SetWordClipped(Index: Integer; const Value: Boolean);
+begin
+
 end;
 
 procedure TKMemoBlock.SetWordHeight(Index: Integer; const Value: Integer);
@@ -5727,6 +5974,11 @@ begin
   Result := FWords[Index].BottomPadding;
 end;
 
+function TKMemoTextBlock.GetWordClipped(Index: Integer): Boolean;
+begin
+  Result := FWords[Index].Clipped;
+end;
+
 function TKMemoTextBlock.GetWordCount: Integer;
 begin
   Result := FWords.Count;
@@ -5853,9 +6105,9 @@ var
   C, CU, SU: TKString;
   I, SmallFontHeight, X, Y: Integer;
 begin
-  if Pos(#9, AText) <> 0 then
+  if Pos(cTab, AText) <> 0 then
   begin
-    SU := UnicodeStringReplace(AText, #9, TabChar, [rfReplaceAll]);
+    SU := UnicodeStringReplace(AText, cTab, TabChar, [rfReplaceAll]);
     Size := TextExtentDepOnKerning(ACanvas, SU);
     Result := Point(Size.cx, Size.cy);
   end
@@ -5923,6 +6175,11 @@ begin
   FWords[Index].BottomPadding := Value;
 end;
 
+procedure TKMemoTextBlock.SetWordClipped(Index: Integer; const Value: Boolean);
+begin
+  FWords[Index].Clipped := Value;
+end;
+
 procedure TKMemoTextBlock.SetWordHeight(Index: Integer; const Value: Integer);
 var
   P: TPoint;
@@ -5953,6 +6210,15 @@ end;
 procedure TKMemoTextBlock.SetWordTopPadding(Index: Integer; const Value: Integer);
 begin
   FWords[Index].TopPadding := Value;
+end;
+
+procedure TKMemoTextBlock.SetWordWidth(Index: Integer; const Value: Integer);
+var
+  P: TPoint;
+begin
+  P := FWords[Index].Extent;
+  P.X := Value;
+  FWords[Index].Extent := P;
 end;
 
 function TKMemoTextBlock.Split(At: Integer; AllowEmpty: Boolean): TKMemoBlock;
@@ -6174,9 +6440,9 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
         DrawFilledRectangle(ACanvas, ARect, clNone);
       SetBkMode(Handle, TRANSPARENT);
       AdjBaseLine := AdjustBaseLine(ABaseLine); // align to baseline
-      if (Pos(#9, AText) <> 0) and ShowFormatting then
+      if (Pos(cTab, AText) <> 0) and ShowFormatting then
       begin
-        SU := UnicodeStringReplace(AText, #9, TabChar, [rfReplaceAll]);
+        SU := UnicodeStringReplace(AText, cTab, TabChar, [rfReplaceAll]);
         TextOutputDepOnKerning(ACanvas, ARect.Left, AdjBaseLine, SU);
       end
       else if FTextStyle.Capitals = tcaNone then
@@ -6212,9 +6478,11 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
 var
   W, X, Y, BaseLine: Integer;
   S, T, Part1, Part2, Part3: TKString;
-  R: TRect;
+  R, RClip: TRect;
   Word: TKMemoWord;
   Color, Bkgnd: TColor;
+  MainClipRgn: HRGN;
+  SaveIndex: Integer;
 begin
   with ACanvas do
   begin
@@ -6268,7 +6536,27 @@ begin
     end else
     begin
       R := Rect(X, Y + Word.TopPadding, X + Word.Extent.X, Y + Word.Extent.Y - Word.BottomPadding);
-      TextDraw(R, BaseLine, S);
+      if FWords[AWordIndex].Clipped then
+      begin
+        SaveIndex := SaveDC(ACanvas.Handle);
+        MainClipRgn := CreateEmptyRgn;
+        try
+          RClip := R;
+          TranslateRectToDevice(ACanvas.Handle, RClip);
+          if GetClipRgn(ACanvas.Handle, MainClipRgn) <> 1 then
+          begin
+            DeleteObject(MainClipRgn);
+            MainClipRgn := CreateRectRgnIndirect(RClip);
+          end;
+          if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, MainClipRgn) then
+            TextDraw(R, BaseLine, S);
+        finally
+          RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
+          RestoreDC(ACanvas.Handle, SaveIndex);
+        end;
+        ACanvas.Refresh;
+      end else
+        TextDraw(R, BaseLine, S);
     end;
   end;
 end;
@@ -6410,19 +6698,14 @@ end;
 
 function TKMemoParagraph.GetNumberBlock: TKMemoTextBlock;
 begin
-  if FParaStyle.Numbering <> pnuNone then
+  if FParaStyle.NumberingAtLevel <> pnuNone then
   begin
     if FNumberBlock = nil then
+    begin
       FNumberBlock := TKMemoTextBlock.Create(nil);
-    FNumberBlock.TextStyle.Assign(TextStyle);
-    case FParaStyle.Numbering of
-      pnuBullets: FNumberBlock.Text := UnicodeToNativeUTF(cBullet) + cTab;
-      pnuSquares: FNumberBlock.Text := UnicodeToNativeUTF(cSquareBullet) + cTab;
-      pnuArrows: FNumberBlock.Text := UnicodeToNativeUTF(cArrowBullet) + cTab;
-      pnuArabic: ;
-      pnuRoman: ;
-      pnuLatin: ;
+      FNumberBlock.Parent := Parent; // because of FMemoNotifier
     end;
+    FNumberBlock.TextStyle.Assign(TextStyle);
   end else
     FreeAndNil(FNumberBlock);
   Result := FNumberBlock;
@@ -6451,8 +6734,6 @@ end;
 procedure TKMemoParagraph.WordPaintToCanvas(ACanvas: TCanvas; AWordIndex, ALeft, ATop: Integer);
 begin
   inherited;
-  if FNumberBlock <> nil then
-    FNumberBlock.PaintToCanvas(ACanvas, ALeft, ATop);
 end;
 
 { TKImageMemoBlock }
@@ -8635,8 +8916,13 @@ begin
   Result := TKMemoParagraph.Create(Self);
   PA := GetNearestParagraph(At);
   if PA <> nil then
-    Result.AssignAttributes(PA)
-  else
+  begin
+    Result.AssignAttributes(PA);
+    if PA.ParaStyle.NumberStartAt > 0 then
+    begin
+      PA.ParaStyle.NumberStartAt := 0;
+    end;
+  end else
   begin
     Result.TextStyle.Assign(LastTextStyle(At));
     Result.ParaStyle.Assign(GetDefaultParaStyle);
@@ -8962,7 +9248,7 @@ begin
   Result := True;
   if (ALineIndex >= 0) and (ALineIndex < LineCount) then
   begin
-    for I := FLines[ALineIndex].StartBlock to FLines[ALineIndex].EndBlock do if I < Count then
+    for I := FLines[ALineIndex].StartBlock to FLines[ALineIndex].EndBlock do
     begin
       Item := Items[I];
       if Item.WrapMode = wrNone then
@@ -9819,10 +10105,11 @@ procedure TKMemoBlocks.MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer);
 var
   PosX, PosY, Right, CurBlock, CurIndex, CurWord, CurTotalWord, LineHeight, ParaWidth, ParaPosY, LastBlock, LastIndex, LastWord, LastTotalWord: Integer;
   CurParaStyle: TKMemoParaStyle;
+  CurParagraph: TKMemoParagraph;
 
   function GetParaStyle(AParagraph: TKMemoParagraph): TKMemoParaStyle;
-  var
-    Para: TKMemoParagraph;
+{  var
+    Para: TKMemoParagraph;}
   begin
 {    if (ABlockIndex >= 0) and (ABlockIndex < Count) then
       Result := Items[ABlockIndex].ParaStyle
@@ -9873,27 +10160,38 @@ var
     end;
   end;
 
-  procedure MoveWordsOnLine(ALineIndex, AStartPos, AEndPos, ADelta: Integer);
+  function AddLine: Boolean;
   var
-    I, J, St, En: Integer;
-    Item: TKMemoBlock;
-  begin
-    for I := FLines[ALineIndex].StartBlock to FLines[ALineIndex].EndBlock do
+    NumberBlock: TKmemoTextBlock;
+
+    procedure MoveWordsOnLine(ALineIndex, AStartPos, AEndPos, ADelta: Integer);
+    var
+      I, J, St, En: Integer;
+      Item: TKMemoBlock;
     begin
-      Item := Items[I];
-      if Item.Position = mbpText then
+      for I := FLines[ALineIndex].StartBlock to FLines[ALineIndex].EndBlock do
       begin
-        GetWordIndexes(I, ALineIndex, St, En);
-        for J := St to En do
+        Item := Items[I];
+        if Item.Position = mbpText then
         begin
-          if (Item.WordLeft[J] >= AStartPos) and (Item.WordLeft[J] + Item.WordWidth[J] <= AEndPos) then
-            Item.WordLeft[J] := item.WordLeft[J] + ADelta;
+          GetWordIndexes(I, ALineIndex, St, En);
+          for J := St to En do
+          begin
+            if (Item.WordLeft[J] >= AStartPos) and (Item.WordLeft[J] + Item.WordWidth[J] <= AEndPos) then
+              Item.WordLeft[J] := Item.WordLeft[J] + ADelta;
+          end;
+        end;
+      end;
+      if NumberBlock <> nil then
+      begin
+        for J := 0 to NumberBlock.WordCount - 1 do
+        begin
+//          if (NumberBlock.WordLeft[J] >= AStartPos) and (NumberBlock.WordLeft[J] + NumberBlock.WordWidth[J] <= AEndPos) then
+            NumberBlock.WordLeft[J] := NumberBlock.WordLeft[J] + ADelta;
         end;
       end;
     end;
-  end;
 
-  function AddLine: Boolean;
   var
     Line, LastLine: TKMemoLine;
     EndItem, Item: TKMemoBlock;
@@ -9942,11 +10240,13 @@ var
       if WasParagraph then
       begin
         FirstIndent := CurParaStyle.FirstIndent;
-        TopPadding := CurParaStyle.TopPadding
+        TopPadding := CurParaStyle.TopPadding;
+        NumberBlock := CurParagraph.NumberBlock;
       end else
       begin
         FirstIndent := 0;
         TopPadding := 0;
+        NumberBlock := nil;
       end;
       if EndItem is TKMemoParagraph then
       begin
@@ -9965,6 +10265,8 @@ var
         if Item.Position = mbpText then
           BaseLine := Max(BaseLine, Item.CalcBaseLine(ACanvas));
       end;
+      if NumberBlock <> nil then
+        BaseLine := Max(BaseLine, NumberBlock.CalcBaseLine(ACanvas));
       // adjust line and paragraph heights
       Inc(LineHeight, TopPadding + BottomPadding);
       // adjust all words horizontally
@@ -10034,6 +10336,19 @@ var
           end;
         end;
       end;
+      if NumberBlock <> nil then
+      begin
+        for J := 0 to NumberBlock.WordCount - 1 do
+        begin
+          NumberBlock.WordBaseLine[J] := BaseLine;
+          NumberBlock.WordBottomPadding[J] := BottomPadding;
+          NumberBlock.WordHeight[J] := LineHeight;
+          NumberBlock.WordTopPadding[J] := TopPadding;
+          R := NumberBlock.WordBoundsRect[J];
+          LineLeft := Min(LineLeft, R.Left);
+          LineRight := Max(LineRight, R.Right);
+        end;
+      end;
       // adjust paragraph extent
       if LineRight > ARequiredWidth then
         Dec(LineRight, ParaMarkWidth);
@@ -10043,7 +10358,8 @@ var
         TKMemoParagraph(EndItem).Top := ParaPosY;
         TKmemoParagraph(EndItem).Width := ParaWidth;
         TKmemoParagraph(EndItem).Height := PosY + LineHeight - ParaPosY - CurParaStyle.BottomPadding;
-        CurParaStyle := GetParaStyle(GetNearestParagraph(CurBlock));
+        CurParagraph := GetNearestParagraph(CurBlock);
+        CurParaStyle := GetParaStyle(CurParagraph);
         ParaWidth := 0;
         ParaPosY := PosY + LineHeight + CurParaStyle.TopPadding;
       end;
@@ -10129,11 +10445,12 @@ var
 
 var
   Extent, NBExtent: TPoint;
-  WLen, PrevPosX, PrevPosY: Integer;
-  ExtraItem: Boolean; IsBreakable, IsParagraph, OutSide, WasBreakable, WasParagraph: Boolean;
+  I, FirstIndent, WLen, PrevPosX, PrevPosY: Integer;
+  IsBreakable, IsParagraph, OutSide, WasBreakable, WasParagraph: Boolean;
   Item: TKMemoBlock;
   NextParagraph: TKMemoParagraph;
   NextParaStyle: TKMemoParaStyle;
+  S: TKString;
 begin
   // this is the main word processing calculation
   FRequiredWidth := ARequiredWidth;
@@ -10147,7 +10464,8 @@ begin
   LastTotalWord := 0;
   CurTotalWord := 0;
   CurIndex := 0;
-  CurParaStyle := GetParaStyle(GetNearestParagraph(0));
+  CurParagraph := GetNearestParagraph(0);
+  CurParaStyle := GetParaStyle(CurParagraph);
   PosX := CurParaStyle.LeftPadding + CurParaStyle.FirstIndent;
   PosY := 0;
   ParaPosY := CurParaStyle.TopPadding;
@@ -10164,29 +10482,43 @@ begin
   IsParagraph := False;
   while CurBlock < Count do
   begin
-    if IsParagraph then
+    CurWord := 0;
+    if IsParagraph or (CurBlock = 0) then
     begin
       NextParagraph := GetNearestParagraph(CurBlock);
       NextParaStyle := GetParaStyle(NextParagraph);
-      if NextParaStyle.Numbering <> pnuNone then
+      Item := NextParagraph.NumberBlock;
+      if Item <> nil then
       begin
-        Item := NextParagraph.NumberBlock;
-        ExtraItem := True;
-      end else
-      begin
-        Item := Items[CurBlock];
-        ExtraItem := False;
-      end;
+        // we must include the nonselectable bullet/number block into normal text flow
+        AddLine;
+        IsParagraph := False;
+        NBExtent.X := 0;
+        for I := 0 to Item.WordCount - 1 do
+        begin
+          Extent := Item.WordMeasureExtent(ACanvas, I, 0);
+          // align the text following the bullet/number within paragraph, if possible
+          S := Item.Words[I];
+          if (S = cTab) and (NBExtent.X < -NextParaStyle.FirstIndent) then
+          begin
+            Extent.X := -NextParaStyle.FirstIndent - NBExtent.X;
+            Item.WordWidth[I] := Extent.X;
+            Item.WordClipped[I] := True;
+          end;
+          MoveWordToFreeSpace(Extent.X, Extent.Y);
+          Item.WordLeft[I] := PosX;
+          Item.WordTop[I] := PosY;
+          Inc(PosX, Extent.X);
+          LineHeight := Max(LineHeight, Extent.Y);
+          Inc(NBExtent.X, Extent.X);
+        end;
+      end
     end else
-    begin
       NextParaStyle := CurParaStyle;
-      Item := Items[CurBlock];
-      ExtraItem := False;
-    end;
+    Item := Items[CurBlock];
     case Item.Position of
       mbpText:
       begin
-        CurWord := 0;
         while CurWord < Item.WordCount do
         begin
           WasParagraph := IsParagraph;
@@ -10194,7 +10526,11 @@ begin
           WLen := Item.WordLength[CurWord];
           WasBreakable := IsBreakable or not (Item is TKMemoTextBlock);
           IsBreakable := Item.WordBreakable[CurWord];
-          Extent := MeasureNextWords(ACanvas, CurBlock, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - NextParaStyle.FirstIndent, IsBreakable, NBExtent);
+          if WasParagraph then
+            FirstIndent := NextParaStyle.FirstIndent
+          else
+            FirstIndent := 0;
+          Extent := MeasureNextWords(ACanvas, CurBlock, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - FirstIndent, IsBreakable, NBExtent);
           OutSide := CurParaStyle.WordWrap and not IsParagraph and WasBreakable and (PosX + NBExtent.X > Right);
           if OutSide or WasParagraph then
             AddLine;
@@ -10204,15 +10540,13 @@ begin
           Inc(PosX, Extent.X);
           LineHeight := Max(LineHeight, Extent.Y);
           Inc(CurWord);
-          if not ExtraItem then
-          begin
-            Inc(CurIndex, WLen);
-            Inc(CurTotalWord);
-          end;
+          Inc(CurIndex, WLen);
+          Inc(CurTotalWord);
         end;
       end;
       mbpRelative:
       begin
+        // always place object anchor to the beginning of new paragraph
         if IsParagraph then
         begin
           AddLine;
@@ -10235,11 +10569,13 @@ begin
         end;
       end;
     end;
-    if not ExtraItem then
-      Inc(CurBlock);
+    Inc(CurBlock);
   end;
   if CurIndex > LastIndex then
+  begin
+    CurWord := 0;
     AddLine;
+  end;
 end;
 
 function TKMemoBlocks.MouseAction(AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
@@ -10374,12 +10710,64 @@ begin
     Items[I].NotifyDefaultTextChange;
 end;
 
+procedure TKMemoBlocks.PaintLineBackground(ACanvas: TCanvas; ALineIndex, ALeft, ATop: Integer);
+var
+  SaveIndex: Integer;
+  R, RClip: TRect;
+  PA: TKMemoParagraph;
+  MainClipRgn: HRGN;
+begin
+  PA := GetNearestParagraph(FLines[ALineIndex].StartBlock);
+  if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
+  begin
+    R := Rect(0, 0, Max(FRequiredWidth, PA.Width), PA.Height);
+    OffsetRect(R, PA.Left, PA.Top);
+    RClip := R;
+    RClip.Top := Max(RClip.Top, LineTop[ALineIndex]);
+    RClip.Bottom := Min(RClip.Bottom, LineBottom[ALineIndex]);
+    OffsetRect(R, ALeft, ATop);
+    OffsetRect(RClip, ALeft, ATop);
+    SaveIndex := SaveDC(ACanvas.Handle);
+    MainClipRgn := CreateEmptyRgn;
+    try
+      TranslateRectToDevice(ACanvas.Handle, RClip);
+      if GetClipRgn(ACanvas.Handle, MainClipRgn) <> 1 then
+      begin
+        DeleteObject(MainClipRgn);
+        MainClipRgn := CreateRectRgnIndirect(RClip);
+      end;
+      if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, MainClipRgn) then
+        PA.ParaStyle.PaintBox(ACanvas, R);
+    finally
+      RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
+      RestoreDC(ACanvas.Handle, SaveIndex);
+    end;
+    ACanvas.Refresh;
+  end;
+end;
+
+procedure TKMemoBlocks.PaintLineInfo(ACanvas: TCanvas; ALineIndex, ALeft, ATop: Integer);
+var
+  R: TRect;
+begin
+  R := LineRect[ALineIndex];
+  OffsetRect(R, ALeft, ATop);
+  ACanvas.Brush.Style := bsClear;
+  ACanvas.Font.Size := 8;
+  ACanvas.Font.Color := clWindowText;
+  ACanvas.Font.Style := [];
+  ACanvas.Rectangle(R);
+  ACanvas.TextOut(R.Right, R.Top, IntToStr(Flines[ALineIndex].StartBlock));
+  ACanvas.TextOut(R.Right + 20, R.Top, IntToStr(Flines[ALineIndex].EndBlock));
+  ACanvas.TextOut(R.Right + 40, R.Top, IntToStr(Flines[ALineIndex].StartWord));
+  ACanvas.TextOut(R.Right + 60, R.Top, IntToStr(Flines[ALineIndex].EndWord));
+end;
+
 procedure TKMemoBlocks.PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect);
 var
   I, J, K, St, En: Integer;
   R: TRect;
   Item: TKMemoBlock;
-  PA: TKMemoParagraph;
 begin
   // paint text blocks
   for I := 0 to LineCount - 1 do
@@ -10389,16 +10777,7 @@ begin
       // fill areas under paragraphs
       if LineFloat[I] then
       begin
-        PA := GetNearestParagraph(FLines[I].StartBlock);
-        if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
-        begin
-          R := Rect(0, 0, Max(FRequiredWidth, PA.Width), PA.Height);
-          OffsetRect(R, PA.Left, PA.Top);
-          R.Top := Max(R.Top, LineTop[I]);
-          R.Bottom := Min(R.Bottom, LineBottom[I]);
-          OffsetRect(R, ALeft, ATop);
-          PA.ParaStyle.PaintBox(ACanvas, R);
-        end;
+        PaintLineBackground(ACanvas, I, ALeft, ATop);
       end;
       // then paint text blocks
       for J := FLines[I].StartBlock to FLines[I].EndBlock do
@@ -10410,6 +10789,24 @@ begin
           for K := St to En do
             Item.WordPaintToCanvas(ACanvas, K, ALeft, ATop);
         end;
+      end;
+      // paint line info, only for debug purposes
+      //PaintLineInfo(ACanvas, I, ALeft, ATop);
+    end;
+  end;
+  // paint numbering blocks
+  for I := 0 to Count - 1 do
+  begin
+    Item := Items[I];
+    if Item is TKMemoParagraph then
+    begin
+      Item := TKMemoParagraph(Item).NumberBlock;
+      if Item <> nil then
+      begin
+        R := Item.BoundsRect;
+        OffsetRect(R, ALeft, ATop);
+        if RectInRect(ARect, R) then
+          Item.PaintToCanvas(ACanvas, ALeft, ATop);
       end;
     end;
   end;
@@ -10818,12 +11215,87 @@ end;
 
 procedure TKMemoBlocks.UpdateAttributes;
 var
+  NumberDic: TKMemoDictionary;
+
+  function NumberToText(ANumber: Integer; AStyle: TKMemoParaNumbering): TKString;
+  begin
+    case AStyle of
+      pnuArabic: Result := IntToStr(ANumber);
+      pnuLetterLo, pnuLetterHi: Result := IntToLatin(ANumber, AStyle = pnuLetterHi);
+      pnuRomanLo, pnuRomanHi: Result := IntToRoman(ANumber, AStyle = pnuRomanHi);
+    end;
+  end;
+
+  function FormatNumberString(AStyle: TKMemoParaStyle): TKString;
+  var
+    I, Tmp, LevelCount, LevelNumber, Level: Integer;
+    Counted, Special, NumberBlock: Boolean;
+    LevelText: TKString;
+  begin
+    // format using the numbering format
+    Result := '';
+    Special := False;
+    NumberBlock := False;
+    Counted := False;
+    LevelCount := TKMemoParaStyle.CalcLevelCount(AStyle.NumberingFormat);
+    for I := 1 to Length(AStyle.NumberingFormat) do
+    begin
+      if AStyle.NumberingFormat[I] = '%' then
+      begin
+        if Special then
+        begin
+          Result := Result + AStyle.NumberingFormat[I];
+          Special := False;
+        end
+        else if NumberBlock then
+        begin
+          NumberBlock := False;
+          Level := StrToIntDef(LevelText, -1);
+          if Level >= 0 then
+          begin
+            Tmp := ((AStyle.NumberingList and $FFFF) shl 16) or (Level and $FFFF);
+            LevelNumber := NumberDic.GetValue(Tmp, 1);
+            if Level < LevelCount - 1 then
+              Dec(LevelNumber);
+            if AStyle.NumberStartAt > 0 then
+              LevelNumber := AStyle.NumberStartAt;
+            Result := Result + NumberToText(LevelNumber, AStyle.Numbering[Level]);
+            Counted := True;
+          end;
+        end else
+          Special := True;
+      end
+      else if Special then
+      begin
+        NumberBlock := True;
+        LevelText := AStyle.NumberingFormat[I];
+        Special := False;
+      end
+      else if NumberBlock then
+        LevelText := LevelText + AStyle.NumberingFormat[I]
+      else
+        Result := Result + AStyle.NumberingFormat[I];
+    end;
+    if Counted then
+    begin
+      Inc(LevelNumber);
+      NumberDic.SetValue(Tmp, LevelNumber);
+    end else
+    asm
+      nop // debug line
+    end;
+    Result := Result + cTab;
+  end;
+
+var
   I: Integer;
   Item: TKMemoBlock;
+  PA: TKMemoParagraph;
 begin
   if FRelPos <> nil then
   begin
     Inc(FUpdateLock);
+    NumberDic := TKMemoDictionary.Create;
     try
       FRelPos.Clear;
       FSelectableLength := 0;
@@ -10833,7 +11305,16 @@ begin
         if Item.Position = mbpText then
         begin
           if Item is TKMemoParagraph then
-            Item.AssignAttributes(GetLastItemByClass(I, TKMemoTextBlock));
+          begin
+            PA := TKMemoParagraph(Item);
+            PA.AssignAttributes(GetLastItemByClass(I, TKMemoTextBlock)); // TODO: make this line optional
+            case PA.ParaStyle.NumberingAtLevel of
+              pnuBullets: PA.NumberBlock.Text := UnicodeToNativeUTF(cBullet) + cTab;
+              pnuSquares: PA.NumberBlock.Text := UnicodeToNativeUTF(cSquareBullet) + cTab;
+              pnuArrows: PA.NumberBlock.Text := UnicodeToNativeUTF(cArrowBullet) + cTab;
+              pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi: PA.NumberBlock.Text := FormatNumberString(PA.ParaStyle);
+            end;
+          end;
           Inc(FSelectableLength, Item.SelectableLength);
         end else
         begin
@@ -10842,6 +11323,7 @@ begin
       end;
     finally
       Dec(FUpdateLock);
+      NumberDic.Free;
       FUpdateReasons := [];
     end;
   end;

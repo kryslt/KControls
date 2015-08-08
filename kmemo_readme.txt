@@ -9,13 +9,13 @@ Refer to kcontrols_readme.txt for installation requirements and other informatio
 
 PLANNED/STILL MISSING:
 -------------------
-- bullets and numbering
+- justify paragraph alignment (now defaults to left justify)
 - tab stops
-- line spacing
-- justify paragraph alignment
-- moving and resizing of relative objects (images, text boxes), anchors
+- relative object tools (images, text boxes), anchors
+- table tools
 - undo/redo commands
 - search/replace commands
+- style sheets
 - readers/writers from/into other formats (HTML, ODT, PDF?)
 
 KNOWN PROBLEMS:

@@ -31,7 +31,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Printers, Forms, KFunctions
+  SysUtils, Classes, Graphics, Controls, Contnrs, Printers, Forms, KFunctions
 {$IFDEF USE_THEMES}
   , Themes
  {$IFNDEF FPC}
@@ -270,6 +270,18 @@ type
     property Top: Integer read FTop write SetTop default cContentPaddingTopDef;
     property Right: Integer read FRight write SetRight default cContentPaddingRightDef;
     property Bottom: Integer read FBottom write SetBottom default cContentPaddingBottomDef;
+  end;
+
+  TKObject = class(TObject)
+  public
+    procedure Assign(ASource: TKObject); virtual;
+  end;
+
+  TKObjectClass = class of TKObject;
+
+  TKObjectList = class(TObjectList)
+  public
+    procedure Assign(ASource: TKObjectList); virtual;
   end;
 
   { Base class for all visible controls in KControls. }
@@ -1271,6 +1283,28 @@ begin
   begin
     FTop := Value;
     Changed;
+  end;
+end;
+
+{ TKObject }
+
+procedure TKObject.Assign(ASource: TKObject);begin
+end;
+
+{ TKObjectList }
+
+procedure TKObjectList.Assign(ASource: TKObjectList);var  I: Integer;  Cls: TKObjectClass;  SrcItem, DstItem: TKObject;begin
+  if ASource <> nil then
+  begin
+    Clear;
+    for I := 0 to ASource.Count - 1 do
+    begin
+      SrcItem := ASource.Items[I] as TKObject;
+      Cls := TKObjectClass(SrcItem.ClassType);
+      DstItem := Cls.Create;
+      DstItem.Assign(SrcItem);
+      Add(DstItem);
+    end;
   end;
 end;
 
@@ -3430,5 +3464,4 @@ initialization
 {$ELSE}
   {$R kcontrols.res}
 {$ENDIF}
-
 end.

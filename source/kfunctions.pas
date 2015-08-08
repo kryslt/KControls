@@ -630,7 +630,12 @@ function IntToHexStr(Value: Int64; Digits: Byte; const Prefix, Suffix: string;
   UseLowerCase: Boolean): string;
 { Converts an integer into octal digit string. }
 function IntToOctStr(Value: Int64): string;
+{ Converts an integer into roman number. }
+function IntToRoman(Value: Integer; AUpperCase: Boolean): string;
+{ Converts an integer into latin alphabetic numbering. }
+function IntToLatin(Value: Integer; AUpperCase: Boolean): string;
 
+{ Calculates an integer power from an integer number. }
 function IntPowerInt(Value: Int64; Exponent: Integer): Int64;
 
 { Converts a binary string into integer with custom alignment (given by Digits). }
@@ -1721,6 +1726,93 @@ begin
   Result := '0' + Result;
   if Signum then
     Result := '-' + Result;
+end;
+
+function IntToRoman(Value: Integer; AUpperCase: Boolean): string;
+begin
+  Result := '';
+  while Value >= 1000 do begin
+    Result := Result + 'M';
+    Value := Value - 1000;
+  end; { while }
+
+  if Value >= 900 then begin
+    Result := Result + 'CM';
+    Value := Value - 900;
+  end; { if }
+
+  while Value >= 500 do begin
+    Result := Result + 'D';
+    Value := Value - 500;
+  end; { while }
+
+  if Value >= 400 then begin
+    Result := Result + 'CD';
+    Value := Value - 400;
+  end; { if }
+
+  while Value >= 100 do begin
+    Result := Result + 'C';
+    Value := Value - 100;
+  end; { while }
+
+  if Value >= 90 then begin
+    Result := Result + 'XC';
+    Value := Value - 90;
+  end; { if }
+
+  while Value >= 50 do begin
+    Result := Result + 'L';
+    Value := Value - 50;
+  end; { while }
+
+  if Value >= 40 then begin
+    Result := Result + 'XL';
+    Value := Value - 40;
+  end; { while }
+
+  while Value >= 10 do begin
+    Result := Result + 'X';
+    Value := Value - 10;
+  end; { while }
+
+  if Value >= 9 then begin
+    Result := Result + 'IX';
+    Value := Value - 9;
+  end; { if }
+
+  while Value >= 5 do begin
+    Result := Result + 'V';
+    Value := Value - 5;
+  end; { while }
+
+  if Value >= 4 then begin
+    Result := Result + 'IV';
+    Value := Value - 4;
+  end; { if }
+
+  while Value > 0 do begin
+    Result := Result + 'I';
+    Dec(Value);
+  end; { while }
+  if not AUpperCase then
+    Result := LowerCase(Result);
+end;
+
+function IntToLatin(Value: Integer; AUpperCase: Boolean): string;
+var
+  OrdA: Integer;
+begin
+  Result := '';
+  if AUpperCase then
+    OrdA := Ord('A')
+  else
+    OrdA := Ord('a');
+  while Value > 0 do
+  begin
+    Result := Chr(Value mod 26 + OrdA - 1) + Result;
+    Value := Value div 26;
+  end;
 end;
 
 function IntPowerInt(Value: Int64; Exponent: Integer): Int64;
