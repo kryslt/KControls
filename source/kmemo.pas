@@ -178,6 +178,7 @@ type
   public
     constructor Create;
     procedure Assign(ASource: TKObject); override;
+    function EqualProperties(ASource: TKObject): Boolean; override;
     property Index: Integer read FIndex write FIndex;
   end;
 
@@ -207,6 +208,7 @@ type
   public
     constructor Create;
     procedure Assign(ASource: TKObject); override;
+    function EqualProperties(ASource: TKObject): Boolean; override;
     property Index: Integer read FIndex write FIndex;
     property Value: Integer read FValue write FValue;
   end;
@@ -249,7 +251,7 @@ type
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
     procedure Defaults; virtual;
-    function EqualProperties(AValue: TKMemoTextStyle): Boolean; virtual;
+    function EqualProperties(ASource: TKMemoTextStyle): Boolean; virtual;
     procedure NotifyChange(AValue: TKMemoTextStyle); virtual;
     property AllowBrush: Boolean read FAllowBrush write SetAllowBrush;
     property Capitals: TKMemoTextCapitals read FCapitals write SetCapitals;
@@ -280,6 +282,8 @@ type
     wrUnknown
   );
 
+  TKMemoBlockStyleChangedEvent = procedure(Sender: TObject; AReasons: TKMemoUpdateReasons) of object;
+
   TKMemoBlockStyle = class(TPersistent)
   private
     FBrush: TBrush;
@@ -292,7 +296,7 @@ type
     FFillBlip: TGraphic;
     FHAlign: TKHAlign;
     FWrapMode: TKMemoBlockWrapMode;
-    FOnChanged: TNotifyEvent;
+    FOnChanged: TKMemoBlockStyleChangedEvent;
     function GetBottomPadding: Integer;
     function GetLeftPadding: Integer;
     function GetRightPadding: Integer;
@@ -331,7 +335,7 @@ type
     FChanged: Boolean;
     FLocked: Boolean;
     procedure BrushChanged(Sender: TObject);
-    procedure Changed; virtual;
+    procedure Changed(AReasons: TKMemoUpdateReasons); virtual;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -368,44 +372,71 @@ type
     property TopMargin: Integer read GetTopMargin write SetTopMargin;
     property TopPadding: Integer read GetTopPadding write SetTopPadding;
     property WrapMode: TKMemoBlockWrapMode read FWrapMode write SetWrapMode;
-    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
+    property OnChanged: TKMemoBlockStyleChangedEvent read FOnChanged write FOnChanged;
   end;
 
-  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquares, pnuArrows,
-    pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
+  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
+
+  TKMemoNumberingFormatItem = class(TKObject)
+  private
+    FLevel: Integer;
+    FText: TKString;
+  public
+    constructor Create;
+    procedure Assign(ASource: TKObject); override;
+    property Level: Integer read FLevel write FLevel;
+    property Text: TKString read FText write FText;
+  end;
+
+  TKMemoNumberingFormat = class(TKObjectList)
+  private
+    function GetItem(Index: Integer): TKMemoNumberingFormatItem;
+    procedure SetItem(Index: Integer; const Value: TKMemoNumberingFormatItem);
+    function GetLevelCount: Integer;
+  public
+    procedure AddItem(ALevel: Integer; const AText: TKString);
+    procedure Defaults(ANumbering: TKMemoParaNumbering);
+    procedure InsertItem(AAt, ALevel: Integer; const AText: TKString);
+    property Items[Index: Integer]: TKMemoNumberingFormatItem read GetItem write SetItem; default;
+    property LevelCount: Integer read GetLevelCount;
+  end;
 
   TKMemoParaStyle = class(TKMemoBlockStyle)
   private
     FFirstIndent: Integer;
-    FNumberingFormat: TKString;
-    FNumberingLevel: Integer;
+    FLevelNumberings: TKMemoDictionary;
+    FNumberingFont: TFont;
+    FNumberingFormat: TKMemoNumberingFormat;
     FNumberingList: Integer;
-    FNumberings: TKMemoDictionary;
+    FNumberingListLevel: Integer;
     FNumberStartAt: Integer;
     FWordWrap: Boolean;
-    function GetNumbering(Index: Integer): TKMemoParaNumbering;
+    function GetLevelNumbering(Index: Integer): TKMemoParaNumbering;
+    function GetNumbering: TKMemoParaNumbering;
     procedure SetFirstIndent(const Value: Integer);
-    procedure SetNumbering(Index: Integer; const Value: TKMemoParaNumbering);
-    procedure SetNumberingFormat(const Value: TKString);
-    procedure SetNumberingLevel(const Value: Integer);
+    procedure SetLevelNumbering(Index: Integer; const Value: TKMemoParaNumbering);
+    procedure SetNumbering(const Value: TKMemoParaNumbering);
     procedure SetNumberingList(const Value: Integer);
+    procedure SetNumberingListLevel(const Value: Integer);
     procedure SetNumberStartAt(const Value: Integer);
     procedure SetWordWrap(const Value: Boolean);
-    function GetNumberingAtLevel: TKMemoParaNumbering;
-    procedure SetNumberingAtLevel(const Value: TKMemoParaNumbering);
+  protected
+    FNumberingFontChanged: Boolean;
+    procedure FontChanged(Sender: TObject);
   public
     constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
     procedure Defaults; override;
-    class function CalcLevelCount(const ANumberFormat: TKString): Integer;
     property FirstIndent: Integer read FFirstIndent write SetFirstIndent;
-    property Numbering[Index: Integer]: TKMemoParaNumbering read GetNumbering write SetNumbering;
-    property Numberings: TKMemoDictionary read FNumberings;
-    property NumberingFormat: TKString read FNumberingFormat write SetNumberingFormat;
-    property NumberingLevel: Integer read FNumberingLevel write SetNumberingLevel;
-    property NumberingAtLevel: TKMemoParaNumbering read GetNumberingAtLevel write SetNumberingAtLevel;
+    property LevelNumbering[Index: Integer]: TKMemoParaNumbering read GetLevelNumbering write SetLevelNumbering;
+    property LevelNumberings: TKMemoDictionary read FLevelNumberings;
+    property Numbering: TKMemoParaNumbering read GetNumbering write SetNumbering;
+    property NumberingFont: TFont read FNumberingFont;
+    property NumberingFontChanged: Boolean read FNumberingFontChanged;
+    property NumberingFormat: TKMemoNumberingFormat read FNumberingFormat;
     property NumberingList: Integer read FNumberingList write SetNumberingList;
+    property NumberingListLevel: Integer read FNumberingListLevel write SetNumberingListLevel;
     property NumberStartAt: Integer read FNumberStartAt write SetNumberStartAt;
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
   end;
@@ -716,7 +747,7 @@ type
     function GetNumberBlock: TKMemoTextBlock; virtual;
     function GetParaStyle: TKMemoParaStyle; override;
     function GetWordBreakable(Index: Integer): Boolean; override;
-    procedure ParaStyleChanged(Sender: TObject);
+    procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
   public
     constructor Create(AParent: TKMemoBlocks); override;
     destructor Destroy; override;
@@ -774,7 +805,7 @@ type
     function GetWordTop(Index: Integer): Integer; override;
     function GetWordTopPadding(Index: Integer): Integer; override;
     function GetWordWidth(Index: Integer): Integer; override;
-    procedure ImageStyleChanged(Sender: TObject);
+    procedure ImageStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     function ScaledImage: TKAlphaBitmap; virtual;
     procedure SetWordBaseLine(Index: Integer; const Value: Integer); override;
     procedure SetWordBottomPadding(Index: Integer; const Value: Integer); override;
@@ -829,7 +860,7 @@ type
     procedure AddSingleLine; virtual;
     procedure AddBlockLine(AStartBlock, AStartIndex, AEndBlock, AEndIndex,
       ALeft, ATop, AWidth, AHeight: Integer); virtual;
-    procedure BlockStyleChanged(Sender: TObject);
+    procedure BlockStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     procedure ClearLines; virtual;
     function ContentLength: Integer; override;
     function GetBottomPadding: Integer; override;
@@ -904,7 +935,7 @@ type
   protected
     function ContentLength: Integer; override;
     function GetParaStyle: TKMemoParaStyle; override;
-    procedure ParaStyleChanged(Sender: TObject);
+    procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     procedure RequiredBorderWidthsChanged(Sender: TObject);
     procedure RequiredWidthChanged; override;
   public
@@ -1546,7 +1577,7 @@ type
     { Overriden method - calls PaintContent to paint the document into window client area. }
     procedure PaintToCanvas(ACanvas: TCanvas); override;
     { Reacts on default paragraph style changes and notifies all paragraph blocks. }
-    procedure ParaStyleChanged(Sender: TObject); virtual;
+    procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons); virtual;
     { Converts a point relative to TKMemo to a point relative to active blocks. }
     function PointToBlockPoint(const APoint: TPoint; ACalcActive: Boolean = True): TPoint; virtual;
     { Overriden method - calls MeasureExtent to update document metrics for printing. }
@@ -2011,6 +2042,21 @@ type
 function GetKerningPairs(DC: HDC; Count: DWORD; KerningPairs: PKerningPairs): DWORD; stdcall; external 'gdi32.dll' name 'GetKerningPairs';
 {$ENDIF}
 
+procedure DefaultsToBrush(ABrush: TBrush);
+begin
+  ABrush.Color := clWindow;
+  ABrush.Style := bsClear;
+end;
+
+procedure DefaultsToFont(AFont: TFont);
+begin
+  AFont.Name := 'Arial';
+  AFont.Charset := DEFAULT_CHARSET;
+  AFont.Color := clWindowText;
+  AFont.Size := 10;
+  AFont.Style := [];
+end;
+
 function OppositeKind(ItemKind: TKMemoChangeKind): TKMemoChangeKind;
 begin
   case ItemKind of
@@ -2053,10 +2099,10 @@ end;
 procedure TKMemoTextStyle.Defaults;
 begin
   FAllowBrush := True;
-  FBrush.Style := bsClear;
+  DefaultsToBrush(FBrush);
   FBrushChanged := False;
   FCapitals := tcaNone;
-  FFont.Color := clWindowText;
+  DefaultsToFont(FFont);
   FFontChanged := False;
   FStyleChanged := False;
 end;
@@ -2068,15 +2114,15 @@ begin
   inherited;
 end;
 
-function TKMemoTextStyle.EqualProperties(AValue: TKMemoTextStyle): Boolean;
+function TKMemoTextStyle.EqualProperties(ASource: TKMemoTextStyle): Boolean;
 begin
-  if AValue <> nil then
+  if ASource <> nil then
   begin
     Result :=
-      (AValue.AllowBrush = AllowBrush) and
-      (AValue.Capitals = Capitals) and
-      CompareBrushes(AValue.Brush, Brush) and
-      CompareFonts(AValue.Font, Font);
+      (ASource.AllowBrush = AllowBrush) and
+      (ASource.Capitals = Capitals) and
+      CompareBrushes(ASource.Brush, Brush) and
+      CompareFonts(ASource.Font, Font);
   end else
     Result := False;
 end;
@@ -2234,16 +2280,16 @@ end;
 
 procedure TKMemoBlockStyle.BrushChanged(Sender: TObject);
 begin
-  Changed;
+  Changed([muExtent]);
 end;
 
-procedure TKMemoBlockStyle.Changed;
+procedure TKMemoBlockStyle.Changed(AReasons: TKMemoUpdateReasons);
 begin
   if not FLocked then
   begin
     FChanged := True;
     if Assigned(FOnChanged) then
-      FOnChanged(Self);
+      FOnChanged(Self, AReasons);
   end;
 end;
 
@@ -2432,7 +2478,7 @@ begin
   if Value <> FBorderColor then
   begin
     FBorderColor := Value;
-    Changed;
+    Changed([muExtent]);
   end;
 end;
 
@@ -2441,7 +2487,7 @@ begin
   if Value <> FBorderRadius then
   begin
     FBorderRadius := Value;
-    Changed;
+    Changed([muExtent]);
   end;
 end;
 
@@ -2450,7 +2496,7 @@ begin
   if Value <> FBorderWidth then
   begin
     FBorderWidth := Value;
-    Changed;
+    Changed([muExtent]);
   end;
 end;
 
@@ -2479,7 +2525,7 @@ begin
   if Value <> FWrapMode then
   begin
     FWrapMode := Value;
-    Changed;
+    Changed([muExtent]);
   end;
 end;
 
@@ -2504,7 +2550,7 @@ begin
     FFillBlip := Cls.Create;
     FFillBlip.Assign(Value);
   end;
-  Changed;
+  Changed([muExtent]);
 end;
 
 procedure TKMemoBlockStyle.SetHAlign(const Value: TKHAlign);
@@ -2512,7 +2558,7 @@ begin
   if Value <> FHAlign then
   begin
     FHAlign := Value;
-    Changed;
+    Changed([muExtent]);
   end;
 end;
 
@@ -2546,79 +2592,127 @@ begin
   FContentPadding.Top := Value;
 end;
 
+{ TKMemoNumberingFormatItem }
+
+procedure TKMemoNumberingFormatItem.Assign(ASource: TKObject);
+begin
+  if ASource is TKMemoNumberingFormatItem then
+  begin
+    FLevel := TKMemoNumberingFormatItem(ASource).Level;
+    FText := TKMemoNumberingFormatItem(ASource).Text;
+  end;
+end;
+
+constructor TKMemoNumberingFormatItem.Create;
+begin
+  FLevel := -1;
+  FText := '';
+end;
+
+{ TKMemoNumberingFormat }
+
+procedure TKMemoNumberingFormat.AddItem(ALevel: Integer; const AText: TKString);
+var
+  Item: TKMemoNumberingFormatItem;
+begin
+  Item := TKMemoNumberingFormatItem.Create;
+  Item.Level := ALevel;
+  Item.Text := AText;
+  Add(Item);
+end;
+
+procedure TKMemoNumberingFormat.Defaults(ANumbering: TKMemoParaNumbering);
+begin
+  Clear;
+  case ANumbering of
+    pnuBullets:
+    begin
+      AddItem(-1, UnicodeToNativeUTF(cBullet));
+    end;
+    pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi:
+    begin
+      AddItem(0, '');
+      AddItem(-1, '.');
+    end;
+  end;
+end;
+
+function TKMemoNumberingFormat.GetItem(Index: Integer): TKMemoNumberingFormatItem;
+begin
+  Result := TKMemoNumberingFormatItem(inherited GetItem(Index));
+end;
+
+function TKMemoNumberingFormat.GetLevelCount: Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to Count - 1 do
+    if (Items[I].Level >= 0) and (Items[I].Text = '') then
+      Inc(Result);
+end;
+
+procedure TKMemoNumberingFormat.InsertItem(AAt, ALevel: Integer; const AText: TKString);
+var
+  Item: TKMemoNumberingFormatItem;
+begin
+  Item := TKMemoNumberingFormatItem.Create;
+  Item.Level := ALevel;
+  Item.Text := AText;
+  Insert(AAt, Item);
+end;
+
+procedure TKMemoNumberingFormat.SetItem(Index: Integer; const Value: TKMemoNumberingFormatItem);
+begin
+  inherited SetItem(Index, Value);
+end;
+
 { TKMemoParagraphStyle }
 
 constructor TKMemoParaStyle.Create;
 begin
-  FNumberings := TKMemoDictionary.Create;
+  FLevelNumberings := TKMemoDictionary.Create;
+  FNumberingFont := TFont.Create;
+  FNumberingFont.OnChange := FontChanged;
+  FNumberingFormat := TKMemoNumberingFormat.Create;
   inherited;
 end;
 
 destructor TKMemoParaStyle.Destroy;
 begin
-  if FNumberings.Count > 0 then
-  asm
-    nop
-  end;
-  FNumberings.Free;
+  FNumberingFont.Free;
+  FNumberingFormat.Free;
+  FLevelNumberings.Free;
   inherited;
 end;
 
-class function TKMemoParaStyle.CalcLevelCount(const ANumberFormat: TKString): Integer;
-var
-  I, Level: Integer;
-  Special, NumberBlock: Boolean;
-  LevelText: TKString;
+procedure TKMemoParaStyle.FontChanged(Sender: TObject);
 begin
-  Result := 0;
-  Special := False;
-  NumberBlock := False;
-  for I := 1 to Length(ANumberFormat) do
-  begin
-    if ANumberFormat[I] = '%' then
-    begin
-      if Special then
-      begin
-        Special := False;
-      end
-      else if NumberBlock then
-      begin
-        NumberBlock := False;
-        Level := StrToIntDef(LevelText, -1);
-        if Level >= 0 then
-          Inc(Result);
-      end else
-        Special := True;
-    end
-    else if Special then
-    begin
-      NumberBlock := True;
-      LevelText := ANumberFormat[I];
-      Special := False;
-    end
-  end;
+  FNumberingFontChanged := True;
 end;
 
 procedure TKMemoParaStyle.Defaults;
 begin
   inherited;
   FFirstIndent := 0;
-  FNumberings.Clear;
-  FNumberingLevel := 0;
+  FLevelNumberings.Clear;
+  DefaultsToFont(FNumberingFont);
+  FNumberingFontChanged := False;
+  FNumberingFormat.Defaults(pnuNone);
+  FNumberingListLevel := 0;
   FNumberingList := 0;
-  FNumberingFormat := '%0%.';
   FNumberStartAt := 0;
   FWordWrap := True;
 end;
 
-function TKMemoParaStyle.GetNumbering(Index: Integer): TKMemoParaNumbering;
+function TKMemoParaStyle.GetLevelNumbering(Index: Integer): TKMemoParaNumbering;
 begin
-  Result := TKMemoParaNumbering(FNumberings.GetValue(Index, Integer(pnuNone)));
+  Result := TKMemoParaNumbering(FLevelNumberings.GetValue(Index, Integer(pnuNone)));
 end;
 
-function TKMemoParaStyle.GetNumberingAtLevel: TKMemoParaNumbering;
+function TKMemoParaStyle.GetNumbering: TKMemoParaNumbering;
 begin
-  Result := Numbering[FNumberingLevel];
+  Result := LevelNumbering[FNumberingListLevel];
 end;
 
 procedure TKMemoParaStyle.Assign(ASource: TPersistent);
@@ -2627,12 +2721,21 @@ begin
   if ASource is TKMemoParaStyle then
   begin
     FirstIndent := TKMemoParaStyle(ASource).FirstIndent;
-    NumberStartAt := TKMemoParaStyle(ASource).NumberStartAt;
-    Numberings.Assign(TKMemoParaStyle(ASource).Numberings);
-    NumberingLevel := TKMemoParaStyle(ASource).NumberingLevel;
+    NumberingFont.Assign(TKMemoParaStyle(ASource).NumberingFont);
+    NumberingListLevel := TKMemoParaStyle(ASource).NumberingListLevel;
     NumberingList := TKMemoParaStyle(ASource).NumberingList;
-    NumberingFormat := TKMemoParaStyle(ASource).NumberingFormat;
+    NumberStartAt := TKMemoParaStyle(ASource).NumberStartAt;
     WordWrap := TKMemoParaStyle(ASource).WordWrap;
+    if not LevelNumberings.EqualProperties(TKMemoParaStyle(ASource).LevelNumberings) then
+    begin
+      LevelNumberings.Assign(TKMemoParaStyle(ASource).LevelNumberings);
+      Changed([muContent]);
+    end;
+    if not NumberingFormat.EqualProperties(TKMemoParaStyle(ASource).NumberingFormat) then
+    begin
+      NumberingFormat.Assign(TKMemoParaStyle(ASource).NumberingFormat);
+      Changed([muContent]);
+    end;
   end;
 end;
 
@@ -2641,7 +2744,7 @@ begin
   if Value <> FFirstIndent then
   begin
     FFirstIndent := Value;
-    Changed;
+    Changed([muExtent]);
   end;
 end;
 
@@ -2650,43 +2753,26 @@ begin
   if Value <> FNumberStartAt then
   begin
     FNumberStartAt := Value;
-    Changed;
+    Changed([muContent]);
   end;
 end;
 
-procedure TKMemoParaStyle.SetNumbering(Index: Integer; const Value: TKmemoParaNumbering);
+procedure TKMemoParaStyle.SetLevelNumbering(Index: Integer; const Value: TKmemoParaNumbering);
 begin
-  if Value <> GetNumbering(Index) then
+  if Value <> GetLevelNumbering(Index) then
   begin
-    FNumberings.SetValue(Index, Integer(Value));
-    Changed;
+    FLevelNumberings.SetValue(Index, Integer(Value));
+    Changed([muContent]);
   end;
 end;
 
-procedure TKMemoParaStyle.SetNumberingAtLevel(const Value: TKMemoParaNumbering);
+procedure TKMemoParaStyle.SetNumbering(const Value: TKMemoParaNumbering);
 begin
-  if Value <> GetNumbering(FNumberingLevel) then
+  if Value <> GetLevelNumbering(FNumberingListLevel) then
   begin
-    FNumberings.SetValue(FNumberingLevel, Integer(Value));
-    Changed;
-  end;
-end;
-
-procedure TKMemoParaStyle.SetNumberingFormat(const Value: TKString);
-begin
-  if Value <> FNumberingFormat then
-  begin
-    FNumberingFormat := Value;
-    Changed;
-  end;
-end;
-
-procedure TKMemoParaStyle.SetNumberingLevel(const Value: Integer);
-begin
-  if Value <> FNumberingLevel then
-  begin
-    FNumberingLevel := Value;
-    Changed;
+    FLevelNumberings.SetValue(FNumberingListLevel, Integer(Value));
+    FNumberingFormat.Defaults(Value);
+    Changed([muContent]);
   end;
 end;
 
@@ -2695,7 +2781,16 @@ begin
   if Value <> FNumberingList then
   begin
     FNumberingList := Value;
-    Changed;
+    Changed([muContent]);
+  end;
+end;
+
+procedure TKMemoParaStyle.SetNumberingListLevel(const Value: Integer);
+begin
+  if Value <> FNumberingListLevel then
+  begin
+    FNumberingListLevel := Value;
+    Changed([muContent]);
   end;
 end;
 
@@ -2704,7 +2799,7 @@ begin
   if Value <> FWordWrap then
   begin
     FWordWrap := Value;
-    Changed;
+    Changed([muExtent]);
   end;
 end;
 
@@ -2772,6 +2867,15 @@ constructor TKMemoSparseItem.Create;
 begin
   inherited;
   FIndex := 0;
+end;
+
+function TKMemoSparseItem.EqualProperties(ASource: TKObject): Boolean;
+begin
+  if ASource is TKMemoSparseitem then
+    Result :=
+      (FIndex = TKMemoSparseItem(ASource).Index)
+  else
+    Result := False;
 end;
 
 { TKMemoSparseList }
@@ -2854,6 +2958,12 @@ end;
 
 { TKMemoDictionaryItem }
 
+constructor TKMemoDictionaryItem.Create;
+begin
+  FIndex := 0;
+  FValue := 0;
+end;
+
 procedure TKMemoDictionaryItem.Assign(ASource: TKObject);
 begin
   if ASource is TKMemoDictionaryItem then
@@ -2863,10 +2973,14 @@ begin
   end;
 end;
 
-constructor TKMemoDictionaryItem.Create;
+function TKMemoDictionaryItem.EqualProperties(ASource: TKObject): Boolean;
 begin
-  FIndex := 0;
-  FValue := 0;
+  if ASource is TKMemoDictionaryItem then
+    Result :=
+      (FIndex = TKMemoDictionaryItem(ASource).Index) and
+      (FValue = TKMemoDictionaryItem(ASource).Value)
+  else
+    Result := False;
 end;
 
 { TKMemoDictionary }
@@ -3361,6 +3475,7 @@ begin
     FBlocks.Clear;
     FBlocks.FixEmptyBlocks;
     FTextStyle.Defaults;
+    FTextStyle.Font.Assign(Font);
     FParaStyle.Defaults;
     FColors.BkGnd := cBkGndDef;
     FBackgroundImage.Graphic := nil;
@@ -3777,7 +3892,7 @@ begin
         NewSelEnd := FActiveBlocks.NextIndexByVertExtent(Canvas, TmpSelEnd, ClientHeight, FPreferredCaretPos, TmpPosition);
         SelectionExpand(NewSelEnd, True, TmpPosition);
       end;
-      ecPageLeft: 
+      ecPageLeft:
       begin
         NewSelEnd := FActiveBlocks.NextIndexByHorzExtent(Canvas, TmpSelEnd, -ClientWidth, TmpPosition);
         SelectionInit(NewSelEnd, True, TmpPosition);
@@ -4525,7 +4640,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TKCustomMemo.ParaStyleChanged(Sender: TObject);
+procedure TKCustomMemo.ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
 begin
   FBlocks.NotifyDefaultParaChange;
 end;
@@ -6681,9 +6796,9 @@ begin
     FParaStyle.Assign(TKMemoParagraph(AItem).ParaStyle);
 end;
 
-procedure TKMemoParagraph.ParaStyleChanged(Sender: TObject);
+procedure TKMemoParagraph.ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
 begin
-  Update([muExtent]);
+  Update(AReasons);
 end;
 
 function TKMemoParagraph.Concat(AItem: TKMemoBlock): Boolean;
@@ -6698,14 +6813,13 @@ end;
 
 function TKMemoParagraph.GetNumberBlock: TKMemoTextBlock;
 begin
-  if FParaStyle.NumberingAtLevel <> pnuNone then
+  if FParaStyle.Numbering <> pnuNone then
   begin
     if FNumberBlock = nil then
     begin
       FNumberBlock := TKMemoTextBlock.Create(nil);
       FNumberBlock.Parent := Parent; // because of FMemoNotifier
     end;
-    FNumberBlock.TextStyle.Assign(TextStyle);
   end else
     FreeAndNil(FNumberBlock);
   Result := FNumberBlock;
@@ -6918,9 +7032,9 @@ begin
   Result := FExtent.X;
 end;
 
-procedure TKMemoImageBlock.ImageStyleChanged(Sender: TObject);
+procedure TKMemoImageBlock.ImageStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
 begin
-  Update([muExtent]);
+  Update(AReasons);
 end;
 
 function TKMemoImageBlock.OuterRect(ACaret: Boolean): TRect;
@@ -7248,9 +7362,9 @@ begin
   end;
 end;
 
-procedure TKMemoContainer.BlockStyleChanged(Sender: TObject);
+procedure TKMemoContainer.BlockStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
 begin
-  Update([muExtent]);
+  Update(AReasons);
 end;
 
 function TKMemoContainer.CalcBaseLine(ACanvas: TCanvas): Integer;
@@ -7690,7 +7804,7 @@ begin
     Result := -1;
 end;
 
-procedure TKMemoTableCell.ParaStyleChanged(Sender: TObject);
+procedure TKMemoTableCell.ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
 begin
   // take some default paragraph properties to cell style
   FBlockStyle.ContentPadding.Assign(FParaStyle.ContentPadding);
@@ -8838,6 +8952,7 @@ begin
     FMemoNotifier.BlocksFreeNotification(Self);
   FreeAndNil(FLines);
   FreeAndNil(FRelPos);
+  Inc(FUpdateLock); // prevent calls of UpdateAttributes
   inherited;
 end;
 
@@ -10186,8 +10301,7 @@ var
       begin
         for J := 0 to NumberBlock.WordCount - 1 do
         begin
-//          if (NumberBlock.WordLeft[J] >= AStartPos) and (NumberBlock.WordLeft[J] + NumberBlock.WordWidth[J] <= AEndPos) then
-            NumberBlock.WordLeft[J] := NumberBlock.WordLeft[J] + ADelta;
+          NumberBlock.WordLeft[J] := NumberBlock.WordLeft[J] + ADelta;
         end;
       end;
     end;
@@ -10915,20 +11029,17 @@ var
   P: TPoint;
 begin
   Result := nil;
-  if FRelPos <> nil then
+  for I := 0 to FRelPos.Count - 1 do
   begin
-    for I := 0 to FRelPos.Count - 1 do
+    Item := Items[FRelPos[I].Index];
+    if Item is TKMemoContainer then
     begin
-      Item := Items[FRelPos[I].Index];
-      if Item is TKMemoContainer then
+      R := Item.BoundsRect;
+      OffsetRect(R, Item.LeftOffset, Item.TopOffset);
+      if PtInRect(R, APoint) then
       begin
-        R := Item.BoundsRect;
-        OffsetRect(R, Item.LeftOffset, Item.TopOffset);
-        if PtInRect(R, APoint) then
-        begin
-          Result := TKMemoContainer(Item).Blocks;
-          Break;
-        end;
+        Result := TKMemoContainer(Item).Blocks;
+        Break;
       end;
     end;
   end;
@@ -11219,6 +11330,7 @@ var
 
   function NumberToText(ANumber: Integer; AStyle: TKMemoParaNumbering): TKString;
   begin
+    Result := '';
     case AStyle of
       pnuArabic: Result := IntToStr(ANumber);
       pnuLetterLo, pnuLetterHi: Result := IntToLatin(ANumber, AStyle = pnuLetterHi);
@@ -11228,61 +11340,37 @@ var
 
   function FormatNumberString(AStyle: TKMemoParaStyle): TKString;
   var
-    I, Tmp, LevelCount, LevelNumber, Level: Integer;
-    Counted, Special, NumberBlock: Boolean;
-    LevelText: TKString;
+    I, ListNLevel, LevelCount, LevelNumber: Integer;
+    Item: TKMemoNumberingFormatItem;
+    Numbering: TKMemoParaNumbering;
   begin
     // format using the numbering format
     Result := '';
-    Special := False;
-    NumberBlock := False;
-    Counted := False;
-    LevelCount := TKMemoParaStyle.CalcLevelCount(AStyle.NumberingFormat);
-    for I := 1 to Length(AStyle.NumberingFormat) do
+    LevelCount := AStyle.NumberingFormat.LevelCount;
+    LevelNumber := 0;
+    ListNLevel := 0;
+    for I := 0 to AStyle.NumberingFormat.Count - 1 do
     begin
-      if AStyle.NumberingFormat[I] = '%' then
+      Item := AStyle.NumberingFormat.Items[I];
+      if (Item.Level >= 0) and (Item.Text = '') then
       begin
-        if Special then
+        Numbering := AStyle.LevelNumbering[Item.Level];
+        if not (Numbering in [pnuNone, pnuBullets]) then
         begin
-          Result := Result + AStyle.NumberingFormat[I];
-          Special := False;
-        end
-        else if NumberBlock then
-        begin
-          NumberBlock := False;
-          Level := StrToIntDef(LevelText, -1);
-          if Level >= 0 then
+          ListNLevel := ((AStyle.NumberingList and $FFFF) shl 16) or (Item.Level and $FFFF);
+          LevelNumber := NumberDic.GetValue(ListNLevel, 0);
+          if Item.Level >= LevelCount - 1 then
           begin
-            Tmp := ((AStyle.NumberingList and $FFFF) shl 16) or (Level and $FFFF);
-            LevelNumber := NumberDic.GetValue(Tmp, 1);
-            if Level < LevelCount - 1 then
-              Dec(LevelNumber);
-            if AStyle.NumberStartAt > 0 then
-              LevelNumber := AStyle.NumberStartAt;
-            Result := Result + NumberToText(LevelNumber, AStyle.Numbering[Level]);
-            Counted := True;
+            // we only increase the last level
+            Inc(LevelNumber);
+            NumberDic.SetValue(ListNLevel, LevelNumber);
           end;
-        end else
-          Special := True;
-      end
-      else if Special then
-      begin
-        NumberBlock := True;
-        LevelText := AStyle.NumberingFormat[I];
-        Special := False;
-      end
-      else if NumberBlock then
-        LevelText := LevelText + AStyle.NumberingFormat[I]
-      else
-        Result := Result + AStyle.NumberingFormat[I];
-    end;
-    if Counted then
-    begin
-      Inc(LevelNumber);
-      NumberDic.SetValue(Tmp, LevelNumber);
-    end else
-    asm
-      nop // debug line
+          if AStyle.NumberStartAt > 0 then
+            LevelNumber := AStyle.NumberStartAt;
+          Result := Result + NumberToText(LevelNumber, Numbering);
+        end;
+      end else
+        Result := Result + Item.Text;
     end;
     Result := Result + cTab;
   end;
@@ -11291,41 +11379,50 @@ var
   I: Integer;
   Item: TKMemoBlock;
   PA: TKMemoParagraph;
+  NumberBlock: TKMemoTextBlock;
 begin
-  if FRelPos <> nil then
-  begin
-    Inc(FUpdateLock);
-    NumberDic := TKMemoDictionary.Create;
-    try
-      FRelPos.Clear;
-      FSelectableLength := 0;
-      for I := 0 to Count - 1 do
+  Inc(FUpdateLock);
+  NumberDic := TKMemoDictionary.Create;
+  try
+    FRelPos.Clear;
+    FSelectableLength := 0;
+    for I := 0 to Count - 1 do
+    begin
+      Item := Items[I];
+      if Item.Position = mbpText then
       begin
-        Item := Items[I];
-        if Item.Position = mbpText then
+        if Item is TKMemoParagraph then
         begin
-          if Item is TKMemoParagraph then
+          PA := TKMemoParagraph(Item);
+          PA.AssignAttributes(GetLastItemByClass(I, TKMemoTextBlock)); // TODO: make this line optional
+          NumberBlock := PA.NumberBlock;
+          if NumberBlock <> nil then
           begin
-            PA := TKMemoParagraph(Item);
-            PA.AssignAttributes(GetLastItemByClass(I, TKMemoTextBlock)); // TODO: make this line optional
-            case PA.ParaStyle.NumberingAtLevel of
-              pnuBullets: PA.NumberBlock.Text := UnicodeToNativeUTF(cBullet) + cTab;
-              pnuSquares: PA.NumberBlock.Text := UnicodeToNativeUTF(cSquareBullet) + cTab;
-              pnuArrows: PA.NumberBlock.Text := UnicodeToNativeUTF(cArrowBullet) + cTab;
-              pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi: PA.NumberBlock.Text := FormatNumberString(PA.ParaStyle);
-            end;
+            NumberBlock.TextStyle.Assign(PA.TextStyle);
+            if PA.ParaStyle.NumberingFontChanged then
+              NumberBlock.TextStyle.Font.Assign(PA.ParaStyle.NumberingFont);
+            NumberBlock.Text := FormatNumberString(PA.ParaStyle);
           end;
-          Inc(FSelectableLength, Item.SelectableLength);
-        end else
-        begin
-          FRelPos.AddItem(I);
         end;
+        Inc(FSelectableLength, Item.SelectableLength);
+      end else
+      begin
+        FRelPos.AddItem(I);
       end;
-    finally
-      Dec(FUpdateLock);
-      NumberDic.Free;
-      FUpdateReasons := [];
     end;
+  finally
+    Dec(FUpdateLock);
+    NumberDic.Free;
+    FUpdateReasons := [];
+  end;
+  if Count > 0 then
+  begin
+    FSelStart := MinMax(FSelStart, 0, FSelectableLength);
+    FSelEnd := MinMax(FSelEnd, 0, FSelectableLength);
+  end else
+  begin
+    FSelStart := -1;
+    FSelEnd := -1;
   end;
 end;
 

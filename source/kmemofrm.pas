@@ -11,15 +11,16 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  SysUtils, Variants, Classes, Graphics, Controls, Forms, Menus,
   Dialogs, ToolWin, ComCtrls, ImgList, KFunctions, KControls, KMemo, ActnList,
-  KDialogs, KMemoDlgParaStyle, KMemoDlgTextStyle, KMemoDlgHyperlink, Menus;
+  KDialogs, KMemoDlgParaStyle, KMemoDlgTextStyle, KMemoDlgHyperlink, KMemoDlgNumbering;
 
 type
 
   { TKMemoFrame }
 
   TKMemoFrame = class(TFrame)
+    ACParaNumbering: TAction;
     Editor: TKMemo;
     ILMain: TImageList;
     ToBMain: TToolBar;
@@ -91,6 +92,7 @@ type
     MIEditHyperlink: TMenuItem;
     N3: TMenuItem;
     ACEditHyperlink: TAction;
+    ToBNumbering: TToolButton;
     procedure ACFileNewExecute(Sender: TObject);
     procedure ACFileNewUpdate(Sender: TObject);
     procedure ACFileOpenExecute(Sender: TObject);
@@ -130,16 +132,18 @@ type
     procedure ACInsertHyperlinkExecute(Sender: TObject);
     procedure ACEditHyperlinkUpdate(Sender: TObject);
     procedure EditorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure ACParaNumberingExecute(Sender: TObject);
   private
     { Private declarations }
     FNewFile: Boolean;
     FLastFileName: TKString;
-    procedure ParaStyleChanged(Sender: TObject);
+    procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     procedure TextStyleChanged(Sender: TObject);
   protected
     FFormatCopyParaStyle: TKMemoParaStyle;
     FFormatCopyTextStyle: TKMemoTextStyle;
     FHyperlinkForm: TKMemoHyperlinkForm;
+    FNumberingForm: TKMemoNumberingForm;
     FParaStyle: TKMemoParaStyle;
     FParaStyleForm: TKMemoParaStyleForm;
     FTextStyle: TKMemoTextStyle;
@@ -178,6 +182,7 @@ begin
   FFormatCopyParaStyle := TKMemoParaStyle.Create;
   FFormatCopyTextStyle := TKMemoTextStyle.Create;
   FHyperlinkForm := TKMemoHyperlinkForm.Create(Self);
+  FNumberingForm := TKMemoNumberingForm.Create(Self);
   FParaStyle := TKMemoParaStyle.Create;
   FParaStyle.OnChanged := ParaStyleChanged;
   FParaStyleForm := TKMemoParaStyleForm.Create(Self);
@@ -401,6 +406,13 @@ begin
   TAction(Sender).Checked := FParaStyle.HAlign = halLeft;
 end;
 
+procedure TKMemoFrame.ACParaNumberingExecute(Sender: TObject);
+begin
+  FNumberingForm.Load(FParaStyle);
+  if FNumberingForm.ShowModal = mrOk then
+    FNumberingForm.Save(FParaStyle);
+end;
+
 procedure TKMemoFrame.ACParaRightExecute(Sender: TObject);
 begin
   FParaStyle.HAlign := halRight;
@@ -521,7 +533,7 @@ begin
   end;
 end;
 
-procedure TKMemoFrame.ParaStyleChanged(Sender: TObject);
+procedure TKMemoFrame.ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
 begin
   Editor.SelectionParaStyle := FParaStyle;
 end;

@@ -275,6 +275,7 @@ type
   TKObject = class(TObject)
   public
     procedure Assign(ASource: TKObject); virtual;
+    function EqualProperties(AValue: TKObject): Boolean; virtual;
   end;
 
   TKObjectClass = class of TKObject;
@@ -282,6 +283,7 @@ type
   TKObjectList = class(TObjectList)
   public
     procedure Assign(ASource: TKObjectList); virtual;
+    function EqualProperties(AValue: TKObjectList): Boolean; virtual;
   end;
 
   { Base class for all visible controls in KControls. }
@@ -1291,6 +1293,11 @@ end;
 procedure TKObject.Assign(ASource: TKObject);begin
 end;
 
+function TKObject.EqualProperties(AValue: TKObject): Boolean;
+begin
+  Result := True;
+end;
+
 { TKObjectList }
 
 procedure TKObjectList.Assign(ASource: TKObjectList);var  I: Integer;  Cls: TKObjectClass;  SrcItem, DstItem: TKObject;begin
@@ -1304,6 +1311,26 @@ procedure TKObjectList.Assign(ASource: TKObjectList);var  I: Integer;  Cls: T
       DstItem := Cls.Create;
       DstItem.Assign(SrcItem);
       Add(DstItem);
+    end;
+  end;
+end;
+
+function TKObjectList.EqualProperties(AValue: TKObjectList): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if AValue <> nil then
+  begin
+    Result := AValue.Count = Count;
+    if Result then
+    begin
+      for I := 0 to Count - 1 do
+        if not TKObject(Items[I]).EqualProperties(TKObject(AValue[I])) then
+        begin
+          Result := False;
+          Break;
+        end;
     end;
   end;
 end;

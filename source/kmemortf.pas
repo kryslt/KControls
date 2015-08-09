@@ -105,16 +105,19 @@ type
   { Specifies the RTF list level descriptor. }
   TKMemoRTFListLevel = class(TObject)
   private
-    FFormatString: TKString;
     FJustify: Integer;
     FNumberType: Integer;
     FStartAt: Integer;
+    FNumberingFormat: TKMemoNumberingFormat;
+    FFontIndex: Integer;
     function GetNumberTypeAsNumbering: TKMemoParaNumbering;
     procedure SetNumberTypeAsNumbering(const Value: TKMemoParaNumbering);
   public
     constructor Create;
-    property FormatString: TKString read FFormatString write FFormatString;
+    destructor Destroy; override;
+    property FontIndex: Integer read FFontIndex write FFontIndex;
     property Justify: Integer read FJustify write FJustify;
+    property NumberingFormat: TKMemoNumberingFormat read FNumberingFormat;
     property NumberType: Integer read FNumberType write FNumberType;
     property NumberTypeAsNumbering: TKMemoParaNumbering read GetNumberTypeAsNumbering write SetNumberTypeAsNumbering;
     property StartAt: Integer read FStartAt write FStartAt;
@@ -129,13 +132,15 @@ type
     property Items[Index: Integer]: TKMemoRTFListLevel read GetItem write SetItem; default;
   end;
 
+  TKMemoRTFListTable = class;
+
   { Specifies the RTF list descriptor. }
   TKMemoRTFList = class(TObject)
   private
     FID: Integer;
     FLevels: TKMemoRTFListLevels;
   public
-    constructor Create;
+    constructor Create(AParent: TKMemoRTFListTable);
     destructor Destroy; override;
     property ID: Integer read FID write FID;
     property Levels: TKMemoRTFListLevels read FLevels;
@@ -147,12 +152,16 @@ type
     FOverrides: TKMemoDictionary;
     function GetItem(Index: Integer): TKMemoRTFList;
     procedure SetItem(Index: Integer; const Value: TKMemoRTFList);
+  protected
+    FIDCounter: Integer;
   public
     constructor Create;
     destructor Destroy; override;
+    procedure AddList(AParaStyle: TKMemoParaStyle; AFontTable: TKMemoRTFFontTable);
     function FindByID(AListID: Integer): TKMemoRTFList;
     function FindByIndex(AIndex: Integer): TKMemoRTFList;
-    procedure SetNumbering(AIndex, ALevelIndex: Integer; AParaStyle: TKMemoParaStyle);
+    function NextID: Integer;
+    procedure SetNumbering(AIndex, ALevelIndex: Integer; AParaStyle: TKMemoParaStyle; AFontTable: TKMemoRTFFontTable);
     property Items[Index: Integer]: TKMemoRTFList read GetItem write SetItem; default;
     property Overrides: TKMemoDictionary read FOverrides;
   end;
@@ -237,7 +246,7 @@ type
   TKMemoRTFFontProp = (rpfIndex, rpfCharset, rpfPitch);
   TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop,
     rpiReqWidth, rpiReqHeight, rpiScaleX, rpiScaleY);
-  TKMemoRTFListProp = (rplList, rplListOverride, rplListLevel, rplListId, rplListIndex, rplListText, rplLevelStartAt, rplLevelNumberType, rplLevelJustify, rplLevelText);
+  TKMemoRTFListProp = (rplList, rplListOverride, rplListLevel, rplListId, rplListIndex, rplListText, rplLevelStartAt, rplLevelNumberType, rplLevelJustify, rplLevelText, rplLevelFontIndex);
   TKMemoRTFParaProp = (rppParD, rppIndentFirst, rppIndentBottom, rppIndentLeft, rppIndentRight, rppIndentTop, rppAlignLeft, rppAlignCenter, rppAlignRight, rppAlignJustify,
     rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor,
     rppPar, rppListIndex, rppListLevel);
@@ -273,7 +282,6 @@ type
     FActiveList: TKMemoRTFList;
     FActiveListIndex: Integer;
     FActiveListLevel: TKMemoRTFListLevel;
-    FActiveListLevelFmtLength: Integer;
     FActiveListOverride: TKMemoDictionaryItem;
     FActiveParaBorder: TAlign;
     FActiveShape: TKMemoRTFShape;
@@ -306,7 +314,7 @@ type
     FStream: TStream;
     FTmpTextStyle: TKMemoTextStyle;
     procedure AddText(const APart: TKString); virtual;
-    procedure AddTextToFormatString(const APart: TKString); virtual;
+    procedure AddTextToNumberingFormat(const APart: TKString); virtual;
     procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer); virtual;
     procedure ApplyHighlight(ATextStyle: TKMemoTextStyle; AHighlightCode: Integer); virtual;
     procedure FillCtrlTable; virtual;
@@ -363,11 +371,11 @@ type
 
   { Specifies the RTF writer. }
   TKMemoRTFWriter = class(TObject)
-  private
   protected
     FCodePage: Integer;
     FColorTable: TKMemoRTFColorTable;
     FFontTable: TKMemoRTFFontTable;
+    FListTable: TKMemoRTFListTable;
     FMemo: TKCustomMemo;
     FSelectedOnly: Boolean;
     FStream: TStream;
@@ -378,6 +386,7 @@ type
     function EMUToParam(AValue: Integer): AnsiString; virtual;
     procedure FillColorTable(ABlocks: TKMemoBlocks); virtual;
     procedure FillFontTable(ABlocks: TKMemoBlocks); virtual;
+    procedure FillListTable(ABlocks: TKMemoBlocks); virtual;
     function PointsToEMU(AValue: Integer): Integer; virtual;
     procedure WriteBackground; virtual;
     procedure WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean); virtual;
@@ -393,6 +402,8 @@ type
     procedure WriteHyperlinkEnd; virtual;
     procedure WriteImage(AItem: TKmemoImageBlock); virtual;
     procedure WriteImageBlock(AItem: TKmemoImageBlock; AInsideTable: Boolean); virtual;
+    procedure WriteListTable; virtual;
+    procedure WriteListText(ANumberBlock: TKMemoTextBlock); virtual;
     procedure WriteParagraph(AItem: TKMemoParagraph; AInsideTable: Boolean); virtual;
     procedure WriteParaStyle(AParaStyle: TKMemoParaStyle); virtual;
     procedure WritePicture(AImage: TGraphic); virtual;
@@ -406,7 +417,7 @@ type
     procedure WriteString(const AText: AnsiString);
     procedure WriteTable(AItem: TKMemoTable); virtual;
     procedure WriteTableRowProperties(ATable: TKMemoTable; ARowIndex, ASavedRowIndex: Integer); virtual;
-    procedure WriteTextBlock(AItem: TKMemoTextBlock); virtual;
+    procedure WriteTextBlock(AItem: TKMemoTextBlock; ASelectedOnly: Boolean); virtual;
     procedure WriteTextStyle(ATextStyle: TKMemoTextStyle); virtual;
     procedure WriteUnicodeString(const AText: TKString); virtual;
     procedure WriteUnknownGroup;
@@ -949,10 +960,17 @@ end;
 
 constructor TKMemoRTFListLevel.Create;
 begin
-  FFormatString := '';
+  FFontIndex := -1;
+  FNumberingFormat := TKMemoNumberingFormat.Create;
   FJustify := 0;
   FNumberType := 0;
   FStartAt := 1;
+end;
+
+destructor TKMemoRTFListLevel.Destroy;
+begin
+  FNumberingFormat.Free;
+  inherited;
 end;
 
 function TKMemoRTFListLevel.GetNumberTypeAsNumbering: TKMemoParaNumbering;
@@ -964,8 +982,6 @@ begin
     3: Result := pnuLetterHi;
     4: Result := pnuLetterLo;
     23: Result := pnuBullets;
-    250: Result := pnuSquares; // our special code
-    251: Result := pnuArrows; // our special code
     255: Result := pnuNone;
   else
     Result := pnuArabic;
@@ -976,8 +992,6 @@ procedure TKMemoRTFListLevel.SetNumberTypeAsNumbering(const Value: TKMemoParaNum
 begin
   case Value of
     pnuBullets: FNumberType := 23;
-    pnuSquares: FNumberType := 250; // our special code
-    pnuArrows: FNumberType := 251; // our special code
     pnuArabic: FNumberType := 0;
     pnuLetterLo: FNumberType := 4;
     pnuLetterHi: FNumberType := 3;
@@ -1002,9 +1016,12 @@ end;
 
 { TKMemoRTFList }
 
-constructor TKMemoRTFList.Create;
+constructor TKMemoRTFList.Create(AParent: TKMemoRTFListTable);
 begin
-  FID := Random(MaxInt);
+  if AParent <> nil then
+    FID := AParent.NextID
+  else
+    FID := Random(MaxInt);
   FLevels := TKMemoRTFListLevels.Create;
 end;
 
@@ -1019,6 +1036,7 @@ end;
 constructor TKMemoRTFListTable.Create;
 begin
   inherited;
+  FIdCounter := 0;
   FOverrides := TKMemoDictionary.Create;
 end;
 
@@ -1026,6 +1044,48 @@ destructor TKMemoRTFListTable.Destroy;
 begin
   FOverrides.Free;
   inherited;
+end;
+
+procedure TKMemoRTFListTable.AddList(AParaStyle: TKMemoParaStyle; AFontTable: TKMemoRTFFontTable);
+var
+  Item: TKMemoRTFList;
+  Level: TKMemoRTFListLevel;
+  NFItem: TKMemoNumberingFormatItem;
+  I, Len: Integer;
+begin
+  if AParaStyle.Numbering <> pnuNone then
+  begin
+    Item := FindByIndex(AParaStyle.NumberingList);
+    if Item = nil then
+    begin
+      Item := TKMemoRTFList.Create(Self);
+      Add(Item);
+      FOverrides.AddItem(AParaStyle.NumberingList, Item.ID);
+    end;
+    if AParaStyle.NumberingListLevel >= Item.Levels.Count then
+    begin
+      Level := TKMemoRTFListLevel.Create;
+      if AParaStyle.NumberingFontChanged then
+        Level.FontIndex := AFontTable.GetIndex(AParaStyle.NumberingFont);
+      Level.NumberTypeAsNumbering := AParaStyle.Numbering;
+      Level.NumberingFormat.Assign(AParaStyle.NumberingFormat);
+      // fixup numbering format for RTF save
+      // add length field
+      Len := 0;
+      for I := 0 to Level.NumberingFormat.Count - 1 do
+      begin
+        NFItem := Level.NumberingFormat[I];
+        if (NFItem.Level >= 0) and (NFItem.Text = '') then
+          Inc(Len)
+        else
+          Inc(Len, StringLength(NFItem.Text));
+      end;
+      Level.NumberingFormat.InsertItem(0, Len, '');
+      if AParaStyle.NumberStartAt > 0 then
+        Level.StartAt := AParaStyle.NumberStartAt;
+      Item.Levels.Add(Level);
+    end;
+  end;
 end;
 
 function TKMemoRTFListTable.FindByID(AListID: Integer): TKMemoRTFList;
@@ -1059,30 +1119,60 @@ begin
   Result := TKMemoRTFList(inherited GetItem(Index));
 end;
 
+function TKMemoRTFListTable.NextID: Integer;
+begin
+  Result := FIDCounter;
+  Inc(FIDCounter);
+end;
+
 procedure TKMemoRTFListTable.SetItem(Index: Integer; const Value: TKMemoRTFList);
 begin
   inherited SetItem(Index, Value);
 end;
 
-procedure TKMemoRTFListTable.SetNumbering(AIndex, ALevelIndex: Integer; AParaStyle: TKMemoParaStyle);
+procedure TKMemoRTFListTable.SetNumbering(AIndex, ALevelIndex: Integer; AParaStyle: TKMemoParaStyle;
+  AFontTable: TKMemoRTFFontTable);
 var
   Item: TKMemoRTFList;
   Level: TKMemoRTFListLevel;
+  NFItem: TKMemoNumberingFormatItem;
+  Font: TFont;
+  I, J, UnicodeValue: Integer;
   S: TKString;
-  I: Integer;
 begin
   Item := FindByIndex(AIndex);
   if Item <> nil then
   begin
     Level := Item.Levels[ALevelIndex];
     for I := 0 to Item.Levels.Count - 1 do
-      AParaStyle.Numbering[I] := Item.Levels[I].NumberTypeAsNumbering;
+      AParaStyle.LevelNumbering[I] := Item.Levels[I].NumberTypeAsNumbering;
     AParaStyle.NumberingList := AIndex;
-    AParaStyle.NumberingLevel := ALevelIndex;
-    S := Level.FormatString;
-    if (S <> '') and (S[Length(S)] = ';') then
-      System.Delete(S, Length(S), 1);
-    AParaStyle.NumberingFormat := S;
+    AParaStyle.NumberingListLevel := ALevelIndex;
+    AParaStyle.NumberingFormat.Assign(Level.NumberingFormat);
+    if Level.FontIndex >= 0 then
+    begin
+      Font := AFontTable.GetFont(Level.FontIndex);
+      if Font <> nil then
+      begin
+        AParaStyle.NumberingFont.Assign(Font);
+        if AParaStyle.NumberingFont.Name = 'Symbol' then
+        begin
+          AParaStyle.NumberingFont.Name := 'Arial';
+          AParaStyle.NumberingFont.Charset := 0;
+          for I := 0 to AParaStyle.NumberingFormat.Count - 1 do
+          begin
+            NFItem := AParaStyle.NumberingFormat[I];
+            S := '';
+            for J := 1 to StringLength(NFItem.Text) do
+            begin
+              UnicodeValue := Ord(NativeUTFToUnicode(StringCopy(NFItem.Text, J, 1)));
+              S := S + UnicodeToNativeUTF(WideChar(AdobeSymbolToUTF16(Byte(UnicodeValue))));
+            end;
+            NFItem.Text := S;
+          end;
+        end;
+      end;
+    end;
   end;
 end;
 
@@ -1438,7 +1528,7 @@ begin
   end;
 end;
 
-procedure TKMemoRTFReader.AddTextToFormatString(const APart: TKString);
+procedure TKMemoRTFReader.AddTextToNumberingFormat(const APart: TKString);
 var
   S: TKString;
 begin
@@ -1453,13 +1543,9 @@ begin
     if S <> '' then
     begin
       if Ord(S[1]) < $20 then
-      begin
-        if FActiveListLevelFmtLength = 0 then
-          FActiveListLevelFmtLength := Ord(S[1])
-        else
-          ActiveListLevel.FormatString := ActiveListLevel.FormatString + Format('%%%d%%', [Ord(S[1])]);
-      end else
-        ActiveListLevel.FormatString := ActiveListLevel.FormatString + S
+        ActiveListLevel.NumberingFormat.AddItem(Ord(S[1]), '')
+      else
+        ActiveListLevel.NumberingFormat.AddItem(-1, S);
     end;
   end;
 end;
@@ -1556,9 +1642,21 @@ begin
 end;
 
 procedure TKMemoRTFReader.FlushListLevel;
+var
+  NFItem: TKMemoNumberingFormatItem;
+  S: TKString;
 begin
   if FActiveListLevel <> nil then
   begin
+    // fixup numbering format
+    FActiveListLevel.NumberingFormat.Delete(0); // first item should be length, remove it
+    NFItem := FActiveListLevel.NumberingFormat[FActiveListLevel.NumberingFormat.Count - 1];
+    S := NFItem.Text; // last item should be string and end with a semicolon, remove it
+    if S[Length(S)] = ';' then
+    begin
+      System.Delete(S, Length(S), 1);
+      NFItem.Text := S;
+    end;
     ActiveList.Levels.Add(FActiveListLevel);
     FActiveListLevel := nil;
   end;
@@ -1736,17 +1834,14 @@ end;
 function TKMemoRTFReader.GetActiveList: TKMemoRTFList;
 begin
   if FActiveList = nil then
-    FActiveList := TKMemoRTFList.Create;
+    FActiveList := TKMemoRTFList.Create(nil);
   Result := FActiveList;
 end;
 
 function TKMemoRTFReader.GetActiveListLevel: TKMemoRTFListLevel;
 begin
   if FActiveListLevel = nil then
-  begin
     FActiveListLevel := TKMemoRTFListLevel.Create;
-    FActiveListLevelFmtLength := 0;
-  end;
   Result := FActiveListLevel;
 end;
 
@@ -1820,6 +1915,7 @@ begin
     if AtIndex < 0 then
     begin
       FMemo.Clear;
+      FMemo.Blocks.Clear; // delete everything
       FActiveBlocks := FMemo.Blocks;
       FAtIndex := 0; // just append new blocks to active blocks
     end else
@@ -2114,36 +2210,44 @@ var
   I: Integer;
   S: TKString;
 begin
-  if FActiveState.Group = rgFontTable then
-  begin
-    case TKMemoRTFFontProp(ACtrl) of
-      rpfIndex: ActiveFont.FFontIndex := AParam;
-      rpfCharSet: ActiveFont.Font.Charset := AParam;
-      rpfPitch:
-      begin
-        case AParam of
-          1: ActiveFont.Font.Pitch := fpFixed;
-          2: ActiveFont.Font.Pitch := fpVariable;
-        else
-          ActiveFont.Font.Pitch := fpDefault;
+  case FActiveState.Group of
+    rgFontTable:
+    begin
+      case TKMemoRTFFontProp(ACtrl) of
+        rpfIndex: ActiveFont.FFontIndex := AParam;
+        rpfCharSet: ActiveFont.Font.Charset := AParam;
+        rpfPitch:
+        begin
+          case AParam of
+            1: ActiveFont.Font.Pitch := fpFixed;
+            2: ActiveFont.Font.Pitch := fpVariable;
+          else
+            ActiveFont.Font.Pitch := fpDefault;
+          end;
         end;
       end;
+      if AText <> '' then
+      begin
+        S := TKString(AText);
+        I := Pos(';', S);
+        if I > 0 then
+          Delete(S, I, 1);
+        ActiveFont.Font.Name := S;
+        FlushFont;
+        AText := ''; // we used the text as font name
+      end
     end;
-    if AText <> '' then
+    rgNone, rgTextBox:
     begin
-      S := TKString(AText);
-      I := Pos(';', S);
-      if I > 0 then
-        Delete(S, I, 1);
-      ActiveFont.Font.Name := S;
-      FlushFont;
-      AText := ''; // we used the text as font name
-    end
-  end
-  else if FActiveState.Group in [rgNone, rgTextBox] then
-  begin
-    case TKMemoRTFFontProp(ACtrl) of
-      rpfIndex: ReadTextFormatting(Integer(rptFontIndex), AText, AParam);
+      case TKMemoRTFFontProp(ACtrl) of
+        rpfIndex: ReadTextFormatting(Integer(rptFontIndex), AText, AParam);
+      end;
+    end;
+    rgListLevel:
+    begin
+      case TKMemoRTFFontProp(ACtrl) of
+        rpfIndex: ReadListGroup(Integer(rplLevelFontIndex), AText, AParam);
+      end;
     end;
   end;
 end;
@@ -2181,6 +2285,7 @@ begin
       rplLevelStartAt: ActiveListLevel.StartAt := AParam;
       rplLevelNumberType: ActiveListLevel.NumberType := AParam;
       rplLevelJustify: ActiveListLevel.Justify := AParam;
+      rplLevelFontIndex: ActiveListLevel.FontIndex := AParam;
     end;
     rgListOverrideTable: case TKMemoRTFListProp(ACtrl) of
       rplListOverride: FActiveState.Group := rgListOverride;
@@ -2189,7 +2294,7 @@ begin
       rplListId: ActiveListOverride.Value := AParam;
       rplListIndex: ActiveListOverride.Index := AParam;
     end;
-    rgListLevelText: AddTextToFormatString(AText);
+    rgListLevelText: AddTextToNumberingFormat(string(AText));
   else
     case TKMemoRTFListProp(ACtrl) of
       rplListText: FActiveState.Group := rgUnknown; // ignore text
@@ -2256,9 +2361,9 @@ begin
       rppListIndex:
       begin
         FActiveListIndex := AParam;
-        FListTable.SetNumbering(AParam, 0, FActiveState.ParaStyle);
+        FListTable.SetNumbering(AParam, 0, FActiveState.ParaStyle, FFontTable);
       end;
-      rppListLevel: FListTable.SetNumbering(FActiveListIndex, AParam, FActiveState.ParaStyle);
+      rppListLevel: FListTable.SetNumbering(FActiveListIndex, AParam, FActiveState.ParaStyle, FFontTable);
     end;
     rgListOverride: case TKMemoRTFParaProp(ACtrl) of
       rppListIndex: ReadListgroup(Integer(rplListIndex), AText, AParam);
@@ -2498,15 +2603,13 @@ begin
     end;
     rpscUnicodeChar:
     begin
-      if FActiveState.TextStyle.Font.Name = 'Symbol' then
-        AParam := AdobeSymbolToUTF16(AParam);
       S := UnicodeToNativeUTF(WideChar(AParam));
       SetIgnoreChars := True;
     end;
   end;
   case FActiveState.Group of
     rgNone, rgTextBox, rgFieldResult: AddText(S);
-    rgListLevelText: AddTextToFormatString(S);
+    rgListLevelText: AddTextToNumberingFormat(S);
   end;
   if SetIgnoreChars then
     FIgnoreChars := FIgnoreCharsAfterUnicode;
@@ -2764,6 +2867,7 @@ begin
   FMemo := AMemo;
   FColorTable := TKMemoRTFColorTable.Create;
   FFontTable := TKMemoRTFFontTable.Create;
+  FListTable := TKMemoRTFListTable.Create;
   FSelectedOnly := False;
   FStream := nil;
 end;
@@ -2772,6 +2876,7 @@ destructor TKMemoRTFWriter.Destroy;
 begin
   FColorTable.Free;
   FFontTable.Free;
+  FListTable.Free;
   inherited;
 end;
 
@@ -2870,9 +2975,34 @@ begin
       if CanSave(Item) then
       begin
         if Item is TKMemoTextBlock then
-          FFontTable.AddFont(TKmemoTextBlock(Item).TextStyle.Font)
+        begin
+          FFontTable.AddFont(TKmemoTextBlock(Item).TextStyle.Font);
+          if Item is TKMemoParagraph then
+            FFontTable.AddFont(TKmemoParagraph(Item).ParaStyle.NumberingFont);
+        end
         else if Item is TKmemoContainer then
           FillFontTable(TKmemoContainer(Item).Blocks);
+      end;
+    end;
+  end;
+end;
+
+procedure TKMemoRTFWriter.FillListTable(ABlocks: TKMemoBlocks);
+var
+  I, FontIndex: Integer;
+  Item: TKmemoBlock;
+begin
+  if ABlocks <> nil then
+  begin
+    for I := 0 to ABlocks.Count - 1 do
+    begin
+      Item := Ablocks[I];
+      if CanSave(Item) then
+      begin
+        if Item is TKMemoParagraph then
+          FListTable.AddList(TKmemoParagraph(Item).ParaStyle, FFontTable)
+        else if Item is TKmemoContainer then
+          FillListTable(TKmemoContainer(Item).Blocks);
       end;
     end;
   end;
@@ -2976,11 +3106,14 @@ procedure TKMemoRTFWriter.WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean
 var
   I: Integer;
   Item: TKMemoBlock;
+  PA: TKMemoParagraph;
+  IsParagraph: Boolean;
   URL: TKString;
 begin
   if ABlocks <> nil then
   begin
     URL := '';
+    IsParagraph := False;
     for I := 0 to ABlocks.Count - 1 do
     begin
       Item := ABlocks[I];
@@ -2995,7 +3128,7 @@ begin
             WriteHyperlinkBegin(TKMemoHyperlink(Item));
             URL := TKMemoHyperlink(Item).URL;
           end;
-          WriteTextBlock(TKMemoTextBlock(Item))
+          WriteTextBlock(TKMemoTextBlock(Item), FSelectedOnly)
         end else
         begin
           if URL <> '' then
@@ -3003,13 +3136,21 @@ begin
             WriteHyperlinkEnd;
             URL := '';
           end;
+          if IsParagraph then
+          begin
+            PA := ABlocks.GetNearestParagraph(I);
+            if PA <> nil then
+              WriteListText(PA.NumberBlock);
+            IsParagraph := False;
+          end;
           if Item is TKMemoParagraph then
           begin
             if not AInsideTable or (I < ABlocks.Count - 1) then
-              WriteParagraph(TKMemoParagraph(Item), AInsideTable)
+              WriteParagraph(TKMemoParagraph(Item), AInsideTable);
+            IsParagraph := True;
           end
           else if Item is TKMemoTextBlock then
-            WriteTextBlock(TKMemoTextBlock(Item))
+            WriteTextBlock(TKMemoTextBlock(Item), FSelectedOnly)
           else if Item is TKMemoImageBlock then
             WriteImageBlock(TKMemoImageBlock(Item), AInsideTable)
           else if Item is TKMemoContainer then
@@ -3136,6 +3277,7 @@ begin
   FFontTable.AddFont(FMemo.TextStyle.Font);
   FillFontTable(FMemo.Blocks);
   FillColorTable(FMemo.Blocks);
+  FillListTable(FMemo.Blocks);
   WriteCtrl('rtf1');
   WriteCtrl('ansi');
   WriteCtrlParam('ansicpg', FCodePage);
@@ -3144,6 +3286,7 @@ begin
   WriteCtrlParam('uc', 1);
   WriteFontTable;
   WriteColorTable;
+  WriteListTable;
 end;
 
 procedure TKMemoRTFWriter.WriteHyperlinkBegin(AItem: TKMemoHyperlink);
@@ -3237,6 +3380,116 @@ begin
   end;
 end;
 
+procedure TKMemoRTFWriter.WriteListTable;
+var
+  I, J, K, Len: Integer;
+  Item: TKMemoRTFList;
+  Level: TKMemoRTFListLevel;
+  NFItem: TKMemoNumberingFormatItem;
+  OverrideItem: TKMemoDictionaryItem;
+begin
+  // first write list table
+  WriteGroupBegin;
+  try
+    WriteUnknownGroup;
+    WriteCtrl('listtable');
+    for I := 0 to FListTable.Count - 1 do
+    begin
+      Item := FListTable[I];
+      WriteGroupBegin;
+      try
+        WriteCtrl('list');
+        for J := 0 to Item.Levels.Count - 1 do
+        begin
+          Level := Item.Levels[J];
+          WriteGroupBegin;
+          try
+            WriteCtrl('listlevel');
+            WriteCtrlParam('levelnfc', Level.NumberType);
+            WriteCtrlParam('levelstartat', Level.StartAt);
+            WriteGroupBegin;
+            try
+              WriteCtrl('leveltext');
+              for K := 0 to Level.NumberingFormat.Count - 1 do
+              begin
+                NFItem := Level.NumberingFormat[K];
+                if (NFItem.Level >= 0) and (NFItem.Text = '') then
+                  WriteString(Format('\''%.2x', [NFItem.Level]))
+                else
+                  WriteUnicodeString(NFItem.Text)
+              end;
+              WriteSemiColon;
+            finally
+              WriteGroupEnd;
+            end;
+            WriteGroupBegin;
+            try
+              WriteCtrl('levelnumbers');
+              Len := 1;
+              for K := 1 to Level.NumberingFormat.Count - 1 do
+              begin
+                NFItem := Level.NumberingFormat[K];
+                if (NFItem.Level >= 0) and (NFItem.Text = '') then
+                begin
+                  WriteString(Format('\''%.2x', [Len]));
+                  Inc(Len);
+                end else
+                  Inc(Len, StringLength(NFItem.Text));
+              end;
+              WriteSemiColon;
+            finally
+              WriteGroupEnd;
+            end;
+            if Level.FontIndex >= 0 then
+              WriteCtrlParam('f', Level.FontIndex);
+          finally
+            WriteGroupEnd;
+          end;
+        end;
+        WriteCtrlParam('listid', Item.ID);
+      finally
+        WriteGroupEnd;
+      end;
+    end;
+  finally
+    WriteGroupEnd;
+  end;
+  // next write list override table
+  WriteGroupBegin;
+  try
+    WriteUnknownGroup;
+    WriteCtrl('listoverridetable');
+    for I := 0 to FListTable.Overrides.Count - 1 do
+    begin
+      OverrideItem := FListTable.Overrides[I];
+      WriteGroupBegin;
+      try
+        WriteCtrl('listoverride');
+        WriteCtrlParam('listid', OverrideItem.Value);
+        WriteCtrlParam('ls', OverrideItem.Index);
+      finally
+        WriteGroupEnd;
+      end;
+    end;
+  finally
+    WriteGroupEnd;
+  end;
+end;
+
+procedure TKMemoRTFWriter.WriteListText(ANumberBlock: TKMemoTextBlock);
+begin
+  if ANumberBlock <> nil then
+  begin
+    WriteGroupBegin;
+    try
+      WriteCtrl('listtext');
+      WriteTextBlock(ANumberBlock, False);
+    finally
+      WriteGroupEnd;
+    end;
+  end;
+end;
+
 procedure TKMemoRTFWriter.WriteParagraph(AItem: TKMemoParagraph; AInsideTable: Boolean);
 begin
   WriteGroupBegin;
@@ -3307,7 +3560,12 @@ begin
       WriteCtrlParam('brdrradius', PointsToTwips(AParaStyle.BorderRadius))
   end;
   if AParaStyle.BorderColor <> clNone then
-    WriteCtrlParam('brdrcf', FColorTable.GetIndex(AParaStyle.BorderColor) + 1)
+    WriteCtrlParam('brdrcf', FColorTable.GetIndex(AParaStyle.BorderColor) + 1);
+  if AParaStyle.Numbering <> pnuNone then
+  begin
+    WriteCtrlParam('ls', AParaStyle.NumberingList);
+    WriteCtrlParam('ilvl', AParaStyle.NumberingListLevel);
+  end;
 end;
 
 procedure TKMemoRTFWriter.WritePicture(AImage: TGraphic);
@@ -3656,13 +3914,13 @@ begin
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteTextBlock(AItem: TKMemoTextBlock);
+procedure TKMemoRTFWriter.WriteTextBlock(AItem: TKMemoTextBlock; ASelectedOnly: Boolean);
 var
   S: TKString;
 begin
   WriteGroupBegin;
   try
-    if FSelectedOnly then
+    if ASelectedOnly then
       S := AItem.SelText
     else
       S := AItem.Text;
@@ -3699,7 +3957,7 @@ end;
 procedure TKMemoRTFWriter.WriteUnicodeString(const AText: TKString);
 var
   I: Integer;
-  UnicodeValue: Cardinal;
+  UnicodeValue: SmallInt;
   WasAnsi: Boolean;
   S, Ansi: AnsiString;
   C: TKChar;
@@ -3733,23 +3991,25 @@ begin
         Ansi := StringToAnsiString(C, FCodePage);
         if (Ansi <> '') and (Ansi <> #0) then
         begin
-          S := AnsiString(Format('%s\''%x', [S, Ord(Ansi[1])]));
+          S := AnsiString(Format('%s\''%.2x', [S, Ord(Ansi[1])]));
           WasAnsi := True;
         end;
       end;
       if not WasAnsi then
       begin
         // next store as Unicode character
+        UnicodeValue := Ord(NativeUTFToUnicode(C));
       {$IFDEF FPC}
-        UnicodeValue := UTF8CharacterToUnicode(@C[1], CharLen);
+//        UnicodeValue := UTF8CharacterToUnicode(@C[1], CharLen);
       {$ELSE}
-        UnicodeValue := Ord(C);
+//        UnicodeValue := Ord(C);
       {$ENDIF}
         S := AnsiString(Format('%s\u%d\''3F', [S, UnicodeValue]));
       end;
     end;
   end;
-  WriteString(S);
+  if S <> '' then
+    WriteString(S);
 end;
 
 procedure TKMemoRTFWriter.WriteUnknownGroup;

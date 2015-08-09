@@ -758,10 +758,6 @@ function StringCharBegin(const AText: TKString; Index: Integer): Integer;
   under Lazarus it equals UTF8Length. }
 function StringLength(const AText: TKString): Integer;
 
-{ Returns next character index for given string and character index.
-  Takes MBCS (UTF8 in Lazarus) into account. }
-function StringNextCharIndex(const AText: TKString; Index: Integer): Integer;
-
 { Performs standard Copy operation. Takes MBCS (UTF8 in Lazarus) into account. }
 function StringCopy(const ASource: TKString; At, Count: Integer): TKString;
 
@@ -2388,15 +2384,6 @@ begin
   Result := UTF8Length(AText)
 {$ELSE}
   Result := Length(AText) // neglecting surrogate pairs
-{$ENDIF}
-end;
-
-function StringNextCharIndex(const AText: TKString; Index: Integer): Integer;
-begin
-{$IFDEF FPC}
-  Result := Index + UTF8CharacterLength(@AText[Index]);
-{$ELSE}
-  Result := Index + 1; // neglecting surrogate pairs
 {$ENDIF}
 end;
 
