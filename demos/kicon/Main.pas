@@ -79,6 +79,12 @@ var
 
 implementation
 
+{$IFDEF FPC}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
+{$ENDIF}
+
 {$IFDEF USE_PNG_SUPPORT}
 uses
  {$IFDEF FPC}
@@ -369,10 +375,4 @@ begin
   end;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$I Main.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.

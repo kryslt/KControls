@@ -12,6 +12,13 @@ tklinklabel BITMAP "tklinklabel.bmp"
 tkgradientlabel BITMAP "tkgradientlabel.bmp"
 tkpercentprogressbar BITMAP "tkpercentprogressbar.bmp"
 tkmemo BITMAP "tkmemo.bmp"
+tkmemoframe BITMAP "tkmemoframe.bmp"
 tkbitbtn BITMAP "tkbitbtn.bmp"
 tkcolorbutton BITMAP "tkcolorbutton.bmp"
+tkspeedbutton BITMAP "tkspeedbutton.bmp"
+tksplitter BITMAP "tksplitter.bmp"
+tkpagecontrol BITMAP "tkpagecontrol.bmp"
+
+
+
 

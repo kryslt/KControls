@@ -6,9 +6,9 @@ object KMemoFrame: TKMemoFrame
   TabOrder = 0
   object Editor: TKMemo
     Left = 0
-    Top = 26
+    Top = 60
     Width = 597
-    Height = 409
+    Height = 375
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -22,51 +22,52 @@ object KMemoFrame: TKMemoFrame
     OnMouseDown = EditorMouseDown
     OnMouseUp = EditorMouseUp
   end
-  object ToBMain: TToolBar
+  object ToBFirst: TToolBar
     Left = 0
     Top = 0
     Width = 597
-    Height = 26
+    Height = 30
     AutoSize = True
     BorderWidth = 1
+    EdgeBorders = [ebBottom]
     Images = ILMain
     ParentShowHint = False
     ShowHint = True
     TabOrder = 1
     object ToBNew: TToolButton
       Left = 0
-      Top = 0
+      Top = 2
       Action = ACFileNew
       AutoSize = True
     end
     object ToBOpen: TToolButton
       Left = 23
-      Top = 0
+      Top = 2
       Action = ACFileOpen
     end
     object ToBSave: TToolButton
       Left = 46
-      Top = 0
+      Top = 2
       Action = ACFileSave
     end
     object ToBSaveAs: TToolButton
       Left = 69
-      Top = 0
+      Top = 2
       Action = ACFileSaveAs
     end
     object ToBPrint: TToolButton
       Left = 92
-      Top = 0
+      Top = 2
       Action = ACFilePrint
     end
     object ToBPreview: TToolButton
       Left = 115
-      Top = 0
+      Top = 2
       Action = ACFilePreview
     end
     object ToBSep1: TToolButton
       Left = 138
-      Top = 0
+      Top = 2
       Width = 8
       Caption = 'ToBSep1'
       ImageIndex = 3
@@ -74,139 +75,165 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBCopy: TToolButton
       Left = 146
-      Top = 0
+      Top = 2
       Action = ACEditCopy
     end
     object ToBCut: TToolButton
       Left = 169
-      Top = 0
+      Top = 2
       Action = ACEditCut
     end
     object ToBPaste: TToolButton
       Left = 192
-      Top = 0
+      Top = 2
       Action = ACEditPaste
     end
-    object ToolButton3: TToolButton
+    object ToBSelectAll: TToolButton
       Left = 215
-      Top = 0
-      Width = 8
-      Caption = 'ToolButton3'
-      ImageIndex = 6
-      Style = tbsSeparator
-    end
-    object ToBFormatCopy: TToolButton
-      Left = 223
-      Top = 0
-      Action = ACFormatCopy
-      Style = tbsCheck
-    end
-    object ToBShowFormatting: TToolButton
-      Left = 246
-      Top = 0
-      Action = ACShowFormatting
-      Style = tbsCheck
+      Top = 2
+      Action = ACEditSelectAll
     end
     object ToBSep2: TToolButton
-      Left = 269
-      Top = 0
+      Left = 238
+      Top = 2
       Width = 8
       Caption = 'ToBSep2'
       ImageIndex = 6
       Style = tbsSeparator
     end
-    object ToBBold: TToolButton
+    object ToBShowFormatting: TToolButton
+      Left = 246
+      Top = 2
+      Action = ACShowFormatting
+      Style = tbsCheck
+    end
+    object ToBSep3: TToolButton
+      Left = 269
+      Top = 2
+      Width = 8
+      Caption = 'ToBSep3'
+      ImageIndex = 26
+      Style = tbsSeparator
+    end
+    object ToBInsertHyperlink: TToolButton
       Left = 277
-      Top = 0
+      Top = 2
+      Action = ACInsertHyperlink
+    end
+  end
+  object ToBSecond: TToolBar
+    Left = 0
+    Top = 30
+    Width = 597
+    Height = 30
+    AutoSize = True
+    BorderWidth = 1
+    Images = ILMain
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 2
+    object ToBFormatCopy: TToolButton
+      Left = 0
+      Top = 2
+      Action = ACFormatCopy
+      Style = tbsCheck
+    end
+    object ToBSep4: TToolButton
+      Left = 23
+      Top = 2
+      Width = 8
+      Caption = 'ToBSep2'
+      ImageIndex = 6
+      Style = tbsSeparator
+    end
+    object ToBFontBold: TToolButton
+      Left = 31
+      Top = 2
       Action = ACFontBold
       Style = tbsCheck
     end
-    object ToBItalic: TToolButton
-      Left = 300
-      Top = 0
+    object ToBFontItalic: TToolButton
+      Left = 54
+      Top = 2
       Action = ACFontItalic
       Style = tbsCheck
     end
-    object ToBUnderline: TToolButton
-      Left = 323
-      Top = 0
+    object ToBFontUnderline: TToolButton
+      Left = 77
+      Top = 2
       Action = ACFontUnderline
       Style = tbsCheck
     end
+    object ToBFontSubscript: TToolButton
+      Left = 100
+      Top = 2
+      Action = ACFontSubscript
+      Style = tbsCheck
+    end
+    object ToBFontSuperscript: TToolButton
+      Left = 123
+      Top = 2
+      Action = ACFontSuperscript
+      Style = tbsCheck
+    end
     object ToBFont: TToolButton
-      Left = 346
-      Top = 0
+      Left = 146
+      Top = 2
       Action = ACFontStyle
     end
-    object ToolButton1: TToolButton
-      Left = 369
-      Top = 0
+    object ToBSep5: TToolButton
+      Left = 169
+      Top = 2
       Width = 8
       Caption = 'ToolButton1'
       ImageIndex = 26
       Style = tbsSeparator
     end
-    object ToBLeft: TToolButton
-      Left = 377
-      Top = 0
+    object ToBParaLeft: TToolButton
+      Left = 177
+      Top = 2
       Action = ACParaLeft
       Style = tbsCheck
     end
-    object ToBCenter: TToolButton
-      Left = 400
-      Top = 0
+    object ToBParaCenter: TToolButton
+      Left = 200
+      Top = 2
       Action = ACParaCenter
       Style = tbsCheck
     end
-    object ToBRight: TToolButton
-      Left = 423
-      Top = 0
+    object ToBParaRight: TToolButton
+      Left = 223
+      Top = 2
       Action = ACParaRight
       Style = tbsCheck
     end
-    object ToBIncIndent: TToolButton
-      Left = 446
-      Top = 0
+    object ToBParaIncIndent: TToolButton
+      Left = 246
+      Top = 2
       Action = ACParaIncIndent
     end
-    object ToBDecIndent: TToolButton
-      Left = 469
-      Top = 0
+    object ToBParaDecIndent: TToolButton
+      Left = 269
+      Top = 2
       Action = ACParaDecIndent
     end
-    object ToBNumbering: TToolButton
-      Left = 492
-      Top = 0
+    object ToBParaNumbering: TToolButton
+      Left = 292
+      Top = 2
       Action = ACParaNumbering
     end
     object ToBPara: TToolButton
-      Left = 515
-      Top = 0
+      Left = 315
+      Top = 2
       Action = ACParaStyle
-    end
-    object ToolButton2: TToolButton
-      Left = 538
-      Top = 0
-      Width = 8
-      Caption = 'ToolButton2'
-      ImageIndex = 5
-      Style = tbsSeparator
-    end
-    object ToBInsertHyperlink: TToolButton
-      Left = 546
-      Top = 0
-      Hint = 'Insert/edit hyperlink'
-      Action = ACInsertHyperlink
-      Caption = 'Insert/edit hyperlink'
     end
   end
   object ILMain: TImageList
-    ColorDepth = cd32Bit
     DrawingStyle = dsTransparent
     Left = 280
     Top = 72
     Bitmap = {
-      494C01012000C000DC0010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C010120003000200010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000009000000001002000000000000090
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1352,7 +1379,7 @@ object KMemoFrame: TKMemoFrame
       7BA7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
       FFFF7D7D7DA000000000000000000000000036363639B8B7B7FFA48E85FF8C4C
       2FFF9A5F40FF9B3C32FF94593FFFA19995FFE2E2E1FFF1F1F0FFF2F2F1FFF2F2
-      F1FFF4F4F3FF3636363900000000000000000F0F0F103636363A3636363A3636
+      F1FFF4F4F3FF3636363900000000000000000F0F0F003636363A3636363A3636
       363A3636363A3636363A3636363A3636363A3636363A3636363A6172618847A6
       47E75EC05EF94CA54CE2566156680000000000000000000000001E1E1E1F3A3A
       3A3E3A3A3A3E3A3A3A3E3B3B3B3F3B3B3B3F3B3B3B3F3B3B3B3F3B3B3B3F3A3A
@@ -1509,6 +1536,22 @@ object KMemoFrame: TKMemoFrame
       OnExecute = ACFontStrikeoutExecute
       OnUpdate = ACFontStrikeoutUpdate
     end
+    object ACFontSuperscript: TAction
+      Category = 'Font'
+      Caption = 'Superscript'
+      Hint = 'Superscript'
+      ImageIndex = 31
+      OnExecute = ACFontSuperscriptExecute
+      OnUpdate = ACFontSuperscriptUpdate
+    end
+    object ACFontSubscript: TAction
+      Category = 'Font'
+      Caption = 'Subscript'
+      Hint = 'Subscript'
+      ImageIndex = 30
+      OnExecute = ACFontSubscriptExecute
+      OnUpdate = ACFontSubscriptUpdate
+    end
     object ACFontStyle: TAction
       Category = 'Font'
       Caption = 'Font properties...'
@@ -1563,7 +1606,7 @@ object KMemoFrame: TKMemoFrame
       Hint = 'Bullets and numbering...'
       ImageIndex = 29
       OnExecute = ACParaNumberingExecute
-      OnUpdate = ACFileNewUpdate
+      OnUpdate = ACParaNumberingUpdate
     end
     object ACParaStyle: TAction
       Category = 'Paragraph'
@@ -1599,6 +1642,7 @@ object KMemoFrame: TKMemoFrame
       Category = 'Edit'
       Caption = 'Select all'
       Hint = 'Select all'
+      ImageIndex = 14
     end
     object ACEditHyperlink: TAction
       Category = 'Edit'

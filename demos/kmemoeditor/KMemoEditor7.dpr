@@ -5,6 +5,7 @@ uses
   Main in 'Main.pas' {MainForm};
 
 {$R *.res}
+{$R xpman.res}
 
 begin
   Application.Initialize;

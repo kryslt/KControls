@@ -106,13 +106,13 @@ const
   { Default value for the @link(TKPrintPageSetup.Copies) property }
   cCopiesDef = 1;
 
-  { Default value for the @link(TKPrintPageSetup.MarginBottom) property }
+  { Default value for the @link(TKPrintPageSetup.UnitMarginBottom) property }
   cMarginBottomDef = 2.0;
-  { Default value for the @link(TKPrintPageSetup.MarginLeft) property }
+  { Default value for the @link(TKPrintPageSetup.UnitMarginLeft) property }
   cMarginLeftDef = 1.5;
-  { Default value for the @link(TKPrintPageSetup.MarginRight) property }
+  { Default value for the @link(TKPrintPageSetup.UnitMarginRight) property }
   cMarginRightDef = 1.5;
-  { Default value for the @link(TKPrintPageSetup.MarginTop) property }
+  { Default value for the @link(TKPrintPageSetup.UnitMarginTop) property }
   cMarginTopDef = 1.8;
 
   { Default value for the @link(TKPrintPageSetup.Options) property. }
@@ -272,18 +272,43 @@ type
     property Bottom: Integer read FBottom write SetBottom default cContentPaddingBottomDef;
   end;
 
+  TKObjectList = class;
+
   TKObject = class(TObject)
+  private
+    FParent: TKObjectList;
+    procedure SetParent(const Value: TKObjectList);
+  protected
+    FUpdateLock: Integer;
+    procedure CallBeforeUpdate; virtual;
+    procedure CallAfterUpdate; virtual;
+    procedure ParentChanged; virtual;
   public
+    constructor Create; virtual;
     procedure Assign(ASource: TKObject); virtual;
     function EqualProperties(AValue: TKObject): Boolean; virtual;
+    procedure LockUpdate; virtual;
+    procedure UnLockUpdate; virtual;
+    function UpdateUnlocked: Boolean; virtual;
+    property Parent: TKObjectList read FParent write SetParent;
   end;
 
   TKObjectClass = class of TKObject;
 
   TKObjectList = class(TObjectList)
+  protected
+    FUpdateLock: Integer;
+    procedure CallBeforeUpdate; virtual;
+    procedure CallAfterUpdate; virtual;
   public
+    constructor Create; virtual;
+    function Add(AObject: TObject): Integer;
     procedure Assign(ASource: TKObjectList); virtual;
     function EqualProperties(AValue: TKObjectList): Boolean; virtual;
+    procedure Insert(Index: Integer; AObject: TObject);
+    procedure LockUpdate; virtual;
+    procedure UnLockUpdate; virtual;
+    function UpdateUnlocked: Boolean; virtual;
   end;
 
   { Base class for all visible controls in KControls. }
@@ -1290,7 +1315,22 @@ end;
 
 { TKObject }
 
+constructor TKObject.Create;
+begin
+  inherited;
+  FParent := nil;
+  FUpdateLock := 0;
+end;
+
 procedure TKObject.Assign(ASource: TKObject);begin
+end;
+
+procedure TKObject.CallAfterUpdate;
+begin
+end;
+
+procedure TKObject.CallBeforeUpdate;
+begin
 end;
 
 function TKObject.EqualProperties(AValue: TKObject): Boolean;
@@ -1298,7 +1338,54 @@ begin
   Result := True;
 end;
 
+procedure TKObject.LockUpdate;
+begin
+  if FUpdateLock <= 0 then
+    CallBeforeUpdate;
+  Inc(FUpdateLock);
+end;
+
+procedure TKObject.ParentChanged;
+begin
+end;
+
+procedure TKObject.SetParent(const Value: TKObjectList);
+begin
+  if Value <> FParent then
+  begin
+    FParent := Value;
+    ParentChanged;
+  end;
+end;
+
+procedure TKObject.UnLockUpdate;
+begin
+  if FUpdateLock > 0 then
+  begin
+    Dec(FUpdateLock);
+    if FUpdateLock = 0 then
+      CallAfterUpdate;
+  end;
+end;
+
+function TKObject.UpdateUnlocked: Boolean;
+begin
+  Result := FUpdateLock <= 0;
+end;
+
 { TKObjectList }
+
+constructor TKObjectList.Create;
+begin
+  inherited;
+  FUpdateLock := 0;
+end;
+
+function TKObjectList.Add(AObject: TObject): Integer;begin
+  if AObject is TKObject then
+    TKObject(AObject).Parent := Self;
+  Result := inherited Add(AObject);
+end;
 
 procedure TKObjectList.Assign(ASource: TKObjectList);var  I: Integer;  Cls: TKObjectClass;  SrcItem, DstItem: TKObject;begin
   if ASource <> nil then
@@ -1309,10 +1396,19 @@ procedure TKObjectList.Assign(ASource: TKObjectList);var  I: Integer;  Cls: T
       SrcItem := ASource.Items[I] as TKObject;
       Cls := TKObjectClass(SrcItem.ClassType);
       DstItem := Cls.Create;
+      DstItem.Parent := Self;
       DstItem.Assign(SrcItem);
       Add(DstItem);
     end;
   end;
+end;
+
+procedure TKObjectList.CallBeforeUpdate;
+begin
+end;
+
+procedure TKObjectList.CallAfterUpdate;
+begin
 end;
 
 function TKObjectList.EqualProperties(AValue: TKObjectList): Boolean;
@@ -1333,6 +1429,35 @@ begin
         end;
     end;
   end;
+end;
+
+procedure TKObjectList.Insert(Index: Integer; AObject: TObject);
+begin
+  if AObject is TKObject then
+    TKObject(AObject).Parent := Self;
+  inherited Insert(Index, AObject);
+end;
+
+procedure TKObjectList.LockUpdate;
+begin
+  if FUpdateLock <= 0 then
+    CallBeforeUpdate;
+  Inc(FUpdateLock);
+end;
+
+procedure TKObjectList.UnLockUpdate;
+begin
+  if FUpdateLock > 0 then
+  begin
+    Dec(FUpdateLock);
+    if FUpdateLock = 0 then
+      CallAfterUpdate;
+  end;
+end;
+
+function TKObjectList.UpdateUnlocked: Boolean;
+begin
+  Result := FUpdateLock <= 0;
 end;
 
 { TKCustomControl }

@@ -54,6 +54,10 @@ contains
   kprogress in '..\..\source\kprogress.pas',
   kres in '..\..\source\kres.pas',
   kdbgrids in '..\..\source\kdbgrids.pas',
+  kmemodlghyperlink in '..\..\source\kmemodlghyperlink.pas',
+  kmemodlgnumbering in '..\..\source\kmemodlgnumbering.pas',
+  kmemodlgparastyle in '..\..\source\kmemodlgparastyle.pas',
+  kmemodlgtextstyle in '..\..\source\kmemodlgtextstyle.pas',
   kpagecontrol in '..\..\source\kpagecontrol.pas';
 
 end.

@@ -12,6 +12,9 @@ uses
   Dialogs, KMemoFrm, KMemo;
 
 type
+
+  { TMainForm }
+
   TMainForm = class(TForm)
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -38,6 +41,7 @@ begin
   FFrame := TKMemoFrame.Create(Self);
   FFrame.Align := alClient;
   FFrame.Parent := Self;
+  FFrame.OpenFile('kmemo_manual.rtf');
 end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);

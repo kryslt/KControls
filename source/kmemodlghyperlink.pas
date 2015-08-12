@@ -1,3 +1,19 @@
+{ @abstract(This unit contains a dialog for editing a hyperlink)
+  @author(Tomas Krysl (tk@tkweb.eu))
+  @created(28 Apr 2009)
+  @lastmod(30 July 2015)
+
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+
+  <B>License:</B><BR>
+  This code is distributed as a freeware. You are free to use it as part
+  of your application for any purpose including freeware, commercial and
+  shareware applications. The origin of this source code must not be
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 unit KMemoDlgHyperlink;
 
 interface

@@ -1170,15 +1170,14 @@ begin
   begin
     FlagSet(cGF_DBDataUpdating);
     try
-      if Assigned(FDataLink.DataSet) and FDataLink.Active then
+      if Assigned(FDataLink.DataSet) and FDataLink.Active and (FDataLink.RecordCount > 0) then
       begin
+        // on each dataset manipulation turn editing off
+        EditorMode := False;
         // here memory only grows. I don't know if it is possible to make this more memory effective
         if LastVisibleRow + FDataBufferGrow > FDataLink.BufferCount then
           FDataLink.BufferCount := FDataLink.BufferCount + FDataBufferGrow;
-        I := FixedRows + FDataLink.RecordCount;
-        if FDataLink.DataSet.State = dsInsert then
-          Inc(I);
-        RowCount := I;
+        RowCount := FixedRows + FDataLink.RecordCount;
         LastRow := Min(LastVisibleRow + 1, RowCount - 1);
         if (dboEntireTable in FDBOptions) and (FOldFieldCount <> FDataLink.DataSet.FieldCount) then
         begin
@@ -1194,9 +1193,7 @@ begin
           if not Flag(cGF_DBInternalChanging) and (Row <> Tmp) then
           begin
             if dboAutoMoveRecord in FDBOptions then
-              Row := Tmp
-            else
-              EditorMode := False;
+              Row := Tmp;
           end;
         end;
         Tmp := FDataLink.ActiveRecord;

@@ -38,6 +38,11 @@ var
 
 implementation
 
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
 
 procedure TReplaceForm.FormShow(Sender: TObject);
 begin
@@ -74,10 +79,4 @@ begin
     CBPromptOnReplace.Checked := esoPrompt in Options;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i replace.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.

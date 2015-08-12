@@ -49,6 +49,12 @@ function TrimToSize(const Text: string; Size: Integer): string;
 
 implementation
 
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
+
 uses Options;
 
 function TrimToSize(const Text: string; Size: Integer): string;
@@ -121,10 +127,4 @@ begin
   end;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i search.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.

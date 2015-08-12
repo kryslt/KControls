@@ -1,16 +1,14 @@
 object MainForm: TMainForm
-  Left = 345
+  Left = 399
   Height = 576
-  Top = 166
+  Top = 217
   Width = 1055
   Caption = 'KMemoDemo'
   ClientHeight = 576
   ClientWidth = 1055
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
-  OnPaint = FormPaint
   OnResize = FormResize
-  LCLVersion = '1.2.4.0'
+  LCLVersion = '1.4.2.0'
   Visible = True
   object PNMain: TPanel
     Left = 0
@@ -79,6 +77,16 @@ object MainForm: TMainForm
     Caption = 'Print'
     OnClick = BUPrintClick
     TabOrder = 3
+  end
+  object BUtest: TButton
+    Left = 376
+    Height = 25
+    Top = 544
+    Width = 112
+    Anchors = [akLeft, akBottom]
+    Caption = 'Test'
+    OnClick = BULoadClick
+    TabOrder = 4
   end
   object KPrintSetupDialog1: TKPrintSetupDialog
     left = 448

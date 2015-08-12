@@ -168,6 +168,12 @@ var
 
 implementation
 
+{$IFDEF FPC}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
+{$ENDIF}
+
 uses
 {$IFDEF USE_THEMES}
   Themes,
@@ -1229,12 +1235,9 @@ begin
 end;
 
 {$IFDEF FPC}
-
 initialization
-  {$i main.lrs}
   {$i kgriddemolaz_rsrc.lrs}
 {$ELSE}
-  {$R *.dfm}
   {$R kgriddemo_rsrc.res}
 {$ENDIF}
 end.

@@ -12,12 +12,12 @@ object PrintStatusForm: TPrintStatusForm
   Font.Name = 'Tahoma'
   FormStyle = fsStayOnTop
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
+  LCLVersion = '1.4.2.0'
   object LBPage: TLabel
     Left = 8
-    Height = 14
+    Height = 13
     Top = 16
-    Width = 36
+    Width = 35
     Caption = 'LBPage'
     ParentColor = False
   end

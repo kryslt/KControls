@@ -31,10 +31,10 @@ var
 implementation
 
 {$IFDEF FPC}
-initialization
-  {$i about.lrs}
+  {$R *.lfm}
 {$ELSE}
   {$R *.dfm}
 {$ENDIF}
+
 end.
  

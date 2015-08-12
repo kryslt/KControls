@@ -30,17 +30,18 @@ var
 
 implementation
 
-uses Main;
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
+
+uses
+Main;
 
 procedure TInputForm.FormCreate(Sender: TObject);
 begin
   Caption := Form1.Caption;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i Input.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.

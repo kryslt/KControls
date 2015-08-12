@@ -113,6 +113,12 @@ type
 
 implementation
 
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
+
 uses
   Printers, KFunctions, KRes, KMessageBox;
 
@@ -358,10 +364,4 @@ begin
   FPreviewForm.Show;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i kprintsetup.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
-end.
+end.

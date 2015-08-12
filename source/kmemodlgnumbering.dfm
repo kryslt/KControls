@@ -3,7 +3,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Bullets and numbering'
-  ClientHeight = 298
+  ClientHeight = 402
   ClientWidth = 375
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,11 +13,13 @@ object KMemoNumberingForm: TKMemoNumberingForm
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object BUOk: TButton
     Left = 211
-    Top = 263
+    Top = 367
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -27,7 +29,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   end
   object BUCancel: TButton
     Left = 292
-    Top = 263
+    Top = 367
     Width = 75
     Height = 25
     Cancel = True
@@ -52,45 +54,70 @@ object KMemoNumberingForm: TKMemoNumberingForm
       'Roman Lo (i,ii,iii)'
       'Roman Hi (I,II,III)')
     TabOrder = 2
+    OnClick = RGNumberingClick
   end
   object GBOptions: TGroupBox
     Left = 8
     Top = 175
     Width = 359
-    Height = 82
+    Height = 98
     Caption = 'Options'
     TabOrder = 3
-    object LBStartAt: TLabel
-      Left = 169
+    object LBFirstIndent: TLabel
+      Left = 10
       Top = 27
-      Width = 53
+      Width = 58
       Height = 13
-      Caption = 'Start from:'
+      Caption = 'First indent:'
+    end
+    object LBLeftIndent: TLabel
+      Left = 10
+      Top = 57
+      Width = 56
+      Height = 13
+      Caption = 'Left indent:'
     end
     object LBListLevel: TLabel
-      Left = 9
-      Top = 27
-      Width = 45
+      Left = 186
+      Top = 57
+      Width = 29
       Height = 13
-      Caption = 'List level:'
+      Caption = 'Level:'
     end
-    object EDStartAt: TKNumberEdit
-      Left = 257
+    object EDFirstIndent: TKNumberEdit
+      Left = 90
       Top = 24
       Width = 55
       Height = 21
+      CustomSuffix = 'pt'
       DecimalSeparator = ','
+      Max = 250.000000000000000000
+      Min = -250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       TabOrder = 0
-      Value = 1.000000000000000000
+      UpDownStep = 5.000000000000000000
+    end
+    object EDLeftIndent: TKNumberEdit
+      Left = 90
+      Top = 54
+      Width = 55
+      Height = 21
+      CustomSuffix = 'pt'
+      DecimalSeparator = ','
+      Max = 250.000000000000000000
+      Min = -250.000000000000000000
+      Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      TabOrder = 2
+      UpDownStep = 5.000000000000000000
     end
     object CoBListLevel: TComboBox
-      Left = 9
-      Top = 43
-      Width = 145
+      Left = 245
+      Top = 54
+      Width = 100
       Height = 21
       Style = csDropDownList
-      TabOrder = 2
+      TabOrder = 4
+      OnClick = CoBListLevelClick
       Items.Strings = (
         'first'
         'second'
@@ -101,6 +128,51 @@ object KMemoNumberingForm: TKMemoNumberingForm
         'seventh'
         'eighth'
         'ninth')
+    end
+  end
+  object GBStartAt: TGroupBox
+    Left = 8
+    Top = 279
+    Width = 359
+    Height = 80
+    Caption = 'Starting value'
+    TabOrder = 4
+    object RBContinuous: TRadioButton
+      Left = 10
+      Top = 24
+      Width = 113
+      Height = 17
+      Caption = 'Continuous'
+      TabOrder = 0
+      OnClick = RBContinuousClick
+    end
+    object RBStartFromOne: TRadioButton
+      Left = 10
+      Top = 47
+      Width = 113
+      Height = 17
+      Caption = 'Again start from 1'
+      TabOrder = 1
+      OnClick = RBContinuousClick
+    end
+    object RBStartAt: TRadioButton
+      Left = 185
+      Top = 24
+      Width = 113
+      Height = 17
+      Caption = 'Set custom value:'
+      TabOrder = 2
+      OnClick = RBContinuousClick
+    end
+    object EDStartAt: TKNumberEdit
+      Left = 184
+      Top = 47
+      Width = 55
+      Height = 21
+      DecimalSeparator = ','
+      Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      TabOrder = 3
+      Value = 1.000000000000000000
     end
   end
 end

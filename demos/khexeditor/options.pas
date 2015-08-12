@@ -96,6 +96,12 @@ var
 
 implementation
 
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
+
 uses
   Math;
 
@@ -279,11 +285,5 @@ begin
   end;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i options.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.
 

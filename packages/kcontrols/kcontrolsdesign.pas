@@ -8,7 +8,7 @@ uses
 {$IFDEF FPC}
   ComponentEditors, PropEdits,
 {$ELSE}
-  DesignIntf, DesignEditors,
+  DesignIntf, DesignEditors, Actions,
 {$ENDIF}
   KPictureEditor
   ;
@@ -64,7 +64,9 @@ begin
     TKDBGrid,
 {$ENDIF}
     TKMemo,
+{$IFnDEF FPC}
     TKMemoFrame,
+{$ENDIF}
     TKHexEditor,
     TKBitBtn,
     TKColorButton,
@@ -219,4 +221,4 @@ initialization
   {$i kcontrolsdesign.lrs}
 {$ENDIF}
 
-end.
+end.

@@ -23,8 +23,10 @@ Delphi common:
 Lazarus common:
  -slow performance on non-Win32 widget sets 
 
+VERSION HISTORY - NEW KCONTROLS PACKAGE
+-------------------
 
-VERSION HISTORY:
+VERSION HISTORY - OLD KHEXEDITOR PACKAGE ONLY
 -------------------
 Version 1.5 (November 2010)
   Added:

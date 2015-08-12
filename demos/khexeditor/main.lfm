@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
+  LCLVersion = '1.4.2.0'
   object StatusBar: TStatusBar
     Left = 0
     Height = 23
@@ -88,6 +88,7 @@ object MainForm: TMainForm
     end
     object TBSep1: TToolButton
       Left = 128
+      Height = 22
       Top = 2
       Width = 8
       ImageIndex = 5
@@ -113,9 +114,9 @@ object MainForm: TMainForm
       Top = 2
       Caption = '&Paste'
       ImageIndex = 5
+      OnClick = ACPasteExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACPasteExecute
     end
     object TBDelete: TToolButton
       Left = 205
@@ -123,12 +124,13 @@ object MainForm: TMainForm
       Top = 2
       Caption = '&Delete'
       ImageIndex = 11
+      OnClick = ACDeleteExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACDeleteExecute
     end
     object TBSep2: TToolButton
       Left = 228
+      Height = 22
       Top = 2
       Width = 8
       ImageIndex = 6
@@ -140,9 +142,9 @@ object MainForm: TMainForm
       Top = 2
       Caption = '&Undo'
       ImageIndex = 6
+      OnClick = ACUndoExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACUndoExecute
     end
     object TBRedo: TToolButton
       Left = 259
@@ -150,12 +152,13 @@ object MainForm: TMainForm
       Top = 2
       Caption = '&Redo'
       ImageIndex = 7
+      OnClick = ACRedoExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACRedoExecute
     end
     object TBSep3: TToolButton
       Left = 282
+      Height = 22
       Top = 2
       Width = 8
       ImageIndex = 8
@@ -167,9 +170,9 @@ object MainForm: TMainForm
       Top = 2
       Caption = '&Find...'
       ImageIndex = 8
+      OnClick = ACSearchExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACSearchExecute
     end
     object TBReplace: TToolButton
       Left = 313
@@ -177,9 +180,9 @@ object MainForm: TMainForm
       Top = 2
       Caption = '&Replace...'
       ImageIndex = 9
+      OnClick = ACReplaceExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACReplaceExecute
     end
     object TBSearchAgain: TToolButton
       Left = 336
@@ -187,12 +190,13 @@ object MainForm: TMainForm
       Top = 2
       Caption = '&Search Again'
       ImageIndex = 10
+      OnClick = ACSearchAgainExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACSearchAgainExecute
     end
     object TBSep4: TToolButton
       Left = 359
+      Height = 22
       Top = 2
       Width = 8
       Caption = 'TBSep4'
@@ -205,9 +209,9 @@ object MainForm: TMainForm
       Top = 2
       Caption = 'E&ditor Options...'
       ImageIndex = 12
+      OnClick = ACEditorOptionsExecute
       ParentShowHint = False
       ShowHint = True
-      OnClick = ACEditorOptionsExecute
     end
   end
   object PNMain: TPanel

@@ -89,6 +89,12 @@ type
 
 implementation
 
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
+
 uses
   KFunctions;
 
@@ -219,10 +225,4 @@ begin
   end;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i kprintpreview.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.

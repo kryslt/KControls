@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 613
   Top = 261
-  Width = 712
-  Height = 595
   Caption = 'KDBGrid demo'
+  ClientHeight = 557
+  ClientWidth = 696
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,7 +16,7 @@ object MainForm: TMainForm
   OnDeactivate = FormDeactivate
   DesignSize = (
     696
-    559)
+    557)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -115,7 +115,7 @@ object MainForm: TMainForm
   end
   object DBGrid: TKDBGrid
     Left = 0
-    Top = 144
+    Top = 142
     Width = 696
     Height = 415
     Align = alBottom
@@ -144,7 +144,7 @@ object MainForm: TMainForm
         Font.Style = []
         HorzAlign = halRight
         HorzPadding = 5
-        FieldName = 'thumb_width'
+        FieldName = 'width'
         Title = 'Width'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
@@ -160,7 +160,7 @@ object MainForm: TMainForm
         Font.Style = []
         HorzAlign = halRight
         HorzPadding = 5
-        FieldName = 'thumb_height'
+        FieldName = 'height'
         Title = 'Height'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
@@ -174,7 +174,7 @@ object MainForm: TMainForm
         Font.Height = -11
         Font.Name = 'Tahoma'
         Font.Style = []
-        FieldName = 'thumb_data'
+        FieldName = 'image'
         Title = 'Image'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
@@ -190,7 +190,7 @@ object MainForm: TMainForm
         Font.Height = -11
         Font.Name = 'Tahoma'
         Font.Style = [fsBold]
-        FieldName = 'image_text'
+        FieldName = 'description'
         Title = 'Description'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText

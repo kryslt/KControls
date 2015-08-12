@@ -195,6 +195,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function Empty: Boolean; virtual;
+    property LastInputFormat: TKNumberEditDisplayedFormat read FLastInputFormat write FLastInputFormat;
     property MaxAsInt: Int64 read GetMaxAsInt write SetMaxAsInt;
     property MinAsInt: Int64 read GetMinAsInt write SetMinAsInt;
     property ValueAsInt: Int64 read GetValueAsInt write SetValueAsInt;

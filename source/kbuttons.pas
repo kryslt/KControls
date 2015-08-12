@@ -610,9 +610,9 @@ begin
     if FStates * [cbsHot, cbsMouseCapture] <> [] then
       Include(States, bsHot);
     KGraphics.DrawButtonFrame(ACanvas, R, States);
-    OffsetRect(R, Ofs, Ofs);
+    KFunctions.OffsetRect(R, Ofs, Ofs);
     DrawInterior(ACanvas, R);
-    OffsetRect(R, -Ofs, -Ofs);
+    KFunctions.OffsetRect(R, -Ofs, -Ofs);
     if FFocusRect then
       DrawFocusRect(ACanvas, R);
   end;

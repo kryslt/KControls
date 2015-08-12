@@ -1532,11 +1532,11 @@ begin
     ARect.Bottom := MulDiv(ARect.Bottom, ViewportExt.cy, WindowExt.cy);
   end;
   if Boolean(GetViewPortOrgEx(DC, {$IFDEF FPC}@{$ENDIF}P)) then
-    OffsetRect(ARect, P);
+    KFunctions.OffsetRect(ARect, P);
   {$ENDIF}
 {$ENDIF}
   if Boolean(GetWindowOrgEx(DC, {$IFDEF FPC}@{$ENDIF}P)) then
-    OffsetRect(ARect, -P.X, -P.Y);
+    KFunctions.OffsetRect(ARect, -P.X, -P.Y);
 end;
 
 function VerticalShapePosition(AAlignment: TKVAlign; const ABoundary: TRect; const AShapeSize: TPoint): Integer;
@@ -3326,7 +3326,7 @@ begin
         R := ARect^
       else
         GetWindowRect(FWindow, R);
-      OffsetRect(R, DX, DY);
+      KFunctions.OffsetRect(R, DX, DY);
       if FLayered then
       begin
         R.Right := FBitmap.Width;

@@ -53,7 +53,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
   OnKeyDown = FormKeyDown
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.0.14.0'
+  LCLVersion = '1.4.2.0'
   object ToBMain: TToolBar
     Left = 0
     Top = 0
@@ -100,6 +100,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
     end
     object ToolButton3: TToolButton
       Left = 125
+      Height = 30
       Top = 2
       Width = 10
       Caption = 'ToolButton3'
@@ -108,6 +109,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
     end
     object ToolButton6: TToolButton
       Left = 200
+      Height = 30
       Top = 2
       Width = 10
       Caption = 'ToolButton6'
@@ -123,6 +125,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
     end
     object ToolButton4: TToolButton
       Left = 371
+      Height = 30
       Top = 2
       Width = 10
       Caption = 'ToolButton4'
@@ -161,10 +164,10 @@ object KPrintPreviewForm: TKPrintPreviewForm
         Width = 15
         Associate = EDPage
         Min = 1
+        OnClick = UDPageClick
         Position = 1
         TabOrder = 1
         Wrap = False
-        OnClick = UDPageClick
       end
     end
     object PNScale: TPanel
@@ -202,6 +205,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
     end
     object ToolButton1: TToolButton
       Left = 330
+      Height = 30
       Top = 2
       Width = 10
       Caption = 'ToolButton1'

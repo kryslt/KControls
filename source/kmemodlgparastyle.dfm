@@ -135,6 +135,7 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
+      Min = -250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       TabOrder = 3
       UpDownStep = 5.000000000000000000
@@ -147,6 +148,7 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
+      Min = -250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       TabOrder = 5
       UpDownStep = 5.000000000000000000
@@ -173,6 +175,20 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Height = 13
       Caption = 'Space below:'
     end
+    object LBLineSpacing: TLabel
+      Left = 180
+      Top = 27
+      Width = 62
+      Height = 13
+      Caption = 'Line spacing:'
+    end
+    object LBLineSpacingValue: TLabel
+      Left = 180
+      Top = 57
+      Width = 65
+      Height = 13
+      Caption = 'Factor/value:'
+    end
     object EDSpaceAbove: TKNumberEdit
       Left = 98
       Top = 24
@@ -196,6 +212,33 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       TabOrder = 2
       UpDownStep = 3.000000000000000000
+    end
+    object CoBLineSpacing: TComboBox
+      Left = 248
+      Top = 24
+      Width = 95
+      Height = 21
+      Style = csDropDownList
+      TabOrder = 4
+      OnClick = CoBLineSpacingClick
+      Items.Strings = (
+        'single'
+        '1.5 lines'
+        'double'
+        'auto'
+        'exact'
+        'factor')
+    end
+    object EDLineSpacingValue: TKNumberEdit
+      Left = 271
+      Top = 54
+      Width = 55
+      Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
+      DecimalSeparator = ','
+      Max = 100.000000000000000000
+      Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      TabOrder = 5
     end
   end
   object GBShading: TGroupBox

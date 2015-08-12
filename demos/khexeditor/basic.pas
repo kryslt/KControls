@@ -192,7 +192,7 @@ begin
     ShowVertLines := False;
     ShowSeparators := True;
     ShowInactiveCaret := True;
-    DisabledDrawStyle := Integer(cDisabledDrawStyleDef);
+    DisabledDrawStyle := Integer(cEditDisabledDrawStyleDef);
     AddressMode := Integer(cAddressModeDef);
     AddressSize := cAddressSizeDef;
     CharSpacing := cCharSpacingDef;

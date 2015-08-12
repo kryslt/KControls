@@ -1,3 +1,19 @@
+{ @abstract(This unit contains a dialog for paragraph style editing)
+  @author(Tomas Krysl (tk@tkweb.eu))
+  @created(28 Apr 2009)
+  @lastmod(30 July 2015)
+
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+
+  <B>License:</B><BR>
+  This code is distributed as a freeware. You are free to use it as part
+  of your application for any purpose including freeware, commercial and
+  shareware applications. The origin of this source code must not be
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 unit KMemoDlgParaStyle;
 
 interface
@@ -47,8 +63,14 @@ type
     LBBorderRadius: TLabel;
     EDBorderRadius: TKNumberEdit;
     CBWordWrap: TCheckBox;
+    LBLineSpacing: TLabel;
+    CoBLineSpacing: TComboBox;
+    LBLineSpacingValue: TLabel;
+    EDLineSpacingValue: TKNumberEdit;
+    procedure CoBLineSpacingClick(Sender: TObject);
   private
     { Private declarations }
+    procedure UpdateLineSpacingValue(AValue: Double);
   public
     { Public declarations }
     procedure Load(AStyle: TKMemoParaStyle);
@@ -64,9 +86,14 @@ implementation
 {$ENDIF}
 
 uses
-  KGraphics;
+  Math, KFunctions, KGraphics;
 
 { TKMemoParaStyleForm }
+
+procedure TKMemoParaStyleForm.CoBLineSpacingClick(Sender: TObject);
+begin
+  UpdateLineSpacingValue(EDLineSpacingValue.Value);
+end;
 
 procedure TKMemoParaStyleForm.Load(AStyle: TKMemoParaStyle);
 begin
@@ -95,6 +122,28 @@ begin
     else
       CLBShading.DlgColor := clNone;
     CBWordWrap.Checked := AStyle.WordWrap;
+    case AStyle.LineSpacingMode of
+      lsmFactor:
+      begin
+        if SameValue(AStyle.LineSpacingFactor, 1) then
+          CoBLineSpacing.ItemIndex := 0
+        else if SameValue(AStyle.LineSpacingFactor, 1.5) then
+          CoBLineSpacing.ItemIndex := 1
+        else if SameValue(AStyle.LineSpacingFactor, 2) then
+          CoBLineSpacing.ItemIndex := 2
+        else
+          CoBLineSpacing.ItemIndex := 5;
+        UpdateLineSpacingValue(AStyle.LineSpacingFactor);
+      end;
+      lsmValue:
+      begin
+        if AStyle.LineSpacingValue >= 0 then
+          CoBLineSpacing.ItemIndex := 3
+        else
+          CoBLineSpacing.ItemIndex := 4;
+        UpdateLineSpacingValue(Abs(AStyle.LineSpacingValue));
+      end;
+    end;
   end;
 end;
 
@@ -122,6 +171,28 @@ begin
     if CLBShading.DlgColor <> clNone then
       AStyle.Brush.Color := CLBShading.DlgColor;
     AStyle.WordWrap := CBWordWrap.Checked;
+    case CoBLineSpacing.ItemIndex of
+      1: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 1.5; end;
+      2: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 2; end;
+      3: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := -MinMax(EDLineSpacingValue.ValueAsInt, 5, 100); end;
+      4: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := MinMax(EDLineSpacingValue.ValueAsInt, 5, 100); end;
+      5: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := MinMax(EDLineSpacingValue.Value, 0.1, 10); end;
+    else
+      AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 1;
+    end;
+  end;
+end;
+
+procedure TKMemoParaStyleForm.UpdateLineSpacingValue(AValue: Double);
+begin
+  case CoBLineSpacing.ItemIndex of
+    1: begin EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1.5; end;
+    2: begin EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 2; end;
+    3: begin EDLineSpacingValue.LastInputFormat := nedfDec; EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
+    4: begin EDLineSpacingValue.LastInputFormat := nedfDec; EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
+    5: begin EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
+  else
+    EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1;
   end;
 end;
 

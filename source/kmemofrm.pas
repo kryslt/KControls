@@ -1,3 +1,19 @@
+{ @abstract(This unit serves as simple KMemo editor in TFrame)
+  @author(Tomas Krysl (tk@tkweb.eu))
+  @created(28 Apr 2009)
+  @lastmod(30 July 2015)
+
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+
+  <B>License:</B><BR>
+  This code is distributed as a freeware. You are free to use it as part
+  of your application for any purpose including freeware, commercial and
+  shareware applications. The origin of this source code must not be
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 unit kmemofrm;
 
 {$include kcontrols.inc}
@@ -23,7 +39,7 @@ type
     ACParaNumbering: TAction;
     Editor: TKMemo;
     ILMain: TImageList;
-    ToBMain: TToolBar;
+    ToBFirst: TToolBar;
     ToBNew: TToolButton;
     ToBOpen: TToolButton;
     ToBSave: TToolButton;
@@ -31,20 +47,9 @@ type
     ToBCut: TToolButton;
     ToBCopy: TToolButton;
     ToBPaste: TToolButton;
-    ToBSep2: TToolButton;
     ToBPrint: TToolButton;
     ToBPreview: TToolButton;
-    ToBBold: TToolButton;
-    ToBItalic: TToolButton;
-    ToBUnderline: TToolButton;
-    ToolButton1: TToolButton;
-    ToBLeft: TToolButton;
-    ToBFont: TToolButton;
-    ToBCenter: TToolButton;
-    ToBRight: TToolButton;
-    ToBIncIndent: TToolButton;
-    ToBDecIndent: TToolButton;
-    ToBPara: TToolButton;
+    ToBSep3: TToolButton;
     ALMain: TActionList;
     ACEditCopy: TKMemoEditCopyAction;
     ACEditCut: TKMemoEditCutAction;
@@ -71,13 +76,11 @@ type
     ToBSaveAs: TToolButton;
     PrintSetupDialog: TKPrintSetupDialog;
     PrintPreviewDialog: TKPrintPreviewDialog;
-    ToBFormatCopy: TToolButton;
     ACFormatCopy: TAction;
     ACShowFormatting: TAction;
     ToBShowFormatting: TToolButton;
-    ToolButton3: TToolButton;
+    ToBSep2: TToolButton;
     ACInsertHyperlink: TAction;
-    ToolButton2: TToolButton;
     ToBInsertHyperlink: TToolButton;
     PMMain: TPopupMenu;
     MIEditCopy: TMenuItem;
@@ -92,7 +95,26 @@ type
     MIEditHyperlink: TMenuItem;
     N3: TMenuItem;
     ACEditHyperlink: TAction;
-    ToBNumbering: TToolButton;
+    ToBSecond: TToolBar;
+    ToBFormatCopy: TToolButton;
+    ToBSep4: TToolButton;
+    ToBFontBold: TToolButton;
+    ToBFontItalic: TToolButton;
+    ToBFontUnderline: TToolButton;
+    ToBFont: TToolButton;
+    ToBSep5: TToolButton;
+    ToBParaLeft: TToolButton;
+    ToBParaCenter: TToolButton;
+    ToBParaRight: TToolButton;
+    ToBParaIncIndent: TToolButton;
+    ToBParaDecIndent: TToolButton;
+    ToBParaNumbering: TToolButton;
+    ToBPara: TToolButton;
+    ToBFontSubscript: TToolButton;
+    ACFontSuperscript: TAction;
+    ACFontSubscript: TAction;
+    ToBFontSuperscript: TToolButton;
+    ToBSelectAll: TToolButton;
     procedure ACFileNewExecute(Sender: TObject);
     procedure ACFileNewUpdate(Sender: TObject);
     procedure ACFileOpenExecute(Sender: TObject);
@@ -133,6 +155,11 @@ type
     procedure ACEditHyperlinkUpdate(Sender: TObject);
     procedure EditorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure ACParaNumberingExecute(Sender: TObject);
+    procedure ACParaNumberingUpdate(Sender: TObject);
+    procedure ACFontSuperscriptExecute(Sender: TObject);
+    procedure ACFontSuperscriptUpdate(Sender: TObject);
+    procedure ACFontSubscriptExecute(Sender: TObject);
+    procedure ACFontSubscriptUpdate(Sender: TObject);
   private
     { Private declarations }
     FNewFile: Boolean;
@@ -304,6 +331,32 @@ begin
   end;
 end;
 
+procedure TKMemoFrame.ACFontSubscriptExecute(Sender: TObject);
+begin
+  if TAction(Sender).Checked then
+    FTextStyle.ScriptPosition := tpoNormal
+  else
+    FTextStyle.ScriptPosition := tpoSubscript;
+end;
+
+procedure TKMemoFrame.ACFontSubscriptUpdate(Sender: TObject);
+begin
+  TAction(Sender).Checked := FTextStyle.ScriptPosition = tpoSubScript;
+end;
+
+procedure TKMemoFrame.ACFontSuperscriptExecute(Sender: TObject);
+begin
+  if TAction(Sender).Checked then
+    FTextStyle.ScriptPosition := tpoNormal
+  else
+    FTextStyle.ScriptPosition := tpoSuperscript;
+end;
+
+procedure TKMemoFrame.ACFontSuperscriptUpdate(Sender: TObject);
+begin
+  TAction(Sender).Checked := FTextStyle.ScriptPosition = tpoSuperScript;
+end;
+
 procedure TKMemoFrame.ACFontUnderlineExecute(Sender: TObject);
 begin
   if TAction(Sender).Checked then
@@ -333,7 +386,7 @@ begin
   Created := False;
   if Editor.SelAvail then
   begin
-    Hyperlink := TKMemoHyperlink.Create(nil);
+    Hyperlink := TKMemoHyperlink.Create;
     Hyperlink.Text := Editor.SelText;
     Item := Editor.ActiveInnerBlock;
     if Item is TKMemoHyperlink then
@@ -346,7 +399,7 @@ begin
       Hyperlink := TKMemoHyperlink(Item)
     else
     begin
-      Hyperlink := TKMemoHyperlink.Create(nil);
+      Hyperlink := TKMemoHyperlink.Create;
       Created := True;
     end;
   end;
@@ -408,9 +461,14 @@ end;
 
 procedure TKMemoFrame.ACParaNumberingExecute(Sender: TObject);
 begin
-  FNumberingForm.Load(FParaStyle);
+  FNumberingForm.Load(Editor.ListTable, Editor.NearestParagraph);
   if FNumberingForm.ShowModal = mrOk then
-    FNumberingForm.Save(FParaStyle);
+    FNumberingForm.Save;
+end;
+
+procedure TKMemoFrame.ACParaNumberingUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := Editor.NearestParagraph <> nil;
 end;
 
 procedure TKMemoFrame.ACParaRightExecute(Sender: TObject);

@@ -12,8 +12,6 @@ object MainForm: TMainForm
   Font.Style = []
   OldCreateOrder = True
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
-  OnPaint = FormPaint
   OnResize = FormResize
   DesignSize = (
     988
@@ -83,6 +81,16 @@ object MainForm: TMainForm
     Caption = 'Print'
     TabOrder = 3
     OnClick = BUPrintClick
+  end
+  object BUTest: TButton
+    Left = 267
+    Top = 517
+    Width = 75
+    Height = 25
+    Anchors = [akLeft, akBottom]
+    Caption = 'Test'
+    TabOrder = 4
+    OnClick = BUTestClick
   end
   object KPrintPreviewDialog1: TKPrintPreviewDialog
     Left = 408

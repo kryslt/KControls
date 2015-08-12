@@ -7492,7 +7492,7 @@ procedure TKCustomGrid.EditorWindowProc(var Msg: TLMessage);
         ACanvas.Handle := DC;
         R := Rect(0, 0, R.Right - R.Left, R.Bottom - R.Top);
         TmpBlockRect := SelectionRect;
-        OffsetRect(TmpBlockRect, -R.Left, -R.Top);
+        KFunctions.OffsetRect(TmpBlockRect, -R.Left, -R.Top);
         InternalPaintCell(Col, Row, GetDrawState(Col, Row, HasFocus),
           R, TmpBlockRect, ACanvas, False, False);
         FEditor.Brush.Color := ACanvas.Brush.Color;
@@ -10327,7 +10327,7 @@ begin
         else
           TmpBlockRect := SelectionRect;
         if CellBitmap <> nil then
-          OffsetRect(TmpBlockRect, -R.Left, -R.Top);
+          KFunctions.OffsetRect(TmpBlockRect, -R.Left, -R.Top);
         if (ACanvas = nil) or (ACanvas = Canvas) then
         begin
           Info := GetAxisInfoBoth([aiFixedParams]);
@@ -10490,7 +10490,7 @@ begin
               TmpCanvas := CellBitmap.Canvas;
               SelectClipRect(TmpCanvas.Handle, TmpRect);
               ClipCells := False;
-              OffsetRect(TmpBlockRect, -CellRect.Left, -CellRect.Top);
+              KFunctions.OffsetRect(TmpBlockRect, -CellRect.Left, -CellRect.Top);
             end else
             begin
               TmpRect := CellRect;
@@ -10749,7 +10749,7 @@ begin
     SelectClipRgn(APageSetup.Canvas.Handle, MainClipRgn);
     TmpRect := SelectionRect;
     if SelOnly then
-      OffsetRect(TmpRect, -TmpRect.Left, -TmpRect.Top);
+      KFunctions.OffsetRect(TmpRect, -TmpRect.Left, -TmpRect.Top);
     PaintCells(PageSetup.Canvas, nil, MainClipRgn, FirstCol, LastCol, FirstRow, LastRow,
       0, 0, OutlineWidth, OutlineHeight, True, poPaintSelection in APageSetup.Options, TmpRect);
   finally
@@ -13215,7 +13215,7 @@ procedure TKCustomGrid.WndProc(var Msg: TMessage);
   begin
     R := Rect(0, 0, R.Right - R.Left, R.Bottom - R.Top);
     TmpBlockRect := SelectionRect;
-    OffsetRect(TmpBlockRect, -R.Left, -R.Top);
+    KFunctions.OffsetRect(TmpBlockRect, -R.Left, -R.Top);
     InternalPaintCell(Col, Row, GetDrawState(Col, Row, HasFocus),
       R, TmpBlockRect, ACanvas, False, False);
   end;

@@ -17,9 +17,9 @@ inherited ReplaceForm: TReplaceForm
     TabOrder = 2
     object CBPromptOnReplace: TCheckBox[2]
       Left = 8
-      Height = 17
+      Height = 19
       Top = 44
-      Width = 105
+      Width = 107
       Caption = '&Prompt on replace'
       Checked = True
       State = cbChecked
@@ -54,9 +54,9 @@ inherited ReplaceForm: TReplaceForm
   end
   object LBReplaceText: TLabel[8]
     Left = 8
-    Height = 14
+    Height = 13
     Top = 44
-    Width = 66
+    Width = 65
     Caption = 'Rep&lace with:'
     FocusControl = CBTextToReplace
     ParentColor = False

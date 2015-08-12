@@ -12,6 +12,9 @@ tklinklabel.png
 tkgradientlabel.png
 tkpercentprogressbar.png
 tkmemo.png
+tkmemoframe.png
 tkbitbtn.png
 tkcolorbutton.png
-
+tkspeedbutton.png
+tksplitter.png
+tkpagecontrol.png

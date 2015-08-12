@@ -30,15 +30,15 @@ var
 
 implementation
 
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
+
 procedure TPrintStatusForm.BUAbortClick(Sender: TObject);
 begin
   Aborted := True;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i printstatus.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.

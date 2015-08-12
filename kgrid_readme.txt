@@ -65,7 +65,22 @@ JR: some useful functions and ideas
 aki: selectable fixed cells
 
 
-VERSION HISTORY
+VERSION HISTORY - NEW KCONTROLS PACKAGE
+-------------------
+Version 1.7 (August 2015):
+  Modified:
+    -TKDBGrid empty dataset exception fixed
+  
+Version 1.6 (July 2014):
+  Added:
+    -Columns property to TKDBGrid (not 100% compatible with TDBGrid)
+
+Version 1.5 (July 2014):
+  Added:
+    -2 modes of mouse wheel scrolling in TKCustomGrid
+
+
+VERSION HISTORY - OLD KGRID PACKAGE ONLY
 -------------------
 Version 1.7 (November 2010): 
   Added:

@@ -132,7 +132,6 @@ type
     TBSearchAgain: TToolButton;
     TBSep4: TToolButton;
     TBEnvProps: TToolButton;
-    ILMainDis: TImageList;
     procedure EditorReplaceText(Sender: TObject; const TextToFind,
       TextToReplace: string; var Action: TKEditReplaceAction);
     procedure FormCreate(Sender: TObject);
@@ -221,6 +220,12 @@ var
 
 implementation
 
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
+
 uses
   IniFiles, Res, Basic, About, Options, KFunctions,
   Replace, ReplacePrompt, Search, PrintStatus, ClipBrd;
@@ -252,7 +257,7 @@ begin
   Editor.AreaSpacing := 1;
   Editor.DoubleBuffered := True;  
   //define 1 cm space for custom header
-  Editor.PageSetup.HeaderSpace := 1; //cm by default
+  Editor.PageSetup.UnitHeaderSpace := 1; //cm by default
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -905,14 +910,8 @@ begin
     Canvas.Pen.Width := VMap(2);
     Y := PrinterMarginTop + VMap(22);
     Canvas.MoveTo(PrinterMarginLeftMirrored, Y);
-    Canvas.LineTo(PageWidth - PrinterMarginRightMirrored, Y);
+    Canvas.LineTo(PrinterPageWidth - PrinterMarginRightMirrored, Y);
   end;
 end;
 
-{$IFDEF FPC}
-initialization
-  {$i main.lrs}
-{$ELSE}
-  {$R *.dfm}
-{$ENDIF}
 end.

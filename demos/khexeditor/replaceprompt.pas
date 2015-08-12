@@ -32,9 +32,9 @@ var
 implementation
 
 {$IFDEF FPC}
-initialization
-  {$i replaceprompt.lrs}
+  {$R *.lfm}
 {$ELSE}
   {$R *.dfm}
 {$ENDIF}
+
 end.

@@ -158,6 +158,24 @@ object KMemoTextStyleForm: TKMemoTextStyleForm
       TabOrder = 5
       OnClick = CBSmallCapsClick
     end
+    object CBSubscript: TCheckBox
+      Left = 161
+      Top = 70
+      Width = 97
+      Height = 17
+      Caption = 'Subscript'
+      TabOrder = 6
+      OnClick = CBSubscriptClick
+    end
+    object CBSuperscript: TCheckBox
+      Left = 161
+      Top = 93
+      Width = 97
+      Height = 17
+      Caption = 'Superscript'
+      TabOrder = 7
+      OnClick = CBSuperscriptClick
+    end
   end
   object GBColors: TGroupBox
     Left = 8

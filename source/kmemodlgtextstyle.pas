@@ -1,3 +1,19 @@
+{ @abstract(This unit contains a dialog for text/script style editing)
+  @author(Tomas Krysl (tk@tkweb.eu))
+  @created(28 Apr 2009)
+  @lastmod(30 July 2015)
+
+  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+
+  <B>License:</B><BR>
+  This code is distributed as a freeware. You are free to use it as part
+  of your application for any purpose including freeware, commercial and
+  shareware applications. The origin of this source code must not be
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 unit KMemoDlgTextStyle;
 
 interface
@@ -34,6 +50,8 @@ type
     LBFontColor: TLabel;
     CLBTextShading: TKColorButton;
     CLBFontColor: TKColorButton;
+    CBSubscript: TCheckBox;
+    CBSuperscript: TCheckBox;
     procedure LiBFontDrawItem(Control: TWinControl; Index: Integer; Rect: TRect;
       State: TOwnerDrawState);
     procedure LiBFontClick(Sender: TObject);
@@ -43,6 +61,8 @@ type
     procedure LiBFontSizeClick(Sender: TObject);
     procedure CBCapsClick(Sender: TObject);
     procedure CBSmallCapsClick(Sender: TObject);
+    procedure CBSubscriptClick(Sender: TObject);
+    procedure CBSuperscriptClick(Sender: TObject);
   private
     { Private declarations }
     FFontChanging: Boolean;
@@ -85,6 +105,18 @@ procedure TKMemoTextStyleForm.CBSmallCapsClick(Sender: TObject);
 begin
   if CBSmallCaps.Checked then
     CBCaps.Checked := False;
+end;
+
+procedure TKMemoTextStyleForm.CBSubscriptClick(Sender: TObject);
+begin
+  if CBSubscript.Checked then
+    CBSuperscript.Checked := False;
+end;
+
+procedure TKMemoTextStyleForm.CBSuperscriptClick(Sender: TObject);
+begin
+  if CBSuperscript.Checked then
+    CBSubscript.Checked := False;
 end;
 
 procedure TKMemoTextStyleForm.EDFontChange(Sender: TObject);
@@ -256,6 +288,8 @@ begin
     CBStrikeout.Checked := fsStrikeout in AStyle.Font.Style;
     CBCaps.Checked := AStyle.Capitals = tcaNormal;
     CBSmallCaps.Checked := AStyle.Capitals = tcaSmall;
+    CBSubscript.Checked := AStyle.ScriptPosition = tpoSubscript;
+    CBSuperscript.Checked := AStyle.ScriptPosition = tpoSuperscript;
   end;
 end;
 
@@ -279,6 +313,9 @@ begin
     if CBCaps.Checked then AStyle.Capitals := tcaNormal
     else if CBSmallCaps.Checked then AStyle.Capitals := tcaSmall
     else AStyle.Capitals := tcaNone;
+    if CBSubscript.Checked then AStyle.ScriptPosition := tpoSubscript
+    else if CBSuperscript.Checked then AStyle.ScriptPosition := tpoSuperscript
+    else AStyle.ScriptPosition := tpoNormal;
   end;
 end;
 

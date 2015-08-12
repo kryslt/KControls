@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 0
-  Top = 0
+  Left = 650
+  Top = 177
   Caption = 'KMemo editor'
   ClientHeight = 457
   ClientWidth = 684

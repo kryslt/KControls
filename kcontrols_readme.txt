@@ -34,24 +34,38 @@ Any suggestions, error reports and questions about this software please send to
 the author or discuss on http://www.tkweb.eu.
 
 
+INFO FOR CONTRIBUTORS:
+-------------------
+You may contribute to this project, in such case send your contributions to the author.
+Before sending, be sure to test your contribution thoroughfully.
+As KControls is cross platform and cross IDE, ALWAYS test your contribution in following
+minimum configuration of IDEs and OSes:
+1. Delphi 7 and latest Delphi XE version under Windows 7 or higher
+2. Lazarus32 and Lazarus64 under Windows 7 or higher
+3. Lazarus32 or Lazarus64 under some version of Linux, preferrably Ubuntu or Kubuntu.
+Keep in mind the differences between Delphi and Lazarus (mainly string encoding UTF16 in Delphi vs. UTF8 in Lazarus).
+When working with texts, always test with different Unicode characters.
+Testing of BiDi features is not required, because they are not supported by KControls.
+
+
 VERSION HISTORY:
 -------------------
-Version 1.7 (July 2015):
+Version 1.7 (August 2015):
   Added:
     -TKMemo major improvements 
-    -TKPageControl, TKSpeedButton, TKSplitter components
+    -TKPageControl, TKSpeedButton, TKSplitter components    
     -packages up to Delphi XE8
   
 
 Version 1.6 (July 2014):
   Added:
-    -Columns property to TKDBGrid (not 100% compatible with TDBGrid)   
+    -TKDBGrid improvements
     -packages for Delphi XE6
 
 Version 1.5 (July 2014):
   Added:
     -new components TKBitBtn, TKColorButton, TKMemo (early alpha state!)
-    -2 modes of mouse wheel scrolling in TKCustomGrid
+    -TKGrid improvements
 
 Version 1.4 (February 2014): 
   Added:

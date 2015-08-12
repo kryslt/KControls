@@ -10,12 +10,12 @@ object ReplacePromptForm: TReplacePromptForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
+  LCLVersion = '1.4.2.0'
   object LBText: TLabel
     Left = 16
-    Height = 14
+    Height = 13
     Top = 16
-    Width = 8
+    Width = 7
     Caption = 'A'
     ParentColor = False
   end

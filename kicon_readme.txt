@@ -28,7 +28,14 @@ CONTRIBUTORS:
 Goran Despalatovic: fixed many bugs
 
 
-VERSION HISTORY:
+VERSION HISTORY - NEW KCONTROLS PACKAGE
+-------------------
+Version 1.7 (August 2015):
+  Added:
+    -LoadFromPng, LoadFromAlphaBitmap methods etc.
+
+
+VERSION HISTORY - OLD KICON PACKAGE ONLY
 -------------------
 Version 2.2 (November 2010)
   Modified:
