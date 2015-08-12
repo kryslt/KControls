@@ -1,4 +1,4 @@
-package KControls_RXE5_copy;
+package KControls_RXE8;
 
 {$include ..\..\source\kcontrols.inc}
 
@@ -13,12 +13,12 @@ package KControls_RXE5_copy;
 {$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS ON}
 {$RANGECHECKS ON}
 {$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS ON}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST ON}
@@ -31,9 +31,12 @@ package KControls_RXE5_copy;
 requires
   vcl,
   vclx,
-  vclimg, 
-  dbrtl, 
-  vcldb;
+  vclimg
+{$IFDEF TKDBGRID_USE}
+  , dbrtl
+  , vcldb
+{$ENDIF}
+  ;
 
 contains
   kcontrols in '..\..\source\kcontrols.pas',
@@ -55,7 +58,13 @@ contains
   klog in '..\..\source\klog.pas',
   kprogress in '..\..\source\kprogress.pas',
   kres in '..\..\source\kres.pas',
-  kpagecontrol in '..\..\source\kpagecontrol.pas', 
-  kdbgrids in '..\..\source\kdbgrids.pas'
+  kmemodlghyperlink in '..\..\source\kmemodlghyperlink.pas',
+  kmemodlgnumbering in '..\..\source\kmemodlgnumbering.pas',
+  kmemodlgparastyle in '..\..\source\kmemodlgparastyle.pas',
+  kmemodlgtextstyle in '..\..\source\kmemodlgtextstyle.pas',
+  kpagecontrol in '..\..\source\kpagecontrol.pas'
+{$IFDEF TKDBGRID_USE}
+  , kdbgrids in '..\..\source\kdbgrids.pas'
+{$ENDIF}
   ;
 end.

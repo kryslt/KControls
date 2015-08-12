@@ -1,4 +1,6 @@
-package KControls_RXE_copy;
+package KControls_RXE7;
+
+{$include ..\..\source\kcontrols.inc}
 
 {$R *.res}
 {$ALIGN 8}
@@ -25,16 +27,16 @@ package KControls_RXE_copy;
 {$DESCRIPTION 'KControls Development Suite - runtime package'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
-{$DEFINE USE_ALPHASKINS}
-{$DEFINE SUPPORT_ALPHASKINS}
 
 requires
   vcl,
   vclx,
-  vclimg,
-  dbrtl,
-  vcldb,
-  acntDelphiXE_R;
+  vclimg
+{$IFDEF TKDBGRID_USE}
+  , dbrtl
+  , vcldb
+{$ENDIF}
+  ;
 
 contains
   kcontrols in '..\..\source\kcontrols.pas',
@@ -51,17 +53,18 @@ contains
   kbuttons in '..\..\source\kbuttons.pas',
   kedits in '..\..\source\kedits.pas',
   klabels in '..\..\source\klabels.pas',
+  kmemo in '..\..\source\kmemo.pas',
   kmessagebox in '..\..\source\kmessagebox.pas',
   klog in '..\..\source\klog.pas',
   kprogress in '..\..\source\kprogress.pas',
   kres in '..\..\source\kres.pas',
-  kdbgrids in '..\..\source\kdbgrids.pas',
-  ksplitter in '..\..\source\ksplitter.pas',
   kmemodlghyperlink in '..\..\source\kmemodlghyperlink.pas',
   kmemodlgnumbering in '..\..\source\kmemodlgnumbering.pas',
   kmemodlgparastyle in '..\..\source\kmemodlgparastyle.pas',
   kmemodlgtextstyle in '..\..\source\kmemodlgtextstyle.pas',
-  kpagecontrol in '..\..\source\kpagecontrol.pas';
-
+  kpagecontrol in '..\..\source\kpagecontrol.pas'
+{$IFDEF TKDBGRID_USE}
+  , kdbgrids in '..\..\source\kdbgrids.pas'
+{$ENDIF}
+  ;
 end.
-

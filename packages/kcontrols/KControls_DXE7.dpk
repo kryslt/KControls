@@ -1,7 +1,8 @@
-package KControls_DXE6_copy;
+package KControls_DXE7;
+
+{$include ..\..\source\kcontrols.inc}
 
 {$R *.res}
-{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -12,26 +13,29 @@ package KControls_DXE6_copy;
 {$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS ON}
 {$RANGECHECKS ON}
 {$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS ON}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE DEBUG}
-{$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'KControls Development Suite - design time package'}
 {$DESIGNONLY}
 {$IMPLICITBUILD ON}
 
 requires
   dclstd,
-  KControls_RXE6_copy;
+  KControls_RXE7
+{$IFDEF TKDBGRID_USE}  
+  , dbrtl
+  , vcldb
+{$ENDIF}
+  ;
 
 contains
   kcontrolsdesign in 'kcontrolsdesign.pas',

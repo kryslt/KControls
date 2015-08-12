@@ -33,6 +33,7 @@ KNOWN PROBLEMS:
   a completely new list which is IMO a smut and I won't follow this. Starting value in KMemo is always bound to the paragraph 
   and a new RTF control word has been introduced for this: \lsstartat. 
   Starting value given by list level (\levelstartat) is only used as default starting value.
+- Metafiles won't be loaded to KMemo under Linux because of the missing TMetafile support in Lazarus under Linux.
 
 
 CONTRIBUTORS:

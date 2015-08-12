@@ -8,7 +8,10 @@ uses
 {$IFDEF FPC}
   ComponentEditors, PropEdits,
 {$ELSE}
-  DesignIntf, DesignEditors, Actions,
+  DesignIntf, DesignEditors,
+ {$IFDEF COMPILER15_UP}
+  Actions,
+ {$ENDIF}
 {$ENDIF}
   KPictureEditor
   ;

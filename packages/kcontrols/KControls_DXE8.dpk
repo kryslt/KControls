@@ -1,4 +1,4 @@
-package KControls_D7_copy;
+package KControls_DXE8;
 
 {$include ..\..\source\kcontrols.inc}
 
@@ -30,7 +30,7 @@ package KControls_D7_copy;
 
 requires
   dclstd,
-  KControls_R7_copy
+  KControls_RXE8
 {$IFDEF TKDBGRID_USE}  
   , dbrtl
   , vcldb
