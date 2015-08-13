@@ -197,20 +197,17 @@ from using this code."/>
         <UnitName Value="KMemoRTF"/>
       </Item39>
     </Files>
-    <RequiredPkgs Count="4">
+    <RequiredPkgs Count="3">
       <Item1>
-        <PackageName Value="LazAlphaControls"/>
+        <PackageName Value="Printer4Lazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="Printer4Lazarus"/>
+        <PackageName Value="DBFLaz"/>
       </Item2>
       <Item3>
-        <PackageName Value="DBFLaz"/>
-      </Item3>
-      <Item4>
         <PackageName Value="LCL"/>
         <MinVersion Major="1" Valid="True"/>
-      </Item4>
+      </Item3>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
