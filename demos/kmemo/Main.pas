@@ -62,6 +62,7 @@ type
     procedure Test19;
     procedure Test20;
     procedure Test21;
+    procedure Test22;
   public
     { Public declarations }
   end;
@@ -145,7 +146,7 @@ end;
 
 procedure TMainForm.BUTestClick(Sender: TObject);
 begin
-  Test18;
+  Test22;
 end;
 
 procedure TMainForm.Test1;
@@ -441,6 +442,31 @@ procedure TMainForm.Test21;
 begin
   KPrintSetupDialog1.Control := KMemo1;
   KPrintSetupDialog1.Execute;
+end;
+
+procedure TMainForm.Test22;
+var
+  StartPos, EndPos: Integer;
+  TextStyle: TKMemoTextStyle;
+begin
+  TextStyle := TKMemoTextStyle.Create;
+  try
+    TextStyle.Font.Style := [fsBold];
+    TextStyle.Font.Size := 20;
+    KMemo1.Blocks.Clear;
+    KMemo1.Blocks.AddTextBlock('Hell ');
+    KMemo1.Blocks.AddTextBlock('Hello');
+    KMemo1.Blocks.AddTextBlock('Hello ');
+    KMemo1.Blocks.AddParagraph;
+    KMemo1.Blocks.AddTextBlock('Hello');
+    KMemo1.Blocks.AddTextBlock('Hello');
+    KMemo1.Blocks.AddTextBlock(' Hell');
+    KMemo1.GetNearestWordIndexes(12, StartPos, EndPos);
+    KMemo1.Select(StartPos, EndPos - StartPos);
+    KMemo1.SelectionTextStyle := TextStyle;
+  finally
+    TextStyle.Free;
+  end;
 end;
 
 end.

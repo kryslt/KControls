@@ -1214,6 +1214,7 @@ type
     function GetNearestParagraph(AIndex: Integer): TKMemoParagraph; virtual;
     function GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
+    function GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean; out AStart, AEnd: Integer): Boolean; virtual;
     procedure GetSelColors(out TextColor, Background: TColor); virtual;
     function IndexAboveLastLine(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
     function IndexAtBeginningOfContainer(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
@@ -1788,6 +1789,8 @@ type
     function GetMaxLeftPos: Integer; virtual;
     { Returns current maximum value for the @link(TKCustomMemo.TopPos) property. }
     function GetMaxTopPos: Integer; virtual;
+    { Returns indexes corresponding to the word at position AIndex. }
+    function GetNearestWordIndexes(AIndex: Integer; out AStartIndex, AEndIndex: Integer): Boolean;
     { Converts a text buffer index into client area rectangle.
       <UL>
       <LH>Parameters:</LH>
@@ -1844,6 +1847,9 @@ type
     procedure SaveToTXT(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
     { Specifies the current selection. This is faster than combination of SelStart and SelLength. }
     procedure Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean = True); virtual;
+    { Activates relative or absolute positioned container nearest to APoint.
+      The container blocks will be accessible through ActiveBlocks. }
+    procedure SetActiveBlocksForPoint(const APoint: TPoint); virtual;
     { Prepare to insert a new block at given position. Returns requested block index. }
     function SplitAt(AIndex: Integer): Integer; virtual;
     { Gives access to active memo block (the outermost block at caret position within ActiveBlocks). }
@@ -4569,6 +4575,12 @@ begin
     Result := nil;
 end;
 
+function TKCustomMemo.GetNearestWordIndexes(AIndex: Integer; out AStartIndex,
+  AEndIndex: Integer): Boolean;
+begin
+  Result := FActiveBlocks.GetNearestWordIndexes(AIndex, True, AStartIndex, AEndIndex);
+end;
+
 function TKCustomMemo.GetPaintSelection: Boolean;
 begin
   if FPrinting then
@@ -4912,6 +4924,7 @@ procedure TKCustomMemo.MouseDown(Button: TMouseButton; Shift: TShiftState;
 var
   P: TPoint;
   Action: TKMemoMouseAction;
+  StartIndex, EndIndex: Integer;
 begin
   inherited;
   if Enabled then
@@ -4926,10 +4939,18 @@ begin
     end;
     if not FBlocks.MouseAction(Action, PointToBlockPoint(P, False), Shift) then
     begin
-      if (Button = mbLeft) and not (ssDouble in Shift) then
+      if (Button = mbLeft) then
       begin
-        Include(FStates, elMouseCapture);
-        SelectionInit(P, False);
+        SetActiveBlocksForPoint(P);
+        if ssDouble in Shift then
+        begin
+          GetNearestWordIndexes(SelEnd, StartIndex, EndIndex);
+          Select(StartIndex, EndIndex - StartIndex, False);
+        end else
+        begin
+          Include(FStates, elMouseCapture);
+          SelectionInit(P, False);
+        end;
         ClampInView(@P, True);
       end;
     end;
@@ -4992,6 +5013,7 @@ begin
       Move := True;
     if Move then
     begin
+      SetActiveBlocksForPoint(P);
       SelectionInit(P, False);
       ClampInView(@P, True);
     end;
@@ -5322,12 +5344,16 @@ procedure TKCustomMemo.SelectionInit(const APoint: TPoint; ADoScroll: Boolean);
 var
   NewSelEnd: Integer;
 begin
-  FActiveBlocks := FBlocks.PointToBlocks(Canvas, PointToBlockPoint(APoint, False));
-  if FActiveBlocks = nil then
-    FActiveBlocks := FBlocks;
   NewSelEnd := PointToIndex(APoint, True, False, FLinePosition);
   Select(NewSelEnd, 0, ADoScroll);
   UpdatePreferredCaretPos;
+end;
+
+procedure TKCustomMemo.SetActiveBlocksForPoint(const APoint: TPoint);
+begin
+  FActiveBlocks := FBlocks.PointToBlocks(Canvas, PointToBlockPoint(APoint, False));
+  if FActiveBlocks = nil then
+    FActiveBlocks := FBlocks;
 end;
 
 procedure TKCustomMemo.SetColors(Value: TKMemoColors);
@@ -10043,6 +10069,153 @@ begin
     end;
 end;
 
+function TKMemoBlocks.GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean;
+  out AStart, AEnd: Integer): Boolean;
+var
+  I, J, CurIndex, LastIndex, BackupBlock, BackupWord, CurBlock, CurWord, WLen: Integer;
+  IsBreakable: Boolean;
+  Item: TKMemoBlock;
+begin
+  Result := False;
+  if AAdjust then
+    EOLToNormal(AIndex);
+  if AIndex >= 0 then
+  begin
+    CurBlock := -1;
+    CurWord := -1;
+    I := 0;
+    CurIndex := 0;
+    while (CurBlock < 0) and (I < Count) do
+    begin
+      Item := Items[I];
+      LastIndex := CurIndex;
+      Inc(CurIndex, Item.SelectableLength);
+      if (AIndex >= LastIndex) and (AIndex < CurIndex) then
+      begin
+        CurBlock := I;
+        if Item is TKMemoContainer then
+        begin
+          Result := TKMemoContainer(Item).Blocks.GetNearestWordIndexes(AIndex - LastIndex, False, AStart, AEnd);
+          if Result then
+          begin
+            Inc(AStart, LastIndex);
+            Inc(AEnd, LastIndex);
+          end;
+        end else
+        begin
+          J := 0;
+          while (CurWord < 0) and (J < Item.WordCount) do
+          begin
+            WLen := Item.WordLength[J];
+            if (AIndex >= LastIndex) and (AIndex < LastIndex + WLen) then
+              CurWord := J
+            else
+              Inc(LastIndex, WLen);
+            Inc(J);
+          end;
+        end;
+      end;
+      Inc(I);
+    end;
+    if (CurBlock >= 0) and (CurWord >= 0) then
+    begin
+      Result := True;
+      BackupBlock := CurBlock;
+      BackupWord := CurWord;
+      AStart := LastIndex;
+      AEnd := LastIndex;
+      // we've found the word
+      // go back and find first nonbreakable word
+      Dec(CurWord);
+      if CurWord < 0 then
+        Dec(CurBlock);
+      IsBreakable := False;
+      while not IsBreakable and (CurBlock >= 0) do
+      begin
+        Item := Items[CurBlock];
+        if CurWord < 0 then
+          CurWord := Item.WordCount - 1;
+        if not (Item is TKMemoTextBlock) then
+          IsBreakable := True
+        else
+        begin
+          while not IsBreakable and (CurWord >= 0) do
+          begin
+            IsBreakable := Item.WordBreakable[CurWord];
+            if not Isbreakable then
+            begin
+              Dec(AStart, Item.WordLength[CurWord]);
+              Dec(CurWord);
+            end;
+          end;
+          CurWord := -1;
+          Dec(CurBlock);
+        end;
+      end;
+      // go forward and find first nonbreakable word
+      CurBlock := BackupBlock;
+      CurWord := BackupWord;
+      IsBreakable := False;
+      while not IsBreakable and (CurBlock < Count) do
+      begin
+        Item := Items[CurBlock];
+        if not (Item is TKMemoTextBlock) then
+          IsBreakable := True
+        else
+        begin
+          while not IsBreakable and (CurWord < Item.WordCount) do
+          begin
+            IsBreakable := Item.WordBreakable[CurWord];
+            Inc(AEnd, Item.WordLength[CurWord]);
+            Inc(CurWord);
+          end;
+          CurWord := 0;
+          Inc(CurBlock);
+        end;
+      end;
+    end;
+  end;
+end;
+
+{
+  function MeasureNextWords(ACanvas: TCanvas; ACurBlock, ACurWord, ARequiredWidth: Integer; IsBreakable: Boolean; var ANBExtent: TPoint): TPoint;
+  var
+    Item: TKMemoBlock;
+    Extent: TPoint;
+  begin
+    Item := Items[ACurBlock];
+    Result := Item.WordMeasureExtent(ACanvas, ACurWord, ARequiredWidth);
+    ANBExtent := Result;
+    if not IsBreakable then
+    begin
+      Inc(ACurWord);
+      if ACurWord >= Item.WordCount then
+      begin
+        ACurWord := 0;
+        Inc(ACurBlock);
+      end;
+      while not IsBreakable and (ACurBlock < Count) do
+      begin
+        Item := Items[ACurBlock];
+        if (Item is TKMemoParagraph) or not (Item is TKMemoTextBlock) then
+          IsBreakable := True
+        else
+        begin
+          while not IsBreakable and (ACurWord < Item.WordCount) do
+          begin
+            IsBreakable := Item.WordBreakable[ACurWord];
+            Extent := Item.WordMeasureExtent(ACanvas, ACurWord, ARequiredWidth);
+            Inc(ANBExtent.X, Extent.X);
+            ANBExtent.Y := Max(ANBExtent.Y, Extent.Y);
+            Inc(ACurWord);
+          end;
+          ACurWord := 0;
+          Inc(ACurBlock);
+        end;
+      end;
+    end;
+  end;
+}
 function TKMemoBlocks.GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock;
 begin
   Result := nil;

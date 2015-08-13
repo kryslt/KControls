@@ -639,8 +639,24 @@ begin
 end;
 
 procedure TKMemoFrame.TextStyleChanged(Sender: TObject);
+var
+  SelAvail: Boolean;
+  SelEnd, StartIndex, EndIndex: Integer;
 begin
-  Editor.SelectionTextStyle := FTextStyle;
+  // if there is no selection then simulate one word selection
+  SelAvail := Editor.SelAvail;
+  SelEnd := Editor.SelEnd;
+  try
+    if not SelAvail then
+    begin
+      Editor.GetNearestWordIndexes(SelEnd, StartIndex, EndIndex);
+      Editor.Select(StartIndex, EndIndex - StartIndex, False);
+    end;
+    Editor.SelectionTextStyle := FTextStyle;
+  finally
+    if not SelAvail then
+      Editor.Select(SelEnd, 0, False);
+  end;
 end;
 
 end.

@@ -6,9 +6,9 @@ object KMemoFrame: TKMemoFrame
   TabOrder = 0
   object Editor: TKMemo
     Left = 0
-    Top = 60
+    Top = 54
     Width = 597
-    Height = 375
+    Height = 381
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -21,12 +21,14 @@ object KMemoFrame: TKMemoFrame
     OnDropFiles = EditorDropFiles
     OnMouseDown = EditorMouseDown
     OnMouseUp = EditorMouseUp
+    ExplicitTop = 60
+    ExplicitHeight = 375
   end
   object ToBFirst: TToolBar
     Left = 0
     Top = 0
     Width = 597
-    Height = 30
+    Height = 28
     AutoSize = True
     BorderWidth = 1
     EdgeBorders = [ebBottom]
@@ -36,38 +38,38 @@ object KMemoFrame: TKMemoFrame
     TabOrder = 1
     object ToBNew: TToolButton
       Left = 0
-      Top = 2
+      Top = 0
       Action = ACFileNew
       AutoSize = True
     end
     object ToBOpen: TToolButton
       Left = 23
-      Top = 2
+      Top = 0
       Action = ACFileOpen
     end
     object ToBSave: TToolButton
       Left = 46
-      Top = 2
+      Top = 0
       Action = ACFileSave
     end
     object ToBSaveAs: TToolButton
       Left = 69
-      Top = 2
+      Top = 0
       Action = ACFileSaveAs
     end
     object ToBPrint: TToolButton
       Left = 92
-      Top = 2
+      Top = 0
       Action = ACFilePrint
     end
     object ToBPreview: TToolButton
       Left = 115
-      Top = 2
+      Top = 0
       Action = ACFilePreview
     end
     object ToBSep1: TToolButton
       Left = 138
-      Top = 2
+      Top = 0
       Width = 8
       Caption = 'ToBSep1'
       ImageIndex = 3
@@ -75,27 +77,27 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBCopy: TToolButton
       Left = 146
-      Top = 2
+      Top = 0
       Action = ACEditCopy
     end
     object ToBCut: TToolButton
       Left = 169
-      Top = 2
+      Top = 0
       Action = ACEditCut
     end
     object ToBPaste: TToolButton
       Left = 192
-      Top = 2
+      Top = 0
       Action = ACEditPaste
     end
     object ToBSelectAll: TToolButton
       Left = 215
-      Top = 2
+      Top = 0
       Action = ACEditSelectAll
     end
     object ToBSep2: TToolButton
       Left = 238
-      Top = 2
+      Top = 0
       Width = 8
       Caption = 'ToBSep2'
       ImageIndex = 6
@@ -103,13 +105,13 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBShowFormatting: TToolButton
       Left = 246
-      Top = 2
+      Top = 0
       Action = ACShowFormatting
       Style = tbsCheck
     end
     object ToBSep3: TToolButton
       Left = 269
-      Top = 2
+      Top = 0
       Width = 8
       Caption = 'ToBSep3'
       ImageIndex = 26
@@ -117,15 +119,15 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBInsertHyperlink: TToolButton
       Left = 277
-      Top = 2
+      Top = 0
       Action = ACInsertHyperlink
     end
   end
   object ToBSecond: TToolBar
     Left = 0
-    Top = 30
+    Top = 28
     Width = 597
-    Height = 30
+    Height = 26
     AutoSize = True
     BorderWidth = 1
     Images = ILMain
@@ -134,13 +136,13 @@ object KMemoFrame: TKMemoFrame
     TabOrder = 2
     object ToBFormatCopy: TToolButton
       Left = 0
-      Top = 2
+      Top = 0
       Action = ACFormatCopy
       Style = tbsCheck
     end
     object ToBSep4: TToolButton
       Left = 23
-      Top = 2
+      Top = 0
       Width = 8
       Caption = 'ToBSep2'
       ImageIndex = 6
@@ -148,42 +150,42 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBFontBold: TToolButton
       Left = 31
-      Top = 2
+      Top = 0
       Action = ACFontBold
       Style = tbsCheck
     end
     object ToBFontItalic: TToolButton
       Left = 54
-      Top = 2
+      Top = 0
       Action = ACFontItalic
       Style = tbsCheck
     end
     object ToBFontUnderline: TToolButton
       Left = 77
-      Top = 2
+      Top = 0
       Action = ACFontUnderline
       Style = tbsCheck
     end
     object ToBFontSubscript: TToolButton
       Left = 100
-      Top = 2
+      Top = 0
       Action = ACFontSubscript
       Style = tbsCheck
     end
     object ToBFontSuperscript: TToolButton
       Left = 123
-      Top = 2
+      Top = 0
       Action = ACFontSuperscript
       Style = tbsCheck
     end
     object ToBFont: TToolButton
       Left = 146
-      Top = 2
+      Top = 0
       Action = ACFontStyle
     end
     object ToBSep5: TToolButton
       Left = 169
-      Top = 2
+      Top = 0
       Width = 8
       Caption = 'ToolButton1'
       ImageIndex = 26
@@ -191,40 +193,40 @@ object KMemoFrame: TKMemoFrame
     end
     object ToBParaLeft: TToolButton
       Left = 177
-      Top = 2
+      Top = 0
       Action = ACParaLeft
       Style = tbsCheck
     end
     object ToBParaCenter: TToolButton
       Left = 200
-      Top = 2
+      Top = 0
       Action = ACParaCenter
       Style = tbsCheck
     end
     object ToBParaRight: TToolButton
       Left = 223
-      Top = 2
+      Top = 0
       Action = ACParaRight
       Style = tbsCheck
     end
     object ToBParaIncIndent: TToolButton
       Left = 246
-      Top = 2
+      Top = 0
       Action = ACParaIncIndent
     end
     object ToBParaDecIndent: TToolButton
       Left = 269
-      Top = 2
+      Top = 0
       Action = ACParaDecIndent
     end
     object ToBParaNumbering: TToolButton
       Left = 292
-      Top = 2
+      Top = 0
       Action = ACParaNumbering
     end
     object ToBPara: TToolButton
       Left = 315
-      Top = 2
+      Top = 0
       Action = ACParaStyle
     end
   end
@@ -233,7 +235,7 @@ object KMemoFrame: TKMemoFrame
     Left = 280
     Top = 72
     Bitmap = {
-      494C010120003000200010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C010120003000240010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000009000000001002000000000000090
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1580,7 +1582,7 @@ object KMemoFrame: TKMemoFrame
       Category = 'Paragraph'
       Caption = 'Right alignment'
       Hint = 'Right alignment'
-      ImageIndex = 18
+      ImageIndex = 21
       OnExecute = ACParaRightExecute
       OnUpdate = ACParaRightUpdate
     end
