@@ -14,7 +14,7 @@
   notice. The Author accepts no liability for any damage that may result
   from using this code. }
 
-unit KPageControl;
+unit kpagecontrol; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}

@@ -17,7 +17,7 @@
   the original package. The author accepts no liability for any damage
   that may result from using this code. }
 
-unit KDialogs;
+unit kdialogs; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}

@@ -37,7 +37,7 @@
   the original package. The author accepts no liability for any damage
   that may result from using this code. }
 
-unit KGrids;
+unit kgrids; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}

@@ -16,7 +16,7 @@
   the original package. The author accepts no liability for any damage
   that may result from using this code. }
 
-unit KWideWinProcs;
+unit kwidewinprocs; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 

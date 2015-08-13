@@ -15,7 +15,7 @@
   from using this code.
 }
 
-unit KMemo;
+unit kmemo; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}

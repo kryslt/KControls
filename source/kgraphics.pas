@@ -15,7 +15,7 @@
   the original package. The author accepts no liability for any damage
   that may result from using this code. }
 
-unit KGraphics;
+unit kgraphics; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$IFNDEF REGISTER_PICTURE_FORMATS}
