@@ -1421,7 +1421,7 @@ object KMemoFrame: TKMemoFrame
       Category = 'Paragraph'
       Caption = 'Right alignment'
       Hint = 'Right alignment'
-      ImageIndex = 18
+      ImageIndex = 21
       OnExecute = ACParaRightExecute
       OnUpdate = ACParaRightUpdate
     end
