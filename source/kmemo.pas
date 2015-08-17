@@ -105,6 +105,9 @@ const
   { Default value for the @link(TKMemo.Width) property. }
   cWidth = 300;
 
+  { Default value for the @link(TKMemo.MaxWordLength) property. }
+  cMaxWordLengthDef = 50;
+
   { This is the character for paragraph visualisation. }
   cNewLineChar = #$B6;
   { This is the character for space visualisation. }
@@ -599,6 +602,7 @@ type
     function GetDefaultParaStyle: TKMemoParaStyle;
     function GetLinePosition: TKMemoLinePosition;
     function GetListTable: TKMemoListTable;
+    function GetMaxWordLength: Integer;
     function GetPaintSelection: Boolean;
     function GetPrinting: Boolean;
     procedure GetSelColors(out Foreground, Background: TColor);
@@ -1144,6 +1148,8 @@ type
     procedure SetIgnoreParaMark(const Value: Boolean);
     procedure SetItem(Index: Integer; const Value: TKMemoBlock);
     procedure SetMemoNotifier(const Value: IKMemoNotifier);
+    function GetFirstBlock: TKMemoBlock;
+    function GetLastBlock: TKMemoBlock;
   protected
     FLines: TKMemoLines;
     FRelPos: TKMemoSparseList;
@@ -1169,6 +1175,7 @@ type
     function GetLineStartIndex(ALineIndex: Integer): Integer; virtual;
     function GetLineTop(ALineIndex: Integer): Integer; virtual;
     function GetLineWidth(ALineIndex: Integer): Integer; virtual;
+    function GetMaxWordLength: Integer; virtual;
     function GetSelectionHasPara: Boolean; virtual;
     function GetSelectionParaStyle: TKMemoParaStyle; virtual;
     function GetSelectionTextStyle: TKMemoTextStyle; virtual;
@@ -1254,9 +1261,11 @@ type
     property DefaultTextStyle: TKMemoTextStyle read GetDefaultTextStyle;
     property DefaultParaStyle: TKMemoParaStyle read GetDefaultParaStyle;
     property Empty: Boolean read GetEmpty;
+    property FirstBlock: TKMemoBlock read GetFirstBlock;
     property Height: Integer read FExtent.Y;
     property IgnoreParaMark: Boolean read FIgnoreParaMark write SetIgnoreParaMark;
     property Items[Index: Integer]: TKMemoBlock read GetItem write SetItem; default;
+    property LastBlock: TKMemoBlock read GetLastBlock;
     property LineBottom[ALineIndex: Integer]: Integer read GetLineBottom;
     property LineCount: Integer read GetLineCount;
     property LineEndIndex[ALineIndex: Integer]: Integer read GetLineEndIndex;
@@ -1456,6 +1465,7 @@ type
     FKeyMapping: TKEditKeyMapping;
     FLeftPos: Integer;
     FListTable: TKMemoListTable;
+    FMaxWordLength: Integer;
     FMouseWheelAccumulator: Integer;
     FOptions: TKEditOptions;
     FParaStyle: TKMemoParaStyle;
@@ -1505,6 +1515,7 @@ type
     procedure SetColors(Value: TKMemoColors);
     procedure SetDisabledDrawStyle(Value: TKEditDisabledDrawStyle);
     procedure SetLeftPos(Value: Integer);
+    procedure SetMaxWordLength(const Value: Integer);
     procedure SetModified(Value: Boolean);
     procedure SetOptions(const Value: TKEditOptions);
     procedure SetReadOnly(Value: Boolean);
@@ -1632,6 +1643,8 @@ type
     function GetLinePosition: TKMemoLinePosition;
     { IKMemoNotifier implementation. }
     function GetListTable: TKMemoListTable;
+    { IKMemoNotifier implementation. }
+    function GetMaxWordLength: Integer;
     { IKMemoNotifier implementation. }
     function GetPaintSelection: Boolean;
     { IKMemoNotifier implementation. }
@@ -1898,6 +1911,8 @@ type
     property LeftPos: Integer read FLeftPos write SetLeftPos;
     { Returns the numbering list table. }
     property ListTable: TKMemoListTable read FListTable;
+    { Specifies the maximum allowed nonbreakable word length. }
+    property MaxWordLength: Integer read FMaxWordLength write SetMaxWordLength default cMaxWordLengthDef;
     { Returns True if the buffer was modified - @link(eoUndoAfterSave) taken into
       account. }
     property Modified: Boolean read GetModified write SetModified;
@@ -3686,6 +3701,7 @@ begin
   FLinePosition := eolInside;
   FListTable := TKMemoListTable.Create;
   FListTable.OnChanged := ListChanged;
+  FMaxWordLength := cMaxWordLengthDef;
   FMouseWheelAccumulator := 0;
   FOldCaretRect := CreateEmptyRect;
   FOptions := [eoGroupUndo];
@@ -4604,6 +4620,11 @@ begin
   Result := (FVertExtent - ClientHeight) div FVertScrollStep;
 end;
 
+function TKCustomMemo.GetMaxWordLength: Integer;
+begin
+  Result := FMaxWordLength;
+end;
+
 function TKCustomMemo.GetReadOnly: Boolean;
 begin
   Result := elReadOnly in FStates;
@@ -5376,6 +5397,15 @@ begin
   Value := MinMax(Value, 0, FHorzScrollExtent - 1);
   if Value <> FLeftPos then
     ScrollBy(Value - FLeftPos, 0, True);
+end;
+
+procedure TKCustomMemo.SetMaxWordLength(const Value: Integer);
+begin
+  if Value <> FMaxWordLength then
+  begin
+    FMaxWordLength := Value;
+    UpdateScrollRange(True);
+  end;
 end;
 
 procedure TKCustomMemo.SetModified(Value: Boolean);
@@ -9867,9 +9897,25 @@ begin
   Result := Count = 0;
 end;
 
+function TKMemoBlocks.GetFirstBlock: TKMemoBlock;
+begin
+  if Count > 0 then
+    Result := Items[0]
+  else
+    Result := nil;
+end;
+
 function TKMemoBlocks.GetItem(Index: Integer): TKMemoBlock;
 begin
   Result := TKMemoBlock(inherited GetItem(Index));
+end;
+
+function TKMemoBlocks.GetLastBlock: TKMemoBlock;
+begin
+  if Count > 0 then
+    Result := Items[Count - 1]
+  else
+    Result := nil;
 end;
 
 function TKMemoBlocks.GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock;
@@ -10040,6 +10086,14 @@ begin
     Result := 0;
 end;
 
+function TKMemoBlocks.GetMaxWordLength: Integer;
+begin
+  if FMemoNotifier <> nil then
+    Result := FMemoNotifier.GetMaxWordLength
+  else
+    Result := cMaxWordLengthDef;
+end;
+
 function TKMemoBlocks.GetNearestAnchorIndex(AIndex: Integer): Integer;
 begin
   Result := -1;
@@ -10085,6 +10139,7 @@ begin
     CurWord := -1;
     I := 0;
     CurIndex := 0;
+    LastIndex := 0;
     while (CurBlock < 0) and (I < Count) do
     begin
       Item := Items[I];
@@ -10177,45 +10232,6 @@ begin
   end;
 end;
 
-{
-  function MeasureNextWords(ACanvas: TCanvas; ACurBlock, ACurWord, ARequiredWidth: Integer; IsBreakable: Boolean; var ANBExtent: TPoint): TPoint;
-  var
-    Item: TKMemoBlock;
-    Extent: TPoint;
-  begin
-    Item := Items[ACurBlock];
-    Result := Item.WordMeasureExtent(ACanvas, ACurWord, ARequiredWidth);
-    ANBExtent := Result;
-    if not IsBreakable then
-    begin
-      Inc(ACurWord);
-      if ACurWord >= Item.WordCount then
-      begin
-        ACurWord := 0;
-        Inc(ACurBlock);
-      end;
-      while not IsBreakable and (ACurBlock < Count) do
-      begin
-        Item := Items[ACurBlock];
-        if (Item is TKMemoParagraph) or not (Item is TKMemoTextBlock) then
-          IsBreakable := True
-        else
-        begin
-          while not IsBreakable and (ACurWord < Item.WordCount) do
-          begin
-            IsBreakable := Item.WordBreakable[ACurWord];
-            Extent := Item.WordMeasureExtent(ACanvas, ACurWord, ARequiredWidth);
-            Inc(ANBExtent.X, Extent.X);
-            ANBExtent.Y := Max(ANBExtent.Y, Extent.Y);
-            Inc(ACurWord);
-          end;
-          ACurWord := 0;
-          Inc(ACurBlock);
-        end;
-      end;
-    end;
-  end;
-}
 function TKMemoBlocks.GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock;
 begin
   Result := nil;
@@ -11278,6 +11294,7 @@ var
   var
     Item: TKMemoBlock;
     Extent: TPoint;
+    WLen, MaxWLen: Integer;
   begin
     Item := Items[ACurBlock];
     Result := Item.WordMeasureExtent(ACanvas, ACurWord, ARequiredWidth);
@@ -11290,7 +11307,9 @@ var
         ACurWord := 0;
         Inc(ACurBlock);
       end;
-      while not IsBreakable and (ACurBlock < Count) do
+      WLen := 0;
+      MaxWLen := getMaxWordLength;
+      while not IsBreakable and (ACurBlock < Count) and (WLen < MaxWLen) do
       begin
         Item := Items[ACurBlock];
         if (Item is TKMemoParagraph) or not (Item is TKMemoTextBlock) then
@@ -11303,6 +11322,7 @@ var
             Extent := Item.WordMeasureExtent(ACanvas, ACurWord, ARequiredWidth);
             Inc(ANBExtent.X, Extent.X);
             ANBExtent.Y := Max(ANBExtent.Y, Extent.Y);
+            Inc(WLen, Item.WordLength[ACurWord]);
             Inc(ACurWord);
           end;
           ACurWord := 0;
