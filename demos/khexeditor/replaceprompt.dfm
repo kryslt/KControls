@@ -28,6 +28,7 @@ object ReplacePromptForm: TReplacePromptForm
     Width = 75
     Height = 25
     Caption = 'Yes'
+    Default = True
     ModalResult = 6
     TabOrder = 0
   end
@@ -54,6 +55,7 @@ object ReplacePromptForm: TReplacePromptForm
     Top = 48
     Width = 75
     Height = 25
+    Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 3

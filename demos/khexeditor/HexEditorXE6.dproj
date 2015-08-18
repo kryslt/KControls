@@ -64,25 +64,25 @@
         </DelphiCompile>
         <DCCReference Include="Res.pas"/>
         <DCCReference Include="Basic.pas"/>
-        <DCCReference Include="About.pas">
+        <DCCReference Include="about.pas">
             <Form>AboutForm</Form>
         </DCCReference>
-        <DCCReference Include="Search.pas">
+        <DCCReference Include="search.pas">
             <Form>SearchForm</Form>
         </DCCReference>
-        <DCCReference Include="Replace.pas">
+        <DCCReference Include="replace.pas">
             <Form>ReplaceForm</Form>
         </DCCReference>
-        <DCCReference Include="Options.pas">
+        <DCCReference Include="options.pas">
             <Form>OptionsForm</Form>
         </DCCReference>
-        <DCCReference Include="ReplacePrompt.pas">
+        <DCCReference Include="replaceprompt.pas">
             <Form>ReplacePromptForm</Form>
         </DCCReference>
         <DCCReference Include="main.pas">
             <Form>MainForm</Form>
         </DCCReference>
-        <DCCReference Include="PrintStatus.pas">
+        <DCCReference Include="printstatus.pas">
             <Form>PrintStatusForm</Form>
         </DCCReference>
         <BuildConfiguration Include="Debug">
@@ -105,6 +105,56 @@
                 <Source>
                     <Source Name="MainSource">HexEditorXE6.dpr</Source>
                 </Source>
+                <VersionInfo>
+                    <VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+                    <VersionInfo Name="AutoIncBuild">False</VersionInfo>
+                    <VersionInfo Name="MajorVer">1</VersionInfo>
+                    <VersionInfo Name="MinorVer">0</VersionInfo>
+                    <VersionInfo Name="Release">0</VersionInfo>
+                    <VersionInfo Name="Build">0</VersionInfo>
+                    <VersionInfo Name="Debug">False</VersionInfo>
+                    <VersionInfo Name="PreRelease">False</VersionInfo>
+                    <VersionInfo Name="Special">False</VersionInfo>
+                    <VersionInfo Name="Private">False</VersionInfo>
+                    <VersionInfo Name="DLL">False</VersionInfo>
+                    <VersionInfo Name="Locale">1029</VersionInfo>
+                    <VersionInfo Name="CodePage">1250</VersionInfo>
+                </VersionInfo>
+                <VersionInfoKeys>
+                    <VersionInfoKeys Name="CompanyName"/>
+                    <VersionInfoKeys Name="FileDescription"/>
+                    <VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
+                    <VersionInfoKeys Name="InternalName"/>
+                    <VersionInfoKeys Name="LegalCopyright"/>
+                    <VersionInfoKeys Name="LegalTrademarks"/>
+                    <VersionInfoKeys Name="OriginalFilename"/>
+                    <VersionInfoKeys Name="ProductName"/>
+                    <VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+                    <VersionInfoKeys Name="Comments"/>
+                    <VersionInfoKeys Name="CFBundleName"/>
+                    <VersionInfoKeys Name="CFBundleDisplayName"/>
+                    <VersionInfoKeys Name="UIDeviceFamily"/>
+                    <VersionInfoKeys Name="CFBundleIdentifier"/>
+                    <VersionInfoKeys Name="CFBundleVersion"/>
+                    <VersionInfoKeys Name="CFBundlePackageType"/>
+                    <VersionInfoKeys Name="CFBundleSignature"/>
+                    <VersionInfoKeys Name="CFBundleAllowMixedLocalizations"/>
+                    <VersionInfoKeys Name="UISupportedInterfaceOrientations"/>
+                    <VersionInfoKeys Name="CFBundleExecutable"/>
+                    <VersionInfoKeys Name="CFBundleResourceSpecification"/>
+                    <VersionInfoKeys Name="LSRequiresIPhoneOS"/>
+                    <VersionInfoKeys Name="CFBundleInfoDictionaryVersion"/>
+                    <VersionInfoKeys Name="CFBundleDevelopmentRegion"/>
+                    <VersionInfoKeys Name="package"/>
+                    <VersionInfoKeys Name="label"/>
+                    <VersionInfoKeys Name="versionCode"/>
+                    <VersionInfoKeys Name="versionName"/>
+                    <VersionInfoKeys Name="persistent"/>
+                    <VersionInfoKeys Name="restoreAnyVersion"/>
+                    <VersionInfoKeys Name="installLocation"/>
+                    <VersionInfoKeys Name="largeHeap"/>
+                    <VersionInfoKeys Name="theme"/>
+                </VersionInfoKeys>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Win32">True</Platform>

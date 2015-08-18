@@ -1,7 +1,7 @@
 object ReplacePromptForm: TReplacePromptForm
-  Left = 1530
+  Left = 763
   Height = 90
-  Top = 1046
+  Top = 281
   Width = 365
   BorderStyle = bsDialog
   Caption = 'Confirm'
@@ -25,6 +25,7 @@ object ReplacePromptForm: TReplacePromptForm
     Top = 48
     Width = 75
     Caption = 'Yes'
+    Default = True
     ModalResult = 6
     TabOrder = 0
   end
@@ -51,6 +52,7 @@ object ReplacePromptForm: TReplacePromptForm
     Height = 25
     Top = 48
     Width = 75
+    Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 3
