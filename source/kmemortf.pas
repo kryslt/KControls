@@ -1608,9 +1608,6 @@ begin
     ATextStyle.Font.Name := Font.Name;
     ATextStyle.Font.Charset := Font.Charset;
     ATextStyle.Font.Pitch := Font.Pitch;
-  end else
-  asm
-    nop // debug line
   end;
 end;
 
@@ -2538,9 +2535,6 @@ begin
           end;
         end;
         FActiveImageClass := nil;
-      end else
-      asm
-        nop; // debug line
       end;
       AText := ''; // we used the text as image data
     end;
@@ -3961,9 +3955,6 @@ begin
       WriteCtrlParam('clwWidth', PointsToTwips(W));
       Inc(Xpos, W);
       WriteCtrlParam('cellx', PointsToTwips(XPos));
-    end else
-    asm
-      nop // debug line
     end;
   end;
 end;

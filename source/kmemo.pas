@@ -5751,10 +5751,6 @@ begin
         FHorzScrollExtent := Max(FHorzExtent - Integer(SI.nPage), 0);
       end else
         Show := False;
-      if Show then
-      asm
-        nop; // debug line
-      end;
       ShowScrollBar(Handle, SB_HORZ, Show);
       if FScrollBars in [ssBoth, ssVertical] then
       begin
@@ -5766,10 +5762,6 @@ begin
         FVertScrollExtent := Max(FVertExtent - Integer(SI.nPage), 0);
       end else
         Show := False;
-      if Show then
-      asm
-        nop; // debug line
-      end;
       ShowScrollBar(Handle, SB_VERT, Show);
     end;
     if CallInvalidate then
@@ -8244,10 +8236,6 @@ begin
   else
     FCurrentRequiredWidth := ARequiredWidth;
   FCurrentRequiredHeight := 0;
-  if not ((Self is TKMemoTable) or (Self is TKMemoTableRow) or (Self is TKMemotableCell)) then
-  asm
-    nop; // debug line
-  end;
   FBlocks.MeasureExtent(ACanvas, Max(FCurrentRequiredWidth - FBlockStyle.AllPaddingsLeft - FBlockStyle.AllPaddingsRight, 0));
   Result := Point(Width, Height);
 end;
@@ -8636,10 +8624,6 @@ begin
   for I := BaseCol to BaseCol + Cell.ColSpan - 1 do
   begin
     Cell := Row.Cells[I];
-    if Cell.ColSpan > 1 then
-    asm
-      nop; // debug line
-    end;
     if Cell.RequiredWidth > 0 then
       W := Cell.RequiredWidth
     else
@@ -9341,10 +9325,6 @@ begin
               Inc(DistSpace, VDelta);
             end;
           end;
-        if OverflowSpace > DistSpace then
-        asm
-          nop // debug line
-        end;
       end;
     end;
     // then, measure again with maximum allowed column width and update vertical extents
@@ -9383,10 +9363,6 @@ begin
     Extent.X := 0;
     for I := 0 to RealColCount - 1 do
       Inc(Extent.X, MeasWidths[I].Index);
-    if Extent.X > ARequiredWidth then
-    asm
-      nop // debug line
-    end;
     Len := 0;
     PosY := 0;
     for I := 0 to RowCount - 1 do
