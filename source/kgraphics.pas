@@ -274,6 +274,8 @@ type
     procedure Assign(Source: TPersistent); override;
     { Copies shareable properties of this instance into another instance of TKAlphaBitmap. }
     procedure AssignTo(Dest: TPersistent); override;
+    { Brightens the image by given percent and bright mode. }
+    procedure Brighten(APercent: Single; AMode: TKBrightMode = bsAbsolute);
     { Clears the image. }
     procedure Clear; {$IFDEF FPC}override;{$ENDIF}
     { Combines the pixel at given location with the given color. }
@@ -2013,6 +2015,25 @@ begin
       FPixels[I].R := Average;
       FPixels[I].G := Average;
       FPixels[I].B := Average;
+    end;
+  finally
+    UnlockUpdate;
+  end;
+end;
+
+procedure TKAlphaBitmap.Brighten(APercent: Single; AMode: TKBrightMode);
+var
+  I: Integer;
+  X: TKColorRec;
+begin
+  LockUpdate;
+  try
+    for I := 0 to FWidth * FHeight - 1 do
+    begin
+      X.Value := BrightColor(ColorRecToColor(FPixels[I]), APercent, AMode);
+      FPixels[I].R := X.R;
+      FPixels[I].G := X.G;
+      FPixels[I].B := X.B;
     end;
   finally
     UnlockUpdate;
