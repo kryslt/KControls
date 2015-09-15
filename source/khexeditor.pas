@@ -1434,7 +1434,7 @@ var
   I, J, SpaceCount: Integer;
 begin
   if AInsertSpaces then
-    SpaceCount := SelEnd.Index - SelStart.Index - 1
+    SpaceCount := SelEnd.Index - SelStart.Index
   else
     SpaceCount := 0;
   SetLength(Result, (SelEnd.Index - SelStart.Index) * cDigitCount - SelStart.Digit + SelEnd.Digit + SpaceCount);
