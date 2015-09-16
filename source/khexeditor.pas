@@ -3289,12 +3289,13 @@ begin
 end;
 
 procedure TKCustomHexEditor.HideEditorCaret;
-var
-  P: TPoint;
+{var
+  P: TPoint;}
 begin
-  P := SelToPoint(FSelEnd, FEditArea);
-  HideCaret(Handle);
-  {$IFDEF FPC}SetCaretPosEx(Handle,{$ELSE}SetCaretPos({$ENDIF} P.X, P.Y + 1);
+  if HandleAllocated then
+  //P := SelToPoint(FSelEnd, FEditArea);
+    HideCaret(Handle);
+  //{$IFDEF FPC}SetCaretPosEx(Handle,{$ELSE}SetCaretPos({$ENDIF} P.X, P.Y + 1);
 end;
 
 procedure TKCustomHexEditor.InsertChar(At: Integer; Value: Byte);
@@ -4828,7 +4829,8 @@ begin
       end;
       if elCaretVisible in FStates then
         ShowEditorCaret;
-    end else
+    end
+    else if elCaretVisible in FStates then
     begin
       Exclude(FStates, elCaretVisible);
       HideEditorCaret;
