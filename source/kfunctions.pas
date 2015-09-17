@@ -556,6 +556,9 @@ procedure EnableControls(AParent: TWinControl; AEnabled, ARecursive: Boolean);
 { Ensures the path given by APath has slash at the end. }
 procedure EnsureLastPathSlash(var APath: string);
 
+{ Ensures the path given by APath has slash at the end. }
+function EnsureLastPathSlashFnc(const APath: string): string;
+
 { Raises a general exception with associated message Msg. }
 procedure Error(const Msg: string);
 
@@ -741,6 +744,9 @@ procedure SetControlText(Value: TWinControl; const Text: TKString);
 
 { Ensures the path given by APath has no slash at the end. }
 procedure StripLastPathSlash(var APath: string);
+
+{ Ensures the path given by APath has no slash at the end. }
+function StripLastPathSlashFnc(const APath: string): string;
 
 { Returns next character index for given null terminated string and character index.
   Takes MBCS (UTF8 in Lazarus) into account. }
@@ -1331,6 +1337,12 @@ procedure EnsureLastPathSlash(var APath: string);
 begin
   if APath <> '' then
     if not CharInSetEx(APath[Length(APath)], ['\', '/']) then APath := APath + '/';
+end;
+
+function EnsureLastPathSlashFnc(const APath: string): string;
+begin
+  Result := APath;
+  EnsureLastPathSlash(Result);
 end;
 
 procedure Exchange(var Value1, Value2: ShortInt);
@@ -2349,6 +2361,12 @@ procedure StripLastPathSlash(var APath: string);
 begin
   if APath <> '' then
     if CharInSetEx(APath[Length(APath)], ['\', '/']) then Delete(APath, Length(APath), 1);
+end;
+
+function StripLastPathSlashFnc(const APath: string): string;
+begin
+  Result := APath;
+  StripLastPathSlash(Result);
 end;
 
 function StrNextCharIndex(const AText: TKString; Index: Integer): Integer;
