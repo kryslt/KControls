@@ -1144,6 +1144,7 @@ begin
     FLeftScrollButton.Visible := False;
     FRightScrollButton.Visible := False;
   end;
+  Invalidate;
 end;
 
 procedure TKTabPanel.UpdateSize;
