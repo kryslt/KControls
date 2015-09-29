@@ -92,9 +92,9 @@ const
     neoUseUpDown, neoWarning, neoClampToMinMax];
 
 type
-  { TKNumberEdit }
+  { TKCustomNumberEdit }
 
-  TKNumberEdit = class(TCustomEdit)
+  TKCustomNumberEdit = class(TCustomEdit)
   private
     FAcceptedFormats: TKNumberEditAcceptedFormats;
     FCustomSuffix: string;
@@ -200,16 +200,61 @@ type
     property MinAsInt: Int64 read GetMinAsInt write SetMinAsInt;
     property ValueAsInt: Int64 read GetValueAsInt write SetValueAsInt;
     property ValueAsText: string read GetValueAsText write SetValueAsText;
-  published
+  public
     property AcceptedFormats: TKNumberEditAcceptedFormats read FAcceptedFormats
       write SetAcceptedFormats default [neafDec];
+    property Caption: TCaption read GetCaption write SetCaption stored
+      IsCaptionStored;
+    property CustomSuffix: string read FCustomSuffix write SetCustomSuffix
+      stored IsCustomSuffixStored;
+    property DecimalSeparator: Char read FDecimalSeparator write SetDecimalSeparator;
+    property DisplayedFormat: TKNumberEditDisplayedFormat read FDisplayedFormat
+      write SetDisplayedFormat default nedfAsInput;
+    property FixedWidth: Integer read FFixedWIdth write SetFixedWidth default 0;
+    property HexPrefix: TKNumberEditHexPrefix read FHexPrefix write SetHexPrefix
+      default nehpC;
+    property LabelPosition: TKLabelPosition read FLabelPosition write SetLabelPosition default lpAbove;
+    property LabelSpacing: Cardinal read FLabelSpacing write SetLabelSpacing default 3;
+    property Log: TKLog read FLog write FLog;
+    property Max: Extended read FMax write SetMax stored IsMaxStored;
+    property Min: Extended read FMin write SetMin stored IsMinStored;
+    property Options: TKNumberEditOptions read FOptions write SetOptions
+      default DefaultNumberEditOptions;
+    property Precision: Integer read FPrecision write SetPrecision default 2;
+    property UpDownStep: Extended read FUpDownStep write SetUpDownStep stored IsUpDownStepStored;
+    property Value: Extended read GetValue write SetValue stored IsValueStored;
+    property WarningColor: TColor read FWarningColor write FWarningColor default clRed;
+    property OnUpDownChange: TNotifyEvent read FOnUpDownChange write FOnUpDownChange;
+  end;
+
+  { TKNumberEdit }
+
+  TKNumberEdit = class(TKCustomNumberEdit)
+  published
+    property AcceptedFormats;
+    property Caption;
+    property CustomSuffix;
+    property DecimalSeparator;
+    property DisplayedFormat;
+    property FixedWidth;
+    property HexPrefix;
+    property LabelPosition;
+    property LabelSpacing;
+    property Log;
+    property Max;
+    property Min;
+    property Options;
+    property Precision;
+    property UpDownStep;
+    property Value;
+    property WarningColor;
+    property OnUpDownChange;
+
     property Anchors;
     property AutoSelect;
     property AutoSize;
     property BiDiMode;
     property BorderStyle;
-    property Caption: TCaption read GetCaption write SetCaption stored
-      IsCaptionStored;
     property Color;
     property Constraints;
     {$IFDEF FPC}
@@ -219,42 +264,23 @@ type
       { Inherited property - see Delphi help. }
       property Ctl3D;
     {$ENDIF}
-    property CustomSuffix: string read FCustomSuffix write SetCustomSuffix
-      stored IsCustomSuffixStored;
-    property DecimalSeparator: Char read FDecimalSeparator write SetDecimalSeparator;  
-    property DisplayedFormat: TKNumberEditDisplayedFormat read FDisplayedFormat
-      write SetDisplayedFormat default nedfAsInput;
     property DragCursor;
     property DragKind;
     property DragMode;
     property Enabled;
-    property FixedWidth: Integer read FFixedWIdth write SetFixedWidth default 0;
     property Font;
-    property HexPrefix: TKNumberEditHexPrefix read FHexPrefix write SetHexPrefix
-      default nehpC;
     property HideSelection;
-    property LabelPosition: TKLabelPosition read FLabelPosition write SetLabelPosition default lpAbove;
-    property LabelSpacing: Cardinal read FLabelSpacing write SetLabelSpacing default 3;
-    property Log: TKLog read FLog write FLog;
     property MaxLength;
-    property Max: Extended read FMax write SetMax stored IsMaxStored;
-    property Min: Extended read FMin write SetMin stored IsMinStored;
-    property Options: TKNumberEditOptions read FOptions write SetOptions
-      default DefaultNumberEditOptions;
     property ParentBiDiMode;
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
-    property Precision: Integer read FPrecision write SetPrecision default 2;
     property ReadOnly;
     property ShowHint;
     property TabOrder;
     property TabStop;
-    property UpDownStep: Extended read FUpDownStep write SetUpDownStep stored IsUpDownStepStored;
-    property Value: Extended read GetValue write SetValue stored IsValueStored;
     property Visible;
-    property WarningColor: TColor read FWarningColor write FWarningColor default clRed;
     property OnChange;
     property OnClick;
     property OnContextPopup;
@@ -277,8 +303,8 @@ type
     property OnMouseUp;
     property OnStartDock;
     property OnStartDrag;
-    property OnUpDownChange: TNotifyEvent read FOnUpDownChange write FOnUpDownChange;
   end;
+
 
   TKFileNameEditButtonStyle = (fbNone, fbButton, fbBitBtn, fbSpeedBtn, fbUser);
 
@@ -685,7 +711,7 @@ end;
 
 { TKNumberEdit }
 
-constructor TKNumberEdit.Create(AOwner: TComponent);
+constructor TKCustomNumberEdit.Create(AOwner: TComponent);
 begin
   inherited;
   FMin := 0;
@@ -714,12 +740,12 @@ begin
   FOnUpDownChange := nil;
 end;
 
-destructor TKNumberEdit.Destroy;
+destructor TKCustomNumberEdit.Destroy;
 begin
   inherited;
 end;
 
-function TKNumberEdit.GetFormat(S: string; var Fmt: TKNumberEditDisplayedFormat): Extended;
+function TKCustomNumberEdit.GetFormat(S: string; var Fmt: TKNumberEditDisplayedFormat): Extended;
 var
   I: Int64;
   D: Extended;
@@ -809,7 +835,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string);
+procedure TKCustomNumberEdit.GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string);
 begin
   Prefix := '';
   Suffix := '';
@@ -827,7 +853,7 @@ begin
   end;  
 end;
 
-function TKNumberEdit.GetRealSelLength: Integer;
+function TKCustomNumberEdit.GetRealSelLength: Integer;
 begin
   if Sellength >= 0 then
     Result := SelLength
@@ -835,7 +861,7 @@ begin
     Result := -SelLength;
 end;
 
-function TKNumberEdit.GetRealSelStart: Integer;
+function TKCustomNumberEdit.GetRealSelStart: Integer;
 begin
   if Sellength >= 0 then
     Result := SelStart
@@ -843,7 +869,7 @@ begin
     Result := SelStart - SelLength;
 end;
 
-function TKNumberEdit.SetFormat(AValue: Extended): string;
+function TKCustomNumberEdit.SetFormat(AValue: Extended): string;
 var
   S, Prefix, Suffix: string;
   A: ShortString;
@@ -932,13 +958,13 @@ begin
   Result := S;
 end;
 
-function TKNumberEdit.GetValue: Extended;
+function TKCustomNumberEdit.GetValue: Extended;
 begin
   Result := GetFormat(Text, FLastInputFormat);
   Result := MinMax(Result, FMin, FMax);
 end;
 
-procedure TKNumberEdit.SetValue(AValue: Extended);
+procedure TKCustomNumberEdit.SetValue(AValue: Extended);
 var
   S: string;
 begin
@@ -960,7 +986,7 @@ begin
   UpdateUpDown(AValue);
 end;
 
-function TKNumberEdit.GetValueAsInt: Int64;
+function TKCustomNumberEdit.GetValueAsInt: Int64;
 begin
   try
     Result := Round(GetValue);
@@ -969,17 +995,17 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetValueAsInt(AValue: Int64);
+procedure TKCustomNumberEdit.SetValueAsInt(AValue: Int64);
 begin
   SetValue(AValue);
 end;
 
-function TKNumberEdit.GetValueAsText: string;
+function TKCustomNumberEdit.GetValueAsText: string;
 begin
   Result := SetFormat(GetValue);
 end;
 
-procedure TKNumberEdit.SetValueAsText(const AValue: string);
+procedure TKCustomNumberEdit.SetValueAsText(const AValue: string);
 var
   Fmt: TKNumberEditDisplayedFormat;
 begin
@@ -987,7 +1013,7 @@ begin
   SetValue(GetFormat(AValue, Fmt));
 end;
 
-procedure TKNumberEdit.SetMin(AMin: Extended);
+procedure TKCustomNumberEdit.SetMin(AMin: Extended);
 var
   E: Extended;
 begin
@@ -1000,7 +1026,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetMax(AMax: Extended);
+procedure TKCustomNumberEdit.SetMax(AMax: Extended);
 var
   E: Extended;
 begin
@@ -1013,7 +1039,7 @@ begin
   end;
 end;
 
-function TKNumberEdit.GetMinAsInt: Int64;
+function TKCustomNumberEdit.GetMinAsInt: Int64;
 begin
   try
     Result := Round(FMin);
@@ -1022,12 +1048,12 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetMinAsInt(AMin: Int64);
+procedure TKCustomNumberEdit.SetMinAsInt(AMin: Int64);
 begin
   SetMin(AMin);
 end;
 
-function TKNumberEdit.GetMaxAsInt: Int64;
+function TKCustomNumberEdit.GetMaxAsInt: Int64;
 begin
   try
     Result := Round(FMax);
@@ -1036,27 +1062,27 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetMaxAsInt(AMax: Int64);
+procedure TKCustomNumberEdit.SetMaxAsInt(AMax: Int64);
 begin
   SetMax(AMax);
 end;
 
-function TKNumberEdit.IsValueStored: Boolean;
+function TKCustomNumberEdit.IsValueStored: Boolean;
 begin
   Result := GetValue <> 0;
 end;
 
-function TKNumberEdit.IsMinStored: Boolean;
+function TKCustomNumberEdit.IsMinStored: Boolean;
 begin
   Result := FMin <> 0;
 end;
 
-function TKNumberEdit.IsMaxStored: Boolean;
+function TKCustomNumberEdit.IsMaxStored: Boolean;
 begin
   Result := FMax <> 1000;
 end;
 
-procedure TKNumberEdit.SetOptions(AValue: TKNumberEditOptions);
+procedure TKCustomNumberEdit.SetOptions(AValue: TKNumberEditOptions);
 var
   E: Extended;
 begin
@@ -1070,7 +1096,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.UpdateFormats;
+procedure TKCustomNumberEdit.UpdateFormats;
 var
   Fmt: TKNumberEditDisplayedFormat;
   Fmts: set of TKNumberEditDisplayedFormat;
@@ -1092,7 +1118,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetAcceptedFormats(AValue: TKNumberEditAcceptedFormats);
+procedure TKCustomNumberEdit.SetAcceptedFormats(AValue: TKNumberEditAcceptedFormats);
 var
   E: Extended;
 begin
@@ -1106,7 +1132,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetDisplayedFormat(AValue: TKNumberEditDisplayedFormat);
+procedure TKCustomNumberEdit.SetDisplayedFormat(AValue: TKNumberEditDisplayedFormat);
 var
   E: Extended;
 begin
@@ -1120,7 +1146,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetHexPrefix(AValue: TKNumberEditHexPrefix);
+procedure TKCustomNumberEdit.SetHexPrefix(AValue: TKNumberEditHexPrefix);
 var
   E: Extended;
 begin
@@ -1132,7 +1158,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetCustomSuffix(const AValue: string);
+procedure TKCustomNumberEdit.SetCustomSuffix(const AValue: string);
 var
   E: Extended;
 begin
@@ -1144,12 +1170,12 @@ begin
   end;
 end;
 
-function TKNumberEdit.IsCustomSuffixStored: Boolean;
+function TKCustomNumberEdit.IsCustomSuffixStored: Boolean;
 begin
   Result := FCustomSuffix <> '';
 end;
 
-procedure TKNumberEdit.SetFixedWidth(AValue: Integer);
+procedure TKCustomNumberEdit.SetFixedWidth(AValue: Integer);
 var
   E: Extended;
 begin
@@ -1161,7 +1187,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetPrecision(AValue: Integer);
+procedure TKCustomNumberEdit.SetPrecision(AValue: Integer);
 var
   E: Extended;
 begin
@@ -1173,7 +1199,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetUpDownStep(AValue: Extended);
+procedure TKCustomNumberEdit.SetUpDownStep(AValue: Extended);
 var
   E: Extended;
 begin
@@ -1185,27 +1211,27 @@ begin
   end;
 end;
 
-function TKNumberEdit.IsUpDownStepStored: Boolean;
+function TKCustomNumberEdit.IsUpDownStepStored: Boolean;
 begin
   Result := FUpDownStep <> 1;
 end;
 
-function TKNumberEdit.GetCaption: TCaption;
+function TKCustomNumberEdit.GetCaption: TCaption;
 begin
   Result := FLabel.Caption;
 end;
 
-procedure TKNumberEdit.SetCaption(const AValue: TCaption);
+procedure TKCustomNumberEdit.SetCaption(const AValue: TCaption);
 begin
   FLabel.SetTextBuf(PChar(AValue));
 end;
 
-function TKNumberEdit.IsCaptionStored: Boolean;
+function TKCustomNumberEdit.IsCaptionStored: Boolean;
 begin
   Result := FLabel.Caption <> Name;
 end;
 
-procedure TKNumberEdit.SetLabelPosition(Value: TKLabelPosition);
+procedure TKCustomNumberEdit.SetLabelPosition(Value: TKLabelPosition);
 begin
   if Value <> FLabelPosition then
   begin
@@ -1214,7 +1240,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.SetLabelSpacing(Value: Cardinal);
+procedure TKCustomNumberEdit.SetLabelSpacing(Value: Cardinal);
 begin
   if Value < 1 then Value := 1;
   if Value <> FLabelSpacing then
@@ -1224,7 +1250,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.UpdateMaxMin;
+procedure TKCustomNumberEdit.UpdateMaxMin;
 begin
   try
     if (neafHex in FAcceptedFormats) or (FDisplayedFormat = nedfHex) then
@@ -1251,7 +1277,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.UpdateUpDown(AValue: Extended);
+procedure TKCustomNumberEdit.UpdateUpDown(AValue: Extended);
 var
   Fmt: TKNumberEditDisplayedFormat;
   AbsMax, D, PP: Extended;
@@ -1299,13 +1325,13 @@ begin
       FUpDown.Parent := nil;
 end;
 
-procedure TKNumberEdit.UpdateUpDownPos;
+procedure TKCustomNumberEdit.UpdateUpDownPos;
 begin
   if FUpDown <> nil then
     FUpDown.SetBounds(Left + Width, Top, FUpDown.Width, Height);
 end;
 
-procedure TKNumberEdit.UpdateLabel;
+procedure TKCustomNumberEdit.UpdateLabel;
 var
   P: TPoint;
 begin
@@ -1325,12 +1351,12 @@ begin
     FLabel.Parent := nil;
 end;
 
-function TKNumberEdit.Empty: Boolean;
+function TKCustomNumberEdit.Empty: Boolean;
 begin
   Result := (Text = '') or (Text = '-');
 end;
 
-procedure TKNumberEdit.DoWarning(AValue: Extended);
+procedure TKCustomNumberEdit.DoWarning(AValue: Extended);
 var
   Fmt: TKNumberEditDisplayedFormat;
 begin
@@ -1355,7 +1381,7 @@ begin
   end;
 end;
 
-function TKNumberEdit.InspectInputChar(Key: Char): Char;
+function TKCustomNumberEdit.InspectInputChar(Key: Char): Char;
 var
   S: string;
   KeyDec, KeyHex, KeyBin, KeyOct, KeyFLoat, KeySuffix: Char;
@@ -1452,7 +1478,7 @@ begin
   end;  
 end;
 
-procedure TKNumberEdit.KeyPress(var Key: Char);
+procedure TKCustomNumberEdit.KeyPress(var Key: Char);
 begin
   inherited;
   if Key >= #32 then
@@ -1463,21 +1489,21 @@ begin
   end
 end;
 
-procedure TKNumberEdit.Change;
+procedure TKCustomNumberEdit.Change;
 begin
   inherited;
   UpdateUpDown(GetValue);
 end;
 
 {$IFDEF FPC}
-procedure TKNumberEdit.CreateWnd;
+procedure TKCustomNumberEdit.CreateWnd;
 begin
   inherited;
   UpdateUpDownPos;
   UpdateLabel;
 end;
 
-procedure TKNumberEdit.DoOnChangeBounds;
+procedure TKCustomNumberEdit.DoOnChangeBounds;
 begin
   inherited;
   UpdateUpDownPos;
@@ -1485,14 +1511,14 @@ begin
 end;
 {$ENDIF}
 
-procedure TKNumberEdit.SetParent(AParent: TWinControl);
+procedure TKCustomNumberEdit.SetParent(AParent: TWinControl);
 begin
   inherited;
   UpdateUpDown(GetValue);
   UpdateLabel;
 end;
 
-procedure TKNumberEdit.Notification(AComponent: TComponent;
+procedure TKCustomNumberEdit.Notification(AComponent: TComponent;
   Operation: TOperation);
 begin
   inherited;
@@ -1503,7 +1529,7 @@ begin
       FLabel := nil;
 end;
 
-procedure TKNumberEdit.SafeSetFocus;
+procedure TKCustomNumberEdit.SafeSetFocus;
 var
   Form: TCustomForm;
 begin
@@ -1513,7 +1539,7 @@ begin
 end;
 
 {$IFDEF FPC}
-procedure TKNumberEdit.SetFlat(Value: Boolean);
+procedure TKCustomNumberEdit.SetFlat(Value: Boolean);
 begin
   if Value <> FFlat then
   begin
@@ -1523,7 +1549,7 @@ begin
 end;
 {$ENDIF}
 
-procedure TKNumberEdit.SetName(const Value: TComponentName);
+procedure TKCustomNumberEdit.SetName(const Value: TComponentName);
 var
   S: string;
 begin
@@ -1538,12 +1564,12 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.UpDownChange;
+procedure TKCustomNumberEdit.UpDownChange;
 begin
   if Assigned(FOnUpDownChange) then FOnUpDownChange(Self);
 end;
 
-procedure TKNumberEdit.UpDownChangingEx(Sender: TObject;
+procedure TKCustomNumberEdit.UpDownChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue:
   {$IFDEF COMPILER17_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
 {var
@@ -1569,32 +1595,32 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.KMNEUpdateUpDown(var Msg: TLMessage);
+procedure TKCustomNumberEdit.KMNEUpdateUpDown(var Msg: TLMessage);
 begin
   UpdateUpDown(GetValue);
 end;    
 
-procedure TKNumberEdit.CMBiDiModeChanged(var Msg: TLMessage);
+procedure TKCustomNumberEdit.CMBiDiModeChanged(var Msg: TLMessage);
 begin
   inherited;
   if FLabel <> nil then FLabel.BiDiMode := BidiMode;
 end;
 
-procedure TKNumberEdit.CMEnabledChanged(var Msg: TLMessage);
+procedure TKCustomNumberEdit.CMEnabledChanged(var Msg: TLMessage);
 begin
   inherited;
   if FLabel <> nil then FLabel.Enabled := Enabled;
   if FUpDown <> nil then FUpDown.Enabled := Enabled;
 end;
 
-procedure TKNumberEdit.CMVisibleChanged(var Msg: TLMessage);
+procedure TKCustomNumberEdit.CMVisibleChanged(var Msg: TLMessage);
 begin
   inherited;
   if FLabel <> nil then FLabel.Visible := Visible;
   if FUpDown <> nil then FUpDown.Visible := Visible;
 end;
 
-procedure TKNumberEdit.SetDecimalSeparator(Value: Char);
+procedure TKCustomNumberEdit.SetDecimalSeparator(Value: Char);
 begin
   if Value <> FDecimalSeparator then
   begin
@@ -1603,7 +1629,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.WMKillFocus(var Msg: TLMKillFocus);
+procedure TKCustomNumberEdit.WMKillFocus(var Msg: TLMKillFocus);
 var
   Fmt: TKNumberEditDisplayedFormat;
   AValue: Extended;
@@ -1625,20 +1651,20 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.WMSetFocus(var Msg: TLMSetFocus);
+procedure TKCustomNumberEdit.WMSetFocus(var Msg: TLMSetFocus);
 begin
   inherited;
   Font.Color := clWindowText;
 end;
 
-procedure TKNumberEdit.WMMove(var Msg: TLMMove);
+procedure TKCustomNumberEdit.WMMove(var Msg: TLMMove);
 begin
   inherited;
   UpdateUpDownPos;
   UpdateLabel;
 end;
 
-procedure TKNumberEdit.WMPaste(var Msg: TLMPaste);
+procedure TKCustomNumberEdit.WMPaste(var Msg: TLMPaste);
 var
   S: string;
   I: Integer;
@@ -1659,7 +1685,7 @@ begin
   end;
 end;
 
-procedure TKNumberEdit.WMSize(var Msg: TLMSize);
+procedure TKCustomNumberEdit.WMSize(var Msg: TLMSize);
 begin
   inherited;
   UpdateUpDownPos;

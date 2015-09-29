@@ -3427,6 +3427,7 @@ procedure TKTextHint.Paint;
 var
   TextBox: TKTextBox;
 begin
+  Canvas.Font := Font;
   Canvas.Brush.Style := bsSolid;
   Canvas.Brush.Color := clInfoBk;
   Canvas.FillRect(ClientRect);
@@ -3434,7 +3435,6 @@ begin
   TextBox := TKTextBox.Create;
   try
     TextBox.Attributes := [taEndEllipsis, taWordBreak, taLineBreak];
-    TextBox.BackColor := clInfoBk;
     TextBox.HPadding := 5;
     TextBox.VPadding := 5;
     TextBox.Text := FText;
