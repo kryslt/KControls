@@ -43,7 +43,6 @@ type
     ACPageNext: TAction;
     ACPagePrevious: TAction;
     ACClose: TAction;
-    ILMainDis: TImageList;
     ToBMain: TToolBar;
     TBPageFirst: TToolButton;
     TBPagePrevious: TToolButton;
