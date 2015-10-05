@@ -3293,8 +3293,7 @@ begin
       else
         AlphaFormat := 0;
     end;
-    SetWindowPos(FWindow, 0, Org.X, Org.Y, W, H,
-      SWP_NOACTIVATE or SWP_NOZORDER);
+    SetWindowPos(FWindow, HWND_TOP, Org.X, Org.Y, W, H, SWP_NOACTIVATE);
   {$ELSE}
     FDragForm.SetBounds(Org.X, Org.Y, W, H);
   {$ENDIF}
@@ -3364,8 +3363,7 @@ begin
         end;
       end
       else if FBitmapFilled then
-        SetWindowPos(FWindow, 0, R.Left, R.Top, 0, 0,
-          SWP_NOACTIVATE or SWP_NOSIZE or SWP_NOZORDER or SWP_SHOWWINDOW);
+        SetWindowPos(FWindow, 0, R.Left, R.Top, 0, 0, SWP_NOACTIVATE or SWP_NOSIZE or SWP_NOZORDER or SWP_SHOWWINDOW);
     {$ELSE}
       if ARect <> nil then
         R := ARect^
