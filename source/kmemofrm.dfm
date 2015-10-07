@@ -6,9 +6,9 @@ object KMemoFrame: TKMemoFrame
   TabOrder = 0
   object Editor: TKMemo
     Left = 0
-    Top = 54
+    Top = 46
     Width = 597
-    Height = 381
+    Height = 389
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -21,14 +21,16 @@ object KMemoFrame: TKMemoFrame
     OnDropFiles = EditorDropFiles
     OnMouseDown = EditorMouseDown
     OnMouseUp = EditorMouseUp
+    ExplicitTop = 54
+    ExplicitHeight = 381
   end
   object ToBFirst: TToolBar
     Left = 0
     Top = 0
     Width = 597
-    Height = 28
+    Height = 24
     AutoSize = True
-    BorderWidth = 1
+    DrawingStyle = dsGradient
     EdgeBorders = [ebBottom]
     Images = ILMain
     ParentShowHint = False
@@ -123,11 +125,11 @@ object KMemoFrame: TKMemoFrame
   end
   object ToBSecond: TToolBar
     Left = 0
-    Top = 28
+    Top = 24
     Width = 597
-    Height = 26
+    Height = 22
     AutoSize = True
-    BorderWidth = 1
+    DrawingStyle = dsGradient
     Images = ILMain
     ParentShowHint = False
     ShowHint = True
@@ -233,7 +235,7 @@ object KMemoFrame: TKMemoFrame
     Left = 280
     Top = 72
     Bitmap = {
-      494C010120004C00540010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C010120004C00580010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000009000000001002000000000000090
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

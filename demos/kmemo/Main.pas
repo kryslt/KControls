@@ -63,6 +63,7 @@ type
     procedure Test20;
     procedure Test21;
     procedure Test22;
+    procedure Test23;
   public
     { Public declarations }
   end;
@@ -146,7 +147,7 @@ end;
 
 procedure TMainForm.BUTestClick(Sender: TObject);
 begin
-  Test22;
+  Test23;
 end;
 
 procedure TMainForm.Test1;
@@ -466,6 +467,22 @@ begin
     KMemo1.SelectionTextStyle := TextStyle;
   finally
     TextStyle.Free;
+  end;
+end;
+
+procedure TMainForm.Test23;
+var
+  Picture: TPicture;
+  IB: TKMemoImageBlock;
+begin
+  Picture := TPicture.Create;
+  try
+    Picture.LoadFromFile('penguins.jpg');
+    IB := TKMemoImageBlock.Create;
+    IB.Image := Picture;
+    KMemo1.Blocks.AddAt(IB, -1);
+  finally
+    Picture.Free;
   end;
 end;
 

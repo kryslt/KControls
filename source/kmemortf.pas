@@ -443,7 +443,7 @@ implementation
 uses
   Math, SysUtils, KHexEditor, KRes
 {$IFDEF FPC}
-  , LCLProc, LConvEncoding, LCLType
+  , LCLIntf, LCLProc, LConvEncoding, LCLType
 {$ELSE}
   , JPeg, Windows
 {$ENDIF}
@@ -730,14 +730,25 @@ begin
   end;
 end;
 
+function TwipsPerPixel: Extended;
+var
+  DC: HDC;
+  PixelsPerInch: Integer;
+begin
+  DC := GetDC(0); // primary display (perhaps this could be improved) // assumes x and y are the same
+  PixelsPerInch := GetDeviceCaps(DC, LOGPIXELSX);
+  ReleaseDC(0, DC);
+  result := 1440 / PixelsPerInch;
+end;
+
 function TwipsToPoints(AValue: Integer): Integer;
 begin
-  Result := DivUp(AValue, 20);
+  Result := Round(AValue / TwipsPerPixel);
 end;
 
 function PointsToTwips(AValue: Integer): Integer;
 begin
-  Result := AValue * 20;
+  Result := Round(AValue * TwipsPerPixel);
 end;
 
 { TKMemoRTFCtrlItem }
