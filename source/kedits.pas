@@ -718,7 +718,7 @@ begin
   FMax := 1000;
   Text := '';
   FWarningColor := clRed;
-  FOptions := [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown, neoWarning];
+  FOptions := [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown, neoWarning, neoClampToMinMax];
   FAcceptedFormats := [neafDec];
   FDecimalSeparator := GetFormatSettings.DecimalSeparator;
   FDisplayedFormat := nedfAsInput;
@@ -1572,26 +1572,22 @@ end;
 procedure TKCustomNumberEdit.UpDownChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue:
   {$IFDEF COMPILER17_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
-{var
-  V, S, D, F: Extended;}
+var
+  V: Extended;
 begin
   if (neoUseUpDown in FOptions) and (FUpDown <> nil) and not FUpdownChanging then
   begin
     SafeSetFocus;
     Font.Color := clWindowText;
     FUpdateUpDown := False;
-{  V := GetValue;
-  S := FRealUpDownStep;
-  D := V / S;
-  F := Frac(D);
-  if F <> 0 then
-  asm
-  nop
-  end;}
-    SetValue(NewValue * FRealUpDownStep {+ F});
-    UpDownChange;
-    FUpdateUpDown := True;
-    PostMessage(Handle, KM_NE_UPDATEUPDOWN, 0, 0);
+    V := MinMax(NewValue * FRealUpDownStep, FMin, FMax);
+    if V <> Value then
+    begin
+      Value := V;
+      UpDownChange;
+      FUpdateUpDown := True;
+      PostMessage(Handle, KM_NE_UPDATEUPDOWN, 0, 0);
+    end;
   end;
 end;
 
