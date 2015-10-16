@@ -31,7 +31,7 @@ uses
   KFunctions, KControls, KButtons;
 
 type
-  TKTabOption = (toDrag, toDragUndock);
+  TKTabOption = (toDrag, toDragUndock, toBrightTopColors);
 
   TKTabOptions = set of TKTabOption;
 
@@ -48,9 +48,9 @@ const
   cDefaultNormalTop = clBtnFace;
   cDefaultNormalBottom = clBtnHighlight;
   cDefaultNormalText = clBtnText;
-  cDefaultSelectedTop = clHighlight;
-  cDefaultSelectedBottom = clHotLight;
-  cDefaultSelectedText = clHighlightText;
+  cDefaultSelectedTop = clActiveCaption;
+  cDefaultSelectedBottom = clActiveCaption;
+  cDefaultSelectedText = clCaptionText;
   cDefaultTabBorder = clBtnShadow;
 
   ciHotTop = TKColorIndex(0);
@@ -967,7 +967,12 @@ begin
       StartColor := FColors.NormalTop;
       EndColor := FColors.NormalBottom;
     end;
+    if toBrightTopColors in FOptions then
+      EndColor := BrightColor(ColorToRGB(StartColor), 0.75, bsOfTop);
     DrawGradientRect(ACanvas, R, ColorToRGB(StartColor), ColorToRGB(EndColor), 10, False);
+    // simulate rounded corners
+    Canvas.Pixels[R.Left, R.Top] := clBtnFace;
+    Canvas.Pixels[R.Right - 1, R.Top] := clBtnFace;
   end;
 end;
 
