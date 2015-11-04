@@ -150,6 +150,7 @@ type
     procedure CBAutosizeGridClick(Sender: TObject);
     procedure KGrid3SelectionExpand(Sender: TObject; ACol, ARow: Integer;
       var CanExpand: Boolean);
+    procedure KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);
   private
     { Private declarations }
     FTextToInsert: TKString;
@@ -1031,6 +1032,11 @@ begin
   { Calling CellPainter.DefaultMeasure obtains the cell contents from default
     implementation }
   Extent := KGrid1.CellPainter.DefaultMeasure(Priority);
+end;
+
+procedure TForm1.KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);
+begin
+  ;
 end;
 
 procedure TForm1.FillRows(At, BaseIndex, NumRows: Integer);

@@ -252,6 +252,7 @@ type
     procedure SetLeft(const Value: Integer);
     procedure SetRight(const Value: Integer);
     procedure SetTop(const Value: Integer);
+    procedure SetAll(const Value: Integer);
   protected
     procedure Changed;
   public
@@ -264,6 +265,7 @@ type
     function NonZero: Boolean;
     function OffsetRect(ARect: TKRect): TRect; overload;
     function OffsetRect(const ARect: TRect): TRect; overload;
+    property All: Integer write SetAll;
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   published
     property Left: Integer read FLeft write SetLeft default cContentPaddingLeftDef;
@@ -1275,6 +1277,14 @@ end;
 function TKRect.OffsetRect(const ARect: TRect): TRect;
 begin
   Result := Rect(ARect.Left + FLeft, ARect.Top + FTop, ARect.Right - FRight, ARect.Bottom - FBottom);
+end;
+
+procedure TKRect.SetAll(const Value: Integer);
+begin
+  Bottom := Value;
+  Left := Value;
+  Right := Value;
+  Top := Value;
 end;
 
 procedure TKRect.SetBottom(const Value: Integer);

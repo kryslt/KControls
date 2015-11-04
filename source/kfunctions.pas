@@ -168,6 +168,12 @@ const
   cFirstEOL = cCR;
 {$ENDIF}
 
+{$IFDEF MSWINDOWS}
+  cDirectoryDelimiter = '\';
+{$ELSE}
+  cDirectoryDelimiter = '/';
+{$ENDIF}
+
 type
 {$IFNDEF FPC}
   { @exclude }
@@ -1336,7 +1342,7 @@ end;
 procedure EnsureLastPathSlash(var APath: string);
 begin
   if APath <> '' then
-    if not CharInSetEx(APath[Length(APath)], ['\', '/']) then APath := APath + '/';
+    if not CharInSetEx(APath[Length(APath)], ['\', '/']) then APath := APath + cDirectoryDelimiter;
 end;
 
 function EnsureLastPathSlashFnc(const APath: string): string;

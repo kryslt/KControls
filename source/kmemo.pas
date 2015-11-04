@@ -605,6 +605,7 @@ type
     function GetMaxWordLength: Integer;
     function GetPaintSelection: Boolean;
     function GetPrinting: Boolean;
+    function GetReadOnly: Boolean;
     procedure GetSelColors(out Foreground, Background: TColor);
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
@@ -623,6 +624,7 @@ type
     function GetMemoNotifier: IKMemoNotifier;
     function GetPaintSelection: Boolean;
     function GetPrinting: Boolean;
+    function GetReadOnly: Boolean;
     procedure SetPosition(const Value: TKMemoBlockPosition);
     function GetParentBlocks: TKMemoBlocks;
   protected
@@ -711,6 +713,7 @@ type
     property ParentBlocks: TKMemoBlocks read GetParentBlocks;
     property Position: TKMemoBlockPosition read FPosition write SetPosition;
     property Printing: Boolean read GetPrinting;
+    property ReadOnly: Boolean read GetReadOnly;
     property SelLength: Integer read GetSelLength;
     property SelStart: Integer read GetSelStart;
     property SelText: TKString read GetSelText;
@@ -822,12 +825,19 @@ type
   TKMemoHyperlink = class(TKMemoTextBlock)
   private
     FURL: TKString;
+    FOnClick: TNotifyEvent;
+    FOnDblClick: TNotifyEvent;
+  protected
+    procedure Click; virtual;
+    procedure DblClick; virtual;
   public
     constructor Create; override;
     procedure Assign(ASource: TKObject); override;
     procedure DefaultStyle; virtual;
     function WordMouseAction(AWordIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
     property URL: TKString read FURL write FURL;
+    property OnClick: TNotifyEvent read FOnClick write FOnClick;
+    property OnDblClick: TNotifyEvent read FOnDblClick write FOnDblClick;
   end;
 
   TKMemoParagraph = class(TKMemoTextBlock)
@@ -1203,7 +1213,8 @@ type
     function AddContainer(At: Integer = -1): TKMemoContainer;
     function AddHyperlink(const AText, AURL: TKString; At: Integer = -1): TKMemoHyperlink; overload;
     function AddHyperlink(AItem: TKMemoHyperlink; At: Integer = -1): TKMemoHyperlink; overload;
-    function AddImageBlock(const APath: TKString; At: Integer = -1): TKMemoImageBlock;
+    function AddImageBlock(AImage: TPicture; At: Integer = -1): TKMemoImageBlock; overload;
+    function AddImageBlock(const APath: TKString; At: Integer = -1): TKMemoImageBlock; overload;
     function AddParagraph(At: Integer = -1): TKMemoParagraph;
     function AddTable(At: Integer = -1): TKMemoTable;
     function AddTextBlock(const AText: TKString; At: Integer = -1): TKMemoTextBlock;
@@ -1496,7 +1507,6 @@ type
     function GetEmpty: Boolean;
     function GetInsertMode: Boolean;
     function GetModified: Boolean;
-    function GetReadOnly: Boolean;
     function GetRequiredContentWidth: Integer;
     function GetRTF: TKMemoRTFString;
     function GetSelAvail: Boolean;
@@ -1649,6 +1659,8 @@ type
     function GetPaintSelection: Boolean;
     { IKMemoNotifier implementation. }
     function GetPrinting: Boolean;
+    { IKMemoNotifier implementation. }
+    function GetReadOnly: Boolean;
     { IKMemoNotifier implementation. }
     procedure GetSelColors(out Foreground, Background: TColor);
     { IKMemoNotifier implementation. }
@@ -6005,6 +6017,17 @@ begin
     Result := False;
 end;
 
+function TKMemoBlock.GetReadOnly: Boolean;
+var
+  Notifier: IKMemoNotifier;
+begin
+  Notifier := MemoNotifier;
+  if Notifier <> nil then
+    Result := Notifier.GetReadOnly
+  else
+    Result := False;
+end;
+
 procedure TKMemoBlock.GetSelColors(out Foreground, Background: TColor);
 begin
   Foreground := cSelTextFocusedDef;
@@ -7222,6 +7245,8 @@ constructor TKMemoHyperlink.Create;
 begin
   inherited;
   FURL := '';
+  FOnClick := nil;
+  FOnDblClick := nil;
   DefaultStyle;
 end;
 
@@ -7229,7 +7254,23 @@ procedure TKMemoHyperlink.Assign(ASource: TKObject);
 begin
   inherited;
   if ASource is TKMemoHyperlink then
+  begin
     FURL := TKMemoHyperlink(ASource).URL;
+    FOnClick := TKMemoHyperlink(ASource).OnClick;
+    FOnDblClick := TKMemoHyperlink(ASource).OnDblClick;
+  end;
+end;
+
+procedure TKMemoHyperlink.Click;
+begin
+  if Assigned(FOnClick) then
+    FOnClick(Self);
+end;
+
+procedure TKMemoHyperlink.DblClick;
+begin
+  if Assigned(FOnDblClick) then
+    FOnDblClick(Self);
 end;
 
 procedure TKMemoHyperlink.DefaultStyle;
@@ -7255,7 +7296,7 @@ begin
       case AAction of
         maMove:
         begin
-          if ssCtrl in AShift then
+          if (ssCtrl in AShift) or ReadOnly then
             Notifier.SetReqMouseCursor(crHandPoint)
           else
             Notifier.SetReqMouseCursor(crIBeam);
@@ -7263,10 +7304,23 @@ begin
         end;
         maLeftDown:
         begin
-          if (ssCtrl in AShift) and (FURL <> '') then
+          if (ssCtrl in AShift) or ReadOnly then
           begin
-            OpenURLWithShell(FURL);
-            Result := True;
+            if Assigned(FOnDblClick) and (ssDouble in AShift) then
+            begin
+              DblClick;
+              Result := True;
+            end
+            else if Assigned(FOnClick) then
+            begin
+              Click;
+              Result := True;
+            end
+            else if FURL <> '' then
+            begin
+              OpenURLWithShell(FURL);
+              Result := True;
+            end;
           end;
         end;
       end;
@@ -9569,6 +9623,13 @@ begin
   Result.DefaultStyle;
   Result.Text := AText;
   Result.URL := AURL;
+  AddAt(Result, At);
+end;
+
+function TKMemoBlocks.AddImageBlock(AImage: TPicture;  At: Integer): TKMemoImageBlock;
+begin
+  Result := TKMemoImageBlock.Create;
+  Result.Image := AImage;
   AddAt(Result, At);
 end;
 

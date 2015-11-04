@@ -360,6 +360,7 @@ object Form1: TForm1
         OnEditorResize = KGrid1EditorResize
         OnEditorSelect = KGrid1EditorSelect
         OnMeasureCell = KGrid1MeasureCell
+        OnMouseDblClickCell = KGrid1MouseDblClickCell
         OnPrintPaint = KGrid1PrintPaint
         ColWidths = (
           64
