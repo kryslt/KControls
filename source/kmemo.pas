@@ -884,7 +884,7 @@ type
     FOriginalExtent: TPoint; // original extent
     FPosition: TPoint;
     FScale: TPoint; // scaled extent
-    FScaledImage: TKAlphaBitmap;
+    FCroppedImage: TKAlphaBitmap;
     FWordBottomPadding: Integer;
     FWordTopPadding: Integer;
     procedure SetCrop(const Value: TKRect);
@@ -902,6 +902,7 @@ type
     procedure SetScaleY(const Value: Integer);
   protected
     FCalcBaseLine: Integer;
+    FScaledRect: TRect;
     function ContentLength: Integer; override;
     function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetImageHeight: Integer; virtual;
@@ -917,7 +918,7 @@ type
     function GetWordTopPadding(Index: Integer): Integer; override;
     function GetWordWidth(Index: Integer): Integer; override;
     procedure ImageStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
-    function ScaledImage: TKAlphaBitmap; virtual;
+    function CroppedImage: TKAlphaBitmap; virtual;
     procedure SetWordBaseLine(Index: Integer; const Value: Integer); override;
     procedure SetWordBottomPadding(Index: Integer; const Value: Integer); override;
     procedure SetWordHeight(Index: Integer; const Value: Integer); override;
@@ -7501,7 +7502,7 @@ begin
   FOriginalExtent := CreateEmptyPoint;
   FPosition := CreateEmptyPoint;
   FScale := Point(100, 100);
-  FScaledImage := nil;
+  FCroppedImage := nil;
   FWordTopPadding := 0;
 end;
 
@@ -7510,7 +7511,7 @@ begin
   FCrop.Free;
   FImageStyle.Free;
   FImage.Free;
-  FScaledImage.Free;
+  FCroppedImage.Free;
   inherited;
 end;
 
@@ -7684,14 +7685,14 @@ begin
   KFunctions.OffsetRect(Result, InternalLeftOffset, InternalTopOffset);
 end;
 
-function TKMemoImageBlock.ScaledImage: TKAlphaBitmap;
+function TKMemoImageBlock.CroppedImage: TKAlphaBitmap;
 var
   BM: TKAlphaBitmap;
   ExtentX, ExtentY, NewExtentX: Integer;
   RatioX, RatioY: Double;
   OrigCrop: TRect;
 begin
-  if (FScaledImage = nil) and (FImage.Graphic <> nil) then
+  if (FCroppedImage = nil) and (FImage.Graphic <> nil) then
   begin
     // get scaled image only on demand
     ExtentX := ScaleWidth;
@@ -7718,32 +7719,21 @@ begin
       Dec(ExtentX, FCrop.Left + FCrop.Right);
       Dec(ExtentY, FCrop.Top + FCrop.Bottom);
     end;
+    FScaledRect := Rect(0, 0, ExtentX, ExtentY);
     if (ExtentX * ExtentY <> 0) and (FImage.Width * FImage.Height <> 0) then
     begin
-      FScaledImage := TKAlphaBitmap.Create;
-      FScaledImage.DirectCopy := True;
-      FScaledImage.SetSize(ExtentX, ExtentY);
-      FScaledImage.Fill(MakeColorRec(255,255,255,255));
+      FCroppedImage := TKAlphaBitmap.Create;
+      FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
     {$IFDEF FPC}
-      FScaledImage.UpdateHandle;
+      FCroppedImage.UpdateHandle;
     {$ENDIF}
-      SetStretchBltMode(FScaledImage.Canvas.Handle, HALFTONE);
-      // we must scale bitmap to bitmap to use HALFTONE effect
-      BM := TKAlphaBitmap.Create;
-      try
-        BM.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
-        BM.Fill(MakeColorRec(255,255,255,255));
-        BM.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Right);
-        BM.DrawTo(FScaledImage.Canvas, Rect(0, 0, FScaledImage.Width, FScaledImage.Height));
-      finally
-        BM.Free;
-      end;
+      FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Right);
     {$IFDEF FPC}
-      FScaledImage.UpdatePixels;
+      FCroppedImage.UpdatePixels;
     {$ENDIF}
     end;
   end;
-  Result := FScaledImage;
+  Result := FCroppedImage;
 end;
 
 procedure TKMemoImageBlock.SetCrop(const Value: TKRect);
@@ -7754,14 +7744,14 @@ end;
 procedure TKMemoImageBlock.SetImage(const Value: TPicture);
 begin
   FImage.Assign(Value);
-  FreeAndNil(FScaledImage);
+  FreeAndNil(FCroppedImage);
   Update([muContent]);
 end;
 
 procedure TKMemoImageBlock.SetImagePath(const Value: TKString);
 begin
   FImage.LoadFromFile(Value);
-  FreeAndNil(FScaledImage);
+  FreeAndNil(FCroppedImage);
   Update([muContent]);
 end;
 
@@ -7780,7 +7770,7 @@ begin
   if Value <> ScaleHeight then
   begin
     FScale.Y := MulDiv(Value, 100, OriginalHeight);
-    FreeAndNil(FScaledImage);
+    FreeAndNil(FCroppedImage);
     Update([muExtent]);
   end;
 end;
@@ -7790,7 +7780,7 @@ begin
   if Value <> ScaleWidth then
   begin
     FScale.X := MulDiv(Value, 100, OriginalWidth);
-    FreeAndNil(FScaledImage);
+    FreeAndNil(FCroppedImage);
     Update([muExtent]);
   end;
 end;
@@ -7800,7 +7790,7 @@ begin
   if Value <> FScale.X then
   begin
     FScale.X := Value;
-    FreeAndNil(FScaledImage);
+    FreeAndNil(FCroppedImage);
     Update([muExtent]);
   end;
 end;
@@ -7810,7 +7800,7 @@ begin
   if Value <> FScale.Y then
   begin
     FScale.Y := Value;
-    FreeAndNil(FScaledImage);
+    FreeAndNil(FCroppedImage);
     Update([muExtent]);
   end;
 end;
@@ -7853,7 +7843,7 @@ end;
 
 function TKMemoImageBlock.WordMeasureExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint;
 begin
-  FreeAndNil(FScaledImage);
+  FreeAndNil(FCroppedImage);
   Result := Point(
     ImageWidth + FImageStyle.LeftPadding + FImageStyle.RightPadding + FImageStyle.LeftMargin + FImageStyle.RightMargin,
     ImageHeight + FImageStyle.TopPadding + FImageStyle.BottomPadding + FImageStyle.TopMargin + FImageStyle.BottomMargin);
@@ -7869,8 +7859,9 @@ end;
 procedure TKMemoImageBlock.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
 var
   X, Y: Integer;
+  R: TRect;
   ROuter: TRect;
-  Bitmap: TKAlphaBitmap;
+  Bitmap, Cropped: TKAlphaBitmap;
   Color, Bkgnd: TColor;
 begin
   inherited;
@@ -7878,6 +7869,9 @@ begin
   KFunctions.OffsetRect(ROuter, ALeft, ATop);
   X := ROuter.Left + FImageStyle.LeftPadding + FImageStyle.LeftMargin;
   Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FWordTopPadding + FBaseLine - FCalcBaseLine;
+  Cropped := CroppedImage;
+  R := FScaledRect;
+  OffsetRect(R, X, Y);
   if PaintSelection and (SelLength > 0) then
   begin
     GetSelColors(Color, BkGnd);
@@ -7885,22 +7879,22 @@ begin
     if Position <> mbpText then
       ROuter := ImageStyle.MarginRect(ROuter);
     ACanvas.FillRect(ROuter);
-    if ScaledImage <> nil then
+    if Cropped <> nil then
     begin
       Bitmap := TKAlphaBitmap.Create;
       try
-        Bitmap.SetSize(ScaledImage.Width, ScaledImage.Height);
+        Bitmap.SetSize(Cropped.Width, Cropped.Height);
       {$IFDEF FPC}
         Bitmap.UpdateHandle;
       {$ENDIF}
         Bitmap.Canvas.Brush.Color := BkGnd;
         Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
-        Bitmap.Canvas.Draw(0, 0, ScaledImage);
+        Bitmap.Canvas.Draw(0, 0, Cropped);
       {$IFDEF FPC}
         Bitmap.UpdatePixels;
       {$ENDIF}
         Bitmap.AlphaFillPercent(50, True);
-        Bitmap.AlphaDrawTo(ACanvas, X, Y);
+        Bitmap.AlphaStretchDrawTo(ACanvas, R);
       finally
         Bitmap.Free;
       end;
@@ -7909,8 +7903,8 @@ begin
   begin
     ROuter := ImageStyle.MarginRect(ROuter);
     FImageStyle.PaintBox(ACanvas, ROuter);
-    if ScaledImage <> nil then
-      ACanvas.Draw(X, Y, ScaledImage);
+    if Cropped <> nil then
+      Cropped.AlphaStretchDrawTo(ACanvas, R);
   end;
 end;
 

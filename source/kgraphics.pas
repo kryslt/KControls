@@ -1759,6 +1759,7 @@ begin
   Tmp := TKAlphaBitmap.Create;
   try
     Tmp.SetSize(FWidth, FHeight);
+    Tmp.Fill(MakeColorRec(255, 255, 255, 0));
     Tmp.DrawFrom(ACanvas, ARect); // QT does not support
     for I := 0 to FHeight - 1 do
     begin
