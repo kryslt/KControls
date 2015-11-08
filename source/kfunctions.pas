@@ -80,6 +80,8 @@ const
   { @exclude }
   LM_PASTE = WM_PASTE;
   { @exclude }
+  LM_PAINT = WM_PAINT;
+  { @exclude }
   LM_SETFOCUS = WM_SETFOCUS;
   { @exclude }
   LM_SIZE = WM_SIZE;
@@ -196,6 +198,8 @@ type
   TLMKillFocus = TWMKillFocus;
   { @exclude }
   TLMMove = TWMMove;
+  { @exclude }
+  TLMPaint = TWMPaint;
   { @exclude }
   TLMPaste = TWMPaste;
   { @exclude }

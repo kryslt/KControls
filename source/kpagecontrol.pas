@@ -106,30 +106,54 @@ type
     CloseRect: TRect;
   end;
 
-  TKCustomPageControl = class;
+  TKTabPanel = class;
 
-  TKTabPanel = class(TKCustomControl)
+  TKTabPanelOptions = class(TPersistent)
   private
     FCloseButtonIndex: TImageIndex;
     FColors: TKTabColors;
-    FFirstVisibleTab: Integer;
     FLeftButtonIndex: TImageIndex;
     FOptions: TKTabOptions;
     FPadding: Integer;
-    FPageControl: TKCustomPageControl;
     FRightButtonIndex: TImageIndex;
     FScrollButtonSize: Integer;
-    procedure CMCursorChanged(var Message: TLMessage); message CM_CURSORCHANGED;
-    function GetTabs(Index: Integer): TKString;
     procedure SetCloseButtonIndex(const Value: TImageIndex);
     procedure SetColors(const Value: TKTabColors);
-    procedure SetFirstVisibleTab(Value: Integer);
     procedure SetOptions(const Value: TKTabOptions);
     procedure SetLeftButtonIndex(const Value: TImageIndex);
     procedure SetPadding(const Value: Integer);
-    procedure SetPageControl(const Value: TKCustomPageControl);
     procedure SetRightButtonIndex(const Value: TImageIndex);
     procedure SetScrollButtonSize(const Value: Integer);
+  public
+    FPanel: TKTabPanel;
+    constructor Create(APanel: TKTabPanel);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure UpdateTabPanel;
+  published
+    property CloseButtonIndex: TImageIndex read FCloseButtonIndex write SetCloseButtonIndex default -1;
+    property Colors: TKTabColors read FColors write SetColors;
+    property Options: TKTabOptions read FOptions write SetOptions default cDefaultTabOptions;
+    property LeftButtonIndex: TImageIndex read FLeftButtonIndex write SetLeftButtonIndex default -1;
+    property Padding: Integer read FPadding write SetPadding default cDefaultTabPadding;
+    property RightButtonIndex: TImageIndex read FRightButtonIndex write SetRightButtonIndex default -1;
+    property ScrollButtonSize: Integer read FScrollButtonSize write SetScrollButtonSize default cDefaultScrollButtonSize;
+  end;
+
+  TKCustomPageControl = class;
+
+  { TKTabPanel }
+
+  TKTabPanel = class(TKCustomControl)
+  private
+    FFirstVisibleTab: Integer;
+    FOptions: TKTabPanelOptions;
+    FPageControl: TKCustomPageControl;
+    procedure CMCursorChanged(var Message: TLMessage); message CM_CURSORCHANGED;
+    function GetTabs(Index: Integer): TKString;
+    procedure SetFirstVisibleTab(Value: Integer);
+    procedure SetOptions(const Value: TKTabPanelOptions);
+    procedure SetPageControl(const Value: TKCustomPageControl);
   protected
     FAllTabsExtent: Integer;
     FDraggedTab: Integer;
@@ -163,7 +187,7 @@ type
     procedure PaintAfterTabs(ACanvas: TCanvas; ALastTabIndex: Integer); virtual;
     procedure PaintToCanvas(ACanvas: TCanvas); override;
     procedure RightScrollButtonClick(Sender: TObject);
-    procedure UpdateTabPanelProperties(ACanvas: TCanvas); virtual;
+    procedure UpdateTabPanelLayout(ACanvas: TCanvas); virtual;
     procedure UpdateSize; override;
     procedure UpdateScrollRange; virtual;
     procedure UpdateTabPanel; virtual;
@@ -172,17 +196,13 @@ type
     destructor Destroy; override;
     function IndexOfTabAt(X, Y: Integer): Integer; virtual;
     function TabRect(Index: Integer): TRect; virtual;
-    property CloseButtonIndex: TImageIndex read FCloseButtonIndex write SetCloseButtonIndex default -1;
-    property Colors: TKTabColors read FColors write SetColors;
     property FirstVisibleTab: Integer read FFirstVisibleTab write SetFirstVisibleTab;
-    property Options: TKTabOptions read FOptions write SetOptions default cDefaultTabOptions;
-    property LeftButtonIndex: TImageIndex read FLeftButtonIndex write SetLeftButtonIndex default -1;
-    property Padding: Integer read FPadding write SetPadding default cDefaultTabPadding;
+    property Options: TKTabPanelOptions read FOptions write SetOptions;
     property PageControl: TKCustomPageControl read FPageControl write SetPageControl;
-    property RightButtonIndex: TImageIndex read FRightButtonIndex write SetRightButtonIndex default -1;
-    property ScrollButtonSize: Integer read FScrollButtonSize write SetScrollButtonSize default cDefaultScrollButtonSize;
     property Tabs[Index: Integer]: TKString read GetTabs;
   end;
+
+  { TKTabSheet }
 
   TKTabSheet = class(TWinControl)
   private
@@ -198,6 +218,8 @@ type
     procedure SetPageIndex(Value: Integer);
     procedure CMShowingChanged(var Message: TLMessage); message CM_SHOWINGCHANGED;
     procedure CMTextChanged(var Message: TLMessage); message CM_TEXTCHANGED;
+    procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
+    procedure WMPaint(var Msg: TLMPaint); message LM_PAINT;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoHide; dynamic;
@@ -257,6 +279,8 @@ type
 
   TKTabClickEvent = procedure(Sender: TObject; TabIndex: Integer) of object;
 
+  { TKCustomPageControl }
+
   TKCustomPageControl = class(TKCustomControl)
   private
     FActivePageIndex: Integer;
@@ -279,39 +303,29 @@ type
     procedure SetDisabledImages(const Value: TImageList);
     procedure SetHotTrack(const Value: Boolean);
     procedure SetImages(const Value: TImageList);
-    procedure SetTabPanel(const Value: TKTabPanel);
-    procedure SetTabPosition(Value: TTabPosition);
     procedure SetTabHeight(const Value: Integer);
+    procedure SetTabPanel(const Value: TKTabPanel);
+    procedure SetTabPanelOptions(const Value: TKTabPanelOptions);
+    procedure SetTabPosition(Value: TTabPosition);
     procedure SetTabWidth(const Value: Integer);
     procedure CMDialogKey(var Message: TCMDialogKey); message CM_DIALOGKEY;
-{$IFnDEF FPC}
+{$IFDEF FPC}
+    procedure CMDesignHitTest(var Message: TCMDesignHitTest); message CM_DESIGNHITTEST;
+{$ELSE}
     procedure CMDockNotification(var Message: TCMDockNotification); message CM_DOCKNOTIFICATION;
     procedure CMDockClient(var Message: TCMDockClient); message CM_DOCKCLIENT;
     procedure CMUnDockClient(var Message: TCMUnDockClient); message CM_UNDOCKCLIENT;
 {$ENDIF}
     procedure WMEraseBkgnd(var Msg: TLMessage); message LM_ERASEBKGND;
-    function GetCloseButtonIndex: TImageIndex;
-    function GetLeftButtonIndex: TImageIndex;
-    function GetOptions: TKTabOptions;
-    function GetPadding: Integer;
-    function GetRightButtonIndex: TImageIndex;
-    function GetScrollButtonSize: Integer;
-    function GetTabColors: TKTabColors;
-    procedure SetCloseButtonIndex(const Value: TImageIndex);
-    procedure SetLeftButtonIndex(const Value: TImageIndex);
-    procedure SetOptions(const Value: TKTabOptions);
-    procedure SetPadding(const Value: Integer);
-    procedure SetRightButtonIndex(const Value: TImageIndex);
-    procedure SetScrollButtonSize(const Value: Integer);
-    procedure SetTabColors(const Value: TKTabColors);
+    function GetTabPanelOptions: TKTabPanelOptions;
   protected
     FDeletingPage: Boolean;
+    FLoadedActivePageIndex: Integer;
     FNewDockSheet: TKTabSheet;
     FUndockingPage: TKTabSheet;
     function CanChange: Boolean; virtual;
     procedure Change; virtual;
     procedure ChangeActivePage(Page: TKTabSheet); virtual;
-    procedure DeletePage(Index: Integer); virtual;
     procedure DoAddDockClient(Client: TControl; const ARect: TRect); override;
     procedure DockOver(Source: TDragDockObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean); override;
@@ -322,17 +336,26 @@ type
     procedure GetSiteInfo(Client: TControl; var InfluenceRect: TRect;
       MousePos: TPoint; var CanDock: Boolean); override;
     procedure InsertPage(Page: TKTabSheet); virtual;
+    procedure InternalDeletePage(Index: Integer); virtual;
+    procedure Loaded; override;
+{$IFDEF FPC}
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+{$ENDIF}
     procedure MovePage(CurIndex, NewIndex: Integer);
     procedure PaintToCanvas(ACanvas: TCanvas); override;
     procedure RemovePage(Page: TKTabSheet); virtual;
     procedure SetActivePage(Page: TKTabSheet);
     procedure SetChildOrder(Child: TComponent; Order: Integer); override;
     procedure ShowControl(AControl: TControl); override;
+    procedure UpdateAllDesignerFlags;
+    procedure UpdateDesignerFlags(APageIndex: integer);
     procedure UpdateTabPanel; virtual;
     procedure UpdateTabPanelPosition; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    function AddPage(AOwner: TComponent): TKTabSheet; virtual;
+    procedure DeletePage(APage: TKTabSheet); virtual;
     function FindNextPage(CurPage: TKTabSheet; GoForward: Boolean): TKTabSheet;
     procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
     function IndexOfTabAt(X, Y: Integer): Integer;
@@ -340,22 +363,16 @@ type
     function TabRect(Index: Integer): TRect;
     property ActivePage: TKTabSheet read GetActivePage write SetActivePage;
     property ActivePageIndex: Integer read FActivePageIndex write SetActivePageIndex default -1;
-    property CloseButtonIndex: TImageIndex read GetCloseButtonIndex write SetCloseButtonIndex default -1;
     property DisabledImages: TImageList read FDisabledImages write SetDisabledImages;
     property HotTrack: Boolean read FHotTrack write SetHotTrack default True;
     property Images: TImageList read FImages write SetImages;
     property ImageIndex[Index: Integer]: Integer read GetImageIndex;
-    property LeftButtonIndex: TImageIndex read GetLeftButtonIndex write SetLeftButtonIndex default -1;
-    property Options: TKTabOptions read GetOptions write SetOptions default cDefaultTabOptions;
-    property Padding: Integer read GetPadding write SetPadding default cDefaultTabPadding;
     property PageCount: Integer read GetPageCount;
     property Pages[Index: Integer]: TKTabSheet read GetPage;
-    property RightButtonIndex: TImageIndex read GetRightButtonIndex write SetRightButtonIndex default -1;
-    property ScrollButtonSize: Integer read GetScrollButtonSize write SetScrollButtonSize default cDefaultScrollButtonSize;
-    property TabColors: TKTabColors read GetTabColors write SetTabColors;
     property TabPosition: TTabPosition read FTabPosition write SetTabPosition default cDefaultTabPosition;
     property TabHeight: Integer read FTabHeight write SetTabHeight default cDefaultTabHeight;
     property TabPanel: TKTabPanel read FTabPanel write SetTabPanel;
+    property TabPanelOptions: TKTabPanelOptions read GetTabPanelOptions write SetTabPanelOptions;
     property TabWidth: Integer read FTabWidth write SetTabWidth default cDefaultTabWidth;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnChanging: TTabChangingEvent read FOnChanging write FOnChanging;
@@ -369,8 +386,8 @@ type
     property Align;
     property Anchors;
     property BiDiMode;
+    property BorderStyle default bsNone;
     property Constraints;
-    property CloseButtonIndex;
     property DisabledImages;
     property DockSite;
     property DoubleBuffered;
@@ -382,23 +399,19 @@ type
     property HotTrack;
     property Images;
 //    property MultiLine;
-    property LeftButtonIndex;
-    property Options;
-    property Padding;
     property ParentBackground;
     property ParentBiDiMode;
     property ParentDoubleBuffered;
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
-    property RightButtonIndex;
-    property ScrollButtonSize;
 //    property RaggedRight;
 //    property ScrollOpposite;
     property ShowHint;
 //    property Style;
     property TabHeight;
     property TabOrder;
+    property TabPanelOptions;
     property TabPosition;
     property TabStop;
     property TabWidth;
@@ -467,6 +480,106 @@ begin
 end;
 
 
+{ TKTabPanelOptions }
+
+constructor TKTabPanelOptions.Create(APanel: TKTabPanel);
+begin
+  FPanel := APanel;
+  FColors := TKTabColors.Create(FPanel);
+  FCloseButtonIndex := -1;
+  FLeftButtonIndex := -1;
+  FOptions := cDefaultTabOptions;
+  FPadding := cDefaultTabPadding;
+  FRightButtonIndex := -1;
+  FScrollButtonSize := cDefaultScrollButtonSize;
+end;
+
+destructor TKTabPanelOptions.Destroy;
+begin
+  FColors.Free;
+  inherited;
+end;
+
+procedure TKTabPanelOptions.Assign(Source: TPersistent);
+begin
+  inherited;
+  if Source is TKTabPanelOptions then
+  begin
+    CloseButtonIndex := TKTabPanelOptions(Source).CloseButtonIndex;
+    Colors := TKTabPanelOptions(Source).Colors;
+    Options := TKTabPanelOptions(Source).Options;
+    LeftButtonIndex := TKTabPanelOptions(Source).LeftButtonIndex;
+    Padding := TKTabPanelOptions(Source).Padding;
+    RightButtonIndex := TKTabPanelOptions(Source).RightButtonIndex;
+    ScrollButtonSize := TKTabPanelOptions(Source).ScrollButtonSize;
+  end;
+end;
+
+procedure TKTabPanelOptions.SetCloseButtonIndex(const Value: TImageIndex);
+begin
+  if Value <> FCloseButtonIndex then
+  begin
+    FCloseButtonIndex := Value;
+    UpdateTabPanel;
+  end;
+end;
+
+procedure TKTabPanelOptions.SetColors(const Value: TKTabColors);
+begin
+  FColors.Assign(Value);
+end;
+
+procedure TKTabPanelOptions.SetLeftButtonIndex(const Value: TImageIndex);
+begin
+  if Value <> FLeftButtonIndex then
+  begin
+    FLeftButtonIndex := Value;
+    UpdateTabPanel;
+  end;
+end;
+
+procedure TKTabPanelOptions.SetOptions(const Value: TKTabOptions);
+begin
+  if Value <> FOptions then
+  begin
+    FOptions := Value;
+    UpdateTabPanel;
+  end;
+end;
+
+procedure TKTabPanelOptions.SetPadding(const Value: Integer);
+begin
+  if Value <> Fpadding then
+  begin
+    FPadding := Value;
+    UpdateTabPanel;
+  end;
+end;
+
+procedure TKTabPanelOptions.SetRightButtonIndex(const Value: TImageIndex);
+begin
+  if Value <> FRightButtonIndex then
+  begin
+    FRightButtonIndex := Value;
+    UpdateTabPanel;
+  end;
+end;
+
+procedure TKTabPanelOptions.SetScrollButtonSize(const Value: Integer);
+begin
+  if Value <> FScrollButtonSize then
+  begin
+    FScrollButtonSize := Value;
+    UpdateTabPanel;
+  end;
+end;
+
+procedure TKTabPanelOptions.UpdateTabPanel;
+begin
+  if FPanel <> nil then
+    FPanel.UpdateTabPanel;
+end;
+
 { TKTabPanel }
 
 constructor TKTabPanel.Create(AOwner: TComponent);
@@ -474,14 +587,15 @@ begin
   inherited;
   BorderStyle := bsNone;
   ControlStyle := ControlStyle - [csCaptureMouse];
+{$IFDEF FPC}
+  ControlStyle := ControlStyle + [csDesignInteractive];
+{$ENDIF}
   DoubleBuffered := True;
+  //SetSubComponent(True);
   FAllTabsExtent := 0;
-  FColors := TKTabColors.Create(Self);
-  FCloseButtonIndex := -1;
   FFirstVisibleTab := 0;
   FFullyVisibleTabsExtent := 0;
   FInvisibleTabsExtent := 0;
-  FLeftButtonIndex := -1;
   FLeftScrollButton := TKSpeedButton.Create(Self);
   FLeftScrollButton.FocusRect := False;
   FLeftScrollButton.Visible := False;
@@ -490,23 +604,20 @@ begin
   FMaxFirstVisibleTab := 0;
   FMouseIndex := -1;
   FMouseInCloseButton := False;
-  FOptions := cDefaultTabOptions;
-  FPadding := cDefaultTabPadding;
   FPageControl := nil;
-  FRightButtonIndex := -1;
+  FOptions := TKTabPanelOptions.Create(Self);
   FRightScrollButton := TKSpeedButton.Create(Self);
   FRightScrollButton.FocusRect := False;
   FRightScrollButton.Visible := False;
   FRightScrollButton.OnClick := RightScrollButtonClick;
   FRightScrollButton.Parent := Self;
-  FScrollButtonSize := cDefaultScrollButtonSize;
   FVisibleTabsExtent := 0;
   UpdateTabPanel;
 end;
 
 destructor TKTabPanel.Destroy;
 begin
-  FColors.Free;
+  FOptions.Free;
   inherited;
 end;
 
@@ -539,7 +650,7 @@ begin
       Info.ImageHeight := 0;
     end;
     if Info.ImageWidth <> 0 then
-      Info.ImagePadding := FPadding
+      Info.ImagePadding := FOptions.Padding
     else
       Info.ImagePadding := 0;
     if FPageControl.TabWidth <> 0 then
@@ -547,10 +658,10 @@ begin
     else
       Info.TextWidth := ACanvas.TextWidth(Page.Caption);
     if Info.TextWidth <> 0 then
-      Info.TextPadding := FPadding
+      Info.TextPadding := FOptions.Padding
     else
       Info.TextPadding := 0;
-    if (FPageControl.Images <> nil) and (FCloseButtonIndex >= 0) and (FCloseButtonIndex < FPageControl.Images.Count) then
+    if (FPageControl.Images <> nil) and (FOptions.CloseButtonIndex >= 0) and (FOptions.CloseButtonIndex < FPageControl.Images.Count) then
     begin
       Info.CloseWidth := FPageControl.Images.Width;
       Info.CloseHeight := FPageControl.Images.Height;
@@ -559,8 +670,8 @@ begin
       Info.CloseHeight := 0;
       Info.CloseWidth := 0;
     end;
-    Info.LeftPadding := 2 * FPadding;
-    Info.RightPadding := 2 * FPadding;
+    Info.LeftPadding := 2 * FOptions.Padding;
+    Info.RightPadding := 2 * FOptions.Padding;
     Info.TabExtent := Info.LeftPadding + Info.ImageWidth + Info.ImagePadding +
       Info.TextWidth + Info.TextPadding + Info.CloseWidth + Info.RightPadding;
     Result := True;
@@ -578,7 +689,7 @@ begin
   begin
     if FAllTabsExtent > Width then
     begin
-      ScrollButtonExtent := 2 * FPadding + FScrollButtonSize;
+      ScrollButtonExtent := 2 * FOptions.Padding + FOptions.ScrollButtonSize;
       Extent := ScrollButtonExtent - FInvisibleTabsExtent;
       Limit := Width - ScrollButtonExtent;
     end else
@@ -678,7 +789,7 @@ begin
         begin
           FPageControl.DoTabClick(I);
           FPageControl.ActivePageIndex := I;
-          if toDrag in FOptions then
+          if toDrag in FOptions.Options then
           begin
             FDraggedTab := I;
             FDraggedPos := MousePt;
@@ -740,7 +851,7 @@ begin
               end;
         end;
         // allow undock outside of tab area + some margin
-        if toDragUndock in FOptions then
+        if toDragUndock in FOptions.Options then
         begin
           R := ClientRect;
           InflateRect(R, 50, 50);
@@ -756,7 +867,7 @@ begin
   end;
 end;
 
-procedure TKTabPanel.MouseOver;
+procedure TKTabPanel.MouseOver(Shift: TShiftState; X, Y: Integer);
 var
   I, NewMouseIndex: Integer;
   NewMouseInCloseButton: Boolean;
@@ -812,7 +923,7 @@ begin
       begin
         if (FPageToClose = I) and PtInRect(Info.CloseRect, Point(X, Y)) then
         begin
-          FpageControl.DeletePage(I);
+          FpageControl.InternalDeletePage(I);
           Break;
         end
       end;
@@ -825,9 +936,9 @@ var
   R: TRect;
   T, B, L: Integer;
 begin
-  if FPageControl <> nil then with ACanvas do
+  if FPageControl <> nil then
   begin
-    Pen.Color := FColors.TabBorder;
+    ACanvas.Pen.Color := FOptions.Colors.TabBorder;
     T := 0;
     B := 0;
     L := 0;
@@ -859,24 +970,27 @@ begin
         L := 0;
       end;
     end;
-    if FAllTabsExtent <= Width then
+    with ACanvas do
     begin
-      MoveTo(FAllTabsExtent, L);
-      LineTo(Width, L);
-    end else
-    begin
-      // paint background for scroll buttons
-      // this will erase part of the last visible tab
-      Brush.Color := Color;
-      ScrollButtonExtent := 2 * FPadding + FScrollButtonSize;
-      R := Rect(0, T, ScrollButtonExtent, B);
-      FillRect(R);
-      MoveTo(R.Left, L);
-      LineTo(R.Right, L);
-      R := Rect(Width - ScrollButtonExtent, T, Width, B);
-      FillRect(R);
-      MoveTo(FFullyVisibleTabsExtent + ScrollButtonExtent, L);
-      LineTo(R.Right, L);
+      if FAllTabsExtent <= Width then
+      begin
+        MoveTo(FAllTabsExtent, L);
+        LineTo(Width, L);
+      end else
+      begin
+        // paint background for scroll buttons
+        // this will erase part of the last visible tab
+        Brush.Color := Color;
+        ScrollButtonExtent := 2 * FOptions.Padding + FOptions.ScrollButtonSize;
+        R := Rect(0, T, ScrollButtonExtent, B);
+        FillRect(R);
+        MoveTo(R.Left, L);
+        LineTo(R.Right, L);
+        R := Rect(Width - ScrollButtonExtent, T, Width, B);
+        FillRect(R);
+        MoveTo(FFullyVisibleTabsExtent + ScrollButtonExtent, L);
+        LineTo(R.Right, L);
+      end;
     end;
   end;
 end;
@@ -918,7 +1032,7 @@ var
 begin
   if (FPageControl <> nil) and not IsRectEmpty(ARect) then with ACanvas do
   begin
-    Pen.Color := FColors.TabBorder;
+    Pen.Color := FOptions.Colors.TabBorder;
     R := ARect;
     if AState = tsSelected then
       Descent := 1
@@ -955,19 +1069,19 @@ begin
     case AState of
       tsHot:
       begin
-        StartColor := FColors.HotTop;
-        EndColor := FColors.HotBottom;
+        StartColor := FOptions.Colors.HotTop;
+        EndColor := FOptions.Colors.HotBottom;
       end;
       tsSelected:
       begin
-        StartColor := FColors.SelectedTop;
-        EndColor := FColors.SelectedBottom;
+        StartColor := FOptions.Colors.SelectedTop;
+        EndColor := FOptions.Colors.SelectedBottom;
       end
     else
-      StartColor := FColors.NormalTop;
-      EndColor := FColors.NormalBottom;
+      StartColor := FOptions.Colors.NormalTop;
+      EndColor := FOptions.Colors.NormalBottom;
     end;
-    if toBrightTopColors in FOptions then
+    if toBrightTopColors in FOptions.Options then
       EndColor := BrightColor(ColorToRGB(StartColor), 0.75, bsOfTop);
     DrawGradientRect(ACanvas, R, ColorToRGB(StartColor), ColorToRGB(EndColor), 10, False);
     // simulate rounded corners
@@ -988,7 +1102,7 @@ begin
       Images := FPageControl.Images
     else
       Images := FPageControl.DisabledImages;
-    Images.Draw(ACanvas, ARect.Left, ARect.Top, FCloseButtonIndex);
+    Images.Draw(ACanvas, ARect.Left, ARect.Top, FOptions.CloseButtonIndex);
   end;
 end;
 
@@ -1001,9 +1115,9 @@ begin
     TextBox := TKTextBox.Create;
     try
       if AState = tsSelected then
-        Font.Color := FColors.SelectedText
+        Font.Color := FOptions.Colors.SelectedText
       else
-        Font.Color := FColors.NormalText;
+        Font.Color := FOptions.Colors.NormalText;
       TextBox.HAlign := halLeft;
       TextBox.VAlign := valCenter;
       TextBox.Text := FPageControl.Pages[ATabIndex].Caption;
@@ -1041,53 +1155,12 @@ begin
   FirstVisibleTab := FFirstVisibleTab + 1;
 end;
 
-procedure TKTabPanel.SetCloseButtonIndex(const Value: TImageIndex);
-begin
-  if Value <> FCloseButtonIndex then
-  begin
-    FCloseButtonIndex := Value;
-    UpdateTabPanel;
-  end;
-end;
-
-procedure TKTabPanel.SetColors(const Value: TKTabColors);
-begin
-  FColors.Assign(Value);
-end;
-
 procedure TKTabPanel.SetFirstVisibleTab(Value: Integer);
 begin
   Value := MinMax(Value, 0, FMaxFirstVisibleTab);
   if Value <> FFirstVisibleTab then
   begin
     FFirstVisibleTab := Value;
-    UpdateTabPanel;
-  end;
-end;
-
-procedure TKTabPanel.SetLeftButtonIndex(const Value: TImageIndex);
-begin
-  if Value <> FLeftButtonIndex then
-  begin
-    FLeftButtonIndex := Value;
-    FLeftScrollButton.ImageIndex := Value;
-  end;
-end;
-
-procedure TKTabPanel.SetOptions(const Value: TKTabOptions);
-begin
-  if Value <> FOptions then
-  begin
-    FOptions := Value;
-    UpdateTabPanel;
-  end;
-end;
-
-procedure TKTabPanel.SetPadding(const Value: Integer);
-begin
-  if Value <> Fpadding then
-  begin
-    FPadding := Value;
     UpdateTabPanel;
   end;
 end;
@@ -1101,22 +1174,9 @@ begin
   end;
 end;
 
-procedure TKTabPanel.SetRightButtonIndex(const Value: TImageIndex);
+procedure TKTabPanel.SetOptions(const Value: TKTabPanelOptions);
 begin
-  if Value <> FRightButtonIndex then
-  begin
-    FRightButtonIndex := Value;
-    FRightScrollButton.ImageIndex := Value;
-  end;
-end;
-
-procedure TKTabPanel.SetScrollButtonSize(const Value: Integer);
-begin
-  if Value <> FScrollButtonSize then
-  begin
-    FScrollButtonSize := Value;
-    UpdateTabPanel;
-  end;
+  FOptions.Assign(Value);
 end;
 
 function TKTabPanel.TabRect(Index: Integer): TRect;
@@ -1133,15 +1193,15 @@ procedure TKTabPanel.UpdateScrollRange;
 var
   R: TRect;
 begin
-  UpdateTabPanelProperties(Canvas);
+  UpdateTabPanelLayout(Canvas);
   if FAllTabsExtent > Width then
   begin
-    R.TopLeft := Point(FPadding, (Height - FScrollButtonSize) div 2);
-    R.BottomRight := Point(R.Left + FScrollButtonSize, R.Top + FScrollButtonSize);
+    R.TopLeft := Point(FOptions.Padding, (Height - FOptions.ScrollButtonSize) div 2);
+    R.BottomRight := Point(R.Left + FOptions.ScrollButtonSize, R.Top + FOptions.ScrollButtonSize);
     FLeftScrollButton.BoundsRect := R;
     FLeftScrollButton.Visible := True;
-    R.TopLeft := Point(Width - FPadding - FScrollButtonSize, (Height - FScrollButtonSize) div 2);
-    R.BottomRight := Point(R.Left + FScrollButtonSize, R.Top + FScrollButtonSize);
+    R.TopLeft := Point(Width - FOptions.Padding - FOptions.ScrollButtonSize, (Height - FOptions.ScrollButtonSize) div 2);
+    R.BottomRight := Point(R.Left + FOptions.ScrollButtonSize, R.Top + FOptions.ScrollButtonSize);
     FRightScrollButton.BoundsRect := R;
     FRightScrollButton.Visible := True;
   end else
@@ -1165,11 +1225,13 @@ begin
     FLeftScrollButton.Images := FPageControl.Images;
     FRightScrollButton.Images := FPageControl.Images;
   end;
+  FLeftScrollButton.ImageIndex := FOptions.LeftButtonIndex;
+  FRightScrollButton.ImageIndex := FOptions.RightButtonIndex;
   UpdateScrollRange;
   Invalidate;
 end;
 
-procedure TKTabPanel.UpdateTabPanelProperties(ACanvas: TCanvas);
+procedure TKTabPanel.UpdateTabPanelLayout(ACanvas: TCanvas);
 var
   I, Tmp, ScrollButtonExtent: Integer;
   MaxFirstVisibleTabSet: Boolean;
@@ -1186,7 +1248,7 @@ begin
   if FPageControl <> nil then
   begin
     MaxFirstVisibleTabSet := False;
-    ScrollButtonExtent := 2 * FPadding + FScrollButtonSize;
+    ScrollButtonExtent := 2 * FOptions.Padding + FOptions.ScrollButtonSize;
     for I := FPageControl.PageCount - 1 downto 0 do
       if GetTabInfo(ACanvas, I, TI) then
       begin
@@ -1226,7 +1288,12 @@ constructor TKTabSheet.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   Align := alClient;
-  ControlStyle := ControlStyle + [csOpaque, csAcceptsControls, csNoDesignVisible];
+{$IFDEF FPC}
+  ControlStyle := [csAcceptsControls, csCaptureMouse, csClickEvents,
+    csDesignFixedBounds, csDoubleClicks, csDesignInteractive];
+{$ELSE}
+  ControlStyle := [csAcceptsControls, csOpaque];
+{$ENDIF}
   Visible := False;
   FHighlighted := False;
 end;
@@ -1235,6 +1302,31 @@ procedure TKTabSheet.CMTextChanged(var Message: TLMessage);
 begin
   if FPageControl <> nil then
     FPageControl.UpdateTabPanel;
+end;
+
+procedure TKTabSheet.WMEraseBkgnd(var Message: TLMEraseBkgnd);
+begin
+{$IFDEF FPC}
+  if Message.DC <> 0 then
+    EraseBackground(Message.DC);
+{$ELSE}
+  inherited;
+{$ENDIF}
+end;
+
+procedure TKTabSheet.WMPaint(var Msg: TLMPaint);
+var
+  Notebook: TKCustomPageControl;
+begin
+{$IFDEF FPC}
+  if Parent is TKCustomPageControl then
+  begin
+    NoteBook := TKCustomPageControl(Parent);
+    if (NoteBook.ActivePageIndex >= 0) and (NoteBook.Pages[NoteBook.ActivePageIndex] = Self) then
+      inherited;
+  end else
+{$ENDIF}
+    inherited;
 end;
 
 procedure TKTabSheet.CMShowingChanged(var Message: TLMessage);
@@ -1319,7 +1411,8 @@ begin
   if FImageIndex <> Value then
   begin
     FImageIndex := Value;
-    FPageControl.UpdateTabPanel;
+    if FPageControl <> nil then
+      FPageControl.UpdateTabPanel;
   end;
 end;
 
@@ -1371,7 +1464,11 @@ end;
 constructor TKCustomPageControl.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  ControlStyle := [csOpaque, csDoubleClicks];
+  BorderStyle := bsNone;
+  ControlStyle := ControlStyle + [csOpaque, csDoubleClicks];
+{$IFDEF FPC}
+  ControlStyle := ControlStyle + [csDesignInteractive];
+{$ENDIF}
   Width := 400;
   Height := 300;
   FActivePageIndex := -1;
@@ -1379,7 +1476,9 @@ begin
   FDisabledImages := nil;
   FHotTrack := True;
   FImages := nil;
+  FLoadedActivePageIndex := -1;
   FPages := TKTabSheets.Create;
+  FPages.OwnsObjects := False;
   FTabHeight := cDefaultTabHeight;
   FTabPosition := cDefaultTabPosition;
   FTabWidth := cDefaultTabWidth;
@@ -1387,24 +1486,43 @@ begin
   FOnChanging := nil;
   FOnGetImageIndex := nil;
   FOnTabClick := nil;
-  TabPanel := TKTabPanel.Create(nil);
+  FTabPanel := TKTabPanel.Create(nil);
+  UpdateTabPanelPosition;
 end;
 
 destructor TKCustomPageControl.Destroy;
-var
-  I: Integer;
 begin
   FreeAndNil(FTabPanel);
-  for I := 0 to FPages.Count - 1 do
-    FPages[I].PageControl := nil;
+  while FPages.Count > 0 do
+    FPages[0].PageControl := nil;
   FPages.Free;
   inherited Destroy;
+end;
+
+function TKCustomPageControl.AddPage(AOwner: TComponent): TKTabSheet;
+begin
+  Result := TKTabSheet.Create(AOwner);
+  Result.PageControl := Self;
+end;
+
+procedure TKCustomPageControl.DeletePage(APage: TKTabSheet);
+begin
+  if APage <> nil then
+  begin
+    RemovePage(APage);
+  {$IFDEF FPC}
+    Application.ReleaseComponent(APage);
+  {$ELSE}
+    APage.Free;
+  {$ENDIF}
+  end;
 end;
 
 function TKCustomPageControl.CanChange: Boolean;
 begin
   Result := True;
-  if Assigned(FOnChanging) then FOnChanging(Self, Result);
+  if Assigned(FOnChanging) and not (csDestroying in ComponentState) then
+    FOnChanging(Self, Result);
 end;
 
 procedure TKCustomPageControl.Change;
@@ -1442,6 +1560,7 @@ begin
       end;
     end;
     Change;
+    UpdateAllDesignerFlags;
     UpdateTabPanel;
   end;
 end;
@@ -1457,7 +1576,14 @@ begin
     inherited;
 end;
 
-{$IFnDEF FPC}
+{$IFDEF FPC}
+
+procedure TKCustomPageControl.CMDesignHitTest(var Message: TCMDesignHitTest);
+begin
+  Message.Result := 1;
+end;
+
+{$ELSE}
 procedure TKCustomPageControl.CMDockClient(var Message: TCMDockClient);
 var
   DockCtl: TControl;
@@ -1541,7 +1667,7 @@ begin
 end;
 {$ENDIF}
 
-procedure TKCustomPageControl.DeletePage(Index: Integer);
+procedure TKCustomPageControl.InternalDeletePage(Index: Integer);
 var
   Page, NextPage: TKTabSheet;
 begin
@@ -1646,35 +1772,11 @@ begin
     Proc(TComponent(FPages[I]));
 end;
 
-function TKCustomPageControl.GetCloseButtonIndex: TImageIndex;
-begin
-  if FTabPanel <> nil then
-    Result := FTabPanel.CloseButtonIndex
-  else
-    Result := -1;
-end;
-
 function TKCustomPageControl.GetImageIndex(TabIndex: Integer): Integer;
 begin
   Result := FPages[TabIndex].ImageIndex;
   if Assigned(FOnGetImageIndex) then
     FOnGetImageIndex(Self, TabIndex, Result);
-end;
-
-function TKCustomPageControl.GetLeftButtonIndex: TImageIndex;
-begin
-  if FTabPanel <> nil then
-    Result := FTabPanel.LeftButtonIndex
-  else
-    Result := -1;
-end;
-
-function TKCustomPageControl.GetOptions: TKTabOptions;
-begin
-  if FTabPanel <> nil then
-    Result := FTabPanel.Options
-  else
-    Result := [];
 end;
 
 function TKCustomPageControl.GetPageFromDockClient(Client: TControl): TKTabSheet;
@@ -1692,14 +1794,6 @@ begin
   end;
 end;
 
-function TKCustomPageControl.GetPadding: Integer;
-begin
-  if FTabPanel <> nil then
-    Result := FTabPanel.Padding
-  else
-    Result := 0;
-end;
-
 function TKCustomPageControl.GetPage(Index: Integer): TKTabSheet;
 begin
   Result := TKTabSheet(FPages[Index]);
@@ -1710,22 +1804,6 @@ begin
   Result := FPages.Count;
 end;
 
-function TKCustomPageControl.GetRightButtonIndex: TImageIndex;
-begin
-  if FTabPanel <> nil then
-    Result := FTabPanel.RightButtonIndex
-  else
-    Result := -1;
-end;
-
-function TKCustomPageControl.GetScrollButtonSize: Integer;
-begin
-  if FTabPanel <> nil then
-    Result := FTabPanel.ScrollButtonSize
-  else
-    Result := -1;
-end;
-
 procedure TKCustomPageControl.GetSiteInfo(Client: TControl; var InfluenceRect: TRect;
   MousePos: TPoint; var CanDock: Boolean);
 begin
@@ -1733,10 +1811,10 @@ begin
   inherited GetSiteInfo(Client, InfluenceRect, MousePos, CanDock);
 end;
 
-function TKCustomPageControl.GetTabColors: TKTabColors;
+function TKCustomPageControl.GetTabPanelOptions: TKTabPanelOptions;
 begin
   if FTabPanel <> nil then
-    Result := FTabPanel.Colors
+    Result := FTabPanel.Options
   else
     Result := nil;
 end;
@@ -1756,6 +1834,36 @@ begin
   Page.Parent := Self;
 end;
 
+procedure TKCustomPageControl.Loaded;
+begin
+  inherited;
+  ActivePageIndex := FLoadedActivePageIndex;
+end;
+
+{$IFDEF FPC}
+procedure TKCustomPageControl.MouseDown(Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  MousePt: TPoint;
+  Form: TCustomForm;
+begin
+  if (csDesigning in ComponentState) and (FTabPanel <> nil) then
+  begin
+    MousePt := Point(X,Y);
+    if PtInRect(FTabPanel.BoundsRect, MousePt) then
+    begin
+      MousePt := FTabPanel.ScreenToClient(ClientToScreen(MousePt));
+      FTabPanel.MouseDown(Button, Shift, MousePt.X, MousePt.Y);
+      Form := GetParentForm(Self);
+      if Form <> nil then
+        Form.Designer.SelectOnlyThisComponent(Self);
+    end else
+      inherited;
+  end else
+    inherited;
+end;
+{$ENDIF}
+
 procedure TKCustomPageControl.MovePage(CurIndex, NewIndex: Integer);
 begin
   FPages.Move(CurIndex, NewIndex);
@@ -1774,7 +1882,7 @@ end;
 
 procedure TKCustomPageControl.RemovePage(Page: TKTabSheet);
 begin
-  DeletePage(FPages.IndexOf(Page));
+  InternalDeletePage(FPages.IndexOf(Page));
 end;
 
 procedure TKCustomPageControl.SelectNextPage(GoForward: Boolean);
@@ -1795,7 +1903,9 @@ end;
 
 procedure TKCustomPageControl.SetActivePageIndex(const Value: Integer);
 begin
-  if (Value >= 0) and (Value < PageCount) then
+  if csLoading in ComponentState then
+    FLoadedActivePageIndex := Value
+  else if (Value >= 0) and (Value < PageCount) then
     ActivePage := Pages[Value]
   else
     ActivePage := nil;
@@ -1804,12 +1914,6 @@ end;
 procedure TKCustomPageControl.SetChildOrder(Child: TComponent; Order: Integer);
 begin
   TKTabSheet(Child).PageIndex := Order;
-end;
-
-procedure TKCustomPageControl.SetCloseButtonIndex(const Value: TImageIndex);
-begin
-  if FTabPanel <> nil then
-    FTabPanel.CloseButtonIndex := Value;
 end;
 
 procedure TKCustomPageControl.SetDisabledImages(const Value: TImageList);
@@ -1839,42 +1943,6 @@ begin
   end;
 end;
 
-procedure TKCustomPageControl.SetLeftButtonIndex(const Value: TImageIndex);
-begin
-  if FTabPanel <> nil then
-    FTabPanel.LeftButtonIndex := Value;
-end;
-
-procedure TKCustomPageControl.SetOptions(const Value: TKTabOptions);
-begin
-  if FTabPanel <> nil then
-    FTabPanel.Options := Value;
-end;
-
-procedure TKCustomPageControl.SetPadding(const Value: Integer);
-begin
-  if FTabPanel <> nil then
-    FTabPanel.Padding := Value;
-end;
-
-procedure TKCustomPageControl.SetRightButtonIndex(const Value: TImageIndex);
-begin
-  if FTabPanel <> nil then
-    FTabPanel.RightButtonIndex := Value;
-end;
-
-procedure TKCustomPageControl.SetScrollButtonSize(const Value: Integer);
-begin
-  if FTabPanel <> nil then
-    FTabPanel.ScrollButtonSize := Value;
-end;
-
-procedure TKCustomPageControl.SetTabColors(const Value: TKTabColors);
-begin
-  if FTabPanel <> nil then
-    FTabPanel.Colors := Value;
-end;
-
 procedure TKCustomPageControl.SetTabHeight(const Value: Integer);
 begin
   if Value <> FTabHeight then
@@ -1886,12 +1954,14 @@ end;
 
 procedure TKCustomPageControl.SetTabPanel(const Value: TKTabPanel);
 begin
-  if Value <> FTabPanel then
-  begin
-    FTabPanel.Free;
-    FTabPanel := Value;
-    UpdateTabPanelPosition;
-  end;
+  FTabPanel.Assign(Value);
+  UpdateTabPanelPosition;
+end;
+
+procedure TKCustomPageControl.SetTabPanelOptions(const Value: TKTabPanelOptions);
+begin
+  if FTabPanel <> nil then
+    FTabPanel.Options := Value;
 end;
 
 procedure TKCustomPageControl.SetTabPosition(Value: TTabPosition);
@@ -1930,9 +2000,28 @@ begin
     Result := CreateEmptyRect;
 end;
 
+procedure TKCustomPageControl.UpdateAllDesignerFlags;
+var
+  i: integer;
+begin
+  for i := 0 to FPages.Count - 1 do
+    UpdateDesignerFlags(i);
+end;
+
+procedure TKCustomPageControl.UpdateDesignerFlags(APageIndex: integer);
+var
+  CurPage: TKTabSheet;
+begin
+  CurPage := Pages[APageIndex];
+  if APageIndex <> FActivePageIndex then
+    CurPage.ControlStyle := CurPage.ControlStyle + [csNoDesignVisible]
+  else
+    CurPage.ControlStyle := CurPage.ControlStyle - [csNoDesignVisible];
+end;
+
 procedure TKCustomPageControl.UpdateTabPanel;
 begin
-  if FTabPanel <> nil then
+  if (FTabPanel <> nil) and not (csDestroying in ComponentState) then
     FTabPanel.UpdateTabPanel;
 end;
 

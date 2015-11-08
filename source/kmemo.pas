@@ -7687,7 +7687,6 @@ end;
 
 function TKMemoImageBlock.CroppedImage: TKAlphaBitmap;
 var
-  BM: TKAlphaBitmap;
   ExtentX, ExtentY, NewExtentX: Integer;
   RatioX, RatioY: Double;
   OrigCrop: TRect;

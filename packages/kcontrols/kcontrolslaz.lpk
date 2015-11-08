@@ -18,11 +18,6 @@
           <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>
-      <Linking>
-        <Debugging>
-          <DebugInfoType Value="dsDwarf2"/>
-        </Debugging>
-      </Linking>
       <Other>
         <Verbosity>
           <ShowHints Value="False"/>
