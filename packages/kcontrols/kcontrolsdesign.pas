@@ -9,7 +9,7 @@ uses
   ComponentEditors, PropEdits,
 {$ELSE}
   DesignIntf, DesignEditors,
- {$IFDEF COMPILER15_UP}
+ {$IFDEF COMPILER17_UP}
   Actions,
  {$ENDIF}
 {$ENDIF}

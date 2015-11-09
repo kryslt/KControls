@@ -1571,7 +1571,7 @@ end;
 
 procedure TKCustomNumberEdit.UpDownChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue:
-  {$IFDEF COMPILER17_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
+  {$IFDEF COMPILER18_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
 var
   V: Extended;
 begin
