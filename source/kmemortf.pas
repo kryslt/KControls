@@ -1769,7 +1769,7 @@ begin
           begin
             if FActiveImage <> nil then
             begin
-              FMemo.BackgroundImage.Assign(ActiveImage.Image);
+              FMemo.Background.Image.Assign(ActiveImage.Image);
               FreeAndNil(FActiveImage);
             end;
           end else
@@ -3117,7 +3117,7 @@ procedure TKMemoRTFWriter.WriteBackground;
 var
   Shape: TKMemoRTFShape;
 begin
-  if not FSelectedOnly and (FMemo <> nil) and ((FMemo.Colors.BkGnd <> clWindow) or (FMemo.BackgroundImage.Graphic <> nil)) then
+  if not FSelectedOnly and (FMemo <> nil) and ((FMemo.Colors.BkGnd <> clWindow) or (FMemo.Background.Image.Graphic <> nil)) then
   begin
     WriteCtrlParam('viewbksp', 1);
     WriteGroupBegin;
@@ -3132,7 +3132,7 @@ begin
         Shape.FitToText := False;
         Shape.Style.WrapMode := wrUnknown;
         Shape.Style.Brush.Color := FMemo.Colors.BkGnd;
-        Shape.Style.FillBlip := FMemo.BackgroundImage.Graphic;
+        Shape.Style.FillBlip := FMemo.Background.Image.Graphic;
         Shape.Background := True;
         Shape.HorzPosCode := 0;
         Shape.VertPosCode := 0;

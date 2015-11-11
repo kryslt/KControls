@@ -147,7 +147,7 @@ end;
 
 procedure TMainForm.BUTestClick(Sender: TObject);
 begin
-  Test23;
+  Test13;
 end;
 
 procedure TMainForm.Test1;
@@ -392,7 +392,7 @@ end;
 procedure TMainForm.Test15;
 begin
   KMemo1.Colors.BkGnd := clYellow;
-  KMemo1.BackgroundImage.LoadFromFile('../../resource_src/clouds.jpg');
+  KMemo1.Background.Image.LoadFromFile('../../resource_src/clouds.jpg');
 end;
 
 procedure TMainForm.Test16;

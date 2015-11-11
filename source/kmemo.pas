@@ -344,6 +344,33 @@ type
     property OnChanged: TKMemoListChangedEvent read FOnChanged write FOnChanged;
   end;
 
+  TKMemoBackground = class(TPersistent)
+  private
+    FImage: TPicture;
+    FRepeatX: Boolean;
+    FRepeatY: Boolean;
+    FColor: TColor;
+    FOnChanged: TNotifyEvent;
+    procedure SetImage(const Value: TPicture);
+    procedure SetRepeatX(const Value: Boolean);
+    procedure SetRepeatY(const Value: Boolean);
+    procedure SetColor(const Value: TColor);
+  protected
+    procedure Changed;
+    procedure ImageChanged(Sender: TObject);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Assign(ASource: TPersistent); override;
+    procedure Clear;
+    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
+  published
+    property Color: TColor read FColor write SetColor default clNone;
+    property Image: TPicture read FImage write SetImage;
+    property RepeatX: Boolean read FRepeatX write SetRepeatX default True;
+    property RepeatY: Boolean read FRepeatY write SetRepeatY default True;
+  end;
+
   TKMemoScriptCapitals = (tcaNone, tcaNormal, tcaSmall);
 
   TKMemoScriptPosition = (tpoNormal, tpoSuperscript, tpoSubscript);
@@ -1469,7 +1496,7 @@ type
   { @abstract(Multi line text editor base component). }
   TKCustomMemo = class(TKCustomControl, IKMemoNotifier)
   private
-    FBackgroundImage: TPicture;
+    FBackground: TKMemoBackground;
     FBlocks: TKMemoBlocks;
     FColors: TKMemoColors;
     FContentPadding: TKRect;
@@ -1523,6 +1550,7 @@ type
     function GetUndoLimit: Integer;
     function IsOptionsStored: Boolean;
     procedure ScrollTimerHandler(Sender: TObject);
+    procedure SetBackground(const Value: TKMemoBackground);
     procedure SetColors(Value: TKMemoColors);
     procedure SetDisabledDrawStyle(Value: TKEditDisabledDrawStyle);
     procedure SetLeftPos(Value: Integer);
@@ -1564,7 +1592,6 @@ type
     procedure WMPaste(var Msg: TLMessage); message LM_PASTE;
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
-    function GetNearestParagraph: TKMemoParagraph;
   protected
     FActiveBlocks: TKMemoBlocks;
     FCaretRect: TRect;
@@ -1604,6 +1631,8 @@ type
       @link(TKCustomMemo.InsertMode) status.</LI>
       </UL> }
     procedure AddUndoString(AItemKind: TKMemoChangeKind; const AData: TKString; AInserted: Boolean = True); virtual;
+    { Notify control about main window background changes. }
+    procedure BackgroundChanged(Sender: TObject); virtual;
     { Begins a new undo group. Use the GroupKind parameter to label it. }
     procedure BeginUndoGroup(AGroupKind: TKMemoChangeKind);
     { Converts a rectangle relative to active blocks to a rectangle relative to TKMemo. }
@@ -1656,6 +1685,8 @@ type
     function GetListTable: TKMemoListTable;
     { IKMemoNotifier implementation. }
     function GetMaxWordLength: Integer;
+    { Return nearest paragraph. }
+    function GetNearestParagraph: TKMemoParagraph; virtual;
     { IKMemoNotifier implementation. }
     function GetPaintSelection: Boolean;
     { IKMemoNotifier implementation. }
@@ -1890,8 +1921,8 @@ type
     property ActiveInnerBlocks: TKMemoBlocks read GetActiveInnerBlocks;
     { Gives access to memo blocks - containers of texts, images etc.. }
     property Blocks: TKMemoBlocks read FBlocks;
-    { Background image. }
-    property BackgroundImage: TPicture read FBackgroundImage;
+    { Main window background. }
+    property Background: TKMemoBackground read FBackground write SetBackground;
     { Returns current caret position = selection end. }
     property CaretPos: Integer read GetSelEnd;
     { Returns True if caret is visible. }
@@ -2001,6 +2032,8 @@ type
     property Align;
     { Inherited property - see Delphi help. }
     property Anchors;
+    { See TKCustomMemo.@link(TKCustomMemo.Background) for details. }
+    property Background;
     { See TKCustomControl.@link(TKCustomControl.BorderStyle) for details. }
     property BorderStyle;
     { Inherited property - see Delphi help. }
@@ -2801,6 +2834,84 @@ end;
 procedure TKMemoListTable.SetItem(Index: Integer; const Value: TKMemoList);
 begin
   inherited SetItem(Index, Value);
+end;
+
+{ TKMemoBackground }
+
+constructor TKMemoBackground.Create;
+begin
+  FColor := clNone;
+  FImage := TPicture.Create;
+  FImage.OnChange := ImageChanged;
+  FRepeatX := True;
+  FRepeatY := True;
+  FOnChanged := nil;
+end;
+
+destructor TKMemoBackground.Destroy;
+begin
+  FImage.Free;
+  inherited;
+end;
+
+procedure TKMemoBackground.ImageChanged(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TKMemoBackground.Assign(ASource: TPersistent);
+begin
+  if ASource is TKMemoTextStyle then
+  begin
+    Color := TKMemoBackground(ASource).Color;
+    Image.Assign(TKMemoBackground(ASource).Image);
+    RepeatX := TKMemoBackground(ASource).RepeatX;
+    RepeatY := TKMemoBackground(ASource).RepeatY;
+  end;
+end;
+
+procedure TKMemoBackground.Changed;
+begin
+  if Assigned(FOnChanged) then
+    FOnChanged(Self);
+end;
+
+procedure TKMemoBackground.Clear;
+begin
+  FImage.Graphic := nil;
+  FColor := clNone;
+end;
+
+procedure TKMemoBackground.SetColor(const Value: TColor);
+begin
+  if Value <> FColor then
+  begin
+    FColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TKMemoBackground.SetImage(const Value: TPicture);
+begin
+  FImage.Assign(Value);
+end;
+
+procedure TKMemoBackground.SetRepeatX(const Value: Boolean);
+begin
+  if Value <> FRepeatX then
+  begin
+    FRepeatX := Value;
+    Changed;
+  end;
+end;
+
+procedure TKMemoBackground.SetRepeatY(const Value: Boolean);
+begin
+  if Value <> FRepeatY then
+  begin
+    FRepeatY := Value;
+    Changed;
+  end;
 end;
 
 { TKMemoTextStyle }
@@ -3695,7 +3806,8 @@ begin
   ParentFont := False;
   TabStop := True;
   Width := cWidth;
-  FBackgroundImage := TPicture.Create;
+  FBackground := TKMemoBackground.Create;
+  FBackground.OnChanged := BackgroundChanged;
   FBlocks := TKMemoBlocks.Create;
   FBlocks.MemoNotifier := Self;
   FBlocks.OnUpdate := BlocksChanged;
@@ -3764,7 +3876,7 @@ begin
   FContentPadding.Free;
   FColors.Free;
   FBlocks.Free;
-  FBackgroundImage.Free;
+  FBackground.Free;
   inherited;
 end;
 
@@ -3838,6 +3950,11 @@ begin
   end
   else
     inherited;
+end;
+
+procedure TKCustomMemo.BackgroundChanged(Sender: TObject);
+begin
+  Invalidate;
 end;
 
 procedure TKCustomMemo.BeginUndoGroup(AGroupKind: TKMemoChangeKind);
@@ -3949,8 +4066,10 @@ begin
     FTextStyle.Defaults;
     FTextStyle.Font.Assign(Font);
     FParaStyle.Defaults;
+    {
     FColors.BkGnd := cBkGndDef;
-    FBackgroundImage.Graphic := nil;
+    FBackground.Clear;
+    }
     FListTable.Clear;
   finally
     FBlocks.UnlockUpdate;
@@ -5060,28 +5179,34 @@ var
 begin
   SaveIndex := SaveDC(ACanvas.handle); // don't delete
   try
-    if (FBackgroundImage.Graphic <> nil) and not FBackgroundImage.Graphic.Empty then
+    if (FColors.BkGnd <> clNone) or (FBackground.Color <> clNone) then
     begin
-      I := ARect.Left + (ALeftOfs - FContentPadding.Left) mod FBackgroundImage.Width;
-      J := ARect.Top + (ATopOfs - FContentPadding.Top) mod FbackgroundImage.Height;
-      H := I;
-      while J < ARect.Bottom do
-      begin
-        ACanvas.Draw(I, J, FBackgroundImage.Graphic);
-        Inc(I, FBackgroundImage.Width);
-        if I >= ARect.Right then
-        begin
-          Inc(J, FBackgroundImage.Height);
-          I := H;
-        end;
-      end;
-    end
-    else if Color <> clNone then
-    begin
-      Brush.Color := FColors.BkGnd;
+      if FBackground.Color <> clNone then
+        Brush.Color := FBackground.Color
+      else
+        Brush.Color := FColors.BkGnd;
       Brush.Style := bsSolid;
       ACanvas.Brush.Assign(Brush);
       ACanvas.FillRect(ARect);
+    end;
+    if (FBackground.Image.Graphic <> nil) and not FBackground.Image.Graphic.Empty then
+    begin
+      I := ARect.Left + (ALeftOfs - FContentPadding.Left) mod FBackground.Image.Width;
+      J := ARect.Top + (ATopOfs - FContentPadding.Top) mod FBackground.Image.Height;
+      H := I;
+      while J < ARect.Bottom do
+      begin
+        ACanvas.Draw(I, J, FBackground.Image.Graphic);
+        Inc(I, FBackground.Image.Width);
+        if not FBackground.RepeatX or (I >= ARect.Right) then
+        begin
+          if FBackground.RepeatY then
+            Inc(J, FBackground.Image.Height)
+          else
+            J := ARect.Bottom;
+          I := H;
+        end;
+      end;
     end;
     FBlocks.PaintToCanvas(ACanvas, ALeftOfs, ATopOfs, ARect);
   finally
@@ -5388,6 +5513,11 @@ begin
   FActiveBlocks := FBlocks.PointToBlocks(Canvas, PointToBlockPoint(APoint, False));
   if FActiveBlocks = nil then
     FActiveBlocks := FBlocks;
+end;
+
+procedure TKCustomMemo.SetBackground(const Value: TKMemoBackground);
+begin
+  FBackground.Assign(Value);
 end;
 
 procedure TKCustomMemo.SetColors(Value: TKMemoColors);
