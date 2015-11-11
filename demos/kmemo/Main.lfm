@@ -8,7 +8,7 @@ object MainForm: TMainForm
   ClientWidth = 1055
   OnCreate = FormCreate
   OnResize = FormResize
-  LCLVersion = '1.4.2.0'
+  LCLVersion = '1.5'
   Visible = True
   object PNMain: TPanel
     Left = 0
@@ -85,7 +85,7 @@ object MainForm: TMainForm
     Width = 112
     Anchors = [akLeft, akBottom]
     Caption = 'Test'
-    OnClick = BULoadClick
+    OnClick = BUTestClick
     TabOrder = 4
   end
   object KPrintSetupDialog1: TKPrintSetupDialog

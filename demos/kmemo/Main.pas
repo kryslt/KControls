@@ -481,6 +481,7 @@ begin
     IB := TKMemoImageBlock.Create;
     IB.Image := Picture;
     KMemo1.Blocks.AddAt(IB, -1);
+    KMemo1.Select(KMemo1.SelectableLength, 0);
   finally
     Picture.Free;
   end;

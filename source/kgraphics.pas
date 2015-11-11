@@ -3420,6 +3420,9 @@ constructor TKTextHint.Create(AOwner: TComponent);
 begin
   inherited;
   FText := '';
+{$IFDEF FPC}
+  Font := Screen.HintFont;
+{$ENDIF}
 end;
 
 procedure TKTextHint.Paint;

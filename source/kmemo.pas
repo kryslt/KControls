@@ -7723,13 +7723,9 @@ begin
     begin
       FCroppedImage := TKAlphaBitmap.Create;
       FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
-    {$IFDEF FPC}
-      FCroppedImage.UpdateHandle;
-    {$ENDIF}
       FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Right);
-    {$IFDEF FPC}
-      FCroppedImage.UpdatePixels;
-    {$ENDIF}
+      if not (FImage.Graphic is TKPngImage) then
+        FCroppedImage.AlphaFill(255);
     end;
   end;
   Result := FCroppedImage;
@@ -7860,7 +7856,7 @@ var
   X, Y: Integer;
   R: TRect;
   ROuter: TRect;
-  Bitmap, Cropped: TKAlphaBitmap;
+  Bitmap: TKAlphaBitmap;
   Color, Bkgnd: TColor;
 begin
   inherited;
@@ -7868,7 +7864,7 @@ begin
   KFunctions.OffsetRect(ROuter, ALeft, ATop);
   X := ROuter.Left + FImageStyle.LeftPadding + FImageStyle.LeftMargin;
   Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FWordTopPadding + FBaseLine - FCalcBaseLine;
-  Cropped := CroppedImage;
+  CroppedImage;
   R := FScaledRect;
   OffsetRect(R, X, Y);
   if PaintSelection and (SelLength > 0) then
@@ -7878,22 +7874,22 @@ begin
     if Position <> mbpText then
       ROuter := ImageStyle.MarginRect(ROuter);
     ACanvas.FillRect(ROuter);
-    if Cropped <> nil then
+    if FCroppedImage <> nil then
     begin
       Bitmap := TKAlphaBitmap.Create;
       try
-        Bitmap.SetSize(Cropped.Width, Cropped.Height);
+        Bitmap.SetSize(FCroppedImage.Width, FCroppedImage.Height);
       {$IFDEF FPC}
         Bitmap.UpdateHandle;
       {$ENDIF}
         Bitmap.Canvas.Brush.Color := BkGnd;
         Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
-        Bitmap.Canvas.Draw(0, 0, Cropped);
+        Bitmap.Canvas.Draw(0, 0, FCroppedImage);
       {$IFDEF FPC}
         Bitmap.UpdatePixels;
       {$ENDIF}
         Bitmap.AlphaFillPercent(50, True);
-        Bitmap.AlphaStretchDrawTo(ACanvas, R);
+        ACanvas.StretchDraw(R, Bitmap);
       finally
         Bitmap.Free;
       end;
@@ -7902,8 +7898,8 @@ begin
   begin
     ROuter := ImageStyle.MarginRect(ROuter);
     FImageStyle.PaintBox(ACanvas, ROuter);
-    if Cropped <> nil then
-      Cropped.AlphaStretchDrawTo(ACanvas, R);
+    if FCroppedImage <> nil then
+      ACanvas.StretchDraw(R, FCroppedImage);
   end;
 end;
 
