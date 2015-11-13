@@ -331,18 +331,19 @@ type
       State: TDragState; var Accept: Boolean); override;
     procedure DoRemoveDockClient(Client: TControl); override;
     procedure DoTabClick(AIndex: Integer); virtual;
+    procedure FreePage(Page: TKTabSheet); virtual;
     function GetImageIndex(TabIndex: Integer): Integer; virtual;
     function GetPageFromDockClient(Client: TControl): TKTabSheet;
     procedure GetSiteInfo(Client: TControl; var InfluenceRect: TRect;
       MousePos: TPoint; var CanDock: Boolean); override;
     procedure InsertPage(Page: TKTabSheet); virtual;
-    procedure InternalDeletePage(Index: Integer); virtual;
     procedure Loaded; override;
 {$IFDEF FPC}
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
 {$ENDIF}
     procedure MovePage(CurIndex, NewIndex: Integer);
     procedure PaintToCanvas(ACanvas: TCanvas); override;
+    function ReleasePage(Index: Integer): TKTabSheet; virtual;
     procedure RemovePage(Page: TKTabSheet); virtual;
     procedure SetActivePage(Page: TKTabSheet);
     procedure SetChildOrder(Child: TComponent; Order: Integer); override;
@@ -355,7 +356,8 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function AddPage(AOwner: TComponent): TKTabSheet; virtual;
-    procedure DeletePage(APage: TKTabSheet); virtual;
+    procedure DeletePage(AIndex: Integer); overload; virtual;
+    procedure DeletePage(APage: TKTabSheet); overload; virtual;
     function FindNextPage(CurPage: TKTabSheet; GoForward: Boolean): TKTabSheet;
     procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
     function IndexOfTabAt(X, Y: Integer): Integer;
@@ -923,7 +925,7 @@ begin
       begin
         if (FPageToClose = I) and PtInRect(Info.CloseRect, Point(X, Y)) then
         begin
-          FpageControl.InternalDeletePage(I);
+          FPageControl.DeletePage(I);
           Break;
         end
       end;
@@ -1505,17 +1507,14 @@ begin
   Result.PageControl := Self;
 end;
 
+procedure TKCustomPageControl.DeletePage(AIndex: Integer);
+begin
+  FreePage(ReleasePage(AIndex));
+end;
+
 procedure TKCustomPageControl.DeletePage(APage: TKTabSheet);
 begin
-  if APage <> nil then
-  begin
-    RemovePage(APage);
-  {$IFDEF FPC}
-    Application.ReleaseComponent(APage);
-  {$ELSE}
-    APage.Free;
-  {$ENDIF}
-  end;
+  FreePage(ReleasePage(FPages.IndexOf(APage)));
 end;
 
 function TKCustomPageControl.CanChange: Boolean;
@@ -1667,20 +1666,21 @@ begin
 end;
 {$ENDIF}
 
-procedure TKCustomPageControl.InternalDeletePage(Index: Integer);
+function TKCustomPageControl.ReleasePage(Index: Integer): TKTabSheet;
 var
-  Page, NextPage: TKTabSheet;
+  NextPage: TKTabSheet;
 begin
+  Result := nil;
   if not FDeletingPage and (Index >= 0) and (Index < FPages.Count) then
   begin
     FDeletingPage := True;
     try
-      Page := FPages[Index];
-      NextPage := FindNextPage(Page, True);
-      if NextPage = Page then
+      Result := FPages[Index];
+      NextPage := FindNextPage(Result, True);
+      if NextPage = Result then
         NextPage := nil;
-      Page.Parent := nil;
-      Page.PageControl := nil;
+      Result.Parent := nil;
+      Result.PageControl := nil;
       FPages.Delete(Index);
       if (Index = FActivePageIndex) or (FActivePageIndex >= FPages.Count) then
         FActivePageIndex := -1;
@@ -1690,6 +1690,15 @@ begin
       FDeletingPage := False;
     end;
   end;
+end;
+
+procedure TKCustomPageControl.FreePage(Page: TKTabSheet);
+begin
+{$IFDEF FPC}
+  Application.ReleaseComponent(Page);
+{$ELSE}
+  Page.Free;
+{$ENDIF}
 end;
 
 procedure TKCustomPageControl.DoAddDockClient(Client: TControl; const ARect: TRect);
@@ -1882,7 +1891,7 @@ end;
 
 procedure TKCustomPageControl.RemovePage(Page: TKTabSheet);
 begin
-  InternalDeletePage(FPages.IndexOf(Page));
+  ReleasePage(FPages.IndexOf(Page));
 end;
 
 procedure TKCustomPageControl.SelectNextPage(GoForward: Boolean);
