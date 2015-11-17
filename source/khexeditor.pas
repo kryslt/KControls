@@ -4807,7 +4807,7 @@ var
 begin
   Include(FStates, elCaretUpdate);
   try
-    if Enabled and Focused and (FEditArea in [eaDigits, eaText]) and not (csDesigning in ComponentState) then
+    if Enabled and Focused and (FEditArea in [eaDigits, eaText]) and not (csDesigning in ComponentState) and not (eoDisableCaret in FOptions) then
     begin
       if not (elCaretVisible in FStates) or Recreate then
       begin

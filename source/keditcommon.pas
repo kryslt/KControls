@@ -241,6 +241,8 @@ type
   TKEditOption = (
     { The editor will receive dropped files }
     eoDropFiles,
+    { The blinking caret should be disabled }
+    eoDisableCaret,
     { All undo/redo operations of the same kind will be grouped together }
     eoGroupUndo,
     { The editor allows undo/redo operations after the edit control's Modified property

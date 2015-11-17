@@ -5809,7 +5809,7 @@ begin
 
       if AShow then
       begin
-        if Enabled and Focused and not (csDesigning in ComponentState) and (SelLength = 0) then
+        if Enabled and Focused and not (csDesigning in ComponentState) and (SelLength = 0) and not (eoDisableCaret in FOptions) then
         begin
           if not (elOverwrite in FStates) then
             FCaretRect.Right := MinMax(FCaretRect.Bottom div 10, 2, 3);
