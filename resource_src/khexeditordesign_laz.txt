@@ -1,4 +1,0 @@
-tkhexeditor.png
-tkprintpreview.png
-tkprintpreviewdialog.png
-tkprintsetupdialog.png

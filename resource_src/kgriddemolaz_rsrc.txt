@@ -1,1 +1,1 @@
-./alphabitmaps/_cube.bmp
+./kgrid_icons/_cube.bmp

@@ -1,5 +1,0 @@
-tkgrid.png
-tkdbgrid.png
-tkprintpreview.png
-tkprintpreviewdialog.png
-tkprintsetupdialog.png
