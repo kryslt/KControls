@@ -855,6 +855,7 @@ type
     FOnClick: TNotifyEvent;
     FOnDblClick: TNotifyEvent;
   protected
+    FMouseCaptureWord: Integer;
     procedure Click; virtual;
     procedure DblClick; virtual;
   public
@@ -7375,6 +7376,7 @@ end;
 constructor TKMemoHyperlink.Create;
 begin
   inherited;
+  FMouseCaptureWord := -1;
   FURL := '';
   FOnClick := nil;
   FOnDblClick := nil;
@@ -7435,8 +7437,18 @@ begin
         end;
         maLeftDown:
         begin
+          FMouseCaptureWord := -1;
           if (ssCtrl in AShift) or ReadOnly then
           begin
+            FMouseCaptureWord := AWordIndex;
+            Result := True;
+          end;
+        end;
+        maLeftUp:
+        begin
+          if FMouseCaptureWord = AWordIndex then
+          begin
+            FMouseCaptureWord := -1;
             if Assigned(FOnDblClick) and (ssDouble in AShift) then
             begin
               DblClick;
@@ -7455,6 +7467,13 @@ begin
           end;
         end;
       end;
+    end;
+  end else
+  begin
+    case AAction of
+      maLeftDown, maLeftUp:
+        if FMouseCaptureWord = AWordIndex then
+          FMouseCaptureWord := -1;
     end;
   end;
 end;

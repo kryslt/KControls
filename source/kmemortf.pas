@@ -319,6 +319,7 @@ type
     FStack: TKMemoRTFStack;
     FStream: TStream;
     FTmpTextStyle: TKMemoTextStyle;
+    FTwipsPerPixel: Double;
     procedure AddText(const APart: TKString); virtual;
     procedure AddTextToNumberingFormat(const APart: TKString); virtual;
     procedure ApplyFont(ATextStyle: TKMemoTextStyle; AFontIndex: Integer); virtual;
@@ -342,6 +343,7 @@ type
     procedure FlushTable; virtual;
     procedure FlushText; virtual;
     function HighlightCodeToColor(AValue: Integer): TColor; virtual;
+    function PointsToTwips(AValue: Integer): Integer; virtual;
     procedure PopFromStack(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure PushToStack(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     function ReadNext(out ACtrl, AText: AnsiString; out AParam: Int64): Boolean; virtual;
@@ -359,6 +361,7 @@ type
     procedure ReadTableFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadTextFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
     procedure ReadUnknownGroup(ACtrl: Integer; var AText: AnsiString; AParam: Integer); virtual;
+    function TwipsToPoints(AValue: Integer): Integer; virtual;
     property ActiveColor: TKMemoRTFColor read GetActiveColor;
     property ActiveContainer: TKMemoContainer read GetActiveContainer;
     property ActiveFont: TKMemoRTFFont read GetActiveFont;
@@ -385,6 +388,7 @@ type
     FMemo: TKCustomMemo;
     FSelectedOnly: Boolean;
     FStream: TStream;
+    FTwipsPerPixel: Double;
     function BoolToParam(AValue: Boolean): AnsiString; virtual;
     function CanSave(AItem: TKMemoBlock): Boolean; virtual;
     function ColorToHighlightCode(AValue: TColor): Integer; virtual;
@@ -393,6 +397,8 @@ type
     procedure FillColorTable(ABlocks: TKMemoBlocks); virtual;
     procedure FillFontTable(ABlocks: TKMemoBlocks); virtual;
     function PointsToEMU(AValue: Integer): Integer; virtual;
+    function PointsToTwips(AValue: Integer): Integer; virtual;
+    function TwipsToPoints(AValue: Integer): Integer; virtual;
     procedure WriteBackground; virtual;
     procedure WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean); virtual;
     procedure WriteColorTable; virtual;
@@ -730,25 +736,28 @@ begin
   end;
 end;
 
-function TwipsPerPixel: Extended;
+function TwipsPerPixel(AHandle: HWND): Double;
 var
   DC: HDC;
   PixelsPerInch: Integer;
 begin
-  DC := GetDC(0); // primary display (perhaps this could be improved) // assumes x and y are the same
-  PixelsPerInch := GetDeviceCaps(DC, LOGPIXELSX);
-  ReleaseDC(0, DC);
-  result := 1440 / PixelsPerInch;
+  DC := GetDC(AHandle);
+  try
+    PixelsPerInch := GetDeviceCaps(DC, LOGPIXELSX); // assumes x and y are the same
+  finally
+    ReleaseDC(AHandle, DC);
+  end;
+  Result := 1440 / PixelsPerInch;
 end;
 
 function TwipsToPoints(AValue: Integer): Integer;
 begin
-  Result := Round(AValue / TwipsPerPixel);
+  Result := Round(AValue / TwipsPerPixel(0));
 end;
 
 function PointsToTwips(AValue: Integer): Integer;
 begin
-  Result := Round(AValue * TwipsPerPixel);
+  Result := Round(AValue * TwipsPerPixel(0));
 end;
 
 { TKMemoRTFCtrlItem }
@@ -1378,6 +1387,10 @@ begin
   FTmpTextStyle := TKMemoTextStyle.Create;
   FillCtrlTable;
   FCtrlTable.SortTable;
+  if (FMemo <> nil) and FMemo.HandleAllocated then
+    FTwipsPerPixel := TwipsPerPixel(FMemo.Handle)
+  else
+    FTwipsPerPixel := TwipsPerPixel(0)
 end;
 
 destructor TKMemoRTFReader.Destroy;
@@ -2059,6 +2072,11 @@ end;
 function TKMemoRTFReader.ParamToInt(const AValue: AnsiString): Integer;
 begin
   Result := StrToIntDef(string(AValue), 0);
+end;
+
+function TKMemoRTFReader.PointsToTwips(AValue: Integer): Integer;
+begin
+  Result := Round(AValue * FTwipsPerPixel);
 end;
 
 procedure TKMemoRTFReader.PopFromStack(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
@@ -2929,6 +2947,11 @@ begin
   end;
 end;
 
+function TKMemoRTFReader.TwipsToPoints(AValue: Integer): Integer;
+begin
+  Result := Round(AValue / FTwipsPerPixel);
+end;
+
 { TKMemoRTFWriter }
 
 constructor TKMemoRTFWriter.Create(AMemo: TKCustomMemo);
@@ -2939,6 +2962,10 @@ begin
   FListTable := TKMemoRTFListTable.Create;
   FSelectedOnly := False;
   FStream := nil;
+  if (FMemo <> nil) and FMemo.HandleAllocated then
+    FTwipsPerPixel := TwipsPerPixel(FMemo.Handle)
+  else
+    FTwipsPerPixel := TwipsPerPixel(0)
 end;
 
 destructor TKMemoRTFWriter.Destroy;
@@ -3057,6 +3084,11 @@ begin
   Result := AValue * 12700;
 end;
 
+function TKMemoRTFWriter.PointsToTwips(AValue: Integer): Integer;
+begin
+  Result := Round(AValue * FTwipsPerPixel);
+end;
+
 procedure TKMemoRTFWriter.SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean);
 var
   Stream: TMemoryStream;
@@ -3111,6 +3143,11 @@ begin
   except
     KFunctions.Error(sErrMemoSaveToRTF);
   end;
+end;
+
+function TKMemoRTFWriter.TwipsToPoints(AValue: Integer): Integer;
+begin
+  Result := Round(AValue / FTwipsPerPixel);
 end;
 
 procedure TKMemoRTFWriter.WriteBackground;
