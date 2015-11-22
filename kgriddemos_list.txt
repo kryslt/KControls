@@ -1,2 +1,0 @@
-.\demos\kgrid\kgriddemo.exe
-.\demos\kdbgrid\kdbgriddemo.exe
