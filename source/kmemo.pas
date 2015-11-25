@@ -1593,6 +1593,7 @@ type
     procedure WMPaste(var Msg: TLMessage); message LM_PASTE;
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
+    procedure SetContentPadding(const Value: TKRect);
   protected
     FActiveBlocks: TKMemoBlocks;
     FCaretRect: TRect;
@@ -1931,7 +1932,7 @@ type
     { Makes it possible to take all color properties from another TKCustomMemo class. }
     property Colors: TKMemoColors read FColors write SetColors;
     { Specifies the padding around the memo contents. }
-    property ContentPadding: TKRect read FContentPadding;
+    property ContentPadding: TKRect read FContentPadding write SetContentPadding;
     { Returns height of the memo contents. }
     property ContentHeight: Integer read GetContentHeight;
     { Returns the left position of the memo contents. }
@@ -3817,9 +3818,7 @@ begin
   FCaretRect := CreateEmptyRect;
   FColors := TKMemoColors.Create(Self);
   FContentPadding := TKRect.Create;
-  FContentPadding.Left := 10;
-  FContentPadding.Right := 10;
-  FContentPadding.Top := 10;
+  FContentPadding.All := 5;
   FContentPadding.OnChanged := ContentPaddingChanged;
   FDisabledDrawStyle := cEditDisabledDrawStyleDef;
   FHorzScrollStep := cHorzScrollStepDef;
@@ -5524,6 +5523,11 @@ end;
 procedure TKCustomMemo.SetColors(Value: TKMemoColors);
 begin
   FColors.Assign(Value);
+end;
+
+procedure TKCustomMemo.SetContentPadding(const Value: TKRect);
+begin
+  FContentPadding.Assign(Value);
 end;
 
 procedure TKCustomMemo.SetDisabledDrawStyle(Value: TKEditDisabledDrawStyle);

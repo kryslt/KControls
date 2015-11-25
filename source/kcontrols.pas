@@ -94,10 +94,10 @@ const
   { Default value for the @link(TKCustomControl.BorderStyle) property. }
   cBorderStyleDef = bsSingle;
 
-  cContentPaddingBottomDef = 0;
-  cContentPaddingLeftDef = 0;
-  cContentPaddingRightDef = 0;
-  cContentPaddingTopDef = 0;
+  cRectBottomDef = 0;
+  cRectLeftDef = 0;
+  cRectRightDef = 0;
+  cRectTopDef = 0;
 
   { Minimum for the @link(TKPrintPageSetup.Copies) property }
   cCopiesMin = 1;
@@ -268,10 +268,10 @@ type
     property All: Integer write SetAll;
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   published
-    property Left: Integer read FLeft write SetLeft default cContentPaddingLeftDef;
-    property Top: Integer read FTop write SetTop default cContentPaddingTopDef;
-    property Right: Integer read FRight write SetRight default cContentPaddingRightDef;
-    property Bottom: Integer read FBottom write SetBottom default cContentPaddingBottomDef;
+    property Left: Integer read FLeft write SetLeft default cRectLeftDef;
+    property Top: Integer read FTop write SetTop default cRectTopDef;
+    property Right: Integer read FRight write SetRight default cRectRightDef;
+    property Bottom: Integer read FBottom write SetBottom default cRectBottomDef;
   end;
 
   TKObjectList = class;
@@ -1208,10 +1208,10 @@ constructor TKRect.Create;
 begin
   inherited Create;
   FOnChanged := nil;
-  FBottom := cContentPaddingBottomDef;
-  FLeft := cContentPaddingLeftDef;
-  FRight := cContentPaddingRightDef;
-  FTop := cContentPaddingTopDef;
+  FBottom := cRectBottomDef;
+  FLeft := cRectLeftDef;
+  FRight := cRectRightDef;
+  FTop := cRectTopDef;
 end;
 
 procedure TKRect.Assign(Source: TPersistent);
