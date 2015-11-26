@@ -1317,8 +1317,10 @@ begin
 end;
 
 procedure TKTabSheet.WMPaint(var Msg: TLMPaint);
+{$IFDEF FPC}
 var
   Notebook: TKCustomPageControl;
+{$ENDIF}
 begin
 {$IFDEF FPC}
   if Parent is TKCustomPageControl then

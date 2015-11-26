@@ -7877,7 +7877,9 @@ begin
       FCroppedImage := TKAlphaBitmap.Create;
       FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
       FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Right);
+    {$IFDEF USE_PNG_SUPPORT}
       if not (FImage.Graphic is TKPngImage) then
+    {$ENDIF}
         FCroppedImage.AlphaFill(255);
     end;
   end;

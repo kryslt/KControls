@@ -443,6 +443,10 @@ function AdjustDecimalSeparator(const S: string): string;
   the current system code page for ANSI-UTFx translations will be used. }
 function AnsiStringToString(const Text: AnsiString; CodePage: Cardinal = 0): TKString;
 
+{$IFNDEF FPC}
+function AnsiStringToWideChar(const Text: AnsiString; CodePage: Cardinal = 0): PWideChar;
+{$ENDIF}
+
 type
   { Callback for binary search data item comparison. }
   TBsCompareProc = function(Data: Pointer; Index: Integer; KeyPtr: Pointer): Integer;
@@ -796,6 +800,8 @@ procedure TrimWhiteSpaces(var AText: AnsiString; const ASet: TKSysCharSet); over
   the current system code page for ANSI-UTFx translations will be used. }
 function StringToAnsiString(const AText: TKString; CodePage: Cardinal = 0): AnsiString;
 
+function StringToUTF8(const AText: string): AnsiString;
+
 { Converts specified character of TKString into TKChar. }
 function StringToChar(const AText: TKString; AIndex: Integer): TKChar;
 
@@ -813,6 +819,8 @@ function UnicodeLowerCase(const AText: TKString): TKString;
 function UnicodeToNativeUTF(const AParam: WideChar): TKString;
 function UnicodeStringReplace(const AText, AOldPattern, ANewPattern: TKString;
   AFlags: TReplaceFlags): TKString;
+
+function UTF8ToString(const AText: AnsiString): string;
 
 implementation
 
@@ -861,6 +869,17 @@ begin
   MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, PWideChar(Result), Len);
 {$ENDIF}
 end;
+
+{$IFNDEF FPC}
+function AnsiStringToWideChar(const Text: AnsiString; CodePage: Cardinal): PWideChar;
+var
+  Len: Integer;
+begin
+  Len := MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, nil, 0);
+  GetMem(Result, Len shl 1);
+  MultiByteToWideChar(CodePage, 0, PAnsiChar(Text), -1, Result, Len);
+end;
+{$ENDIF}
 
 function BinarySearch(AData: Pointer; ACount: Integer; KeyPtr: Pointer;
   ACompareProc: TBsCompareProc; ASortedDown: Boolean): Integer;
@@ -2487,6 +2506,15 @@ begin
 {$ENDIF}
 end;
 
+function StringToUTF8(const AText: string): AnsiString;
+begin
+{$IFDEF FPC}
+  Result := AText;
+{$ELSE}
+  Result := UTF8Encode(AText);
+{$ENDIF}
+end;
+
 function StringToChar(const AText: TKString; AIndex: Integer): TKChar;
 begin
 {$IFDEF FPC}
@@ -2667,6 +2695,19 @@ begin
       I := NewI;
     end;
   end;
+end;
+
+function UTF8ToString(const AText: AnsiString): string;
+begin
+{$IFDEF FPC}
+  Result := AText;
+{$ELSE}
+  {$IFDEF COMPILER12_UP}
+    Result := System.UTF8ToString(AText);
+  {$ELSE}
+    Result := System.UTF8Decode(AText);
+  {$ENDIF}
+{$ENDIF}
 end;
 
 end.
