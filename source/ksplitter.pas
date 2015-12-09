@@ -14,7 +14,7 @@
   notice. The Author accepts no liability for any damage that may result
   from using this code. }
 
-unit KSplitter;
+unit ksplitter; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}

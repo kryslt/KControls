@@ -15,7 +15,7 @@
   from using this code.
 }
 
-unit KMemoRTF;
+unit kmemortf; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}
@@ -2047,6 +2047,7 @@ begin
       FActiveState.Free;
       FListTable.AssignToListTable(FMemo.ListTable, FFontTable);
       FActiveBlocks.ConcatEqualBlocks;
+      FActiveBlocks.FixEmptyBlocks;
       FActiveBlocks.UnlockUpdate;
     end;
   except

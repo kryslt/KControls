@@ -682,6 +682,7 @@ type
     function GetWordHeight(Index: Integer): Integer; virtual;
     function GetWordLeft(Index: Integer): Integer; virtual;
     function GetWordLength(Index: Integer): Integer; virtual;
+    function GetWordLengthWOWS(Index: Integer): Integer; virtual;
     function GetWords(Index: Integer): TKString; virtual;
     function GetWordTop(Index: Integer): Integer; virtual;
     function GetWordTopPadding(Index: Integer): Integer; virtual;
@@ -759,6 +760,7 @@ type
     property WordHeight[Index: Integer]: Integer read GetWordHeight write SetWordHeight;
     property WordLeft[Index: Integer]: Integer read GetWordLeft write SetWordLeft;
     property WordLength[Index: Integer]: Integer read GetWordLength;
+    property WordLengthWOWS[Index: Integer]: Integer read GetWordLengthWOWS;
     property Words[Index: Integer]: TKString read GetWords;
     property WordTop[Index: Integer]: Integer read GetWordTop write SetWordTop;
     property WordTopPadding[Index: Integer]: Integer read GetWordTopPadding write SetWordTopPadding;
@@ -804,6 +806,7 @@ type
     function GetWordHeight(Index: Integer): Integer; override;
     function GetWordLeft(Index: Integer): Integer; override;
     function GetWordLength(Index: Integer): Integer; override;
+    function GetWordLengthWOWS(Index: Integer): Integer; override;
     function GetWords(Index: Integer): TKString; override;
     function GetWordTop(Index: Integer): Integer; override;
     function GetWordTopPadding(Index: Integer): Integer; override;
@@ -1261,7 +1264,8 @@ type
     function GetNearestParagraph(AIndex: Integer): TKMemoParagraph; virtual;
     function GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
-    function GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean; out AStart, AEnd: Integer): Boolean; virtual;
+    function GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean;
+      AIncludeWhiteSpaces: Boolean; out AStart, AEnd: Integer): Boolean; virtual;
     procedure GetSelColors(out TextColor, Background: TColor); virtual;
     function IndexAboveLastLine(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
     function IndexAtBeginningOfContainer(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
@@ -1273,11 +1277,11 @@ type
     function IndexToLine(AIndex: Integer): Integer; virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer; ACaret, AAdjust: Boolean): TRect; virtual;
     function InsideOfTable: Boolean; virtual;
-    procedure InsertChar(At: Integer; const AValue: TKChar; AOverWrite: Boolean); virtual;
+    procedure InsertChar(At: Integer; const AValue: TKChar; AOverWrite: Boolean; ATextStyle: TKMemoTextStyle = nil); virtual;
     procedure InsertNewLine(At: Integer); virtual;
     procedure InsertPlainText(AIndex: Integer; const AValue: TKString); virtual;
     function InsertParagraph(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
-    function InsertString(AIndex: Integer; AAdjust: Boolean; const AValue: TKString): Boolean; virtual;
+    function InsertString(AIndex: Integer; AAdjust: Boolean; const AValue: TKString; ATextStyle: TKMemoTextStyle = nil): Boolean; virtual;
     function LastTextStyle(AIndex: Integer): TKMemoTextStyle; virtual;
     function LineEndIndexByIndex(AIndex: Integer; AAdjust, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function LineStartIndexByIndex(AIndex: Integer; AAdjust: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
@@ -1524,6 +1528,7 @@ type
     FOnChange: TNotifyEvent;
     FOnDropFiles: TKEditDropFilesEvent;
     FOnReplaceText: TKEditReplaceTextEvent;
+    FNewTextStyle: TKMemoTextStyle;
     function GetActiveBlock: TKMemoBlock;
     function GetActiveInnerBlock: TKMemoBlock;
     function GetActiveInnerBlocks: TKMemoBlocks;
@@ -1553,10 +1558,12 @@ type
     procedure ScrollTimerHandler(Sender: TObject);
     procedure SetBackground(const Value: TKMemoBackground);
     procedure SetColors(Value: TKMemoColors);
+    procedure SetContentPadding(const Value: TKRect);
     procedure SetDisabledDrawStyle(Value: TKEditDisabledDrawStyle);
     procedure SetLeftPos(Value: Integer);
     procedure SetMaxWordLength(const Value: Integer);
     procedure SetModified(Value: Boolean);
+    procedure SetNewTextStyle(const Value: TKMemoTextStyle);
     procedure SetOptions(const Value: TKEditOptions);
     procedure SetReadOnly(Value: Boolean);
     procedure SetRequiredContentWidth(const Value: Integer);
@@ -1593,7 +1600,6 @@ type
     procedure WMPaste(var Msg: TLMessage); message LM_PASTE;
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
-    procedure SetContentPadding(const Value: TKRect);
   protected
     FActiveBlocks: TKMemoBlocks;
     FCaretRect: TRect;
@@ -1601,6 +1607,7 @@ type
     FHorzScrollExtent: Integer;
     FHorzScrollStep: Integer;
     FLinePosition: TKMemoLinePosition;
+    FNewTextStyleValid: Boolean;
     FOldCaretRect: TRect;
     FPrinting: Boolean;
     FPreferredCaretPos: Integer;
@@ -1849,7 +1856,8 @@ type
     { Returns current maximum value for the @link(TKCustomMemo.TopPos) property. }
     function GetMaxTopPos: Integer; virtual;
     { Returns indexes corresponding to the word at position AIndex. }
-    function GetNearestWordIndexes(AIndex: Integer; out AStartIndex, AEndIndex: Integer): Boolean;
+    function GetNearestWordIndexes(AIndex: Integer; AIncludeWhiteSpaces: Boolean;
+      out AStartIndex, AEndIndex: Integer): Boolean;
     { Converts a text buffer index into client area rectangle.
       <UL>
       <LH>Parameters:</LH>
@@ -1964,6 +1972,10 @@ type
     property Modified: Boolean read GetModified write SetModified;
     { Returns nearest paragraph to caret location. }
     property NearestParagraph: TKMemoParagraph read GetNearestParagraph;
+    { Specifies text style for newly entered character. }
+    property NewTextStyle: TKMemoTextStyle read FNewTextStyle write SetNewTextStyle;
+    { Indicates that style for newly entered text is valid and will be used for next character. }
+    property NewTextStyleValid: Boolean read FNewTextStyleValid;
     { Specifies the editor options that do not affect painting. }
     property Options: TKEditOptions read FOptions write SetOptions stored IsOptionsStored;
     { Specifies default style for paragraphs. }
@@ -3828,6 +3840,8 @@ begin
   FListTable.OnChanged := ListChanged;
   FMaxWordLength := cMaxWordLengthDef;
   FMouseWheelAccumulator := 0;
+  FNewTextStyle := TKMemoTextStyle.Create;
+  FNewTextStyleValid := False;
   FOldCaretRect := CreateEmptyRect;
   FOptions := [eoGroupUndo];
   FPrinting := False;
@@ -3870,6 +3884,7 @@ begin
   FUndoList.Free;
   FRedoList.Free;
   FParaStyle.Free;
+  FNewTextStyle.Free;
   FKeyMapping.Free;
   FTextStyle.Free;
   FListTable.Free;
@@ -4723,10 +4738,11 @@ begin
     Result := nil;
 end;
 
-function TKCustomMemo.GetNearestWordIndexes(AIndex: Integer; out AStartIndex,
-  AEndIndex: Integer): Boolean;
+function TKCustomMemo.GetNearestWordIndexes(AIndex: Integer; AIncludeWhiteSpaces: Boolean;
+  out AStartIndex, AEndIndex: Integer): Boolean;
 begin
-  Result := FActiveBlocks.GetNearestWordIndexes(AIndex, True, AStartIndex, AEndIndex);
+  Result := FActiveBlocks.GetNearestWordIndexes(AIndex, True, AIncludeWhiteSpaces,
+    AStartIndex, AEndIndex);
 end;
 
 function TKCustomMemo.GetPaintSelection: Boolean;
@@ -4895,8 +4911,16 @@ begin
 end;
 
 procedure TKCustomMemo.InsertChar(At: Integer; const AValue: TKChar);
+var
+  Style: TKMemoTextStyle;
 begin
-  FActiveBlocks.InsertChar(At, AValue, elOverwrite in FStates);
+  if FNewTextStyleValid then
+  begin
+    Style := FNewTextStyle;
+    FNewTextStyleValid := False;
+  end else
+    Style := nil;
+  FActiveBlocks.InsertChar(At, AValue, elOverwrite in FStates, Style);
   Modified := True;
 end;
 
@@ -5097,7 +5121,7 @@ begin
         SetActiveBlocksForPoint(P);
         if ssDouble in Shift then
         begin
-          GetNearestWordIndexes(SelEnd, StartIndex, EndIndex);
+          GetNearestWordIndexes(SelEnd, False, StartIndex, EndIndex);
           Select(StartIndex, EndIndex - StartIndex, False);
         end else
         begin
@@ -5495,6 +5519,7 @@ end;
 
 procedure TKCustomMemo.SelectionInit(ASelStart: Integer; ADoScroll: Boolean; APosition: TKMemoLinePosition);
 begin
+  FNewTextStyleValid := False;
   FLinePosition := APosition;
   Select(ASelStart, 0, ADoScroll);
 end;
@@ -5503,6 +5528,7 @@ procedure TKCustomMemo.SelectionInit(const APoint: TPoint; ADoScroll: Boolean);
 var
   NewSelEnd: Integer;
 begin
+  FNewTextStyleValid := False;
   NewSelEnd := PointToIndex(APoint, True, False, FLinePosition);
   Select(NewSelEnd, 0, ADoScroll);
   UpdatePreferredCaretPos;
@@ -5599,6 +5625,12 @@ begin
   Windows.SetCursor(Screen.Cursors[ACursor]);
 {$ENDIF}
   Result := True;
+end;
+
+procedure TKCustomMemo.SetNewTextStyle(const Value: TKMemoTextStyle);
+begin
+  FNewTextStyle.Assign(Value);
+  FNewTextStyleValid := True;
 end;
 
 procedure TKCustomMemo.SetOptions(const Value: TKEditOptions);
@@ -6266,6 +6298,11 @@ begin
   Result := 0;
 end;
 
+function TKMemoBlock.GetWordLengthWOWS(Index: Integer): Integer;
+begin
+  Result := GetWordLength(Index);
+end;
+
 function TKMemoBlock.GetWords(Index: Integer): TKString;
 begin
   Result := '';
@@ -6792,6 +6829,21 @@ end;
 function TKMemoTextBlock.GetWordLength(Index: Integer): Integer;
 begin
   Result := FWords[Index].EndIndex - FWords[Index].StartIndex + 1;
+end;
+
+function TKMemoTextBlock.GetWordLengthWOWS(Index: Integer): Integer;
+var
+  I: Integer;
+  S: TKString;
+begin
+  Result := GetWordLength(Index);
+  S := Words[Index];
+  I := Length(S);
+  while (I >= 1) and CharInSetEx(S[I], [cTAB] + Wordbreaks) do
+  begin
+    Dec(Result);
+    Dec(I);
+  end;
 end;
 
 function TKMemoTextBlock.GetWordBoundsRect(Index: Integer): TRect;
@@ -10305,9 +10357,9 @@ begin
 end;
 
 function TKMemoBlocks.GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean;
-  out AStart, AEnd: Integer): Boolean;
+  AIncludeWhiteSpaces: Boolean; out AStart, AEnd: Integer): Boolean;
 var
-  I, J, CurIndex, LastIndex, BackupBlock, BackupWord, CurBlock, CurWord, WLen: Integer;
+  I, J, CurIndex, LastIndex, BackupBlock, BackupWord, CurBlock, CurWord, WLen, WLenWOWS: Integer;
   IsBreakable: Boolean;
   Item: TKMemoBlock;
 begin
@@ -10331,7 +10383,8 @@ begin
         CurBlock := I;
         if Item is TKMemoContainer then
         begin
-          Result := TKMemoContainer(Item).Blocks.GetNearestWordIndexes(AIndex - LastIndex, False, AStart, AEnd);
+          Result := TKMemoContainer(Item).Blocks.GetNearestWordIndexes(AIndex - LastIndex,
+            False, AIncludeWhiteSpaces, AStart, AEnd);
           if Result then
           begin
             Inc(AStart, LastIndex);
@@ -10340,10 +10393,14 @@ begin
         end else
         begin
           J := 0;
-          while (CurWord < 0) and (J < Item.WordCount) do
+          while (CurWord < 0) and (J < Item.WordCount) and (LastIndex <= AIndex) do
           begin
             WLen := Item.WordLength[J];
-            if (AIndex >= LastIndex) and (AIndex < LastIndex + WLen) then
+            if AIncludeWhiteSpaces then
+              WLenWOWS := WLen
+            else
+              WLenWOWS := Item.WordLengthWOWS[J];
+            if (AIndex >= LastIndex) and (AIndex < LastIndex + WLenWOWS) then
               CurWord := J
             else
               Inc(LastIndex, WLen);
@@ -10402,7 +10459,12 @@ begin
           while not IsBreakable and (CurWord < Item.WordCount) do
           begin
             IsBreakable := Item.WordBreakable[CurWord];
-            Inc(AEnd, Item.WordLength[CurWord]);
+            if not IsBreakable or AIncludeWhiteSpaces then
+              WLen := Item.WordLength[CurWord]
+            else
+              WLen := Item.WordLengthWOWS[CurWord];
+            if not (Item is TKMemoParagraph) then              
+              Inc(AEnd, WLen);
             Inc(CurWord);
           end;
           CurWord := 0;
@@ -10508,16 +10570,30 @@ end;
 
 function TKMemoBlocks.GetSelectionTextStyle: TKMemoTextStyle;
 var
-  Item: TKmemoBlock;
-  LocalIndex: Integer;
+  Item, LastItem: TKmemoBlock;
+  Block, LocalIndex: Integer;
 begin
-  Item := IndexToItem(RealSelEnd - 1, LocalIndex);
-  if Item is TKMemoContainer then
-    Result := TKMemoContainer(Item).Blocks.SelectionTextStyle
-  else if Item is TKMemoTextBlock then
-    Result := TKMemoTextBlock(Item).TextStyle
-  else
-    Result := nil;
+  Result := nil;
+  Block := IndexToBlock(RealSelEnd, LocalIndex);
+  if Block >= 0 then
+  begin
+    if Block > 0 then    
+      LastItem := Items[Block - 1]
+    else
+      LastItem := nil;
+    if (LocalIndex > 0) or (LastItem is TKMemoParagraph) or not (LastItem is TKMemoTextBlock) then
+    begin    
+      Item := Items[Block];
+      if Item is TKMemoContainer then
+        Result := TKMemoContainer(Item).Blocks.SelectionTextStyle
+      else if Item is TKMemoTextBlock then
+        Result := TKMemoTextBlock(Item).TextStyle;
+    end 
+    else if LastItem <> nil then
+    begin
+      Result := TKMemoTextBlock(LastItem).TextStyle
+    end;
+  end;
 end;
 
 function TKMemoBlocks.GetSelLength: Integer;
@@ -10778,7 +10854,7 @@ begin
     Result := Rect(0, 0, 0, Abs(GetDefaultTextStyle.Font.Height));
 end;
 
-procedure TKMemoBlocks.InsertChar(At: Integer; const AValue: TKChar; AOverWrite: Boolean);
+procedure TKMemoBlocks.InsertChar(At: Integer; const AValue: TKChar; AOverWrite: Boolean; ATextStyle: TKMemoTextStyle);
 var
   NextIndex: Integer;
 begin
@@ -10789,7 +10865,7 @@ begin
   end
   else if AOverwrite then
     DeleteChar(At);
-  if InsertString(At, True, AValue) then
+  if InsertString(At, True, AValue, ATextStyle) then
   begin
     NextIndex := NextIndexByCharCount(At, 1);
     Select(NextIndex, 0, True, True);
@@ -10879,7 +10955,7 @@ begin
   end;
 end;
 
-function TKMemoBlocks.InsertString(AIndex: Integer; AAdjust: Boolean; const AValue: TKString): Boolean;
+function TKMemoBlocks.InsertString(AIndex: Integer; AAdjust: Boolean; const AValue: TKString; ATextStyle: TKMemoTextStyle): Boolean;
 var
   Block, LocalIndex: Integer;
   Item, NewItem, LastItem, NextItem: TKMemoBlock;
@@ -10900,9 +10976,23 @@ begin
       if Block > 0 then
         LastItem := Items[Block - 1]
       else
-        LastItem := nil;
+        LastItem := nil;        
       // proceed with adding text
-      if LocalIndex = 0 then
+      if ATextStyle <> nil then
+      begin
+        if LocalIndex = 0 then
+        begin
+          // insert new text block
+          NewItem := AddTextBlock(AValue, Block);
+        end else
+        begin
+          // split current block to add new block with different text style in between
+          NextItem := Item.Split(LocalIndex);
+          AddAt(NextItem, Block + 1);
+          NewItem := AddTextBlock(AValue, Block + 1);
+        end;
+      end
+      else if LocalIndex = 0 then
       begin
         // we are at local position 0 so we can use previous text block or add new one
         if (LastItem is TKMemoTextBlock) and LastItem.CanAddText then
@@ -10974,6 +11064,8 @@ begin
               NewItem.AssignAttributes(NextItem);
           end;
         end;
+        if (ATextStyle <> nil) and (NewItem is TKMemoTextBlock) then
+          TKMemoTextBlock(NewItem).TextStyle.Assign(ATextStyle);
         Result := True;
       end;
     end else

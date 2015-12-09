@@ -14,7 +14,7 @@
   notice. The Author accepts no liability for any damage that may result
   from using this code.
 }
-unit kmemofrm;
+unit kmemofrm; // lowercase name because of Lazarus/Linux
 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}
@@ -325,7 +325,10 @@ procedure TKMemoFrame.ACFontStyleUpdate(Sender: TObject);
 begin
   FTextStyle.OnChanged := nil;
   try
-    FTextStyle.Assign(Editor.SelectionTextStyle);
+    if Editor.NewTextStyleValid then
+      FTextStyle.Assign(Editor.NewTextStyle)
+    else
+      FTextStyle.Assign(Editor.SelectionTextStyle);
   finally
     FTextStyle.OnChanged := TextStyleChanged;
   end;
@@ -640,21 +643,28 @@ end;
 
 procedure TKMemoFrame.TextStyleChanged(Sender: TObject);
 var
-  SelAvail: Boolean;
+  SelAvail, DoSelect: Boolean;
   SelEnd, StartIndex, EndIndex: Integer;
 begin
-  // if there is no selection then simulate one word selection
+  // if there is no selection then simulate one word selection or set style for new text
   SelAvail := Editor.SelAvail;
   SelEnd := Editor.SelEnd;
   try
     if not SelAvail then
     begin
-      Editor.GetNearestWordIndexes(SelEnd, StartIndex, EndIndex);
-      Editor.Select(StartIndex, EndIndex - StartIndex, False);
+      // simulate MS Word behavior here, SelEnd is caret position
+      // do not select the word if we are at the beginning or end of the word
+      // and allow set another text style for newly added text
+      DoSelect := Editor.GetNearestWordIndexes(SelEnd, False, StartIndex, EndIndex) and (StartIndex < SelEnd) and (SelEnd < EndIndex);
+      if DoSelect then
+        Editor.Select(StartIndex, EndIndex - StartIndex, False);
     end;
-    Editor.SelectionTextStyle := FTextStyle;
+    if Editor.SelAvail then
+      Editor.SelectionTextStyle := FTextStyle
+    else
+      Editor.NewTextStyle := FTextStyle;
   finally
-    if not SelAvail then
+    if DoSelect then
       Editor.Select(SelEnd, 0, False);
   end;
 end;
