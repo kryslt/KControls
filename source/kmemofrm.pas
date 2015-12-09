@@ -658,7 +658,8 @@ begin
       DoSelect := Editor.GetNearestWordIndexes(SelEnd, False, StartIndex, EndIndex) and (StartIndex < SelEnd) and (SelEnd < EndIndex);
       if DoSelect then
         Editor.Select(StartIndex, EndIndex - StartIndex, False);
-    end;
+    end else
+      DoSelect := False;
     if Editor.SelAvail then
       Editor.SelectionTextStyle := FTextStyle
     else
