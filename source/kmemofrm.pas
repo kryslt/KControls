@@ -647,6 +647,7 @@ var
   SelEnd, StartIndex, EndIndex: Integer;
 begin
   // if there is no selection then simulate one word selection or set style for new text
+  DoSelect := False;
   SelAvail := Editor.SelAvail;
   SelEnd := Editor.SelEnd;
   try
@@ -658,8 +659,7 @@ begin
       DoSelect := Editor.GetNearestWordIndexes(SelEnd, False, StartIndex, EndIndex) and (StartIndex < SelEnd) and (SelEnd < EndIndex);
       if DoSelect then
         Editor.Select(StartIndex, EndIndex - StartIndex, False);
-    end else
-      DoSelect := False;
+    end;
     if Editor.SelAvail then
       Editor.SelectionTextStyle := FTextStyle
     else

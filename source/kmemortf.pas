@@ -375,7 +375,7 @@ type
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
     procedure LoadFromFile(const AFileName: TKString; AtIndex: Integer = -1); virtual;
-    procedure LoadFromStream(AStream: TStream; AtIndex: Integer = -1); virtual;
+    procedure LoadFromStream(AStream: TStream; AtIndex: Integer = -1; AActiveBlocks: TKMemoBlocks = nil); virtual;
   end;
 
   { Specifies the RTF writer. }
@@ -408,7 +408,7 @@ type
     procedure WriteFontTable; virtual;
     procedure WriteGroupBegin;
     procedure WriteGroupEnd;
-    procedure WriteHeader; virtual;
+    procedure WriteHeader(ABlocks: TKMemoBlocks); virtual;
     procedure WriteHyperlinkBegin(AItem: TKMemoHyperlink); virtual;
     procedure WriteHyperlinkEnd; virtual;
     procedure WriteImage(AItem: TKmemoImageBlock); virtual;
@@ -436,7 +436,7 @@ type
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
     procedure SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean); virtual;
-    procedure SaveToStream(AStream: TStream; ASelectedOnly: Boolean); virtual;
+    procedure SaveToStream(AStream: TStream; ASelectedOnly: Boolean; AActiveBlocks: TKMemoBlocks = nil); virtual;
   end;
 
 function CharSetToCP(ACharSet: TFontCharSet): Integer;
@@ -1782,10 +1782,12 @@ begin
           begin
             if FActiveImage <> nil then
             begin
-              FMemo.Background.Image.Assign(ActiveImage.Image);
+              if FMemo <> nil then
+                FMemo.Background.Image.Assign(ActiveImage.Image);
               FreeAndNil(FActiveImage);
             end;
-          end else
+          end
+          else if FMemo <> nil then
             FMemo.Colors.BkGnd := FActiveShape.Style.Brush.Color;
         end;
       end;
@@ -1974,81 +1976,95 @@ begin
   end;
 end;
 
-procedure TKMemoRTFReader.LoadFromStream(AStream: TStream; AtIndex: Integer);
+procedure TKMemoRTFReader.LoadFromStream(AStream: TStream; AtIndex: Integer; AActiveBlocks: TKMemoBlocks);
 var
   Item, NewItem: TKMemoBlock;
   ContLocalIndex, BlockLocalIndex: Integer;
 begin
   try
-    if AtIndex < 0 then
+    if AActiveBlocks <> nil then
     begin
-      FMemo.Clear;
-      FMemo.Blocks.Clear; // delete everything
-      FActiveBlocks := FMemo.Blocks;
-      FAtIndex := 0; // just append new blocks to active blocks
-    end else
+      FActiveBlocks := AActiveBlocks
+    end
+    else if FMemo <> nil then
     begin
-      FActiveBlocks := FMemo.Blocks.IndexToBlocks(AtIndex, ContLocalIndex); // get active blocks
-      if FActiveBlocks <> nil then
+      if AtIndex < 0 then
       begin
-        FAtIndex := FActiveBlocks.IndexToBlock(ContLocalIndex, BlockLocalIndex); // get block index within active blocks
-        if FAtIndex >= 0 then
-        begin
-          // if active block is splittable do it and make space for new blocks
-          Item := FActiveBlocks.Items[FAtIndex];
-          NewItem := Item.Split(BlockLocalIndex);
-          if NewItem <> nil then
-          begin
-            Inc(FAtIndex);
-            FActiveBlocks.AddAt(NewItem, FAtIndex);
-          end;
-        end else
-          FAtIndex := 0; // just append new blocks to active blocks
-      end else
-      begin
+        FMemo.Clear;
+        FMemo.Blocks.Clear; // delete everything
         FActiveBlocks := FMemo.Blocks;
         FAtIndex := 0; // just append new blocks to active blocks
+      end else
+      begin
+        FActiveBlocks := FMemo.Blocks.IndexToBlocks(AtIndex, ContLocalIndex); // get active blocks
+        if FActiveBlocks <> nil then
+        begin
+          FAtIndex := FActiveBlocks.IndexToBlock(ContLocalIndex, BlockLocalIndex); // get block index within active blocks
+          if FAtIndex >= 0 then
+          begin
+            // if active block is splittable do it and make space for new blocks
+            Item := FActiveBlocks.Items[FAtIndex];
+            NewItem := Item.Split(BlockLocalIndex);
+            if NewItem <> nil then
+            begin
+              Inc(FAtIndex);
+              FActiveBlocks.AddAt(NewItem, FAtIndex);
+            end;
+          end else
+            FAtIndex := 0; // just append new blocks to active blocks
+        end else
+        begin
+          FActiveBlocks := FMemo.Blocks;
+          FAtIndex := 0; // just append new blocks to active blocks
+        end;
       end;
     end;
-    FActiveBlocks.LockUpdate;
-    try
-      FActiveColor := nil;
-      FActiveContainer := nil;
-      FActiveFont := nil;
-      FActiveImage := nil;
-      FActiveImageClass := nil;
-      FActiveList := nil;
-      FActiveListLevel := nil;
-      FActiveListOverride := nil;
-      FActiveParaBorder := alNone;
-      FActiveShape := nil;
-      FActiveState := TKMemoRTFState.Create;
-      FActiveState.Group := rgUnknown; // we wait for file header
-      FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
-      FActiveState.TextStyle.Assign(FMemo.TextStyle);
-      FActiveString := '';
-      FActiveTable := nil;
-      FActiveTableBorder := alNone;
-      FActiveTableCell := nil;
-      FActiveTableCol := -1;
-      FActiveTableColCount := 0;
-      FActiveTableRow := nil;
-      FActiveText := nil;
-      FColorTable.Clear;
-      FDefaultFontIndex := 0;
-      FIgnoreChars := 0;
-      FStream := AStream;
-      ReadStream;
-    finally
-      FlushText;
-      FlushShape;
-      FlushImage;
-      FlushTable;
-      FActiveState.Free;
-      FListTable.AssignToListTable(FMemo.ListTable, FFontTable);
-      FActiveBlocks.ConcatEqualBlocks;
-      FActiveBlocks.FixEmptyBlocks;
-      FActiveBlocks.UnlockUpdate;
+    if FActiveBlocks <> nil then
+    begin
+      FActiveBlocks.LockUpdate;
+      try
+        FActiveColor := nil;
+        FActiveContainer := nil;
+        FActiveFont := nil;
+        FActiveImage := nil;
+        FActiveImageClass := nil;
+        FActiveList := nil;
+        FActiveListLevel := nil;
+        FActiveListOverride := nil;
+        FActiveParaBorder := alNone;
+        FActiveShape := nil;
+        FActiveState := TKMemoRTFState.Create;
+        FActiveState.Group := rgUnknown; // we wait for file header
+        if FMemo <> nil then
+        begin
+          FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
+          FActiveState.TextStyle.Assign(FMemo.TextStyle);
+        end;
+        FActiveString := '';
+        FActiveTable := nil;
+        FActiveTableBorder := alNone;
+        FActiveTableCell := nil;
+        FActiveTableCol := -1;
+        FActiveTableColCount := 0;
+        FActiveTableRow := nil;
+        FActiveText := nil;
+        FColorTable.Clear;
+        FDefaultFontIndex := 0;
+        FIgnoreChars := 0;
+        FStream := AStream;
+        ReadStream;
+      finally
+        FlushText;
+        FlushShape;
+        FlushImage;
+        FlushTable;
+        FActiveState.Free;
+        if FMemo <> nil then
+          FListTable.AssignToListTable(FMemo.ListTable, FFontTable);
+        FActiveBlocks.ConcatEqualBlocks;
+        FActiveBlocks.FixEmptyBlocks;
+        FActiveBlocks.UnlockUpdate;
+      end;
     end;
   except
     KFunctions.Error(sErrMemoLoadFromRTF);
@@ -2380,7 +2396,7 @@ procedure TKMemoRTFReader.ReadParaFormatting(ACtrl: Integer; var AText: AnsiStri
 begin
   case FActiveState.Group of
     rgNone, rgTextBox, rgFieldResult: case TKMemoRTFParaProp(ACtrl) of
-      rppParD: FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
+      rppParD: if FMemo <> nil then FActiveState.ParaStyle.Assign(FMemo.ParaStyle);
       rppIndentFirst: FActiveState.ParaStyle.FirstIndent := TwipsToPoints(AParam);
       rppIndentBottom: FActiveState.ParaStyle.BottomPadding := TwipsToPoints(AParam);
       rppIndentLeft: FActiveState.ParaStyle.LeftPadding := TwipsToPoints(AParam);
@@ -2891,7 +2907,7 @@ end;
 procedure TKMemoRTFReader.ReadTextFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
   if FActiveState.Group in [rgNone, rgTextBox, rgFieldResult] then case TKMemoRTFTextProp(ACtrl) of
-    rptPlain: FActiveState.TextStyle.Assign(FMemo.TextStyle);
+    rptPlain: if FMemo <> nil then FActiveState.TextStyle.Assign(FMemo.TextStyle);
     rptFontIndex: ApplyFont(FActiveState.TextStyle, AParam);
     rptBold:
     begin
@@ -3103,7 +3119,7 @@ begin
   end;
 end;
 
-procedure TKMemoRTFWriter.SaveToStream(AStream: TStream; ASelectedOnly: Boolean);
+procedure TKMemoRTFWriter.SaveToStream(AStream: TStream; ASelectedOnly: Boolean; AActiveBlocks: TKMemoBlocks);
 var
   ActiveBlocks, Blocks1, Blocks2, SavedBlocks1: TKMemoBlocks;
   LocalIndex: Integer;
@@ -3111,35 +3127,40 @@ begin
   try
     FStream := AStream;
     FSelectedOnly := ASelectedOnly;
-    if FSelectedOnly then
+    if AActiveBlocks <> nil then
+      ActiveBlocks := AActiveBlocks
+    else
+      ActiveBlocks := FMemo.Blocks;
+    if ActiveBlocks <> nil then
     begin
-      // find common parent blocks for the selection and use this instead of main blocks
-      ActiveBlocks := FMemo.Blocks;
-      Blocks1 := ActiveBlocks.IndexToBlocks(FMemo.SelStart, LocalIndex);
-      Blocks2 := ActiveBlocks.IndexToBlocks(FMemo.SelEnd, LocalIndex);
-      SavedBlocks1 := Blocks1;
-      while Blocks1 <> Blocks2 do
+      if FSelectedOnly then
       begin
-        Blocks1 := Blocks1.ParentBlocks;
-        if Blocks1 = nil then
+        // find common parent blocks for the selection and use this instead of main blocks
+        Blocks1 := ActiveBlocks.IndexToBlocks(ActiveBlocks.SelStart, LocalIndex);
+        Blocks2 := ActiveBlocks.IndexToBlocks(ActiveBlocks.SelEnd, LocalIndex);
+        SavedBlocks1 := Blocks1;
+        while Blocks1 <> Blocks2 do
         begin
-          Blocks2 := Blocks2.ParentBlocks;
-          if Blocks2 <> nil then
-            Blocks1 := SavedBlocks1;
+          Blocks1 := Blocks1.ParentBlocks;
+          if Blocks1 = nil then
+          begin
+            Blocks2 := Blocks2.ParentBlocks;
+            if Blocks2 <> nil then
+              Blocks1 := SavedBlocks1;
+          end;
         end;
+        ActiveBlocks := Blocks1;
       end;
-      ActiveBlocks := Blocks1;
-    end else
-      ActiveBlocks := FMemo.Blocks;
-    ActiveBlocks.ConcatEqualBlocks;
-    FCodePage := SystemCodepage;
-    WriteGroupBegin;
-    try
-      WriteHeader;
-      WriteBackground;
-      WriteBody(ActiveBlocks, False);
-    finally
-      WriteGroupEnd;
+      ActiveBlocks.ConcatEqualBlocks;
+      FCodePage := SystemCodepage;
+      WriteGroupBegin;
+      try
+        WriteHeader(ActiveBlocks);
+        WriteBackground;
+        WriteBody(ActiveBlocks, False);
+      finally
+        WriteGroupEnd;
+      end;
     end;
   except
     KFunctions.Error(sErrMemoSaveToRTF);
@@ -3354,12 +3375,15 @@ begin
   WriteString('}');
 end;
 
-procedure TKMemoRTFWriter.WriteHeader;
+procedure TKMemoRTFWriter.WriteHeader(ABlocks: TKMemoBlocks);
 begin
-  FFontTable.AddFont(FMemo.TextStyle.Font);
-  FillFontTable(FMemo.Blocks);
-  FillColorTable(FMemo.Blocks);
-  FListTable.AssignFromListTable(FMemo.ListTable, FFontTable);
+  if FMemo <> nil then
+  begin
+    FFontTable.AddFont(FMemo.TextStyle.Font);
+    FListTable.AssignFromListTable(FMemo.ListTable, FFontTable);
+  end;
+  FillFontTable(ABlocks);
+  FillColorTable(ABlocks);
   WriteCtrl('rtf1');
   WriteCtrl('ansi');
   WriteCtrlParam('ansicpg', FCodePage);

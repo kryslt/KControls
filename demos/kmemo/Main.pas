@@ -64,6 +64,7 @@ type
     procedure Test21;
     procedure Test22;
     procedure Test23;
+    procedure Test24;
   public
     { Public declarations }
   end;
@@ -147,7 +148,7 @@ end;
 
 procedure TMainForm.BUTestClick(Sender: TObject);
 begin
-  Test13;
+  Test24;
 end;
 
 procedure TMainForm.Test1;
@@ -462,7 +463,7 @@ begin
     KMemo1.Blocks.AddTextBlock('Hello');
     KMemo1.Blocks.AddTextBlock('Hello');
     KMemo1.Blocks.AddTextBlock(' Hell');
-    KMemo1.GetNearestWordIndexes(12, StartPos, EndPos);
+    KMemo1.GetNearestWordIndexes(12, False, StartPos, EndPos);
     KMemo1.Select(StartPos, EndPos - StartPos);
     KMemo1.SelectionTextStyle := TextStyle;
   finally
@@ -484,6 +485,31 @@ begin
     KMemo1.Select(KMemo1.SelectableLength, 0);
   finally
     Picture.Free;
+  end;
+end;
+
+procedure TMainForm.Test24;
+var
+  TBL: TKMemoTable;
+  TB: TKMemoTextBlock;
+  Blocks: TKMemoBlocks;
+  Stream: TMemoryStream;
+begin
+  Test13; //create a table
+  TBL := KMemo1.Blocks[KMemo1.Blocks.Count - 1] as TKMemoTable;
+  Blocks := TBL.Cells[0, 0].Blocks;
+  TB := Blocks.AddTextBlock('Table text 1 Bold');
+  TB.TextStyle.Font.Style := [fsBold];
+  Stream := TMemoryStream.Create;
+  try
+    Blocks.SaveToRTFStream(Stream);
+    //Stream.SaveToFile('testblocks.rtf');
+    Blocks := TBL.Cells[0, 1].Blocks;
+    Stream.Seek(0, soFromBeginning);
+    Blocks.Clear;
+    Blocks.LoadFromRTFStream(Stream);
+  finally
+    Stream.Free;
   end;
 end;
 

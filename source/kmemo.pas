@@ -629,6 +629,7 @@ type
     function GetDefaultParaStyle: TKMemoParaStyle;
     function GetLinePosition: TKMemoLinePosition;
     function GetListTable: TKMemoListTable;
+    function GetMemo: TKCustomMemo;
     function GetMaxWordLength: Integer;
     function GetPaintSelection: Boolean;
     function GetPrinting: Boolean;
@@ -1192,6 +1193,7 @@ type
     procedure SetMemoNotifier(const Value: IKMemoNotifier);
     function GetFirstBlock: TKMemoBlock;
     function GetLastBlock: TKMemoBlock;
+    function GetParentMemo: TKCustomMemo;
   protected
     FLines: TKMemoLines;
     FRelPos: TKMemoSparseList;
@@ -1286,6 +1288,7 @@ type
     function LineEndIndexByIndex(AIndex: Integer; AAdjust, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function LineStartIndexByIndex(AIndex: Integer; AAdjust: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     procedure ListChanged(AList: TKMemoList; ALevel: TKMemoListLevel); virtual;
+    procedure LoadFromRTFStream(AStream: TStream; AtIndex: Integer = -1); virtual;
     procedure MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer); virtual;
     function MouseAction(AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; virtual;
     procedure NotifyDefaultParaChange; virtual;
@@ -1299,6 +1302,7 @@ type
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function PointToIndexOnLine(ACanvas: TCanvas; ALineIndex: Integer; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
+    procedure SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean = False); virtual;
     procedure SetExtent(AWidth, AHeight: Integer); virtual;
     procedure UpdateAttributes; virtual;
     property BoundsRect: TRect read GetBoundsRect;
@@ -1328,6 +1332,7 @@ type
     property MemoNotifier: IKMemoNotifier read FMemoNotifier write SetMemoNotifier;
     property Parent: TKMemoBlock read FParent write FParent;
     property ParentBlocks: TKMemoBlocks read GetParentBlocks;
+    property ParentMemo: TKCustomMemo read GetParentMemo;
     property RealSelEnd: Integer read GetRealSelEnd;
     property RealSelStart: Integer read GetRealSelStart;
     property SelectableLength: Integer read FSelectableLength;
@@ -1693,6 +1698,8 @@ type
     { IKMemoNotifier implementation. }
     function GetListTable: TKMemoListTable;
     { IKMemoNotifier implementation. }
+    function GetMemo: TKCustomMemo;
+    { IKMemoNotifier implementation. }
     function GetMaxWordLength: Integer;
     { Return nearest paragraph. }
     function GetNearestParagraph: TKMemoParagraph; virtual;
@@ -1891,7 +1898,7 @@ type
     { Load contents from a RTF file. }
     procedure LoadFromRTF(const AFileName: TKString); virtual;
     { Load contents from a RTF stream. }
-    procedure LoadFromRTFStream(AStream: TStream; AtIndex: Integer); virtual;
+    procedure LoadFromRTFStream(AStream: TStream; AtIndex: Integer = -1); virtual;
     { Load contents from a plain text file. }
     procedure LoadFromTXT(const AFileName: TKString); virtual;
     { Moves the caret nearest to current mouse position. }
@@ -4771,6 +4778,11 @@ end;
 function TKCustomMemo.GetMaxWordLength: Integer;
 begin
   Result := FMaxWordLength;
+end;
+
+function TKCustomMemo.GetMemo: TKCustomMemo;
+begin
+  Result := Self;
 end;
 
 function TKCustomMemo.GetReadOnly: Boolean;
@@ -10494,6 +10506,14 @@ begin
    Result := nil;
 end;
 
+function TKMemoBlocks.GetParentMemo: TKCustomMemo;
+begin
+  if FMemoNotifier <> nil then
+    Result := FMemoNotifier.GetMemo
+  else
+    Result := nil;
+end;
+
 function TKMemoBlocks.GetRealSelEnd: Integer;
 begin
   if FSelStart <= FSelEnd then
@@ -11238,6 +11258,18 @@ begin
     finally
       UnlockUpdate;
     end;
+  end;
+end;
+
+procedure TKMemoBlocks.LoadFromRTFStream(AStream: TStream; AtIndex: Integer);
+var
+  Reader: TKMemoRTFReader;
+begin
+  Reader := TKMemoRTFReader.Create(ParentMemo);
+  try
+    Reader.LoadFromStream(AStream, AtIndex, Self);
+  finally
+    Reader.Free;
   end;
 end;
 
@@ -12106,6 +12138,18 @@ begin
           break;
       end;
     end;
+  end;
+end;
+
+procedure TKMemoBlocks.SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean);
+var
+  Writer: TKMemoRTFWriter;
+begin
+  Writer := TKMemoRTFWriter.Create(ParentMemo);
+  try
+    Writer.SaveToStream(AStream, ASelectedOnly, Self);
+  finally
+    Writer.Free;
   end;
 end;
 
