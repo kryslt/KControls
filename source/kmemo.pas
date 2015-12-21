@@ -8085,7 +8085,7 @@ begin
   Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FWordTopPadding + FBaseLine - FCalcBaseLine;
   CroppedImage;
   R := FScaledRect;
-  OffsetRect(R, X, Y);
+  KFunctions.OffsetRect(R, X, Y);
   if PaintSelection and (SelLength > 0) then
   begin
     GetSelColors(Color, BkGnd);

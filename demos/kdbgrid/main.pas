@@ -141,16 +141,9 @@ begin
   {$IFDEF TK_TEST}
   // this is here just to test the grid with my local db :-)
     if EDTable.Text = '' then
-      EDTable.Text := 'kdbgrid';
+      EDTable.Text := 'images';
     if EDConnectionString.Text = '' then
-    begin
-   {$IFDEF FPC}
-    EDConnectionString.Text := 'Localhost-MySQL-tkweb';
-   {$ELSE}
-    EDConnectionString.Text :=
-      'DRIVER={MySQL ODBC 5.3 ANSI Driver}; SERVER=localhost; PORT=3306; DATABASE=tkweb; UID=root; PASSWORD=root;OPTION=3;';
-   {$ENDIF}
-    end;
+      EDConnectionString.Text := 'Localhost-MySQL-tkweb'; //'DRIVER={MySQL ODBC 5.3 ANSI Driver}; SERVER=localhost; PORT=3306; DATABASE=tkweb; UID=root; PASSWORD=root;OPTION=3;';
   {$ENDIF}
   {$IFDEF FPC}
     if CN.DatabaseName <> EDConnectionString.Text then
@@ -261,6 +254,8 @@ begin
   begin
     Cell[ACol, ARow].ApplyDrawProperties;
     CellPainter.GraphicHPadding := 3;
+    if ARow = 3 then
+      CellPainter.Canvas.Font.Color := clBlue;
     CellPainter.DefaultDraw;
   end;
 end;
