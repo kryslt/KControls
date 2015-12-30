@@ -337,6 +337,8 @@ type
     { Destroys the instance along with all allocated column, row and cell data,
       destroys the data link. }
     destructor Destroy; override;
+    { Forces the data set to append new record at the end. }
+    function AppendRow: TKGridRow;
     { Notifies the grid that a cell has been modified. }
     procedure BeforeCellUpdate(ACol, ARow: Integer); dynamic;
     { Does nothing. Clearing entire column is not supported. }
@@ -1092,6 +1094,23 @@ begin
   FDataLink.Free;
 end;
 
+function TKCustomDBGrid.AppendRow: TKGridRow;
+var
+  RecNo: Integer;
+begin
+  Result := nil;
+  if Assigned(FDataLink.DataSet) then
+  begin
+    FDataLink.DataSet.Last; // read all
+    RecNo := FDataLink.DataSet.RecordCount;
+    FDataLink.BufferCount := RecNo + 1;
+    DataChanged;
+    FDataLink.DataSet.Append;
+    ClampInView(0, RowCount - 1);
+    Result := TKGridRow(FRows[RowCount - 1]);
+  end;
+end;
+
 function TKCustomDBGrid.BeginRowDrag(var Origin: Integer;
   const MousePt: TPoint): Boolean;
 begin
@@ -1175,7 +1194,7 @@ begin
         // on each dataset manipulation turn editing off
         EditorMode := False;
         // here memory only grows. I don't know if it is possible to make this more memory effective
-        if LastVisibleRow + FDataBufferGrow > FDataLink.BufferCount then
+        if not FDataLink.EOF and (LastVisibleRow + FDataBufferGrow > FDataLink.BufferCount) then
           FDataLink.BufferCount := FDataLink.BufferCount + FDataBufferGrow;
         RowCount := FixedRows + FDataLink.RecordCount;
         LastRow := Min(LastVisibleRow + 1, RowCount - 1);
@@ -1562,13 +1581,22 @@ begin
 end;
 
 function TKCustomDBGrid.InsertRow(At: Integer): TKGridRow;
+var
+  RecNo: Integer;
 begin
   Result := nil;
-  if Assigned(FDataLink.DataSet) and RowValid(At) then
+  if Assigned(FDataLink.DataSet) then
   begin
-    InternalSetActiveRecord(At - FixedRows);
-    FDataLink.DataSet.Insert;
-    Result := TKGridRow(FRows[At]);
+    RecNo := At - FixedRows;
+    FDataLink.BufferCount := Max(FDataLink.BufferCount, RecNo + 1);
+    DataChanged;
+    InternalSetActiveRecord(RecNo);
+    if RowValid(At) then
+    begin
+      ClampInView(0, At);
+      FDataLink.DataSet.Insert;
+      Result := TKGridRow(FRows[At]);
+    end;
   end;
 end;
 

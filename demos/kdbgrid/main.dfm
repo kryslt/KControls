@@ -97,8 +97,8 @@ object MainForm: TMainForm
     TabOrder = 5
   end
   object BUPrint: TButton
-    Left = 536
-    Top = 73
+    Left = 539
+    Top = 62
     Width = 99
     Height = 25
     Action = ACPrint
@@ -216,6 +216,14 @@ object MainForm: TMainForm
       21
       21)
   end
+  object BUAppend: TButton
+    Left = 432
+    Top = 62
+    Width = 89
+    Height = 25
+    Action = ACAppend
+    TabOrder = 9
+  end
   object ALMain: TActionList
     Left = 440
     Top = 56
@@ -233,6 +241,11 @@ object MainForm: TMainForm
       Caption = 'Print...'
       OnExecute = ACPrintExecute
       OnUpdate = ACPrintUpdate
+    end
+    object ACAppend: TAction
+      Caption = 'Append Row'
+      OnExecute = ACAppendExecute
+      OnUpdate = ACAppendUpdate
     end
   end
   object DSMain: TDataSource

@@ -38,6 +38,8 @@ type
     BUAutoSize: TButton;
     DBGrid: TKDBGrid;
     ALMain: TActionList;
+    BUAppend: TButton;
+    ACAppend: TAction;
     procedure DBGridDrawCell(Sender: TObject; ACol, ARow: Integer; R: TRect;
       State: TKGridDrawState);
     procedure FormCreate(Sender: TObject);
@@ -53,6 +55,8 @@ type
     procedure ACPrintExecute(Sender: TObject);
     procedure ACPrintUpdate(Sender: TObject);
     procedure BUAutoSizeClick(Sender: TObject);
+    procedure ACAppendExecute(Sender: TObject);
+    procedure ACAppendUpdate(Sender: TObject);
   private
     { Private declarations }
     procedure DoTableOpen;
@@ -118,6 +122,19 @@ begin
 end;
 
 procedure TMainForm.ACCloseUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := IsTableOpen;
+end;
+
+procedure TMainForm.ACAppendExecute(Sender: TObject);
+begin
+  DBGrid.AppendRow;
+  // this inserts before last row:
+//  DBGrid.DataSource.DataSet.Last;
+//  DBGrid.InsertRow(DBGrid.DataSource.DataSet.RecordCount + DBgrid.FixedRows - 1);
+end;
+
+procedure TMainForm.ACAppendUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := IsTableOpen;
 end;
