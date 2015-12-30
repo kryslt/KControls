@@ -57,6 +57,7 @@ type
     procedure BUAutoSizeClick(Sender: TObject);
     procedure ACAppendExecute(Sender: TObject);
     procedure ACAppendUpdate(Sender: TObject);
+    procedure DBNavBeforeAction(Sender: TObject; Button: TNavigateBtn);
   private
     { Private declarations }
     procedure DoTableOpen;
@@ -246,6 +247,11 @@ begin
   // (if you delete this event the same is used in TKDBGridCell)
   DBGrid.DefaultEditorCreate(ACol, ARow, AEditor);
   // use default handling for other inplace editor events
+end;
+
+procedure TMainForm.DBNavBeforeAction(Sender: TObject; Button: TNavigateBtn);
+begin
+  DBGrid.EditorMode := False;
 end;
 
 procedure TMainForm.DoTableClose;

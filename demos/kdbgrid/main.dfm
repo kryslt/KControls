@@ -95,6 +95,7 @@ object MainForm: TMainForm
     Height = 25
     DataSource = DSMain
     TabOrder = 5
+    BeforeAction = DBNavBeforeAction
   end
   object BUPrint: TButton
     Left = 539
@@ -121,6 +122,7 @@ object MainForm: TMainForm
     Align = alBottom
     Anchors = [akLeft, akTop, akRight, akBottom]
     DBOptions = [dboAutoMoveRecord, dboAutoSizeBooleanCells, dboDontClearFixedCells, dboImageHint, dboIndexFixedCol, dboIndicateActiveRecord]
+    ColCount = 6
     Columns = <
       item
         Font.Charset = DEFAULT_CHARSET
@@ -130,6 +132,20 @@ object MainForm: TMainForm
         Font.Style = []
         HorzAlign = halCenter
         Title = 'Index'
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        FieldName = 'id'
+        Title = 'ID'
         TitleFont.Charset = DEFAULT_CHARSET
         TitleFont.Color = clWindowText
         TitleFont.Height = -11
@@ -207,6 +223,7 @@ object MainForm: TMainForm
     OnDrawCell = DBGridDrawCell
     OnEditorCreate = DBGridEditorCreate
     ColWidths = (
+      64
       64
       64
       64
