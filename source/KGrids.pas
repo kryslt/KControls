@@ -1158,6 +1158,8 @@ const
   cGF_SelCellsMerged              = $00000080;
   { This internal flag is set if enter key has been pressed and handled by the grid. }
   cGF_EnterPressed                = $00000100;
+  { This internal flag is set if esc key has been pressed and handled by the grid. }
+  cGF_EscPressed                  = $00000200;
 
 type
   TKCustomGrid = class;
@@ -1832,6 +1834,8 @@ type
     { Low level method. Paints a standard focus rectangle around the focused
       cell. }
     procedure DrawCellFocus(const ARect: TRect; SkipTest: Boolean = False); virtual;
+    { High level method. Paints default cell background. }
+    procedure DrawDefaultCellBackground;
     { High level method. Paints an empty cell, i.e. only fills the cell background. }
     procedure DrawEmptyCell; virtual;
     { High level method. Paints a non themed fixed cell. }
@@ -5451,21 +5455,7 @@ end;
 
 procedure TKGridCellPainter.DefaultDraw;
 begin
-  if gdFixed in FState then
-  begin
-    if (FRow < FGrid.FixedRows) and (goHeader in FGrid.Options) then
-      DrawHeaderCellBackground(FCellRect)
-    else
-      DrawFixedCellBackground(FCellRect);
-  end
-  else if gdSelected in FState then
-  begin
-    if FGrid.Options * [goRowSelect, goRangeSelect] <> [] then
-      DrawSelectedCellBackground(FBlockRect, @FCellRect)
-    else
-      DrawSelectedCellBackground(FCellRect)
-  end else
-    DrawNormalCellBackground(FCellRect);
+  DrawDefaultCellBackground;
   DrawCellCommon;
 end;
 
@@ -5755,6 +5745,25 @@ begin
   finally
     BM.Free;
   end;
+end;
+
+procedure TKGridCellPainter.DrawDefaultCellBackground;
+begin
+  if gdFixed in FState then
+  begin
+    if (FRow < FGrid.FixedRows) and (goHeader in FGrid.Options) then
+      DrawHeaderCellBackground(FCellRect)
+    else
+      DrawFixedCellBackground(FCellRect);
+  end
+  else if gdSelected in FState then
+  begin
+    if FGrid.Options * [goRowSelect, goRangeSelect] <> [] then
+      DrawSelectedCellBackground(FBlockRect, @FCellRect)
+    else
+      DrawSelectedCellBackground(FCellRect)
+  end else
+    DrawNormalCellBackground(FCellRect);
 end;
 
 procedure TKGridCellPainter.DrawHeaderCellBackground(const ARect: TRect);
@@ -9590,12 +9599,9 @@ begin
       end;
       VK_ESCAPE:
       begin
+        FlagSet(cGF_EscPressed);
         CancelMode;
-        if EditorMode then
-        begin
-          EditorDataFromGrid(FEditor, FEditorCell.Col, FEditorCell.Row);
-          EditorMode := False;
-        end;
+        EditorMode := False;
       end;
       VK_UP: InternalMove(ACol, ARow, mcUp, False, Expanding);
       VK_DOWN: InternalMove(ACol, ARow, mcDown, False, Expanding);
@@ -9664,7 +9670,7 @@ begin
   else if ATopRow <> FTopLeft.Row then
     TopRow := MinMax(ATopRow, FFixedRows, FRowCount - 1);
   // whenever set, this flag is only valid for the nearest KeyDown call
-  FlagClear(cGF_CaretToLeft or cGF_EnterPressed);
+  FlagClear(cGF_CaretToLeft or cGF_EnterPressed or cGF_EscPressed);
 end;
 
 procedure TKCustomGrid.Loaded;
@@ -12960,7 +12966,7 @@ procedure TKCustomGrid.UpdateEditor(Show: Boolean);
       Form := GetParentForm(Self);
       if Assigned(Form) and (csDestroying in Form.ComponentState) then
         Form := nil;
-      if FEditor.HandleAllocated then
+      if FEditor.HandleAllocated and not Flag(cGF_EscPressed) then
         EditorDataToGrid(FEditor, FEditorCell.Col, FEditorCell.Row);
       TabStop := True;
       if Assigned(Form) and (Form.ActiveControl = FEditor) and CanFocus then
