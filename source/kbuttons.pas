@@ -53,7 +53,7 @@ const
   cGlyphDown = 3;
 
 type
-  TKButtonState = (cbsPressed, cbsMouseCapture, cbsFocused, cbsLostFocus, cbsHot);
+  TKButtonState = (cbsPressed, cbsWasPressed, cbsMouseCapture, cbsFocused, cbsLostFocus, cbsHot, cbsCheck);
 
   TKButtonStates = set of TKButtonState;
 
@@ -75,7 +75,6 @@ type
     FFocusRect: Boolean;
     FHAlign: TKHAlign;
     FModalResult: TModalResult;
-    FStates: TKButtonStates;
     FVAlign: TKVAlign;
     FWordWrap: Boolean;
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
@@ -87,17 +86,22 @@ type
     procedure CMMouseEnter(var Msg: TLMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Msg: TLMessage); message CM_MOUSELEAVE;
     procedure CMTextChanged(var Msg: TLMessage); message CM_TEXTCHANGED;
+    function GetDown: Boolean;
+    function GetIsCheck: Boolean;
     procedure SetCancel(AValue: Boolean);
     procedure SetDefault(AValue: Boolean);
 {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
     procedure SetDisabledKind(const Value: TsDisabledKind);
 {$ENDIF}
+    procedure SetDown(const Value: Boolean);
     procedure SetFocusRect(const Value: Boolean);
     procedure SetHAlign(const Value: TKHAlign);
+    procedure SetIsCheck(const Value: Boolean);
     procedure SetModalResult(AValue: TModalResult);
     procedure SetVAlign(const Value: TKVAlign);
     procedure SetWordWrap(const Value: Boolean);
   protected
+    FStates: TKButtonStates;
 {$IFDEF USE_ALPHASKINS}
     procedure DrawSkinned(ACanvas: TCanvas; const ARect: TRect; AInteriorOffset: Integer); virtual;
     function PrepareSkinCache(ARect: TRect; AInteriorOffset: Integer): Boolean;
@@ -138,9 +142,11 @@ type
     property DragCursor;
     property DragKind;
     property DragMode;
+    property Down: Boolean read GetDown write SetDown default False;
     property FocusRect: Boolean read FFocusRect write SetFocusRect default True;
     property Enabled;
     property Font;
+    property IsCheck: Boolean read GetIsCheck write SetIsCheck default False;
     property ParentDoubleBuffered;
     property ParentFont;
     property ParentShowHint;
@@ -491,6 +497,16 @@ begin
   end;
 end;
 
+function TKButtonControl.GetDown: Boolean;
+begin
+  Result := cbsPressed in FStates;
+end;
+
+function TKButtonControl.GetIsCheck: Boolean;
+begin
+  Result := cbsCheck in FStates;
+end;
+
 function TKButtonControl.GetSkinned: Boolean;
 begin
 {$IFDEF USE_ALPHASKINS}
@@ -533,6 +549,8 @@ begin
   begin
     SetFocus;
     Invalidate;
+    if cbsPressed in FStates then
+      Include(FStates, cbsWasPressed);
     FStates := FStates + [cbsMouseCapture, cbsPressed];
 {$IFDEF USE_ALPHASKINS}
     if FCommonData.Skinned  then
@@ -551,7 +569,7 @@ begin
     P := Point(X, Y);
     if PtInRect(ClientRect, P) then
     begin
-      if not (cbsPressed in FStates) then
+      if FStates * [cbsPressed, cbsCheck] = [] then
       begin
         Include(FStates, cbsPressed);
         Invalidate;
@@ -570,9 +588,11 @@ procedure TKButtonControl.MouseUp(Button: TMouseButton; Shift: TShiftState;
 begin
   if cbsPressed in FStates then
   begin
-    Exclude(FStates, cbsPressed);
+    if not (cbsCheck in FStates) or (cbsWasPressed in FStates) then
+      Exclude(FStates, cbsPressed);
     Invalidate;
   end;
+  Exclude(FStates, cbsWasPressed);
   Exclude(FStates, cbsMouseCapture);
 {$IFDEF USE_ALPHASKINS}
   if FCommonData.Skinned then
@@ -662,6 +682,21 @@ begin
 {$ENDIF}
 end;
 
+procedure TKButtonControl.SetDown(const Value: Boolean);
+begin
+  if IsCheck then
+  begin
+    if Value <> Down then
+    begin
+      if Value then
+        Include(FStates, cbsPressed)
+      else
+        Exclude(FStates, cbsPressed);
+      Invalidate;
+    end;
+  end;
+end;
+
 procedure TKButtonControl.SetFocusRect(const Value: Boolean);
 begin
   if Value <> FFocusRect then
@@ -689,6 +724,14 @@ begin
     FHAlign := Value;
     Invalidate;
   end;
+end;
+
+procedure TKButtonControl.SetIsCheck(const Value: Boolean);
+begin
+  if Value then
+    Include(FStates, cbsCheck)
+  else
+    Exclude(FStates, cbsCheck);
 end;
 
 procedure TKButtonControl.SetModalResult(AValue: TModalResult);
