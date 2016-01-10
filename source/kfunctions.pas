@@ -739,6 +739,9 @@ procedure OffsetPoint(var APoint: TPoint; const AOffset: TPoint); overload;
 { Examines if some part of Rect lies within Bounds. }
 function RectInRect(Bounds, Rect: TRect): Boolean;
 
+{ Examines if Rect lies fully within Bounds. }
+function RectInRectFully(Bounds, Rect: TRect): Boolean;
+
 { Add AX and AY to ARect. }
 procedure OffsetRect(var ARect: TRect; AX, AY: Integer); overload;
 
@@ -2320,6 +2323,13 @@ begin
   Result :=
     (Rect.Left < Bounds.Right) and (Rect.Right >= Bounds.Left) and
     (Rect.Top < Bounds.Bottom) and (Rect.Bottom >= Bounds.Top);
+end;
+
+function RectInRectFully(Bounds, Rect: TRect): Boolean;
+begin
+  Result :=
+    (Rect.Left >= Bounds.Left) and (Rect.Right <= Bounds.Right) and
+    (Rect.Top >= Bounds.Top) and (Rect.Bottom <= Bounds.Bottom);
 end;
 
 procedure OffsetRect(var ARect: TRect; AX, AY: Integer);
