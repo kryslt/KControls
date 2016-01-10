@@ -5,7 +5,7 @@
 
   This unit implements all dialogs supplied with KControls Development Suite.<BR><BR>
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright Å  Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
