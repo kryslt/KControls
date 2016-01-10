@@ -3,7 +3,7 @@
   @created(15 Oct 2006)
   @lastmod(6 Jul 2014)
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright Å  Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   This unit provides an enhanced replacement for components contained
   in Grids.pas. Major features:
