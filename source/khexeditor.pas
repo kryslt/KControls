@@ -1281,6 +1281,10 @@ function BinToDigit(Value: Byte): AnsiChar;
 function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexEditorSelection;
   AInsertSpaces: Boolean = False): AnsiString; overload;
 
+{ Convertes binary data into hexadecimal digit string. Entire data used. }
+function BinaryToDigits(Buffer: PBytes; ASize: Integer;
+  AInsertSpaces: Boolean = False): AnsiString; overload;
+
 { Convertes binary data into hexadecimal digit string. Uses AnsiString as source data. }
 function BinaryToDigits(const Source: AnsiString;
   AInsertSpaces: Boolean = False): AnsiString; overload;
@@ -1457,6 +1461,11 @@ begin
       Inc(J);
     end;
   end;
+end;
+
+function BinaryToDigits(Buffer: PBytes; ASize: Integer; AInsertSpaces: Boolean = False): AnsiString;
+begin
+  Result := BinaryToDigits(Buffer, MakeSelection(0, 0), MakeSelection(ASize - 1, cDigitCount), AInsertSpaces);
 end;
 
 function BinaryToDigits(const Source: AnsiString; AInsertSpaces: Boolean): AnsiString;
