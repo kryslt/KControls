@@ -350,7 +350,7 @@ type
     procedure ShowControl(AControl: TControl); override;
     procedure UpdateAllDesignerFlags;
     procedure UpdateDesignerFlags(APageIndex: integer);
-    procedure UpdateTabPanel; virtual;
+    procedure UpdateTabPanel(AScrollToPageIndex: Integer = -1); virtual;
     procedure UpdateTabPanelPosition; virtual;
   public
     constructor Create(AOwner: TComponent); override;
@@ -1562,7 +1562,7 @@ begin
     end;
     Change;
     UpdateAllDesignerFlags;
-    UpdateTabPanel;
+    UpdateTabPanel(FActivePageIndex);
   end;
 end;
 
@@ -2030,10 +2030,14 @@ begin
     CurPage.ControlStyle := CurPage.ControlStyle - [csNoDesignVisible];
 end;
 
-procedure TKCustomPageControl.UpdateTabPanel;
+procedure TKCustomPageControl.UpdateTabPanel(AScrollToPageIndex: Integer);
 begin
   if (FTabPanel <> nil) and not (csDestroying in ComponentState) then
+  begin
     FTabPanel.UpdateTabPanel;
+    if AScrollToPageIndex >= 0 then
+      FTabPanel.FirstVisibleTab := AScrollToPageIndex; // will be internally limited to show up correctly
+  end;
 end;
 
 procedure TKCustomPageControl.UpdateTabPanelPosition;
