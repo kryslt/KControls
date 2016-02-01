@@ -1267,6 +1267,7 @@ begin
       FMaxFirstVisibleTab := 0;
     end else
       Tmp := Width - 2 * ScrollButtonExtent;
+    FMaxFirstVisibleTab := MinMax(FMaxFirstVisibleTab, 0, FPageControl.PageCount - 1);
     FFirstVisibleTab := MinMax(FFirstVisibleTab, 0, FMaxFirstVisibleTab);
     for I := 0 to FPageControl.PageCount - 1 do
       if GetTabInfo(ACanvas, I, TI) then
