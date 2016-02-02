@@ -789,8 +789,6 @@ begin
         end
         else if PtInRect(Info.TabRect, MousePt) then
         begin
-          FPageControl.DoTabClick(I);
-          FPageControl.ActivePageIndex := I;
           if toDrag in FOptions.Options then
           begin
             FDraggedTab := I;
@@ -798,6 +796,8 @@ begin
             if CanFocus then
               SetFocus;
           end;
+          FPageControl.DoTabClick(I);
+          FPageControl.ActivePageIndex := I;
           Break;
         end;
       end;
