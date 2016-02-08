@@ -195,6 +195,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function Empty: Boolean; virtual;
+    procedure Validate; virtual;
     property LastInputFormat: TKNumberEditDisplayedFormat read FLastInputFormat write FLastInputFormat;
     property MaxAsInt: Int64 read GetMaxAsInt write SetMaxAsInt;
     property MinAsInt: Int64 read GetMinAsInt write SetMinAsInt;
@@ -1591,6 +1592,27 @@ begin
   end;
 end;
 
+procedure TKCustomNumberEdit.Validate;
+var
+  Fmt: TKNumberEditDisplayedFormat;
+  AValue: Extended;
+begin
+  if Empty and (neoKeepEmpty in FOptions) then
+    Exit;
+  Fmt := nedfAsInput;
+  AValue := GetFormat(Text, Fmt);
+  if (Fmt = nedfAsInput) and (neoClampToMinMax in FOptions) then
+    AValue := MinMax(AValue, FMin, FMax)
+  else
+    FLastInputFormat := Fmt;
+  SetValue(AValue);
+  if (Fmt = nedfAsInput) and (ComponentState * [csLoading, csDesigning] = []) and HasParent then
+  begin
+    if neoWarning in FOptions then Font.Color := FWarningColor;
+    if Assigned(FLog) then FLog.Log(lgInputError, sEDFormatNotAccepted);
+  end;
+end;
+
 procedure TKCustomNumberEdit.KMNEUpdateUpDown(var Msg: TLMessage);
 begin
   UpdateUpDown(GetValue);
@@ -1626,25 +1648,9 @@ begin
 end;
 
 procedure TKCustomNumberEdit.WMKillFocus(var Msg: TLMKillFocus);
-var
-  Fmt: TKNumberEditDisplayedFormat;
-  AValue: Extended;
 begin
   inherited;
-  if Empty and (neoKeepEmpty in FOptions) then
-    Exit;
-  Fmt := nedfAsInput;
-  AValue := GetFormat(Text, Fmt);
-  if (Fmt = nedfAsInput) and (neoClampToMinMax in FOptions) then
-    AValue := MinMax(AValue, FMin, FMax)
-  else
-    FLastInputFormat := Fmt;
-  SetValue(AValue);
-  if (Fmt = nedfAsInput) and (ComponentState * [csLoading, csDesigning] = []) and HasParent then
-  begin
-    if neoWarning in FOptions then Font.Color := FWarningColor;
-    if Assigned(FLog) then FLog.Log(lgInputError, sEDFormatNotAccepted);
-  end;
+  Validate;
 end;
 
 procedure TKCustomNumberEdit.WMSetFocus(var Msg: TLMSetFocus);

@@ -9096,6 +9096,11 @@ begin
   until (ACol = BkCol) and (ARow = BkRow) or ((BaseCol <> BkBaseCol) or (BaseRow <> BkBaseRow)) and
     (not Expanding and SelectCell(BaseCol, BaseRow) or Expanding and SelectionExpand(BaseCol, BaseRow));
   Result := (ACol <> BkCol) or (ARow <> BkRow);
+  if not Result then
+  begin
+    FMemCol := ACol;
+    FMemRow := ARow;
+  end;
   ACol := BaseCol;
   ARow := BaseRow;
 end;
