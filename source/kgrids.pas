@@ -1,4 +1,4 @@
-  { @abstract(This unit contains the TKGrid component and all supporting classes)
+﻿  { @abstract(This unit contains the TKGrid component and all supporting classes)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(15 Oct 2006)
   @lastmod(6 Jul 2014)
@@ -2268,6 +2268,8 @@ type
     FHitCell: TKGridCoord;
     { Specifies the point where left mouse button has been pressed. }
     FHitPos: TPoint;
+    { Prevent infinite LateUpdate calls. }
+    FLateUpdating: Boolean;
     { Field for @link(TKCustomGrid.MaxCol) property. Descendants can modify it. }
     FMaxCol: Integer;
     { Field for @link(TKCustomGrid.MaxRow) property. Descendants can modify it. }
@@ -6175,6 +6177,7 @@ begin
   FHCI.VBegin := TKAlphaBitmap.CreateFromRes('KGRID_HCI_VBEGIN');
   FHCI.VCenter := TKAlphaBitmap.CreateFromRes('KGRID_HCI_VCENTER');
   FHCI.VEnd := TKAlphaBitmap.CreateFromRes('KGRID_HCI_VEND');
+  FLateUpdating := False;
   FMaxCol := cInvalidIndex;
   FMaxRow := cInvalidIndex;
   FMemCol := cInvalidIndex;
@@ -7578,8 +7581,10 @@ begin
           begin
             DefaultSetCaretToLeft(Key, Shift);
             if Msg.Msg = CN_KEYDOWN then
-              PostLateUpdate(Msg)
-            else
+            begin
+              if not FLateUpdating then
+                PostLateUpdate(Msg);
+            end else
               ClampInView(FEditorCell.Col, FEditorCell.Row);
             if (Key <> VK_TAB) or (goTabs in FOptions) then
             begin
@@ -9687,15 +9692,23 @@ end;
 procedure TKCustomGrid.LateUpdate(var Msg: TLMessage);
 begin
   inherited;
-  case Msg.Msg of
-    CN_KEYDOWN:
-    begin
-      KeyDown(TLMKey(Msg).CharCode, KeyDataToShiftState(TLMKey(Msg).KeyData));
-    end;
-    LM_SETFOCUS:
-    begin
-      InvalidateCurrentSelection;
-      SafeSetFocus;
+  if not FLateUpdating then
+  begin
+    FLateUpdating := True;
+    try
+      case Msg.Msg of
+        CN_KEYDOWN:
+        begin
+          KeyDown(TLMKey(Msg).CharCode, KeyDataToShiftState(TLMKey(Msg).KeyData));
+        end;
+        LM_SETFOCUS:
+        begin
+          InvalidateCurrentSelection;
+          SafeSetFocus;
+        end;
+      end;
+    finally
+      FLateUpdating := False;
     end;
   end;
 end;
@@ -13203,7 +13216,7 @@ end;
 procedure TKCustomGrid.WMSetFocus(var Msg: TLMSetFocus);
 begin
   // focus moves to the grid - post message
-  if not Flag(cGF_EditorUpdating) then
+  if not (FLateUpdating or Flag(cGF_EditorUpdating)) then
     PostLateUpdate(FillMessage(LM_SETFOCUS, 0, 0), True);
 end;
 

@@ -1765,8 +1765,10 @@ begin
   if HandleAllocated then
   begin
     if not IfNotExists or not MessageSearch(Msg.Msg) then
+    begin
       MessagePoke(Msg);
-    PostMessage(Handle, KM_LATEUPDATE, 0, 0);
+      PostMessage(Handle, KM_LATEUPDATE, 0, 0);
+    end;
   end;
 end;
 
