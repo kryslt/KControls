@@ -31,6 +31,8 @@ uses
   StdCtrls, ExtCtrls, KControls, KPrintPreview;
 
 type
+  TPrintEvent = procedure(PageSetup: TKPrintPageSetup) of object;
+
   { TKPrintSetupForm }
 
   TKPrintSetupForm = class(TForm)
@@ -79,6 +81,8 @@ type
     CBPrintTitle: TCheckBox;
     CBCollate: TCheckBox;
     PSDMain: TPrinterSetupDialog;
+    CBLineNumbers: TCheckBox;
+    CBWrapLines: TCheckBox;
     procedure BUConfigureClick(Sender: TObject);
     procedure CoBMarginUnitsChange(Sender: TObject);
     procedure RBAllClick(Sender: TObject);
@@ -98,6 +102,9 @@ type
     FPreviewCreated: Boolean;
     FSelAvail: Boolean;
     FUpdateLock: Boolean;
+    FOnPrintClick: TPrintEvent;
+    FOptionsVisible: TKPrintOptions;
+    FOptionsEnabled: TKPrintOptions;
     procedure SetPageSetup(const Value: TKPrintPageSetup);
     procedure SetPreviewForm(const Value: TKPrintPreviewForm);
   protected
@@ -109,6 +116,9 @@ type
     property PageSetup: TKPrintPageSetup read FPageSetup write SetPageSetup;
     property PreviewForm: TKPrintPreviewForm read FPreviewForm write SetPreviewForm;
     property SelAvail: Boolean read FSelAvail write FSelAvail;
+    property OnPrintClick: TPrintEvent read FOnPrintClick write FOnPrintClick;
+    property OptionsVisible: TKPrintOptions read FOptionsVisible write FOptionsVisible;
+    property OptionsEnabled: TKPrintOptions read FOptionsEnabled write FOptionsEnabled;
   end;
 
 implementation
@@ -128,6 +138,8 @@ begin
   FPrevSetup := TKPrintPageSetup.Create(nil);
   FPreviewForm := nil;
   FPreviewCreated := False;
+  FOptionsVisible := [poCollate..poUseColor];
+  FOptionsEnabled := FOptionsVisible;
 {$IFDEF FPC}
   PSDMain.Title := sPSPrinterSetup;
 {$ENDIF}
@@ -175,6 +187,14 @@ procedure TKPrintSetupForm.PageSetupToForm;
       Result := 'cm';
     end;
   end;
+
+  procedure SetupCheckBox(CB: TCheckBox; Option: TKPrintOption);
+  begin
+    CB.Checked := Option in FPageSetup.Options;
+    CB.Enabled := Option in FOptionsEnabled;
+    CB.Visible := Option in FOptionsVisible;
+  end;
+
 var
   S: string;
 begin
@@ -182,13 +202,16 @@ begin
   begin
     FUpdateLock := True;
     try
-      CBCollate.Checked := poCollate in FPageSetup.Options;
-      CBFitToPage.Checked := poFitToPage in FPageSetup.Options;
-      CBPageNumbers.Checked := poPageNumbers in FPageSetup.Options;
-      CBUseColor.Checked := poUseColor in FPageSetup.Options;
-      CBPaintSelection.Checked := poPaintSelection in FPageSetup.Options;
-      CBPrintTitle.Checked := poTitle in FPageSetup.Options;
-      CBMirrorMargins.Checked := poMirrorMargins in FPageSetup.Options;
+      SetupCheckBox(CBCollate, poCollate);
+      SetupCheckBox(CBFitToPage, poFitToPage);
+      SetupCheckBox(CBPageNumbers, poPageNumbers);
+      SetupCheckBox(CBUseColor, poUseColor);
+      SetupCheckBox(CBPaintSelection, poPaintSelection);
+      SetupCheckBox(CBPrintTitle, poTitle);
+      SetupCheckBox(CBLineNumbers, poLineNumbers);
+      SetupCheckBox(CBWrapLines, poWrapLines);
+      SetupCheckBox(CBMirrorMargins, poMirrorMargins);
+
       CoBPrinterName.Items.Assign(Printer.Printers);
       CoBPrinterName.ItemIndex := CoBPrinterName.Items.IndexOf(FPageSetup.PrinterName);
       if CoBPrinterName.ItemIndex < 0 then CoBPrinterName.ItemIndex := Printer.PrinterIndex;
@@ -234,6 +257,8 @@ begin
       if CBPaintSelection.Checked then Include(Options, poPaintSelection);
       if CBPrintTitle.Checked then Include(Options, poTitle);
       if CBMirrorMargins.Checked then Include(Options, poMirrorMargins);
+      if CBLineNumbers.Checked then Include(Options, poLineNumbers);
+      if CBWrapLines.Checked then Include(Options, poWrapLines);
       FPageSetup.PrinterName := CoBPrinterName.Text;
       FPageSetup.Options := Options;
       if RBSelectedOnly.Checked then FPageSetup.Range := prSelectedOnly
@@ -258,7 +283,10 @@ end;
 procedure TKPrintSetupForm.BUPrintClick(Sender: TObject);
 begin
   FormToPageSetup;
-  FPageSetup.PrintOut;
+  if Assigned(FOnPrintClick) then
+    FOnPrintClick(FPageSetup)
+  else
+    FPageSetup.PrintOut;
 end;
 
 procedure TKPrintSetupForm.BUConfigureClick(Sender: TObject);

@@ -4,7 +4,7 @@ object KPrintSetupForm: TKPrintSetupForm
   ActiveControl = CBFitToPage
   BorderStyle = bsDialog
   Caption = 'Page setup'
-  ClientHeight = 357
+  ClientHeight = 377
   ClientWidth = 464
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,6 +18,9 @@ object KPrintSetupForm: TKPrintSetupForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
+  DesignSize = (
+    464
+    377)
   PixelsPerInch = 96
   TextHeight = 13
   object GBFileToPrint: TGroupBox
@@ -40,7 +43,7 @@ object KPrintSetupForm: TKPrintSetupForm
     Left = 8
     Top = 109
     Width = 249
-    Height = 105
+    Height = 119
     Caption = 'Print options:'
     TabOrder = 1
     object Label1: TLabel
@@ -98,39 +101,61 @@ object KPrintSetupForm: TKPrintSetupForm
       OnClick = CBPageNumbersClick
     end
     object CBPrintTitle: TCheckBox
-      Left = 134
-      Top = 78
+      Left = 8
+      Top = 97
       Width = 61
       Height = 17
       Caption = 'Print tit&le'
       TabOrder = 5
       OnClick = CBPageNumbersClick
     end
+    object CBLineNumbers: TCheckBox
+      Left = 146
+      Top = 78
+      Width = 100
+      Height = 17
+      Caption = '&Line numbers'
+      TabOrder = 6
+      OnClick = CBPageNumbersClick
+    end
+    object CBWrapLines: TCheckBox
+      Left = 146
+      Top = 97
+      Width = 100
+      Height = 17
+      Caption = 'Wrap lines'
+      TabOrder = 7
+      OnClick = CBPageNumbersClick
+    end
   end
   object BUPrint: TButton
     Left = 89
-    Top = 325
+    Top = 345
     Width = 74
     Height = 25
+    Anchors = [akLeft, akBottom]
     Caption = '&Print'
     TabOrder = 4
     OnClick = BUPrintClick
+    ExplicitTop = 325
   end
   object BUCancel: TButton
     Left = 383
-    Top = 325
+    Top = 345
     Width = 74
     Height = 25
+    Anchors = [akLeft, akBottom]
     Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 5
+    ExplicitTop = 325
   end
   object GBMargins: TGroupBox
     Left = 264
     Top = 109
     Width = 193
-    Height = 211
+    Height = 228
     Caption = 'Margins:'
     TabOrder = 3
     object LBMarginUnits: TLabel
@@ -175,7 +200,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object LBBottom: TLabel
       Left = 62
-      Top = 140
+      Top = 147
       Width = 38
       Height = 13
       Caption = 'Bottom:'
@@ -212,7 +237,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object LBUnitsBottom: TLabel
       Left = 112
-      Top = 159
+      Top = 166
       Width = 7
       Height = 13
       Caption = 'A'
@@ -235,7 +260,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object CBMirrorMargins: TCheckBox
       Left = 8
-      Top = 181
+      Top = 198
       Width = 86
       Height = 17
       Caption = '&Mirror margins'
@@ -246,7 +271,7 @@ object KPrintSetupForm: TKPrintSetupForm
       Left = 14
       Top = 119
       Width = 48
-      Height = 20
+      Height = 21
       TabOrder = 1
       OnExit = EDTopExit
     end
@@ -268,7 +293,7 @@ object KPrintSetupForm: TKPrintSetupForm
     end
     object EDBottom: TEdit
       Left = 62
-      Top = 156
+      Top = 163
       Width = 48
       Height = 21
       TabOrder = 4
@@ -277,7 +302,7 @@ object KPrintSetupForm: TKPrintSetupForm
   end
   object GBPageSelection: TGroupBox
     Left = 8
-    Top = 215
+    Top = 232
     Width = 249
     Height = 105
     Caption = 'Page selection:'
@@ -365,22 +390,26 @@ object KPrintSetupForm: TKPrintSetupForm
   end
   object BUPreview: TButton
     Left = 8
-    Top = 325
+    Top = 345
     Width = 75
     Height = 25
+    Anchors = [akLeft, akBottom]
     Caption = 'Previe&w...'
     TabOrder = 6
     OnClick = BUPreviewClick
+    ExplicitTop = 325
   end
   object BUOk: TButton
     Left = 303
-    Top = 325
+    Top = 345
     Width = 74
     Height = 25
+    Anchors = [akLeft, akBottom]
     Caption = 'OK'
     Default = True
     ModalResult = 1
     TabOrder = 7
+    ExplicitTop = 325
   end
   object GBPrinter: TGroupBox
     Left = 8
