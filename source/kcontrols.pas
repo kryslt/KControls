@@ -62,7 +62,11 @@ type
     { Title will be printed to the top of each printed page. }
     poTitle,
     { Color page will be printed instead of B/W page. }
-    poUseColor
+    poUseColor,
+    { Print line numbers if applicable. }
+    poLineNumbers,
+    { Wrap long lines if applicable. }
+    poWrapLines
   );
 
   { Print options can be arbitrary combined. }
@@ -117,6 +121,7 @@ const
 
   { Default value for the @link(TKPrintPageSetup.Options) property. }
   cOptionsDef = [poFitToPage, poPageNumbers, poUseColor];
+  cOptionsAll = [poCollate..poWrapLines];
 
   { Default value for the @link(TKPrintPageSetup.Options) property. }
   cRangeDef = prAll;
