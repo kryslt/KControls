@@ -1,4 +1,4 @@
-{ @abstract(This unit contains all dialogs supplied with KControls.)
+﻿{ @abstract(This unit contains all dialogs supplied with KControls.)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(18 Sep 2009)
   @lastmod(6 Jul 2014)
@@ -79,9 +79,11 @@ type
   TKPrintSetupDialog = class(TComponent)
   private
     FControl: TKCustomControl;
-    FPrintSetupForm: TKPrintSetupForm;
     FPreviewDialog: TKPrintPreviewDialog;
     FSelAvail: Boolean;
+  protected
+    FPrintSetupForm: TKPrintSetupForm;
+    procedure SetupForm(AfterCreation: Boolean); virtual;
   public
     { Creates the instance. Assigns default values to properties. }
     constructor Create(AOwner: TComponent); override;
@@ -234,14 +236,23 @@ begin
   if Assigned(FControl) then
   begin
     if not Assigned(FPrintSetupForm) then
+    begin
       FPrintSetupForm := TKPrintSetupForm.Create(Self);
+      SetupForm(True);
+    end;
     FPrintSetupForm.PageSetup := FControl.PageSetup;
     if Assigned(FPreviewDialog) then
       FPrintSetupForm.PreviewForm := FPreviewDialog.PrintPreviewForm;
-    FPrintSetupForm.SelAvail := FSelAvail;
+    SetupForm(False);
     Result := FPrintSetupForm.ShowModal = mrOk;
   end else
     Result := False;
+end;
+
+procedure TKPrintSetupDialog.SetupForm(AfterCreation: Boolean);
+begin
+  if not AfterCreation then
+    FPrintSetupForm.SelAvail := FSelAvail;
 end;
 
 { TKBrowseFolderDialog }
