@@ -1654,10 +1654,10 @@ end;
 procedure TKMemoRTFReader.FlushColor;
 begin
   if FActiveColor <> nil then
-  begin
-    FColorTable.Add(FActiveColor);
-    FActiveColor := nil;
-  end;
+    FColorTable.Add(FActiveColor)
+  else
+    FColorTable.Add(ActiveColor);
+  FActiveColor := nil;
 end;
 
 procedure TKMemoRTFReader.FlushContainer;
@@ -2406,7 +2406,7 @@ begin
       rppAlignCenter: FActiveState.ParaStyle.HAlign := halCenter;
       rppAlignRight: FActiveState.ParaStyle.HAlign := halRight;
       rppAlignJustify: FActiveState.ParaStyle.HAlign := halJustify;
-      rppBackColor: FActiveState.ParaStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+      rppBackColor: FActiveState.ParaStyle.Brush.Color := FColorTable.GetColor(AParam);
       rppNoWordWrap: FActiveState.ParaStyle.WordWrap := False;
       rppBorderBottom: FActiveParaBorder := alBottom;
       rppBorderLeft: FActiveParaBorder := alLeft;
@@ -2439,7 +2439,7 @@ begin
       rppBorderColor:
       begin
         if FActiveParaBorder <> alNone then
-          FActiveState.ParaStyle.BorderColor := FColorTable.GetColor(AParam - 1)
+          FActiveState.ParaStyle.BorderColor := FColorTable.GetColor(AParam)
         else if FActiveTableBorder <> alNone then
           ReadTableFormatting(Integer(rptbBorderColor), AText, AParam)
       end;
@@ -2876,8 +2876,8 @@ begin
         alTop: FActiveTableCell.RequiredBorderWidths.Top := 0;
       end;
     end;
-    rptbBorderColor: FActiveTableCell.BlockStyle.BorderColor := FColorTable.GetColor(AParam - 1); // no support for different colors for different borders
-    rptbBackColor: FActiveTableCell.BlockStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+    rptbBorderColor: FActiveTableCell.BlockStyle.BorderColor := FColorTable.GetColor(AParam); // no support for different colors for different borders
+    rptbBackColor: FActiveTableCell.BlockStyle.Brush.Color := FColorTable.GetColor(AParam);
     rptbHorzMerge: FActiveTableCell.ColSpan := 0; // indicate for later fixup
     rptbVertMerge: FActiveTableCell.RowSpan := 0; // indicate for later fixup
     rptbCellPaddBottom: FActiveTableCell.BlockStyle.BottomPadding := TwipsToPoints(AParam);
@@ -2940,8 +2940,8 @@ begin
     rptCaps: FActiveState.TextStyle.Capitals := tcaNormal;
     rptSmallCaps: FActiveState.TextStyle.Capitals := tcaSmall;
     rptFontSize: FActiveState.TextStyle.Font.Size := DivUp(AParam, 2);
-    rptForeColor: FActiveState.TextStyle.Font.Color := FColorTable.GetColor(AParam - 1);
-    rptBackColor: FActiveState.TextStyle.Brush.Color := FColorTable.GetColor(AParam - 1);
+    rptForeColor: FActiveState.TextStyle.Font.Color := FColorTable.GetColor(AParam);
+    rptBackColor: FActiveState.TextStyle.Brush.Color := FColorTable.GetColor(AParam);
     rptSubscript: FActiveState.TextStyle.ScriptPosition := tpoSubscript;
     rptSuperscript: FActiveState.TextStyle.ScriptPosition := tpoSuperscript;
   end;
@@ -3281,7 +3281,7 @@ begin
   WriteGroupBegin;
   try
     WriteCtrl('colortbl');
-    WriteSemicolon;
+    // WriteSemicolon; // no default color, write all colors explictly
     for I := 0 to FColorTable.Count - 1 do
     begin
       ColorRec := FColorTable[I].ColorRec;
@@ -3632,7 +3632,7 @@ begin
     halJustify: WriteCtrl('qj');
   end;
   if AParaStyle.Brush.Style <> bsClear then
-    WriteCtrlParam('cbpat', FColorTable.GetIndex(AParaStyle.Brush.Color) + 1);
+    WriteCtrlParam('cbpat', FColorTable.GetIndex(AParaStyle.Brush.Color));
   if not AParaStyle.WordWrap then
     WriteCtrl('nowwrap');
   if AParaStyle.BorderWidths.NonZero then
@@ -3668,7 +3668,7 @@ begin
       WriteCtrlParam('brdrradius', PointsToTwips(AParaStyle.BorderRadius))
   end;
   if AParaStyle.BorderColor <> clNone then
-    WriteCtrlParam('brdrcf', FColorTable.GetIndex(AParaStyle.BorderColor) + 1);
+    WriteCtrlParam('brdrcf', FColorTable.GetIndex(AParaStyle.BorderColor));
   if AParaStyle.LineSpacingValue <> 0 then
   begin
     if AParaStyle.LineSpacingMode = lsmValue then
@@ -4012,18 +4012,18 @@ begin
         WriteCtrl('clvmrg');
       WriteCtrl('clbrdrb');
       WriteBorderWidth(Cell.RequiredBorderWidths.Bottom);
-      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor));
       WriteCtrl('clbrdrl');
       WriteBorderWidth(Cell.RequiredBorderWidths.Left);
-      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor));
       WriteCtrl('clbrdrr');
       WriteBorderWidth(Cell.RequiredBorderWidths.Right);
-      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor));
       WriteCtrl('clbrdrt');
       WriteBorderWidth(Cell.RequiredBorderWidths.Top);
-      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor) + 1);
+      WriteCtrlParam('brdrcf', FColorTable.GetIndex(Cell.BlockStyle.BorderColor));
       if Cell.BlockStyle.Brush.Style <> bsClear then
-        WriteCtrlParam('clcbpat', FColorTable.GetIndex(Cell.BlockStyle.Brush.Color) + 1);
+        WriteCtrlParam('clcbpat', FColorTable.GetIndex(Cell.BlockStyle.Brush.Color));
       W := Max(ATable.CalcTotalCellWidth(I, ARowIndex), 5);
       WriteCtrlParam('clwWidth', PointsToTwips(W));
       Inc(Xpos, W);
@@ -4067,9 +4067,9 @@ begin
   end;
   WriteCtrlParam('fs', ATextStyle.Font.Size * 2);
   if ATextStyle.Font.Color <> clNone then
-    WriteCtrlParam('cf', FColorTable.GetIndex(ATextStyle.Font.Color) + 1);
+    WriteCtrlParam('cf', FColorTable.GetIndex(ATextStyle.Font.Color));
   if ATextStyle.Brush.Style <> bsClear then
-    WriteCtrlParam('highlight', FColorTable.GetIndex(ATextStyle.Brush.Color) + 1);
+    WriteCtrlParam('highlight', FColorTable.GetIndex(ATextStyle.Brush.Color));
   case ATextStyle.ScriptPosition of
     tpoSuperscript: WriteCtrl('super');
     tpoSubscript: WriteCtrl('sub');
