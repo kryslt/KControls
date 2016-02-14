@@ -121,7 +121,7 @@ const
 
   { Default value for the @link(TKPrintPageSetup.Options) property. }
   cOptionsDef = [poFitToPage, poPageNumbers, poUseColor];
-  cOptionsAll = [poCollate..poWrapLines];
+  cOptionsAll = [Low(TKPrintOption)..High(TKPrintOption)];
 
   { Default value for the @link(TKPrintPageSetup.Options) property. }
   cRangeDef = prAll;
@@ -707,8 +707,6 @@ type
     FValidating: Boolean;
     FOnPrintMeasure: TKPrintMeasureEvent;
     FOnUpdateSettings: TNotifyEvent;
-    function GetCanPrint: Boolean;
-    function GetSelAvail: Boolean;
     procedure SetCopies(Value: Integer);
     procedure SetEndPage(Value: Integer);
     procedure SetUnitExtraSpaceLeft(Value: Double);
@@ -731,6 +729,8 @@ type
     function GetCurrentPageExtraLeft: Integer;
     function GetCurrentPageExtraRight: Integer;
   protected
+    function GetCanPrint: Boolean; virtual;
+    function GetSelAvail: Boolean; virtual;
     { Called before new Units are set. Converts the margins to inches by default. }
     procedure AfterUnitsChange; virtual;
     { Called after new Units are set. Converts the margins from inches by default. }

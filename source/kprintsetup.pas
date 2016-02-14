@@ -33,6 +33,12 @@ uses
 type
   TPrintEvent = procedure(PageSetup: TKPrintPageSetup) of object;
 
+  TExtPrintOption = (
+    xpoRange,
+    xpoScale
+  );
+  TExtPrintOptions = set of TExtPrintOption;
+
   { TKPrintSetupForm }
 
   TKPrintSetupForm = class(TForm)
@@ -105,6 +111,7 @@ type
     FOnPrintClick: TPrintEvent;
     FOptionsVisible: TKPrintOptions;
     FOptionsEnabled: TKPrintOptions;
+    FExtOptionsEnabled: TExtPrintOptions;
     procedure SetPageSetup(const Value: TKPrintPageSetup);
     procedure SetPreviewForm(const Value: TKPrintPreviewForm);
   protected
@@ -119,6 +126,7 @@ type
     property OnPrintClick: TPrintEvent read FOnPrintClick write FOnPrintClick;
     property OptionsVisible: TKPrintOptions read FOptionsVisible write FOptionsVisible;
     property OptionsEnabled: TKPrintOptions read FOptionsEnabled write FOptionsEnabled;
+    property ExtOptionsEnabled: TExtPrintOptions read FExtOptionsEnabled write FExtOptionsEnabled;
   end;
 
 implementation
@@ -140,6 +148,7 @@ begin
   FPreviewCreated := False;
   FOptionsVisible := [poCollate..poUseColor];
   FOptionsEnabled := FOptionsVisible;
+  FExtOptionsEnabled := [Low(TExtPrintOption)..High(TExtPrintOption)];
 {$IFDEF FPC}
   PSDMain.Title := sPSPrinterSetup;
 {$ENDIF}
@@ -216,18 +225,23 @@ begin
       CoBPrinterName.ItemIndex := CoBPrinterName.Items.IndexOf(FPageSetup.PrinterName);
       if CoBPrinterName.ItemIndex < 0 then CoBPrinterName.ItemIndex := Printer.PrinterIndex;
       RBSelectedOnly.Enabled := FPageSetup.SelAvail and FSelAvail;
-      if FPageSetup.Range = prRange then
-        RBRange.Checked := True
-      else
-        RBAll.Checked := True;
+      case FPageSetup.Range of
+        prRange: RBRange.Checked := True;
+        prAll:   RBAll.Checked := True;
+        prSelectedOnly: RBSelectedOnly.Checked := True;
+      end;
       RBAll.Caption := Format(sPSAllPages, [FPageSetup.PageCount]);
-      EDRangeFrom.Enabled := RBRange.Checked;
+      RBRange.Enabled := xpoRange in FExtOptionsEnabled;
+
+      EDRangeFrom.Enabled := RBRange.Checked and RBRange.Enabled;
       EDRangeFrom.Text := IntToStr(FPageSetup.StartPage);
-      EDRangeTo.Enabled := RBRange.Checked;
+      EDRangeTo.Enabled := RBRange.Checked and RBRange.Enabled;
       EDRangeTo.Text := IntToStr(FPageSetup.EndPage);
       EDCopies.Text := IntToStr(FPageSetup.Copies);
-      EDPrintScale.Enabled := not CBFitTopage.Checked;
+
+      EDPrintScale.Enabled := not CBFitTopage.Checked and (xpoScale in FExtOptionsEnabled);
       EDPrintScale.Text := IntToStr(FPageSetup.Scale);
+
       EDTitle.Text := FPageSetup.Title;
       CoBMarginUnits.ItemIndex := Integer(FPageSetup.Units);
       S := FmtUnit;
