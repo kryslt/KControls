@@ -1,4 +1,4 @@
-object KPrintPreviewForm: TKPrintPreviewForm
+object KCustomPrintPreviewForm: TKCustomPrintPreviewForm
   Left = 324
   Top = 212
   Caption = 'Print Preview'
@@ -65,7 +65,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
     ButtonWidth = 31
     Caption = 'TBMain'
     Images = ILMain
-    TabOrder = 1
+    TabOrder = 0
     Wrapable = False
     object TBPageFirst: TToolButton
       Left = 0
@@ -208,17 +208,6 @@ object KPrintPreviewForm: TKPrintPreviewForm
       ShowHint = True
     end
   end
-  object Preview: TKPrintPreview
-    Left = 0
-    Top = 30
-    Width = 812
-    Height = 584
-    Align = alClient
-    Page = 0
-    TabStop = True
-    TabOrder = 0
-    OnChanged = PreviewChanged
-  end
   object ILMain: TImageList
     ColorDepth = cd32Bit
     DrawingStyle = dsTransparent
@@ -227,7 +216,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
     Left = 16
     Top = 54
     Bitmap = {
-      494C0101060020002C0018001800FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C010106002000300018001800FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000600000003000000001002000000000000048
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

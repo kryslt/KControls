@@ -32,10 +32,35 @@ uses
   ExtCtrls, KControls;
 
 type
+  IPrintPreviewAdapter = interface
+    function GetControl: TWinControl;
+    function CanPrint: Boolean;
 
-  { TKPrintPreviewForm }
+    procedure NextPage;
+    procedure PreviousPage;
+    procedure FirstPage;
+    procedure LastPage;
+    procedure Print;
 
-  TKPrintPreviewForm = class(TForm)
+    function GetFirstPageNumber: Integer;
+    function GetLastPageNumber: Integer;
+    function GetCurrentPageNumber: Integer;
+    procedure SetCurrentPageNumber(Page: Integer);
+    function GetScaleMode: TKPreviewScaleMode;
+    procedure SetScaleMode(ScaleMode: TKPreviewScaleMode);
+    function GetScale: Integer;
+    procedure SetScale(Value: Integer);
+
+    property FirstPageNumber: Integer read GetFirstPageNumber;
+    property LastPageNumber: Integer read GetLastPageNumber;
+    property CurrentPageNumber: Integer read GetCurrentPageNumber write SetCurrentPageNumber;
+    property Scale: Integer read GetScale write SetScale;
+    property ScaleMode: TKPreviewScaleMode read GetScaleMode write SetScaleMode;
+  end;
+
+  { TKCustomPrintPreviewForm }
+
+  TKCustomPrintPreviewForm = class(TForm)
     ILMain: TImageList;
     ALMain: TActionList;
     ACPageFirst: TAction;
@@ -57,7 +82,6 @@ type
     PNScale: TPanel;
     CoBScale: TComboBox;
     TBClose: TToolButton;
-    Preview: TKPrintPreview;
     TBPrint: TToolButton;
     ToolButton4: TToolButton;
     ACPrint: TAction;
@@ -75,15 +99,43 @@ type
     procedure UDPageClick(Sender: TObject; Button: TUDBtnType);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    procedure PreviewChanged(Sender: TObject);
     procedure ACPrintExecute(Sender: TObject);
     procedure ACPrintUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
+    FAdapter: IPrintPreviewAdapter;
     procedure ScaleChanged;
-    { Private declarations }
+    procedure CurrentPageChanged(Sneder: TObject = nil);
   public
-    { Public declarations }
+    constructor Create(AOwner: TComponent; AAdapter: IPrintPreviewAdapter); reintroduce;
+    property Adapter: IPrintPreviewAdapter read FAdapter;
+  end;
+
+  { TKPrintPreviewForm }
+
+  TKPrintPreviewForm = class(TKCustomPrintPreviewForm, IPrintPreviewAdapter)
+  private
+    FPreview: TKPrintPreview;
+
+    // IPrintPreviewAdapter
+    function GetControl: TWinControl;
+    function CanPrint: Boolean;
+    procedure NextPage;
+    procedure PreviousPage;
+    procedure FirstPage;
+    procedure LastPage;
+    procedure Print;
+    function GetFirstPageNumber: Integer;
+    function GetLastPageNumber: Integer;
+    function GetCurrentPageNumber: Integer;
+    procedure SetCurrentPageNumber(Page: Integer);
+    function GetScaleMode: TKPreviewScaleMode;
+    procedure SetScaleMode(ScaleMode: TKPreviewScaleMode);
+    function GetScale: Integer;
+    procedure SetScale(Value: Integer);
+  public
+    constructor Create(AOwner: TComponent); reintroduce;
+    property Preview: TKPrintPreview read FPreview;
   end;
 
 implementation
@@ -97,85 +149,101 @@ implementation
 uses
   KFunctions;
 
-procedure TKPrintPreviewForm.FormCreate(Sender: TObject);
+{ TKCustomPrintPreviewForm }
+
+constructor TKCustomPrintPreviewForm.Create(AOwner: TComponent;
+  AAdapter: IPrintPreviewAdapter);
+begin
+  inherited CReate(AOwner);
+  FAdapter := AAdapter;
+end;
+
+procedure TKCustomPrintPreviewForm.FormCreate(Sender: TObject);
+var
+  PreviewControl: TWinControl;
 begin
   CoBScale.ItemIndex := 9; // page width
-  Preview.DoubleBuffered := True;
+  PreviewControl := Adapter.GetControl;
+  PreviewControl.Parent := Self;
+  PreviewControl.Align := alClient;
+  PreviewControl.TabStop := True;
+  PreviewControl.TabOrder := 0;
 end;
 
-procedure TKPrintPreviewForm.FormShow(Sender: TObject);
+procedure TKCustomPrintPreviewForm.FormShow(Sender: TObject);
 begin
-  UDPage.Min := Preview.StartPage;
-  UDPage.Max := Preview.EndPage;
+  UDPage.Min := Adapter.FirstPageNumber;
+  UDPage.Max := Adapter.LastPageNumber;
 end;
 
-procedure TKPrintPreviewForm.CoBScaleExit(Sender: TObject);
+procedure TKCustomPrintPreviewForm.CoBScaleExit(Sender: TObject);
 begin
   ScaleChanged;
 end;
 
-procedure TKPrintPreviewForm.ACPageFirstExecute(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPageFirstExecute(Sender: TObject);
 begin
-  Preview.FirstPage;
+  Adapter.FirstPage;
 end;
 
-procedure TKPrintPreviewForm.ACPageFirstUpdate(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPageFirstUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := Preview.Page > Preview.StartPage;
+  TAction(Sender).Enabled := Adapter.CurrentPageNumber > Adapter.FirstPageNumber;
 end;
 
-procedure TKPrintPreviewForm.ACPagePreviousExecute(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPagePreviousExecute(Sender: TObject);
 begin
-  Preview.PreviousPage;
+  Adapter.PreviousPage;
 end;
 
-procedure TKPrintPreviewForm.ACPageNextExecute(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPageNextExecute(Sender: TObject);
 begin
-  Preview.NextPage;
+  Adapter.NextPage;
 end;
 
-procedure TKPrintPreviewForm.ACPageNextUpdate(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPageNextUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := Preview.Page < Preview.EndPage;
+  TAction(Sender).Enabled := Adapter.CurrentPageNumber < Adapter.LastPageNumber;
 end;
 
-procedure TKPrintPreviewForm.ACPageLastExecute(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPageLastExecute(Sender: TObject);
 begin
-  Preview.LastPage;
+  Adapter.LastPage;
 end;
 
-procedure TKPrintPreviewForm.ACPrintExecute(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPrintExecute(Sender: TObject);
 begin
-  Preview.Control.PrintOut;
+  Adapter.Print;
 end;
 
-procedure TKPrintPreviewForm.ACPrintUpdate(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACPrintUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := Assigned(Preview.Control) and Preview.Control.CanPrint;
+  TAction(Sender).Enabled := Adapter.CanPrint;
 end;
 
-procedure TKPrintPreviewForm.ACCloseExecute(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACCloseExecute(Sender: TObject);
 begin
   Close;
 end;
 
-procedure TKPrintPreviewForm.ACCloseUpdate(Sender: TObject);
+procedure TKCustomPrintPreviewForm.ACCloseUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := True;
 end;
 
-procedure TKPrintPreviewForm.EDPageExit(Sender: TObject);
+procedure TKCustomPrintPreviewForm.EDPageExit(Sender: TObject);
 begin
-  Preview.Page := MinMax(StrToIntDef(EDPage.Text, Preview.Page), Preview.StartPage, Preview.EndPage);
-  EDPage.Text := IntToStr(Preview.Page);
+  Adapter.CurrentPageNumber := MinMax(StrToIntDef(EDPage.Text, Adapter.CurrentPageNumber),
+    Adapter.FirstPageNumber, Adapter.LastPageNumber);
+  CurrentPageChanged;
 end;
 
-procedure TKPrintPreviewForm.UDPageClick(Sender: TObject; Button: TUDBtnType);
+procedure TKCustomPrintPreviewForm.UDPageClick(Sender: TObject; Button: TUDBtnType);
 begin
   EDPageExit(nil);
 end;
 
-procedure TKPrintPreviewForm.FormKeyDown(Sender: TObject; var Key: Word;
+procedure TKCustomPrintPreviewForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   if Key = VK_ESCAPE then
@@ -185,12 +253,7 @@ begin
   end;
 end;
 
-procedure TKPrintPreviewForm.PreviewChanged(Sender: TObject);
-begin
-  EDPage.Text := IntToStr(Preview.Page);
-end;
-
-procedure TKPrintPreviewForm.ScaleChanged;
+procedure TKCustomPrintPreviewForm.ScaleChanged;
 var
   S: string;
 begin
@@ -201,27 +264,117 @@ begin
    -1:
     begin
       while (S <> '') and not CharInSetEx(S[Length(S)], ['0'..'9']) do Delete(S, Length(S), 1);
-      Preview.Scale := StrToIntDef(S, 100);
+      Adapter.Scale := StrToIntDef(S, 100);
     end;
-    0: Preview.Scale := 25;
-    1: Preview.Scale := 50;
-    2: Preview.Scale := 75;
-    3: Preview.Scale := 100;
-    4: Preview.Scale := 125;
-    5: Preview.Scale := 150;
-    6: Preview.Scale := 200;
-    7: Preview.Scale := 500;
+    0: Adapter.Scale := 25;
+    1: Adapter.Scale := 50;
+    2: Adapter.Scale := 75;
+    3: Adapter.Scale := 100;
+    4: Adapter.Scale := 125;
+    5: Adapter.Scale := 150;
+    6: Adapter.Scale := 200;
+    7: Adapter.Scale := 500;
   end;
   case CoBScale.ItemIndex of
     -1:
     begin
-      Preview.ScaleMode := smScale;
-      CobScale.Text := Format('%d %%', [Preview.Scale]);
+      Adapter.ScaleMode := smScale;
+      CobScale.Text := Format('%d %%', [Adapter.Scale]);
     end;
-    0..7: Preview.ScaleMode := smScale;
-    8: Preview.ScaleMode := smWholePage;
-    9: Preview.ScaleMode := smPageWidth;
+    0..7: Adapter.ScaleMode := smScale;
+    8: Adapter.ScaleMode := smWholePage;
+    9: Adapter.ScaleMode := smPageWidth;
   end;
+end;
+
+procedure TKCustomPrintPreviewForm.CurrentPageChanged;
+begin
+  EDPage.Text := IntToStr(Adapter.CurrentPageNumber);
+end;
+
+{ TKPrintPreviewForm }
+
+constructor TKPrintPreviewForm.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner, Self);
+  FPreview := TKPrintPreview.Create(Self);
+  FPreview.DoubleBuffered := True;
+  FPreview.OnChanged := CurrentPageChanged;
+end;
+
+procedure TKPrintPreviewForm.FirstPage;
+begin
+  Preview.FirstPage;
+end;
+
+function TKPrintPreviewForm.GetControl: TWinControl;
+begin
+  Result := Preview;
+end;
+
+function TKPrintPreviewForm.CanPrint: Boolean;
+begin
+  Result := Assigned(Preview.Control) and Preview.Control.CanPrint;
+end;
+
+function TKPrintPreviewForm.GetCurrentPageNumber: Integer;
+begin
+  Result := Preview.Page;
+end;
+
+function TKPrintPreviewForm.GetFirstPageNumber: Integer;
+begin
+  Result := Preview.StartPage;
+end;
+
+function TKPrintPreviewForm.GetLastPageNumber: Integer;
+begin
+  Result := Preview.EndPage;
+end;
+
+function TKPrintPreviewForm.GetScale: Integer;
+begin
+  REsult := Preview.Scale;
+end;
+
+function TKPrintPreviewForm.GetScaleMode: TKPreviewScaleMode;
+begin
+  Result := Preview.ScaleMode;
+end;
+
+procedure TKPrintPreviewForm.LastPage;
+begin
+  Preview.LastPage;
+end;
+
+procedure TKPrintPreviewForm.NextPage;
+begin
+  Preview.NextPage;
+end;
+
+procedure TKPrintPreviewForm.PreviousPage;
+begin
+  Preview.PreviousPage;
+end;
+
+procedure TKPrintPreviewForm.Print;
+begin
+  Preview.Control.PrintOut
+end;
+
+procedure TKPrintPreviewForm.SetCurrentPageNumber(Page: Integer);
+begin
+  Preview.Page := Page;
+end;
+
+procedure TKPrintPreviewForm.SetScale(Value: Integer);
+begin
+  Preview.Scale := Value;
+end;
+
+procedure TKPrintPreviewForm.SetScaleMode(ScaleMode: TKPreviewScaleMode);
+begin
+  Preview.ScaleMode := ScaleMode;
 end;
 
 end.
