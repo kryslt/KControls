@@ -35,6 +35,7 @@ type
   IPrintPreviewAdapter = interface
     function GetControl: TWinControl;
     function CanPrint: Boolean;
+    procedure OnShow;
 
     procedure NextPage;
     procedure PreviousPage;
@@ -50,6 +51,7 @@ type
     procedure SetScaleMode(ScaleMode: TKPreviewScaleMode);
     function GetScale: Integer;
     procedure SetScale(Value: Integer);
+    procedure SetPreviewChangedEvent(Event: TNotifyEvent);
 
     property FirstPageNumber: Integer read GetFirstPageNumber;
     property LastPageNumber: Integer read GetLastPageNumber;
@@ -102,10 +104,11 @@ type
     procedure ACPrintExecute(Sender: TObject);
     procedure ACPrintUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure EDPageKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     FAdapter: IPrintPreviewAdapter;
     procedure ScaleChanged;
-    procedure CurrentPageChanged(Sneder: TObject = nil);
+    procedure CurrentPageChanged(Sender: TObject = nil);
   public
     constructor Create(AOwner: TComponent; AAdapter: IPrintPreviewAdapter); reintroduce;
     property Adapter: IPrintPreviewAdapter read FAdapter;
@@ -120,6 +123,7 @@ type
     // IPrintPreviewAdapter
     function GetControl: TWinControl;
     function CanPrint: Boolean;
+    procedure OnShow;
     procedure NextPage;
     procedure PreviousPage;
     procedure FirstPage;
@@ -133,6 +137,7 @@ type
     procedure SetScaleMode(ScaleMode: TKPreviewScaleMode);
     function GetScale: Integer;
     procedure SetScale(Value: Integer);
+    procedure SetPreviewChangedEvent(Event: TNotifyEvent);
   public
     constructor Create(AOwner: TComponent); reintroduce;
     property Preview: TKPrintPreview read FPreview;
@@ -172,6 +177,8 @@ end;
 
 procedure TKCustomPrintPreviewForm.FormShow(Sender: TObject);
 begin
+  FAdapter.SetPreviewChangedEvent(CurrentPageChanged);
+  Adapter.OnShow;
   UDPage.Min := Adapter.FirstPageNumber;
   UDPage.Max := Adapter.LastPageNumber;
 end;
@@ -238,6 +245,13 @@ begin
   CurrentPageChanged;
 end;
 
+procedure TKCustomPrintPreviewForm.EDPageKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = VK_RETURN then
+    EDPageExit(nil);
+end;
+
 procedure TKCustomPrintPreviewForm.UDPageClick(Sender: TObject; Button: TUDBtnType);
 begin
   EDPageExit(nil);
@@ -287,7 +301,7 @@ begin
   end;
 end;
 
-procedure TKCustomPrintPreviewForm.CurrentPageChanged;
+procedure TKCustomPrintPreviewForm.CurrentPageChanged(Sender: TObject);
 begin
   EDPage.Text := IntToStr(Adapter.CurrentPageNumber);
 end;
@@ -299,7 +313,6 @@ begin
   inherited Create(AOwner, Self);
   FPreview := TKPrintPreview.Create(Self);
   FPreview.DoubleBuffered := True;
-  FPreview.OnChanged := CurrentPageChanged;
 end;
 
 procedure TKPrintPreviewForm.FirstPage;
@@ -315,6 +328,10 @@ end;
 function TKPrintPreviewForm.CanPrint: Boolean;
 begin
   Result := Assigned(Preview.Control) and Preview.Control.CanPrint;
+end;
+
+procedure TKPrintPreviewForm.OnShow;
+begin
 end;
 
 function TKPrintPreviewForm.GetCurrentPageNumber: Integer;
@@ -365,6 +382,11 @@ end;
 procedure TKPrintPreviewForm.SetCurrentPageNumber(Page: Integer);
 begin
   Preview.Page := Page;
+end;
+
+procedure TKPrintPreviewForm.SetPreviewChangedEvent(Event: TNotifyEvent);
+begin
+  FPreview.OnChanged := Event;
 end;
 
 procedure TKPrintPreviewForm.SetScale(Value: Integer);

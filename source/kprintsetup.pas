@@ -104,7 +104,7 @@ type
     { Private declarations }
     FPrevSetup: TKPrintPageSetup;
     FPageSetup: TKPrintPageSetup;
-    FPreviewForm: TKPrintPreviewForm;
+    FPreviewForm: TKCustomPrintPreviewForm;
     FPreviewCreated: Boolean;
     FSelAvail: Boolean;
     FUpdateLock: Boolean;
@@ -113,7 +113,7 @@ type
     FOptionsEnabled: TKPrintOptions;
     FExtOptionsEnabled: TExtPrintOptions;
     procedure SetPageSetup(const Value: TKPrintPageSetup);
-    procedure SetPreviewForm(const Value: TKPrintPreviewForm);
+    procedure SetPreviewForm(const Value: TKCustomPrintPreviewForm);
   protected
     procedure PageSetupToForm; virtual;
     procedure FormToPageSetup; virtual;
@@ -121,7 +121,7 @@ type
   public
     { Public declarations }
     property PageSetup: TKPrintPageSetup read FPageSetup write SetPageSetup;
-    property PreviewForm: TKPrintPreviewForm read FPreviewForm write SetPreviewForm;
+    property PreviewForm: TKCustomPrintPreviewForm read FPreviewForm write SetPreviewForm;
     property SelAvail: Boolean read FSelAvail write FSelAvail;
     property OnPrintClick: TPrintEvent read FOnPrintClick write FOnPrintClick;
     property OptionsVisible: TKPrintOptions read FOptionsVisible write FOptionsVisible;
@@ -364,7 +364,7 @@ begin
   end;
 end;
 
-procedure TKPrintSetupForm.SetPreviewForm(const Value: TKPrintPreviewForm);
+procedure TKPrintSetupForm.SetPreviewForm(const Value: TKCustomPrintPreviewForm);
 begin
   if Value <> FPreviewForm then
   begin
@@ -402,7 +402,8 @@ begin
     FPreviewForm := TKPrintPreviewForm.Create(nil);
     FPreviewCreated := True;
   end;
-  FPreviewForm.Preview.Control := FPageSetup.Control;
+  if FPreviewForm is TKPrintPreviewForm then
+    TKPrintPreviewForm(FPreviewForm).Preview.Control := FPageSetup.Control;
   FPreviewForm.Show;
 end;
 

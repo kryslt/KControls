@@ -123,6 +123,7 @@ object KCustomPrintPreviewForm: TKCustomPrintPreviewForm
         TabOrder = 0
         Text = '1'
         OnExit = EDPageExit
+        OnKeyDown = EDPageKeyDown
       end
       object UDPage: TUpDown
         Left = 50
