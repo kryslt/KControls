@@ -444,8 +444,10 @@ type
     procedure PrintPaintBegin; virtual;
     { Allows descendant to make necessary adjustments after printing or painting to preview ended. }
     procedure PrintPaintEnd; virtual;
-    { Removse a preview control to the internal list of associated previews. }
+    { Remove a preview control to the internal list of associated previews. }
     procedure RemovePreview(APreview: TKPrintPreview);
+    { Respond to resize calls}
+    procedure Resize; override;
     { Updates mouse cursor according to the state determined from current mouse
       position. Returns True if cursor has been changed. }
     function SetMouseCursor(X, Y: Integer): Boolean; virtual;
@@ -1810,6 +1812,12 @@ procedure TKCustomControl.RemovePreview(APreview: TKPrintPreview);
 begin
   if Assigned(FPreviewList) and (FPreviewList.IndexOf(APreview) >= 0) then
     FPreviewList.Remove(APreview);
+end;
+
+procedure TKCustomControl.Resize;
+begin
+  inherited;
+  UpdateSize;
 end;
 
 {$IFNDEF FPC}
