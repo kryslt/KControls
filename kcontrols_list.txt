@@ -61,6 +61,7 @@ packages/kcontrols/kcontrols_*.dpk
 packages/kcontrols/kcontrols_*.dproj
 packages/kcontrols/kcontrols_*.cbproj
 packages/kcontrols/kcontrols_*.cpp
+packages/kcontrols/kcontrols_*.groupproj
 packages/kcontrols/kcontrolslaz.lpk
 packages/kcontrols/kcontrolsdesign.pas
 packages/kcontrols/kcontrolsdesign.dcr
