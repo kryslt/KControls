@@ -283,6 +283,7 @@ type
 
   TKCustomPageControl = class(TKCustomControl)
   private
+    FActivateNewDocked: Boolean;
     FActivePageIndex: Integer;
     FDisabledImages: TImageList;
     FHotTrack: Boolean;
@@ -363,6 +364,7 @@ type
     function IndexOfTabAt(X, Y: Integer): Integer;
     procedure SelectNextPage(GoForward: Boolean);
     function TabRect(Index: Integer): TRect;
+    property ActivateNewDocked: Boolean read FActivateNewDocked write FActivateNewDocked default True;
     property ActivePage: TKTabSheet read GetActivePage write SetActivePage;
     property ActivePageIndex: Integer read FActivePageIndex write SetActivePageIndex default -1;
     property DisabledImages: TImageList read FDisabledImages write SetDisabledImages;
@@ -384,6 +386,7 @@ type
 
   TKPageControl = class(TKCustomPageControl)
   published
+    property ActivateNewDocked;
     property ActivePageIndex;
     property Align;
     property Anchors;
@@ -1476,6 +1479,7 @@ begin
 {$ENDIF}
   Width := 400;
   Height := 300;
+  FActivateNewDocked := True;
   FActivePageIndex := -1;
   FDeletingPage := False;
   FDisabledImages := nil;
@@ -1619,7 +1623,10 @@ begin
         raise;
       end;
       if DockCtl.Visible then
-        ActivePage := FNewDockSheet;
+        if FActivateNewDocked then
+          ActivePage := FNewDockSheet
+        else
+          UpdateTabPanel;
       DockCtl.Align := alClient;
     finally
       FNewDockSheet := nil;
