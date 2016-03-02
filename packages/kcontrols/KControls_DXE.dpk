@@ -1,7 +1,5 @@
 package KControls_DXE;
 
-{$include ..\..\source\kcontrols.inc}
-
 {$R *.res}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -30,12 +28,7 @@ package KControls_DXE;
 
 requires
   dclstd,
-  KControls_RXE
-{$IFDEF TKDBGRID_USE}  
-  , dbrtl
-  , vcldb
-{$ENDIF}
-  ;
+  KControls_RXE;
 
 contains
   kcontrolsdesign in 'kcontrolsdesign.pas',

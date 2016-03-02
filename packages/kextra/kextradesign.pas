@@ -22,7 +22,7 @@ implementation
 
 uses
   Classes, Dialogs, SysUtils, Forms, 
-  KButtons, KMisc, KVentilator, KChart
+  KButtons, KMisc, KVentilator, KCharts
 {$IFDEF FPC}
   , LResources
 {$ENDIF}

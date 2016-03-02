@@ -35,14 +35,12 @@ requires
 
 contains
   KExtras in '..\..\source\extra\KExtras.pas',
-  KButtons in '..\..\source\extra\KButtons.pas',
   KFunctionsW in '..\..\source\extra\KFunctionsW.pas',
   KHelp in '..\..\source\extra\KHelp.pas',
   KIniFiles in '..\..\source\extra\KIniFiles.pas',
   KMessages in '..\..\source\extra\KMessages.pas',
   KMisc in '..\..\source\extra\KMisc.pas',
   KVentilator in '..\..\source\extra\KVentilator.pas',
-  KCharts in '..\..\source\extra\KCharts.pas',
-  KChart in '..\..\source\extra\KChart.pas';
+  KCharts in '..\..\source\extra\KCharts.pas';
 
 end.

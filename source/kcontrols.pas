@@ -1029,6 +1029,8 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     { Paints paper and control shape. }
     procedure Paint; override;
+    { Does nothing for this control. }
+    procedure PaintToCanvas(ACanvas: TCanvas); override;
     { Calls the @link(OnChanged) event. }
     procedure Changed;
     { Grants the input focus to the control when possible and the control has had none before. }
@@ -3374,6 +3376,10 @@ begin
     Canvas.Brush.Color := FColors.BkGnd;
     Canvas.FillRect(RClient);
   end;
+end;
+
+procedure TKPrintPreview.PaintToCanvas(ACanvas: TCanvas);
+begin
 end;
 
 procedure TKPrintPreview.Changed;
