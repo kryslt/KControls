@@ -3,7 +3,6 @@ object KPrintPreviewForm: TKPrintPreviewForm
   Height = 660
   Top = 190
   Width = 800
-  ActiveControl = Preview
   Caption = 'Print Preview'
   ClientHeight = 660
   ClientWidth = 800
@@ -53,7 +52,7 @@ object KPrintPreviewForm: TKPrintPreviewForm
   OnKeyDown = FormKeyDown
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.4.2.0'
+  LCLVersion = '1.4.4.0'
   object ToBMain: TToolBar
     Left = 0
     Top = 0
@@ -211,17 +210,6 @@ object KPrintPreviewForm: TKPrintPreviewForm
       Caption = 'ToolButton1'
       Style = tbsSeparator
     end
-  end
-  object Preview: TKPrintPreview
-    Left = 0
-    Height = 628
-    Top = 32
-    Width = 800
-    Align = alClient
-    Page = 0
-    TabStop = True
-    TabOrder = 1
-    OnChanged = PreviewChanged
   end
   object ILMain: TImageList
     Height = 24
