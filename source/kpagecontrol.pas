@@ -278,6 +278,8 @@ type
   end;
 
   TKTabClickEvent = procedure(Sender: TObject; TabIndex: Integer) of object;
+  TKTabCloseQueryEvent = procedure(Sender: TObject; TabIndex: Integer;
+    var CanClose: Boolean) of object;
 
   { TKCustomPageControl }
 
@@ -297,6 +299,7 @@ type
     FOnChanging: TTabChangingEvent;
     FOnGetImageIndex: TTabGetImageEvent;
     FOnTabClick: TKTabClickEvent;
+    FOnTabCloseQuery: TKTabCloseQueryEvent;
     function GetActivePage: TKTabSheet;
     function GetPage(Index: Integer): TKTabSheet;
     function GetPageCount: Integer;
@@ -332,6 +335,7 @@ type
       State: TDragState; var Accept: Boolean); override;
     procedure DoRemoveDockClient(Client: TControl); override;
     procedure DoTabClick(AIndex: Integer); virtual;
+    procedure DoTabClose(AIndex: Integer); virtual;
     procedure FreePage(Page: TKTabSheet); virtual;
     function GetImageIndex(TabIndex: Integer): Integer; virtual;
     function GetPageFromDockClient(Client: TControl): TKTabSheet;
@@ -382,6 +386,7 @@ type
     property OnChanging: TTabChangingEvent read FOnChanging write FOnChanging;
     property OnGetImageIndex: TTabGetImageEvent read FOnGetImageIndex write FOnGetImageIndex;
     property OnTabClick: TKTabClickEvent read FOnTabClick write FOnTabClick;
+    property OnTabCloseQuery: TKTabCloseQueryEvent read FOnTabCloseQuery write FOnTabCloseQuery;
   end;
 
   TKPageControl = class(TKCustomPageControl)
@@ -917,6 +922,7 @@ procedure TKTabPanel.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Int
 var
   I: Integer;
   Info: TKTabPaintInfo;
+
 begin
   inherited;
   if (FPageControl <> nil) and (Button = mbLeft) and MouseCapture then
@@ -928,7 +934,7 @@ begin
       begin
         if (FPageToClose = I) and PtInRect(Info.CloseRect, Point(X, Y)) then
         begin
-          FPageControl.DeletePage(I);
+          FPageControl.DoTabClose(I);
           Break;
         end
       end;
@@ -1740,6 +1746,17 @@ procedure TKCustomPageControl.DoTabClick(AIndex: Integer);
 begin
   if Assigned(FOnTabClick) then
     FOnTabClick(Self, AIndex);
+end;
+
+procedure TKCustomPageControl.DoTabClose(AIndex: Integer);
+var
+  CanClose: Boolean;
+begin
+  CanClose := True;
+  if Assigned(FOnTabCloseQuery) then
+    FOnTabCloseQuery(Self, AIndex, CanClose);
+  if CanClose then
+    DeletePage(AIndex);
 end;
 
 function TKCustomPageControl.FindNextPage(CurPage: TKTabSheet; GoForward: Boolean): TKTabSheet;
