@@ -277,19 +277,6 @@
   {.$DEFINE USE_WIDEWINPROCS}
 {$ENDIF}
 
-{ Support Alphacontrols integration in Delphi and Lazarus,
-  AlphaControlsLaz package needed for Lazarus. }
-{.$DEFINE SUPPORT_ALPHASKINS}
-
-{ Allow Alphacontrols integration to be used in Delphi }
-{$IFnDEF FPC}
-  {.$DEFINE USE_ALPHASKINS}
-{$ENDIF}
-
-{$IF DEFINED(SUPPORT_ALPHASKINS) OR DEFINED(USE_ALPHASKINS)}
-  {$DEFINE SUPPORT_OR_USE_ALPHASKINS}
-{$IFEND}
-
 {$DEFINE LAZARUS_HAS_DC_MAPPING}
 
 {$IF DEFINED(USE_WINAPI) OR DEFINED(LAZARUS_HAS_DC_MAPPING)}

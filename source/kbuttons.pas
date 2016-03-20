@@ -36,14 +36,6 @@ uses
     , UxTheme
    {$ENDIF}
   {$ENDIF}
-  {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-    , sSkinManager, sCommonData, sConst
-   {$IFDEF USE_ALPHASKINS}
-    , sAlphaGraph, sFade, sGraphUtils, sMessages
-   {$ENDIF}
-//  {$ELSE}
-//    Error!
-  {$ENDIF}
     ;
 
 const
@@ -63,13 +55,6 @@ type
 
   TKButtonControl = class(TKCustomControl)
   private
-  {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-    FCommonData: TsCtrlSkinData;
-    FDisabledKind: TsDisabledKind;
-   {$IFDEF USE_ALPHASKINS}
-    FFadeTimer : TsFadeTimer;
-   {$ENDIF}
-  {$ENDIF}
     FCancel: Boolean;
     FDefault: Boolean;
     FFocusRect: Boolean;
@@ -90,9 +75,6 @@ type
     function GetIsCheck: Boolean;
     procedure SetCancel(AValue: Boolean);
     procedure SetDefault(AValue: Boolean);
-{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-    procedure SetDisabledKind(const Value: TsDisabledKind);
-{$ENDIF}
     procedure SetDown(const Value: Boolean);
     procedure SetFocusRect(const Value: Boolean);
     procedure SetHAlign(const Value: TKHAlign);
@@ -102,10 +84,6 @@ type
     procedure SetWordWrap(const Value: Boolean);
   protected
     FStates: TKButtonStates;
-{$IFDEF USE_ALPHASKINS}
-    procedure DrawSkinned(ACanvas: TCanvas; const ARect: TRect; AInteriorOffset: Integer); virtual;
-    function PrepareSkinCache(ARect: TRect; AInteriorOffset: Integer): Boolean;
-{$ENDIF}
     procedure DrawCaption(ACanvas: TCanvas; const ARect: TRect); virtual;
     procedure DrawFocusRect(ACanvas: TCanvas; ARect: TRect); virtual;
     procedure DrawInterior(ACanvas: TCanvas; ARect: TRect); virtual; abstract;
@@ -135,9 +113,6 @@ type
     property Anchors;
     property Caption;
     property Constraints;
- {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-    property DisabledKind : TsDisabledKind read FDisabledKind write SetDisabledKind default [dkBlended];
- {$ENDIF}
     property DoubleBuffered;
     property DragCursor;
     property DragKind;
@@ -151,9 +126,6 @@ type
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
- {$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-    property SkinData : TsCtrlSkinData read FCommonData write FCommonData;
- {$ENDIF}
     property ShowHint;
     property TabOrder;
     property TabStop default True;
@@ -295,32 +267,16 @@ begin
   FModalResult := mrNone;
   FStates := [];
   FWordWrap := False;
-{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-  FCommonData := TsCtrlSkinData.Create(Self, True);
-  FDisabledKind := [dkBlended];
- {$IFDEF USE_ALPHASKINS}
-  FCommonData.COC := COC_TsButton;
-  FCommonData.FMouseAbove := False;
-  FFadeTimer := nil;
- {$ENDIF}
-{$ENDIF}
 end;
 
 destructor TKButtonControl.Destroy;
 begin
-{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-  FCommonData.Free;
-{$ENDIF}
   inherited;
 end;
 
 procedure TKButtonControl.AfterConstruction;
 begin
   inherited;
-{$IFDEF USE_ALPHASKINS}
-  FCommonData.FCacheBmp.Canvas.Font.Assign(Font);
-  FCommonData.Loaded;
-{$ENDIF}
 end;
 
 procedure TKButtonControl.CMDialogChar(var Msg: TCMDialogChar);
@@ -369,15 +325,7 @@ begin
   inherited;
   if Enabled then
     Include(FStates, cbsHot);
-{$IFDEF USE_ALPHASKINS}
-  if Skinned then
-  begin
-    FCommonData.BGChanged := False;
-    FCommonData.FMouseAbove := True;
-    DoChangePaint(FFadeTimer, FCommonData, False, EventEnabled(aeMouseEnter, [aeGlobalDef]));
-  end else
-{$ENDIF}
-   Invalidate;
+  Invalidate;
 end;
 
 procedure TKButtonControl.CMMouseLeave(var Msg: TLMessage);
@@ -385,14 +333,6 @@ begin
   inherited;
   if Enabled then
     Exclude(FStates, cbsHot);
-{$IFDEF USE_ALPHASKINS}
-  if Skinned then
-  begin
-    FCommonData.BGChanged := False;
-    FCommonData.FMouseAbove := False;
-    DoChangePaint(FFadeTimer, FCommonData, False, EventEnabled(aeMouseLeave, [aeGlobalDef]));
-  end else
-{$ENDIF}
   Invalidate;
 end;
 
@@ -401,67 +341,6 @@ begin
   inherited;
   Invalidate;
 end;
-
-{$IFDEF USE_ALPHASKINS}
-procedure TKButtonControl.DrawSkinned(ACanvas: TCanvas; const ARect: TRect; AInteriorOffset: Integer);
-begin
-  if PrepareSkinCache(ARect, AInteriorOffset) then
-  begin
-    ACanvas.Lock;
-    try
-      ACanvas.Draw(0, 0, FCommonData.FCacheBmp);
-    finally
-      ACanvas.Unlock;
-    end;
-  end;
-end;
-
-function TKButtonControl.PrepareSkinCache(ARect: TRect; AInteriorOffset: Integer): Boolean;
-var
-  CI : TCacheInfo;
-  State, NumStates: Integer;
-  sm : TsSkinManager;
-  BGInfo : TacBGInfo;
-  R: TRect;
-  P: TPoint;
-begin
-  GetBGInfo(@BGInfo, Parent);
-  CI := BGInfoToCI(@BGInfo);
-  if BGInfo.BgType = btNotReady then
-  begin
-    FCommonData.FUpdating := True;
-    Result := False;
-    Exit;
-  end;
-  InitCacheBmp(FCommonData);
-  sm := FCommonData.SkinManager;
-  NumStates := sm.gd[FCommonData.SkinIndex].States;
-  if cbsPressed in FStates then
-    State := 2
-  else if (cbsFocused in FStates) or Default then
-    State := 3
-  else if FStates * [cbsHot, cbsMouseCapture] <> [] then
-  begin
-    if NumStates < 4 then
-      State := 1
-    else
-      State := 3
-  end else
-    State := 0;
-  if (State >= NumStates) then
-    State := 0;
-  R := Rect(0, 0, ARect.Right - ARect.Top, ARect.Bottom - ARect.Top);
-  P := Point(ARect.Left, ARect.Top);
-  PaintItem(FCommonData, CI, False, State, R, P,  FCommonData.FCacheBmp, True);
-  OffsetRect(R, AInteriorOffset, AInteriorOffset);
-  DrawInterior(FCommonData.FCacheBmp.Canvas, R);
-  if FFocusRect then
-    DrawFocusRect(FCommonData.FCacheBmp.Canvas, R);
-  if not Enabled then
-    BmpDisabledKind(FCommonData.FCacheBmp, FDisabledKind, Parent, CI, P);
-  Result := True;
-end;
-{$ENDIF}
 
 procedure TKButtonControl.DrawCaption(ACanvas: TCanvas; const ARect: TRect);
 var
@@ -509,21 +388,12 @@ end;
 
 function TKButtonControl.GetSkinned: Boolean;
 begin
-{$IFDEF USE_ALPHASKINS}
-  Result := FCommonData.Skinned;
-{$ELSE}
   Result := False;
-{$ENDIF}
 end;
 
 procedure TKButtonControl.Invalidate;
 begin
-{$IFDEF USE_ALPHASKINS}
-  if FCommonData <> nil then
-    FCommonData.Invalidate;
-{$ELSE}
   inherited;
-{$ENDIF}
 end;
 
 procedure TKButtonControl.KeyDown(var Key: Word; Shift: TShiftState);
@@ -535,10 +405,6 @@ end;
 procedure TKButtonControl.Loaded;
 begin
   inherited;
-{$IFDEF USE_ALPHASKINS}
-  FCommonData.FCacheBmp.Canvas.Font.Assign(Font);
-  FCommonData.Loaded;
-{$ENDIF}
 end;
 
 procedure TKButtonControl.MouseDown(Button: TMouseButton; Shift: TShiftState;
@@ -552,10 +418,6 @@ begin
     if cbsPressed in FStates then
       Include(FStates, cbsWasPressed);
     FStates := FStates + [cbsMouseCapture, cbsPressed];
-{$IFDEF USE_ALPHASKINS}
-    if FCommonData.Skinned  then
-      DoChangePaint(FFadeTimer, FCommonData, True, EventEnabled(aeMouseDown, [aeGlobalDef]));
-{$ENDIF}
   end;
 end;
 
@@ -594,10 +456,6 @@ begin
   end;
   Exclude(FStates, cbsWasPressed);
   Exclude(FStates, cbsMouseCapture);
-{$IFDEF USE_ALPHASKINS}
-  if FCommonData.Skinned then
-    DoChangePaint(FFadeTimer, FCommonData, True, EventEnabled(aeMouseUp, [aeGlobalDef]));
-{$ENDIF}
   inherited;
 end;
 
@@ -613,29 +471,22 @@ begin
   else
     Ofs := 0;
   States := [];
-{$IFDEF USE_ALPHASKINS}
-  if Skinned then
-    DrawSkinned(ACanvas, R, Ofs)
-  else
-{$ENDIF}
-  begin
-    if ThemeServices.ThemesEnabled then
-      Include(States, bsUseThemes);
-    if not Enabled then
-      Include(States, bsDisabled);
-    if cbsPressed in FStates then
-      Include(States, bsPressed);
-    if (cbsFocused in FStates) or Default then
-      Include(States, bsFocused);
-    if FStates * [cbsHot, cbsMouseCapture] <> [] then
-      Include(States, bsHot);
-    KGraphics.DrawButtonFrame(ACanvas, R, States);
-    KFunctions.OffsetRect(R, Ofs, Ofs);
-    DrawInterior(ACanvas, R);
-    KFunctions.OffsetRect(R, -Ofs, -Ofs);
-    if FFocusRect then
-      DrawFocusRect(ACanvas, R);
-  end;
+  if ThemeServices.ThemesEnabled then
+    Include(States, bsUseThemes);
+  if not Enabled then
+    Include(States, bsDisabled);
+  if cbsPressed in FStates then
+    Include(States, bsPressed);
+  if (cbsFocused in FStates) or Default then
+    Include(States, bsFocused);
+  if FStates * [cbsHot, cbsMouseCapture] <> [] then
+    Include(States, bsHot);
+  KGraphics.DrawButtonFrame(ACanvas, R, States);
+  KFunctions.OffsetRect(R, Ofs, Ofs);
+  DrawInterior(ACanvas, R);
+  KFunctions.OffsetRect(R, -Ofs, -Ofs);
+  if FFocusRect then
+    DrawFocusRect(ACanvas, R);
 end;
 
 procedure TKButtonControl.SetCancel(AValue: Boolean);
@@ -706,17 +557,6 @@ begin
   end;
 end;
 
-{$IFDEF SUPPORT_OR_USE_ALPHASKINS}
-procedure TKButtonControl.SetDisabledKind(const Value: TsDisabledKind);
-begin
-  if FDisabledKind <> Value then
-  begin
-    FDisabledKind := Value;
-    Invalidate;
-  end;
-end;
-{$ENDIF}
-
 procedure TKButtonControl.SetHAlign(const Value: TKHAlign);
 begin
   if Value <> FHAlign then
@@ -780,35 +620,6 @@ end;
 
 procedure TKButtonControl.WndProc(var Msg: TLMessage);
 begin
-{$IFDEF USE_ALPHASKINS}
-  if Msg.Msg = SM_ALPHACMD then case Msg.WParamHi of
-    AC_CTRLHANDLED : begin Msg.Result := 1; Exit end; // AlphaSkins is supported
-    AC_GETAPPLICATION : begin Msg.Result := LRESULT(Application); Exit end;
-    AC_SETNEWSKIN : if (LongWord(Msg.LParam) = LongWord(SkinData.SkinManager)) then
-    begin
-      StopFading(FFadeTimer);
-      CommonWndProc(Msg, FCommonData);
-      Exit;
-    end;
-    AC_REMOVESKIN : if (LongWord(Msg.LParam) = LongWord(SkinData.SkinManager)) and not (csDestroying in ComponentState) then
-    begin
-      StopFading(FFadeTimer);
-      CommonWndProc(Msg, FCommonData);
-      Repaint;
-      Exit;
-    end;
-    AC_REFRESH : if LongWord(Msg.LParam) = LongWord(SkinData.SkinManager) then
-    begin
-      StopFading(FFadeTimer);
-      CommonWndProc(Msg, FCommonData);
-      if SkinData.PrintDC = 0 then Repaint;
-      Exit;
-    end;
-    AC_PREPARECACHE: PrepareSkinCache(ClientRect, 0);
-    AC_STOPFADING : begin StopFading(FFadeTimer); Exit end;
-  end;
-  CommonWndProc(Msg, FCommonData);
-{$ENDIF}
   inherited;
 end;
 
