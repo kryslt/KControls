@@ -248,6 +248,8 @@ type
     { The editor allows undo/redo operations after the edit control's Modified property
       has been set to False }
     eoUndoAfterSave,
+    { TKMemo only: Use ScrollWindowEx to scroll the control }
+    eoScrollWindow,
     { TKMemo only: show formatting markers. }
     eoShowFormatting,
     { TKMemo only: acquire TAB characters. }

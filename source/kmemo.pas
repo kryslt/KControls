@@ -127,6 +127,9 @@ const
   { Format for clipboard operations. }
   cRichText = 'Rich Text Format';
 
+  { Default value for the @link(TKMemo.Options) property. }
+  cKMemoOptionsDef = [eoGroupUndo, eoScrollWindow];
+
 type
   TKCustomMemo = class;
 
@@ -3850,7 +3853,7 @@ begin
   FNewTextStyle := TKMemoTextStyle.Create;
   FNewTextStyleValid := False;
   FOldCaretRect := CreateEmptyRect;
-  FOptions := [eoGroupUndo];
+  FOptions := cKMemoOptionsDef;
   FPrinting := False;
   FPreferredCaretPos := 0;
   FKeyMapping := TKEditKeyMapping.Create;
@@ -4317,7 +4320,7 @@ begin
     Inc(FMouseWheelAccumulator, WheelDelta);
     WheelClicks := FMouseWheelAccumulator div WHEEL_DIVISOR;
     FMouseWheelAccumulator := FMouseWheelAccumulator mod WHEEL_DIVISOR;
-    ScrollBy(0, - WheelClicks * LinesToScroll, True);
+    ScrollBy(0, - WheelClicks * LinesToScroll, eoScrollWindow in FOptions);
     Result := True;
   end;
 end;
@@ -4540,25 +4543,25 @@ begin
       // scroll commands
       ecScrollUp:
       begin
-        ScrollBy(0, -1, True);
+        ScrollBy(0, -1, eoScrollWindow in FOptions);
         while CommandEnabled(ecUp) and (FCaretRect.Top + FCaretRect.Bottom > ClientHeight - VertScrollPadding) do
           ExecuteCommand(ecUp);
       end;
       ecScrollDown:
       begin
-        ScrollBy(0, 1, True);
+        ScrollBy(0, 1, eoScrollWindow in FOptions);
         while CommandEnabled(ecDown) and (FCaretRect.Top < VertScrollPadding) do
           ExecuteCommand(ecDown);
       end;
       ecScrollLeft:
       begin
-        ScrollBy(-1, 0, True);
+        ScrollBy(-1, 0, eoScrollWindow in FOptions);
         while CommandEnabled(ecLeft) and (FCaretRect.Left + FCaretRect.Right > ClientWidth - HorzScrollPadding) do
           ExecuteCommand(ecLeft);
       end;
       ecScrollRight:
       begin
-        ScrollBy(1, 0, True);
+        ScrollBy(1, 0, eoScrollWindow in FOptions);
         while CommandEnabled(ecRight) and (FCaretRect.Left < HorzScrollPadding) do
           ExecuteCommand(ecRight);
       end;
@@ -4964,7 +4967,7 @@ end;
 
 function TKCustomMemo.IsOptionsStored: Boolean;
 begin
-  Result := FOptions <> [eoGroupUndo];
+  Result := FOptions <> cKMemoOptionsDef;
 end;
 
 procedure TKCustomMemo.KeyDown(var Key: Word; Shift: TShiftState);
@@ -5140,7 +5143,7 @@ begin
           Include(FStates, elMouseCapture);
           SelectionInit(P, False);
         end;
-        ClampInView(@P, True);
+        ClampInView(@P, eoScrollWindow in FOptions);
       end;
     end;
   end;
@@ -5204,7 +5207,7 @@ begin
     begin
       SetActiveBlocksForPoint(P);
       SelectionInit(P, False);
-      ClampInView(@P, True);
+      ClampInView(@P, eoScrollWindow in FOptions);
     end;
   end;
 end;
@@ -5457,7 +5460,7 @@ var
   R: TRect;
 begin
   R := IndexToRect(SelEnd, True);
-  ScrollBy((R.Left - ClientWidth div 2) div FHorzScrollStep, (R.Top - ClientHeight div 2) div FVertScrollStep, True);
+  ScrollBy((R.Left - ClientWidth div 2) div FHorzScrollStep, (R.Top - ClientHeight div 2) div FVertScrollStep, eoScrollWindow in FOptions);
 end;
 
 function TKCustomMemo.ScrollNeeded(AMousePos: PPoint; out DeltaCol, DeltaRow: Integer): Boolean;
@@ -5582,7 +5585,7 @@ procedure TKCustomMemo.SetLeftPos(Value: Integer);
 begin
   Value := MinMax(Value, 0, FHorzScrollExtent - 1);
   if Value <> FLeftPos then
-    ScrollBy(Value - FLeftPos, 0, True);
+    ScrollBy(Value - FLeftPos, 0, eoScrollWindow in FOptions);
 end;
 
 procedure TKCustomMemo.SetMaxWordLength(const Value: Integer);
@@ -5774,7 +5777,7 @@ procedure TKCustomMemo.SetTopPos(Value: Integer);
 begin
   Value := MinMax(Value, 0, FVertScrollExtent - 1);
   if Value <> FTopPos then
-    ScrollBy(0, Value - FTopPos, True);
+    ScrollBy(0, Value - FTopPos, eoScrollWindow in FOptions);
 end;
 
 procedure TKCustomMemo.SetUndoLimit(Value: Integer);
@@ -6035,7 +6038,7 @@ end;
 procedure TKCustomMemo.WMHScroll(var Msg: TLMHScroll);
 begin
   SafeSetFocus;
-  Scroll(Msg.ScrollCode, cScrollNoAction, 0, 0, True);
+  Scroll(Msg.ScrollCode, cScrollNoAction, 0, 0, eoScrollWindow in FOptions);
 end;
 
 procedure TKCustomMemo.WMKillFocus(var Msg: TLMKillFocus);
@@ -6058,7 +6061,7 @@ end;
 procedure TKCustomMemo.WMVScroll(var Msg: TLMVScroll);
 begin
   SafeSetFocus;
-  Scroll(cScrollNoAction, Msg.ScrollCode, 0, 0, True);
+  Scroll(cScrollNoAction, Msg.ScrollCode, 0, 0, eoScrollWindow in FOptions);
 end;
 
 { TKMemoBlock }

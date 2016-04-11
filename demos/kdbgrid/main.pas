@@ -109,6 +109,8 @@ begin
 {$ENDIF}
   DSMain.DataSet := Table;
   DBGrid.DoubleBuffered := True; // TKGrid is pretty flicker free but this is still better
+//  TKDBGridCol(DBGrid.Columns.Items[0]).FieldName := 'Id';
+//  (DBGrid.Columns.Items[0] as TKDBGridCol).FieldName := 'Id';
 end;
 
 procedure TMainForm.FormDeactivate(Sender: TObject);
