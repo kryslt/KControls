@@ -22,7 +22,7 @@ unit klog; // lowercase name because of Lazarus/Linux
 interface
 
 uses
-  StdCtrls, Classes, ComCtrls, ExtCtrls, KFunctions;
+  StdCtrls, Classes, ComCtrls, ExtCtrls, KFunctions, KControls;
 
 type
   TKLogDirection = (
@@ -55,9 +55,29 @@ type
 
   TKLogProc = procedure(Code: TKLogType; const Text: string);
 
+  TKLogEventObject = class(TObject)
+  private
+    FCode: TKLogType;
+    FText: string;
+  public
+    constructor Create;
+    property Code: TKLogType read FCode write FCode;
+    property Text: string read FText write FText;
+  end;
+
+  TKLogEventObjects = class(TKObjectList)
+  private
+    function GetItem(Index: Integer): TKLogEventObject;
+    procedure SetItem(Index: Integer; const Value: TKLogEventObject);
+  public
+    property Items[Index: Integer]: TKLogEventObject read GetItem write SetItem; default;
+  end;
+
   TKLog = class(TComponent)
   private
+    FEvents: TKLogEventObjects;
     FHoverTime: Cardinal;
+    FInternalStorage: Boolean;
     FListBox: TListBox;
     FLogDirection: TKLogDirection;
     FLogMask: TKLogMask;
@@ -69,6 +89,7 @@ type
     FStatusText: string;
     FOnLog: TKLogEvent;
     procedure SetStatusText(const Value: string);
+    procedure SetInternalStorage(const Value: Boolean);
   protected
     procedure ClearStatusBar;
     function LogTypeToText(Code: TKLogType): string;
@@ -84,6 +105,9 @@ type
     procedure StatusLog(Code: TKLogType; const Text: string);
     procedure StatusLogStr(const BracketText, Text: string);
   published
+    property Events: TKLogEventObjects read FEvents;
+    property HoverTime: Cardinal read FHoverTime write SetHoverTime default cHoverTimeDef;
+    property InternalStorage: Boolean read FInternalStorage write SetInternalStorage;
     property ListBox: TListBox read FListBox write FListBox;
     property LogDirection: TKLogDirection read FLogDirection write FLogDirection default cLogDirectionDef;
     property LogMask: TKLogMask read FLogMask write FLogMask default cLogMaskDef;
@@ -92,7 +116,6 @@ type
     property StatusCode: TKLogType read FStatusCode;
     property StatusPanel: Integer read FStatusPanel write FStatusPanel default cStatusPanelDef;
     property StatusText: string read FStatusText write SetStatusText;
-    property HoverTime: Cardinal read FHoverTime write SetHoverTime default cHoverTimeDef;
     property OnLog: TKLogEvent read FOnLog write FOnLog;
   end;
 
@@ -101,11 +124,32 @@ implementation
 uses
   SysUtils, KRes;
 
+{ TLogEventObject }
+
+constructor TKLogEventObject.Create;
+begin
+  FCode := lgNone;
+  FText := '';
+end;
+
+{ TKLogEventObjects }
+
+function TKLogEventObjects.GetItem(Index: Integer): TKLogEventObject;begin
+  Result := TKLogEventObject(inherited GetItem(Index));
+end;
+
+procedure TKLogEventObjects.SetItem(Index: Integer; const Value: TKLogEventObject);begin
+  inherited SetItem(Index, Value);
+end;
+
+{ TKLog }
 constructor TKLog.Create(AOwner: TComponent);
 begin
   inherited;
   FHoverTime := cHoverTimeDef;
+  FInternalStorage := False;
   FListBox := nil;
+  FEvents := TKLogEventObjects.Create;
   FLogDirection := cLogDirectionDef;
   FLogMask := cLogMaskDef;
   FLogText := '';
@@ -121,6 +165,7 @@ end;
 destructor TKLog.Destroy;
 begin
   FListBox := nil;
+  FEvents.Free;
   FStatusBar := nil;
   FStatusTimer.Free;
   inherited;
@@ -170,6 +215,8 @@ begin
 end;
 
 procedure TKLog.LogStr(const BracketText, Text: string; Code: TKLogType);
+var
+  Event: TKLogEventObject;
 begin
   if BracketText <> '' then
     FLogText := Format('%s: [%s] %s', [FormatDateTime('dd.mm.yy hh:nn:ss', Now), BracketText, Text])
@@ -186,6 +233,16 @@ begin
       FListBox.Items.Add(FLogText);
       if not FListBox.MultiSelect then FListBox.ItemIndex := FListBox.Items.Count - 1;
     end
+  end;
+  if FInternalStorage then
+  begin
+    Event := TKLogEventObject.Create;
+    Event.Code := Code;
+    Event.Text := FLogText;
+    if FLogDirection = ldAddTop then
+      FEvents.Add(Event)
+    else
+      FEvents.Insert(0, Event)
   end;
   if Assigned(FOnLog) then
     FOnLog(Self, Code, FLogText);
@@ -207,6 +264,15 @@ begin
   begin
     FHoverTime := Value;
     FStatusTimer.Interval := FHoverTime;
+  end;
+end;
+
+procedure TKLog.SetInternalStorage(const Value: Boolean);
+begin
+  if Value <> FInternalStorage then
+  begin
+    FInternalStorage := Value;
+    FEvents.Clear;
   end;
 end;
 

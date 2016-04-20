@@ -1468,6 +1468,7 @@ type
     This class implements properties and methods common to all cell classes. }
   TKGridCell = class(TObject)
   private
+    FHint: TKString;
     FGrid: TKCustomGrid;
     FSpan: TKGridCellSpan;
     procedure SetColSpan(const Value: Integer);
@@ -1543,6 +1544,8 @@ type
     { Pointer to the grid. You will probably need it when implementing application
       specific behavior. }
     property Grid: TKCustomgrid read FGrid;
+    { Optional hint to show when hovering over a cell. }
+    property Hint: TKString read FHint write FHint;
     { Specifies the number of rows the cell should be spanned to. }
     property RowSpan: Integer read FSpan.RowSpan write SetRowSpan;
     { Specifies both cell span parameters. }
@@ -1723,6 +1726,7 @@ type
     FCheckBox: Boolean;
     FCheckBoxHAlign: TKHAlign;
     FCheckBoxHPadding: Integer;
+    FCheckBoxEnabled: Boolean;
     FCheckboxState: TCheckBoxState;
     FCheckBoxVAlign: TKVAlign;
     FCheckBoxVPadding: Integer;
@@ -1896,6 +1900,9 @@ type
       state. This property is for backward compatibility and has no effect unless
       @link(TKGridCellPainter.CheckBox) is True. For new designs use the CheckBoxState property. }
     property CheckBoxChecked: Boolean read GetCheckBoxChecked write SetCheckBoxChecked;
+    { Specifies if the check box frame should be painted in enabled or disabled
+      state. }
+    property CheckBoxEnabled: Boolean read FCheckBoxEnabled write FCheckBoxEnabled;
     { Specifies the horizontal padding for the sorting arrow. }
     property CheckBoxHAlign: TKHAlign read FCheckBoxHAlign write FCheckBoxHAlign;
     { Specifies the horizontal padding for the sorting arrow. }
@@ -4787,6 +4794,7 @@ end;
 constructor TKGridCell.Create(AGrid: TKCustomGrid);
 begin
   FGrid := AGrid;
+  FHint := '';
   Initialize;
 end;
 
@@ -5697,7 +5705,7 @@ begin
       (not FHotFrameOnly or PtInRect(ARect, MousePt));
     if FGrid.ThemedCells then
     begin
-      if FGrid.Enabled then
+      if FGrid.Enabled and FCheckBoxEnabled then
         case FCheckBoxState of
           cbChecked:
           begin
@@ -5739,7 +5747,8 @@ begin
 //        cbGrayed:
 //          State := State or DFCS_GRAYED;
         end;
-      if not FGrid.Enabled then State := State or DFCS_INACTIVE;
+      if not (FGrid.Enabled and FCheckBoxEnabled) then
+        State := State or DFCS_INACTIVE;
       DrawFrameControl(TmpCanvas.Handle, TmpRect, DFC_BUTTON, State);
     end;
     if BM <> nil then
@@ -6003,6 +6012,7 @@ begin
   FButton := False;
   FButtonPressed := False;
   FCheckBox := False;
+  FCheckBoxEnabled := True;
   FCheckBoxHAlign := halLeft;
   FCheckBoxHPadding := 2;
   FCheckBoxVAlign := valCenter;
@@ -7197,19 +7207,26 @@ procedure TKCustomGrid.DefaultMouseCellHint(ACol, ARow: Integer;
 var
   R: TRect;
   Extent: TPoint;
+  IsHint: Boolean;
   AText: KFunctions.TKString;
 begin
   if ColValid(ACol) and Cols[ACol].CellHint then
   begin
     if AShow then
     begin
-      AText := Cells[ACol, ARow];
-      if (AText <> '') and (ARow >= FFixedRows) and
+      IsHint := Assigned(FCells) and (Cell[ACol, ARow].Hint <> '');
+      if IsHint then
+        AText := Cell[ACol, ARow].Hint
+      else
+        AText := Cells[ACol, ARow];
+      if (AText <> '') and
+        ((ARow >= FFixedRows) or IsHint) and
         ((ARow <> FEditorCell.Row) or (ACol <> FEditorCell.Col) or not EditorMode) and
         CellRect(ACol, ARow, R, True) then
       begin
-        Extent := MeasureCell(ACol, ARow, R, GetDrawState(ACol, ARow, HasFocus), mpCellExtent);
-        if (Extent.X > R.Right - R.Left) or (Extent.Y > R.Bottom - R.Top) then
+        if not IsHint then
+          Extent := MeasureCell(ACol, ARow, R, GetDrawState(ACol, ARow, HasFocus), mpCellExtent);
+        if IsHint or (Extent.X > R.Right - R.Left) or (Extent.Y > R.Bottom - R.Top) then
         begin
           FreeAndNil(FHint);
           FHint := TKTextHint.Create(nil);
