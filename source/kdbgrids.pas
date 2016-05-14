@@ -287,7 +287,7 @@ type
     { Does nothing. Row moving not supported. }
     function BeginRowDrag(var Origin: Integer; const MousePt: TPoint): Boolean; override;
     { Fills the grid with data from database and/or updates the grid. }
-    procedure DataChanged; dynamic;
+    procedure DataChanged(AUpdateAll: Boolean = False); dynamic;
     { Called if current record has been moved. }
     procedure DataSetScrolled; dynamic;
     { Extends TKCustomGrid behavior. Sets the data set into edited state and
@@ -314,6 +314,8 @@ type
     procedure InternalSetFixedRows(Value: Integer); override;
     { Used internally to set row count. }
     procedure InternalSetRowCount(Value: Integer); override;
+    { Used internally to update cell content. }
+    procedure InternalUpdateRows(AFirst, ALast: Integer); virtual;
     { Allows to decide whether the goVirtualGrid option can be modified.
       Returns always False as no virtual grid possible in TKDBGrid. }
     function InternalUpdateVirtualGrid: Boolean; override;
@@ -376,6 +378,8 @@ type
     procedure InsertRows(At, Count: Integer); override;
     { Does nothing. Inserting sorted rows not supported. }
     function InsertSortedRow(out ByCol, ARow: Integer): Boolean; override;
+    { Loads and shows all records from the dataset. }
+    procedure LoadAllRecords; virtual;
     { Does nothing. Row moving not supported. }
     procedure MoveRow(FromIndex, ToIndex: Integer); override;
     { Specifies how many rows should be buffered in associated data set. }
@@ -1179,9 +1183,9 @@ begin
   end;
 end;
 
-procedure TKCustomDBGrid.DataChanged;
+procedure TKCustomDBGrid.DataChanged(AUpdateAll: Boolean);
 var
-  I, Index, J, Tmp, LastRow, FieldIndex: Integer;
+  I, Index, J, Tmp, FirstRow, LastRow, FieldIndex: Integer;
   ADataType: TFieldType;
   Cell: TKGridCell;
 begin
@@ -1197,7 +1201,15 @@ begin
         if not FDataLink.EOF and (LastVisibleRow + FDataBufferGrow > FDataLink.BufferCount) then
           FDataLink.BufferCount := FDataLink.BufferCount + FDataBufferGrow;
         RowCount := FixedRows + FDataLink.RecordCount;
-        LastRow := Min(LastVisibleRow + 1, RowCount - 1);
+        if AUpdateAll then
+        begin
+          FirstRow := FixedRows;
+          LastRow := RowCount - 1;
+        end else
+        begin
+          FirstRow := TopRow;
+          LastRow := Min(LastVisibleRow + 1, RowCount - 1);
+        end;
         if (dboEntireTable in FDBOptions) and (FOldFieldCount <> FDataLink.DataSet.FieldCount) then
         begin
           ClearSortMode;
@@ -1215,83 +1227,36 @@ begin
               Row := Tmp;
           end;
         end;
-        Tmp := FDataLink.ActiveRecord;
-        try
-          for I := FixedCols to ColCount - 1 do
+        for I := FixedCols to ColCount - 1 do
+        begin
+          Index := Cols[I].InitialPos;
+          if (Index < ColCount) and (Cols[I] is TKDBGridCol) then
           begin
-            Index := Cols[I].InitialPos;
-            if (Index < ColCount) and (Cols[I] is TKDBGridCol) then
+            FieldIndex := GetFieldIndex(I);
+            if FieldIndex >= 0 then
             begin
-              FieldIndex := GetFieldIndex(I);
-              if FieldIndex >= 0 then
+              ADataType := FDataLink.DataSet.FieldDefs[FieldIndex].DataType;
+              TKDBGridCol(Cols[I]).FDataType := ADataType;
+              if (dboAutoSizeBooleanCells in FDBOptions) and (ADataType = ftBoolean) then
               begin
-                ADataType := FDataLink.DataSet.FieldDefs[FieldIndex].DataType;
-                TKDBGridCol(Cols[I]).FDataType := ADataType;
-                if (dboAutoSizeBooleanCells in FDBOptions) and (ADataType = ftBoolean) then
-                begin
-                  ColWidths[I] := cCheckBoxFrameSize + CellPainter.HPadding * 2;
-                  Cols[I].CanResize := False;
-                end;
-                Cell := InternalGetCell(I, InternalGetTitleRow);
-                if Cell is TKDBGridCell then
-                begin
-                  if dboColNamesToHeader in FDBOptions then
-                  begin
-                    if (dboEntireTable in FDBOptions) and (TKDBGridCol(Cols[I]).FieldName = '') then
-                      TKDBGridCol(Cols[I]).FieldName := FDataLink.DataSet.FieldDefs[FieldIndex].Name;
-                    TKDBGridCell(Cell).Text := TKDBGridCol(Cols[I]).FieldName;
-                  end else
-                    TKDBGridCell(Cell).Text := TKDBGridCol(Cols[I]).Title;
-                end;
+                ColWidths[I] := cCheckBoxFrameSize + CellPainter.HPadding * 2;
+                Cols[I].CanResize := False;
               end;
-            end;
-          end;
-          for J := TopRow to LastRow do
-          begin
-            FDataLink.ActiveRecord := J - FixedRows;
-            if (FDataLink.ActiveRecord <> Tmp) or not FDataLink.Modified then
-              for I := FixedCols to ColCount - 1 do
-              begin
-                Index := Cols[I].InitialPos;
-                if (Index < ColCount) and (Cols[I] is TKDBGridCol) then
-                begin
-                  FieldIndex := GetFieldIndex(I);
-                  if FieldIndex >= 0 then
-                  begin
-                    Cell := InternalGetCell(I, J);
-                    if Cell is TKDBGridCell then
-                    begin
-                      TKDBGridCell(Cell).FieldToCell(FDataLink.DataSet.Fields[FieldIndex]);
-                      if Assigned(TKDBGridCell(Cell).Graphic) then
-                      begin
-                        if dboAutoSizeImageCells in FDBOptions then
-                        begin
-                          if ColWidths[I] > 0 then
-                            ColWidths[I] := Max(ColWidths[I], TKDBGridCell(Cell).Graphic.Width + CellPainter.GraphicHPadding * 2);
-                          if RowHeights[J] > 0 then
-                            RowHeights[J] := Max(RowHeights[J], TKDBGridCell(Cell).Graphic.Height + CellPainter.GraphicVPadding * 2);
-                        end;
-                        if dboImageHint in FDBOptions then
-                          Cols[I].CellHint := True;
-                      end;
-                    end;
-                  end;
-                end;
-              end;
-            if (dboIndexFixedCol in FDBOptions) and (FixedCols > 0) then
-            begin
-              Cell := InternalGetCell(0, J);
+              Cell := InternalGetCell(I, InternalGetTitleRow);
               if Cell is TKDBGridCell then
               begin
-                TKDBGridCell(Cell).Text := IntToStr(J - FixedRows + 1);
-                if Cell is TKGridAttrTextCell then
-                  TKGridAttrTextCell(Cell).HAlign := halRight;
+                if dboColNamesToHeader in FDBOptions then
+                begin
+                  if (dboEntireTable in FDBOptions) and (TKDBGridCol(Cols[I]).FieldName = '') then
+                    TKDBGridCol(Cols[I]).FieldName := FDataLink.DataSet.FieldDefs[FieldIndex].Name;
+                  TKDBGridCell(Cell).Text := TKDBGridCol(Cols[I]).FieldName;
+                end else
+                  TKDBGridCell(Cell).Text := TKDBGridCol(Cols[I]).Title;
               end;
             end;
           end;
-        finally
-          FDataLink.ActiveRecord := Tmp;
         end;
+        InternalUpdateRows(FirstRow, LastRow);
         if dboIndicateActiveRecord in FDBOptions then
         begin
           if FDataLink.ActiveRecord <> FActiveRecord then
@@ -1676,9 +1641,82 @@ begin
     inherited;
 end;
 
+procedure TKCustomDBGrid.InternalUpdateRows(AFirst, ALast: Integer);
+var
+  I, J, Index, FieldIndex, Tmp: Integer;
+  Cell: TKGridCell;
+begin
+  Tmp := FDataLink.ActiveRecord;
+  try
+    for J := AFirst to ALast do
+    begin
+      FDataLink.ActiveRecord := J - FixedRows;
+      if (FDataLink.ActiveRecord <> Tmp) or not FDataLink.Modified then
+        for I := FixedCols to ColCount - 1 do
+        begin
+          Index := Cols[I].InitialPos;
+          if (Index < ColCount) and (Cols[I] is TKDBGridCol) then
+          begin
+            FieldIndex := GetFieldIndex(I);
+            if FieldIndex >= 0 then
+            begin
+              Cell := InternalGetCell(I, J);
+              if Cell is TKDBGridCell then
+              begin
+                TKDBGridCell(Cell).FieldToCell(FDataLink.DataSet.Fields[FieldIndex]);
+                if Assigned(TKDBGridCell(Cell).Graphic) then
+                begin
+                  if dboAutoSizeImageCells in FDBOptions then
+                  begin
+                    if ColWidths[I] > 0 then
+                      ColWidths[I] := Max(ColWidths[I], TKDBGridCell(Cell).Graphic.Width + CellPainter.GraphicHPadding * 2);
+                    if RowHeights[J] > 0 then
+                      RowHeights[J] := Max(RowHeights[J], TKDBGridCell(Cell).Graphic.Height + CellPainter.GraphicVPadding * 2);
+                  end;
+                  if dboImageHint in FDBOptions then
+                    Cols[I].CellHint := True;
+                end;
+              end;
+            end;
+          end;
+        end;
+      if (dboIndexFixedCol in FDBOptions) and (FixedCols > 0) then
+      begin
+        Cell := InternalGetCell(0, J);
+        if Cell is TKDBGridCell then
+        begin
+          TKDBGridCell(Cell).Text := IntToStr(J - FixedRows + 1);
+          if Cell is TKGridAttrTextCell then
+            TKGridAttrTextCell(Cell).HAlign := halRight;
+        end;
+      end;
+    end;
+  finally
+    FDataLink.ActiveRecord := Tmp;
+  end;
+end;
+
 function TKCustomDBGrid.InternalUpdateVirtualGrid: Boolean;
 begin
   Result := False;
+end;
+
+procedure TKCustomDBGrid.LoadAllRecords;
+var
+  RecNo, Tmp: Integer;
+begin
+  if Assigned(FDataLink.DataSet) then
+  begin
+    Tmp := FDataLink.ActiveRecord;
+    try
+      FDataLink.DataSet.Last; // navigate to last record
+      RecNo := FDataLink.DataSet.RecordCount;
+      FDataLink.BufferCount := RecNo + 1; // read all records
+    finally
+      FDataLink.ActiveRecord := Tmp;
+    end;
+    DataChanged(True);
+  end;
 end;
 
 procedure TKCustomDBGrid.MoveRow(FromIndex, ToIndex: Integer);

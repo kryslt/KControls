@@ -199,6 +199,7 @@ end;
 
 procedure TMainForm.ACPrintExecute(Sender: TObject);
 begin
+  DBGrid.LoadAllRecords;
   PSDMain.Execute;
 end;
 
