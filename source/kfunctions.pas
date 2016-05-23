@@ -565,7 +565,7 @@ procedure EditSelectAllFocused;
 { Enables or disables all children of AParent depending on AEnabled.
   If ARecursive is True then the function applies to whole tree of controls
   owned by AParent. }
-procedure EnableControls(AParent: TWinControl; AEnabled, ARecursive: Boolean);
+procedure EnableControls(AParent: TWinControl; AEnabled: Boolean; ARecursive: Boolean = True);
 
 { Ensures the path given by APath has slash at the end. }
 procedure EnsureLastPathSlash(var APath: string);
@@ -607,6 +607,9 @@ procedure Exchange(var Value1, Value2: Char); overload;
 
 { Fills the message record. }
 function FillMessage(Msg: Cardinal; WParam: WPARAM; LParam: LPARAM): TLMessage;
+
+{ Searches for a child control. Can search recursively. }
+function FindChildControl(AParent: TWinControl; const AName: string; ARecursive: Boolean = True): TControl;
 
 { Formats the given currency value with to specified parameters. Not thread safe. }
 function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKString;
@@ -1500,6 +1503,31 @@ begin
   Result.LParam := LParam;
   Result.WParam := WParam;
   Result.Result := 0;
+end;
+
+function FindChildControl(AParent: TWinControl; const AName: string; ARecursive: Boolean): TControl;
+
+  function DoSearch(AParent: TWinControl): TControl;
+  var
+    I: Integer;
+    Ctrl: TControl;
+  begin
+    Result := nil;
+    if AParent <> nil then
+      for I := 0 to AParent.ControlCount - 1 do
+      begin
+        Ctrl := AParent.Controls[I];
+        if Ctrl.Name = AName then
+          Result := Ctrl
+        else if ARecursive and (Ctrl is TWinControl) then
+          Result := DoSearch(TWinControl(Ctrl));
+        if Result <> nil then
+          Break;
+      end;
+  end;
+
+begin
+  Result := DoSearch(AParent);
 end;
 
 function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKString;
