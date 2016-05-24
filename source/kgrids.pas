@@ -1160,6 +1160,8 @@ const
   cGF_EnterPressed                = $00000100;
   { This internal flag is set if esc key has been pressed and handled by the grid. }
   cGF_EscPressed                  = $00000200;
+  { This internal flag is set if the grid should not respond to mouse wheel messages. }
+  cGF_PreventMouseWheelScroll     = $00000400;
 
 type
   TKCustomGrid = class;
@@ -2161,6 +2163,7 @@ type
     function GetLastVisibleRow: Integer;
     function GetMoreCellsSelected: Boolean;
     function GetObjects(ACol, ARow: Integer): TObject;
+    function GetPreventMouseWheelScroll: Boolean;
     function GetRowHeights(Index: Integer): Integer;
     function GetRows(Index: Integer): TKGridRow;
     function GetSelection: TKGridRect;
@@ -2206,6 +2209,7 @@ type
     procedure SetObjects(ACol, ARow: Integer; Value: TObject);
     procedure SetOptions(Value: TKGridOptions);
     procedure SetOptionsEx(Value: TKGridOptionsEx);
+    procedure SetPreventMouseWheelScroll(const Value: Boolean);
     procedure SetRow(Value: Integer);
     procedure SetRowCount(Value: Integer);
     procedure SetRowHeights(Index: Integer; Value: Integer);
@@ -3265,6 +3269,8 @@ type
     property OptionsEx: TKGridOptionsEx read FOptionsEx write SetOptionsEx default cOptionsExDef;
     { Inherited property - see Delphi help. }
     property ParentColor default False;
+    { Prevent grid reaction to mouse wheel events - useful eg. for combo boxes as inplace editors. }
+    property PreventMouseWheelScroll: Boolean read GetPreventMouseWheelScroll write SetPreventMouseWheelScroll;
     { Specifies the style how multiple cells are selected. }
     property RangeSelectStyle: TKGridRangeSelectStyle read FRangeSelectStyle write FRangeSelectStyle default cRangeSelectStyleDef;
     { Gains access to selection base cell. Setting Row discards the current selection
@@ -7329,7 +7335,7 @@ var
   Key: Word;
 begin
   Result := inherited DoMouseWheelDown(Shift, MousePos);
-  if not Result then
+  if not (Result or PreventMouseWheelScroll) then
   begin
     if gxMouseWheelScroll in FOptionsEx then
     begin
@@ -7350,7 +7356,7 @@ var
   Key: Word;
 begin
   Result := inherited DoMouseWheelUp(Shift, MousePos);
-  if not Result then
+  if not (Result or PreventMouseWheelScroll) then
   begin
     if gxMouseWheelScroll in FOptionsEx then
     begin
@@ -7555,9 +7561,9 @@ begin
       MouseOverCells; // some win32 error might popup here
     except
     end;
-    CM_MOUSEWHEEL:
+    {CM_MOUSEWHEEL:
     begin
-    end;
+    end;}
     CN_CHAR:
       ClampInView(FEditorCell.Col, FEditorCell.Row);
   {$IFNDEF FPC}
@@ -8192,6 +8198,11 @@ begin
     if Data is TKGridObjectCell then
       Result := TKGridObjectCell(Data).CellObject;
   end;
+end;
+
+function TKCustomGrid.GetPreventMouseWheelScroll: Boolean;
+begin
+  Result := Flag(cGF_PreventMouseWheelScroll);
 end;
 
 function TKCustomGrid.GetRowHeights(Index: Integer): Integer;
@@ -12290,6 +12301,11 @@ begin
     if UpdatePaint then
       Invalidate;
   end;
+end;
+
+procedure TKCustomGrid.SetPreventMouseWheelScroll(const Value: Boolean);
+begin
+  FlagAssign(cGF_PreventMouseWheelScroll, Value);
 end;
 
 procedure TKCustomGrid.SetRow(Value: Integer);
