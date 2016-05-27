@@ -71,6 +71,7 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <DCC_UnitSearchPath>..\..\source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
         <SanitizedProjectName>KControls_D10</SanitizedProjectName>
         <DCC_Description>KControls Development Suite - design time package</DCC_Description>
