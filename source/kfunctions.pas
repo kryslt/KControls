@@ -979,9 +979,11 @@ begin
     begin
       Clipboard.GetFormat(Fmt, AStream);
       Result := True;
-    end
-    else
-      AText := AText;
+    end else
+    begin
+      AText := AsText;
+      Result := AText <> '';
+    end;
   end;
 {$ELSE}
   Fmt := RegisterClipboardFormat(PChar(AFormat));
@@ -1558,7 +1560,9 @@ begin
   Ctx.GlobalNameSpace := Classes.GlobalNameSpace;
 //  Ctx.IntConstList := Classes.IntConstList;
 {$IFDEF FPC}
+ {$IFnDEF DARWIN}
   Ctx.MainThreadID := Classes.MainThreadID;
+ {$ENDIF}
   Ctx.DragManager := Controls.DragManager;
   Ctx.WidgetSet := InterfaceBase.WidgetSet;
 {$ENDIF}
@@ -2383,7 +2387,9 @@ begin
   Classes.GlobalNameSpace := Ctx.GlobalNameSpace;
 {$IFDEF FPC}
 //  Classes.IntConstList := Ctx.IntConstList;
+{$IFnDEF DARWIN}
   Classes.MainThreadID := Ctx.MainThreadID;
+{$ENDIF}
   Controls.DragManager := Ctx.DragManager;
   InterfaceBase.WidgetSet := Ctx.WidgetSet;
 {$ENDIF}
