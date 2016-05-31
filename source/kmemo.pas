@@ -6911,19 +6911,11 @@ begin
 end;
 
 function TKMemoTextBlock.IndexToTextIndex(const AText: TKString; AIndex: Integer): Integer;
-{$IFDEF FPC}
 var
   I: Integer;
-{$ENDIF}
 begin
   AIndex := MinMax(AIndex, 0, ContentLength);
-{$IFDEF FPC}
-  Result := 1;
-  for I := 0 to AIndex - 1 do
-    Inc(Result, UTF8CharacterLength(@AText[Result]));
-{$ELSE}
-  Result := AIndex + 1;
-{$ENDIF}
+  Result := StrCPIndexToByteIndex(AText, AIndex);
 end;
 
 function TKMemoTextBlock.InsertString(const AText: TKString; At: Integer): Boolean;
@@ -7121,25 +7113,12 @@ begin
 end;
 
 function TKMemoTextBlock.TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer;
-{$IFDEF FPC}
 var
   I: Integer;
-{$ENDIF}
 begin
   if ATextIndex >= 0 then
-  begin
-  {$IFDEF FPC}
-    Result := 0;
-    I := 1;
-    while I < ATextIndex do
-    begin
-      Inc(I, UTF8CharacterLength(@AText[I]));
-      Inc(Result);
-    end;
-  {$ELSE}
-    Result := ATextIndex - 1;
-  {$ENDIF}
-  end else
+    Result := StrByteIndexToCPIndex(AText, ATextIndex)
+  else
     Result := -1;
 end;
 
