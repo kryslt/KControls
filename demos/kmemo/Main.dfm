@@ -83,14 +83,22 @@ object MainForm: TMainForm
     OnClick = BUPrintClick
   end
   object BUTest: TButton
-    Left = 267
+    Left = 428
     Top = 517
     Width = 75
     Height = 25
     Anchors = [akLeft, akBottom]
-    Caption = 'Test'
+    Caption = 'Run Test'
     TabOrder = 4
     OnClick = BUTestClick
+  end
+  object CoBTest: TComboBox
+    Left = 267
+    Top = 521
+    Width = 145
+    Height = 21
+    Style = csDropDownList
+    TabOrder = 5
   end
   object KPrintPreviewDialog1: TKPrintPreviewDialog
     Left = 408

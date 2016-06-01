@@ -1,14 +1,14 @@
 object MainForm: TMainForm
-  Left = 399
+  Left = 345
   Height = 576
-  Top = 217
+  Top = 256
   Width = 1055
   Caption = 'KMemoDemo'
   ClientHeight = 576
   ClientWidth = 1055
   OnCreate = FormCreate
   OnResize = FormResize
-  LCLVersion = '1.5'
+  LCLVersion = '1.6.0.4'
   Visible = True
   object PNMain: TPanel
     Left = 0
@@ -79,14 +79,23 @@ object MainForm: TMainForm
     TabOrder = 3
   end
   object BUtest: TButton
-    Left = 376
+    Left = 528
     Height = 25
     Top = 544
     Width = 112
     Anchors = [akLeft, akBottom]
-    Caption = 'Test'
+    Caption = 'Run Test'
     OnClick = BUTestClick
     TabOrder = 4
+  end
+  object CoBTest: TComboBox
+    Left = 376
+    Height = 23
+    Top = 544
+    Width = 144
+    ItemHeight = 15
+    Style = csDropDownList
+    TabOrder = 5
   end
   object KPrintSetupDialog1: TKPrintSetupDialog
     left = 448

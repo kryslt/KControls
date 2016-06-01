@@ -318,6 +318,21 @@ type
     function UpdateUnlocked: Boolean; virtual;
   end;
 
+  TKPersistent = class(TPersistent)
+  private
+    FChanged: Boolean;
+    FUpdateLock: Integer;
+  protected
+    procedure Changed;
+    procedure Update; virtual; abstract;
+  public
+    constructor Create; virtual;
+    procedure LockUpdate;
+    procedure UnlockUpdate(ACallUpdate: Boolean = True);
+    function UpdateUnlocked: Boolean;
+    property UpdateLock: Integer read FUpdateLock;
+  end;
+
   { Base class for all visible controls in KControls. }
   TKCustomControl = class(TCustomControl)
   private
@@ -1341,7 +1356,8 @@ begin
   FUpdateLock := 0;
 end;
 
-procedure TKObject.Assign(ASource: TKObject);begin
+procedure TKObject.Assign(ASource: TKObject);
+begin
 end;
 
 procedure TKObject.CallAfterUpdate;
@@ -1400,13 +1416,19 @@ begin
   FUpdateLock := 0;
 end;
 
-function TKObjectList.Add(AObject: TObject): Integer;begin
+function TKObjectList.Add(AObject: TObject): Integer;
+begin
   if AObject is TKObject then
     TKObject(AObject).Parent := Self;
   Result := inherited Add(AObject);
 end;
 
-procedure TKObjectList.Assign(ASource: TKObjectList);var  I: Integer;  Cls: TKObjectClass;  SrcItem, DstItem: TKObject;begin
+procedure TKObjectList.Assign(ASource: TKObjectList);
+var
+  I: Integer;
+  Cls: TKObjectClass;
+  SrcItem, DstItem: TKObject;
+begin
   if ASource <> nil then
   begin
     Clear;
@@ -1477,6 +1499,44 @@ end;
 function TKObjectList.UpdateUnlocked: Boolean;
 begin
   Result := FUpdateLock <= 0;
+end;
+
+{ TKPersistent }
+
+constructor TKPersistent.Create;
+begin
+  inherited;
+  FUpdateLock := 0;
+  FChanged := False;
+end;
+
+procedure TKPersistent.Changed;
+begin
+  if FUpdateLock = 0 then
+    Update
+  else
+    FChanged := True;
+end;
+
+procedure TKPersistent.LockUpdate;
+begin
+  Inc(FUpdateLock);
+  FChanged := False;
+end;
+
+procedure TKPersistent.UnlockUpdate(ACallUpdate: Boolean);
+begin
+  if FUpdateLock > 0 then
+  begin
+    Dec(FUpdateLock);
+    if (FUpdateLock = 0) and FChanged and ACallUpdate then
+      Update;
+  end;
+end;
+
+function TKPersistent.UpdateUnlocked: Boolean;
+begin
+  Result := FUpdateLock = 0;
 end;
 
 { TKCustomControl }

@@ -318,7 +318,6 @@ type
     FMemo: TKCustomMemo;
     FStack: TKMemoRTFStack;
     FStream: TStream;
-    FTmpTextStyle: TKMemoTextStyle;
     FTwipsPerPixel: Double;
     procedure AddText(const APart: TKString); virtual;
     procedure AddTextToNumberingFormat(const APart: TKString); virtual;
@@ -380,10 +379,13 @@ type
 
   { Specifies the RTF writer. }
   TKMemoRTFWriter = class(TObject)
+  private
+    FReadableOutput: Boolean;
   protected
     FCodePage: Integer;
     FColorTable: TKMemoRTFColorTable;
     FFontTable: TKMemoRTFFontTable;
+    FGroupLevel: Integer;
     FListTable: TKMemoRTFListTable;
     FMemo: TKCustomMemo;
     FSelectedOnly: Boolean;
@@ -432,11 +434,13 @@ type
     procedure WriteTextStyle(ATextStyle: TKMemoTextStyle); virtual;
     procedure WriteUnicodeString(const AText: TKString); virtual;
     procedure WriteUnknownGroup;
+  published
   public
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
     procedure SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean); virtual;
     procedure SaveToStream(AStream: TStream; ASelectedOnly: Boolean; AActiveBlocks: TKMemoBlocks = nil); virtual;
+    property ReadableOutput: Boolean read FReadableOutput write FReadableOutput;
   end;
 
 function CharSetToCP(ACharSet: TFontCharSet): Integer;
@@ -1345,7 +1349,9 @@ constructor TKMemoRTFState.Create;
 begin
   FGroup := rgNone;
   FParaStyle := TKMemoParaStyle.Create;
+  FParaStyle.Changeable := False;
   FTextStyle := TKMemoTextStyle.Create;
+  FTextStyle.Changeable := False;
 end;
 
 destructor TKMemoRTFState.Destroy;
@@ -1384,7 +1390,6 @@ begin
   FMemo := AMemo;
   FStack := TKMemoRTFStack.Create;
   FStream := nil;
-  FTmpTextStyle := TKMemoTextStyle.Create;
   FillCtrlTable;
   FCtrlTable.SortTable;
   if (FMemo <> nil) and FMemo.HandleAllocated then
@@ -1401,7 +1406,6 @@ begin
   FIndexStack.Free;
   FListTable.Free;
   FStack.Free;
-  FTmpTextStyle.Free;
   inherited;
 end;
 
@@ -1585,17 +1589,14 @@ begin
   end;
   if S <> '' then
   begin
-    FTmpTextStyle.Assign(FActiveState.TextStyle);
-    if FTmpTextStyle.StyleChanged then
-    begin
+    if FActiveState.TextStyle.StyleChanged then
       FlushText;
-      FTmpTextStyle.StyleChanged := False;
-    end;
     if FActiveText = nil then
     begin
       FActiveText := TKMemoTextBlock.Create;
-      FActiveText.TextStyle.Assign(FTmpTextStyle);
+      FActiveText.TextStyle.Assign(FActiveState.TextStyle);
     end;
+    FActiveState.TextStyle.StyleChanged := False;
     FActiveString := FActiveString + S;
   end;
 end;
@@ -2265,7 +2266,11 @@ procedure TKMemoRTFReader.ReadFieldGroup(ACtrl: Integer; var AText: AnsiString;
   AParam: Integer);
 begin
   case TKMemoRTFFieldProp(ACtrl) of
-    rpfiField: FActiveState.Group := rgField;
+    rpfiField:
+    begin
+      FlushText;
+      FActiveState.Group := rgField;
+    end;
     rpfiResult:
     begin
       FlushText;
@@ -2325,7 +2330,7 @@ begin
         AText := ''; // we used the text as font name
       end
     end;
-    rgNone, rgTextBox:
+    rgNone, rgTextBox, rgFieldResult:
     begin
       case TKMemoRTFFontProp(ACtrl) of
         rpfIndex: ReadTextFormatting(Integer(rptFontIndex), AText, AParam);
@@ -2907,7 +2912,11 @@ end;
 procedure TKMemoRTFReader.ReadTextFormatting(ACtrl: Integer; var AText: AnsiString; AParam: Integer);
 begin
   if FActiveState.Group in [rgNone, rgTextBox, rgFieldResult] then case TKMemoRTFTextProp(ACtrl) of
-    rptPlain: if FMemo <> nil then FActiveState.TextStyle.Assign(FMemo.TextStyle);
+    rptPlain:
+    begin
+      if FMemo <> nil then
+        FActiveState.TextStyle.Assign(FMemo.TextStyle);
+    end;
     rptFontIndex: ApplyFont(FActiveState.TextStyle, AParam);
     rptBold:
     begin
@@ -2973,6 +2982,8 @@ end;
 
 constructor TKMemoRTFWriter.Create(AMemo: TKCustomMemo);
 begin
+  FGroupLevel := 0;
+  FReadableOutput := False;
   FMemo := AMemo;
   FColorTable := TKMemoRTFColorTable.Create;
   FFontTable := TKMemoRTFFontTable.Create;
@@ -3366,12 +3377,18 @@ begin
 end;
 
 procedure TKMemoRTFWriter.WriteGroupBegin;
+var
+  I: Integer;
 begin
+  if FReadableOutput and (FStream.Size > 0) then
+    WriteString(cCR+cLF);
   WriteString('{');
+  Inc(FGroupLevel);
 end;
 
 procedure TKMemoRTFWriter.WriteGroupEnd;
 begin
+  Dec(FGroupLevel);
   WriteString('}');
 end;
 

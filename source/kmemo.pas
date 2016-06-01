@@ -347,7 +347,7 @@ type
     property OnChanged: TKMemoListChangedEvent read FOnChanged write FOnChanged;
   end;
 
-  TKMemoBackground = class(TPersistent)
+  TKMemoBackground = class(TKPersistent)
   private
     FImage: TPicture;
     FRepeatX: Boolean;
@@ -378,11 +378,14 @@ type
 
   TKMemoScriptPosition = (tpoNormal, tpoSuperscript, tpoSubscript);
 
-  TKMemoTextStyle = class(TPersistent)
+  { TKMemoTextStyle }
+
+  TKMemoTextStyle = class(TKPersistent)
   private
     FAllowBrush: Boolean;
     FBrush: TBrush;
     FCapitals: TKMemoScriptCapitals;
+    FChangeable: Boolean;
     FFont: TFont;
     FScriptPosition: TKMemoScriptPosition;
     FStyleChanged: Boolean;
@@ -395,19 +398,21 @@ type
   protected
     FBrushChanged: Boolean;
     FFontChanged: Boolean;
-    FLocked: Boolean;
     procedure BrushChanged(Sender: TObject);
     procedure FontChanged(Sender: TObject);
-    procedure Changed; virtual;
+    procedure PropsChanged; virtual;
+    procedure Update; override;
   public
     constructor Create; virtual;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
+    procedure AssignNC(ASource: TKMemoTextStyle); virtual;
     procedure Defaults; virtual;
     function EqualProperties(ASource: TKMemoTextStyle): Boolean; virtual;
     procedure NotifyChange(AValue: TKMemoTextStyle); virtual;
     property AllowBrush: Boolean read FAllowBrush write SetAllowBrush;
     property Capitals: TKMemoScriptCapitals read FCapitals write SetCapitals;
+    property Changeable: Boolean read FChangeable write FChangeable;
     property Brush: TBrush read FBrush write SetBrush;
     property Font: TFont read FFont write SetFont;
     property ScriptPosition: TKMemoScriptPosition read FScriptPosition write SetScriptPosition;
@@ -438,13 +443,16 @@ type
 
   TKMemoBlockStyleChangedEvent = procedure(Sender: TObject; AReasons: TKMemoUpdateReasons) of object;
 
-  TKMemoBlockStyle = class(TPersistent)
+  { TKMemoBlockStyle }
+
+  TKMemoBlockStyle = class(TKPersistent)
   private
     FBrush: TBrush;
     FBorderRadius: Integer;
     FBorderColor: TColor;
     FBorderWidth: Integer;
     FBorderWidths: TKRect;
+    FChangeable: Boolean;
     FStyleChanged: Boolean;
     FContentMargin: TKRect;
     FContentPadding: TKRect;
@@ -487,13 +495,15 @@ type
     function GetAllPaddingsRight: Integer;
     function GetAllPaddingsTop: Integer;
   protected
-    FLocked: Boolean;
+    FUpdateReasons: TKMemoUpdateReasons;
     procedure BrushChanged(Sender: TObject);
-    procedure Changed(AReasons: TKMemoUpdateReasons); virtual;
+    procedure PropsChanged(AReasons: TKMemoUpdateReasons); virtual;
+    procedure Update; override;
   public
     constructor Create; virtual;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
+    procedure AssignNC(ASource: TKMemoBlockStyle); virtual;
     function BorderRect(const ARect: TRect): TRect; virtual;
     function InteriorRect(const ARect: TRect): TRect; virtual;
     procedure Defaults; virtual;
@@ -512,6 +522,7 @@ type
     property BorderWidth: Integer read FBorderWidth write SetBorderWidth;
     property BorderWidths: TKRect read FBorderWidths write SetBorderWidths;
     property Brush: TBrush read FBrush write SetBrush;
+    property Changeable: Boolean read FChangeable write FChangeable;
     property ContentMargin: TKRect read FContentMargin write SetContentMargin;
     property ContentPadding: TKRect read FContentPadding write SetContentPadding;
     property FillBlip: TGraphic read FFillBlip write SetFillBlip;
@@ -1917,9 +1928,9 @@ type
     { Save contents to a file. Chooses format automatically by extension. Text file is default format. }
     procedure SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
     { Save contents to a RTF file. }
-    procedure SaveToRTF(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
+    procedure SaveToRTF(const AFileName: TKString; ASelectedOnly: Boolean = False; AReadableOutput: Boolean = False); virtual;
     { Save contents to a RTF stream. }
-    procedure SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean = False); virtual;
+    procedure SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean = False; AReadableOutput: Boolean = False); virtual;
     { Save contents to a plain text file. }
     procedure SaveToTXT(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
     { Specifies the current selection. This is faster than combination of SelStart and SelLength. }
@@ -2943,27 +2954,30 @@ end;
 constructor TKMemoTextStyle.Create;
 begin
   inherited;
+  FChangeable := True;
   FBrush := TBrush.Create;
   FBrush.OnChange := BrushChanged;
   FFont := TFont.Create;
   FFont.OnChange := FontChanged;
   FOnChanged := nil;
-  FLocked := False;
   Defaults;
 end;
 
 procedure TKMemoTextStyle.Defaults;
+var
+  OldState: Boolean;
 begin
   FAllowBrush := True;
   FCapitals := tcaNone;
   FScriptPosition := tpoNormal;
   FStyleChanged := False;
-  FLocked := True;
+  OldState := Changeable;
+  Changeable := False;
   try
     DefaultsToBrush(FBrush);
     DefaultsToFont(FFont);
   finally
-    FLocked := False;
+    Changeable := OldState;
   end;
 end;
 
@@ -2972,6 +2986,44 @@ begin
   FBrush.Free;
   FFont.Free;
   inherited;
+end;
+
+procedure TKMemoTextStyle.Assign(ASource: TPersistent);
+begin
+  if ASource is TKMemoTextStyle then
+  begin
+    LockUpdate;
+    try
+      Brush.Assign(TKMemoTextStyle(ASource).Brush);
+      Capitals := TKMemoTextStyle(ASource).Capitals;
+      Font.Assign(TKMemoTextStyle(ASource).Font);
+      ScriptPosition := TKMemoTextStyle(ASource).ScriptPosition;
+      {if Changeable and TKMemoTextStyle(ASource).Changeable then
+        StyleChanged := TKMemoTextStyle(ASource).StyleChanged;}
+    finally
+      UnlockUpdate;
+    end;
+  end;
+end;
+
+procedure TKMemoTextStyle.AssignNC(ASource: TKMemoTextStyle);
+var
+  OldState: Boolean;
+begin
+  OldState := Changeable;
+  Changeable := False;
+  try
+    Assign(ASource);
+  finally
+    Changeable := OldState;
+  end;
+end;
+
+procedure TKMemoTextStyle.BrushChanged(Sender: TObject);
+begin
+  if UpdateUnlocked then
+    FBrushChanged := True;
+  PropsChanged;
 end;
 
 function TKMemoTextStyle.EqualProperties(ASource: TKMemoTextStyle): Boolean;
@@ -2990,48 +3042,22 @@ end;
 
 procedure TKMemoTextStyle.FontChanged(Sender: TObject);
 begin
-  if not FLocked then
+  if UpdateUnlocked then
     FFontChanged := True;
-  Changed;
+  PropsChanged;
 end;
 
 procedure TKMemoTextStyle.NotifyChange(AValue: TKMemoTextStyle);
 begin
-  if not (FStyleChanged or FLocked) then
-  begin
-    FLocked := True;
-    try
-      Assign(AValue);
-    finally
-      FLocked := False;
-    end;
-  end;
+  if not FStyleChanged and UpdateUnlocked then
+    AssignNC(AValue);
 end;
 
-procedure TKMemoTextStyle.Assign(ASource: TPersistent);
+procedure TKMemoTextStyle.PropsChanged;
 begin
-  if ASource is TKMemoTextStyle then
-  begin
-    Brush.Assign(TKMemoTextStyle(ASource).Brush);
-    Capitals := TKMemoTextStyle(ASource).Capitals;
-    Font.Assign(TKMemoTextStyle(ASource).Font);
-    ScriptPosition := TKMemoTextStyle(ASource).ScriptPosition;
-  end;
-end;
-
-procedure TKMemoTextStyle.BrushChanged(Sender: TObject);
-begin
-  if not FLocked then
-    FBrushChanged := True;
-  Changed;
-end;
-
-procedure TKMemoTextStyle.Changed;
-begin
-  if not FLocked then
+  if Changeable then
     FStyleChanged := True;
-  if Assigned(FOnChanged) then
-    FOnChanged(Self);
+  Changed;
 end;
 
 procedure TKMemoTextStyle.SetAllowBrush(const Value: Boolean);
@@ -3039,7 +3065,7 @@ begin
   if Value <> FAllowBrush then
   begin
     FAllowBrush := Value;
-    Changed;
+    PropsChanged;
   end;
 end;
 
@@ -3053,7 +3079,7 @@ begin
   if Value <> FCapitals then
   begin
     FCapitals := Value;
-    Changed;
+    PropsChanged;
   end;
 end;
 
@@ -3067,8 +3093,14 @@ begin
   if Value <> FScriptPosition then
   begin
     FScriptPosition := Value;
-    Changed;
+    PropsChanged;
   end;
+end;
+
+procedure TKMemoTextStyle.Update;
+begin
+  if Assigned(FOnChanged) then
+    FOnChanged(Self);
 end;
 
 { TKMemoParagraphStyle }
@@ -3076,6 +3108,7 @@ end;
 constructor TKMemoBlockStyle.Create;
 begin
   inherited;
+  FChangeable := True;
   FBorderWidths := TKRect.Create;
   FBorderWidths.OnChanged := BrushChanged;
   FBrush := TBrush.Create;
@@ -3086,22 +3119,7 @@ begin
   FContentPadding.OnChanged := BrushChanged;
   FFillBlip := nil;
   FOnChanged := nil;
-  FLocked := False;
   Defaults;
-end;
-
-procedure TKMemoBlockStyle.Defaults;
-begin
-  FBorderColor := clBlack;
-  FBorderRadius := 0;
-  FBorderWidth := 0;
-  FBorderWidths.AssignFromValues(0, 0, 0, 0);
-  FBrush.Style := bsClear;
-  FContentPadding.AssignFromValues(0, 0, 0, 0);
-  FContentMargin.AssignFromValues(0, 0, 0, 0);
-  FHAlign := halLeft;
-  FStyleChanged := False;
-  FWrapMode := wrAround;
 end;
 
 destructor TKMemoBlockStyle.Destroy;
@@ -3118,15 +3136,35 @@ procedure TKMemoBlockStyle.Assign(ASource: TPersistent);
 begin
   if ASource is TKMemoBlockStyle then
   begin
-    BorderColor := TKMemoBlockStyle(ASource).BorderColor;
-    BorderRadius := TKMemoBlockStyle(ASource).BorderRadius;
-    BorderWidth := TKMemoBlockStyle(ASource).BorderWidth;
-    BorderWidths.Assign(TKMemoBlockStyle(ASource).BorderWidths);
-    Brush.Assign(TKMemoBlockStyle(ASource).Brush);
-    WrapMode := TKMemoParaStyle(ASource).WrapMode;
-    ContentMargin.Assign(TKMemoBlockStyle(ASource).ContentMargin);
-    ContentPadding.Assign(TKMemoBlockStyle(ASource).ContentPadding);
-    HAlign := TKMemoParaStyle(ASource).HAlign;
+    LockUpdate;
+    try
+      BorderColor := TKMemoBlockStyle(ASource).BorderColor;
+      BorderRadius := TKMemoBlockStyle(ASource).BorderRadius;
+      BorderWidth := TKMemoBlockStyle(ASource).BorderWidth;
+      BorderWidths.Assign(TKMemoBlockStyle(ASource).BorderWidths);
+      Brush.Assign(TKMemoBlockStyle(ASource).Brush);
+      WrapMode := TKMemoParaStyle(ASource).WrapMode;
+      ContentMargin.Assign(TKMemoBlockStyle(ASource).ContentMargin);
+      ContentPadding.Assign(TKMemoBlockStyle(ASource).ContentPadding);
+      HAlign := TKMemoParaStyle(ASource).HAlign;
+      {if Changeable and TKMemoParaStyle(ASource).Changeable then
+        StyleChanged := TKMemoParaStyle(ASource).StyleChanged;}
+    finally
+      UnlockUpdate;
+    end;
+  end;
+end;
+
+procedure TKMemoBlockStyle.AssignNC(ASource: TKMemoBlockStyle);
+var
+  OldState: Boolean;
+begin
+  OldState := Changeable;
+  Changeable := False;
+  try
+    Assign(ASource);
+  finally
+    Changeable := OldState;
   end;
 end;
 
@@ -3145,15 +3183,21 @@ end;
 
 procedure TKMemoBlockStyle.BrushChanged(Sender: TObject);
 begin
-  Changed([muExtent]);
+  PropsChanged([muExtent]);
 end;
 
-procedure TKMemoBlockStyle.Changed(AReasons: TKMemoUpdateReasons);
+procedure TKMemoBlockStyle.Defaults;
 begin
-  if not FLocked then
-    FStyleChanged := True;
-  if Assigned(FOnChanged) then
-    FOnChanged(Self, AReasons);
+  FBorderColor := clBlack;
+  FBorderRadius := 0;
+  FBorderWidth := 0;
+  FBorderWidths.AssignFromValues(0, 0, 0, 0);
+  FBrush.Style := bsClear;
+  FContentPadding.AssignFromValues(0, 0, 0, 0);
+  FContentMargin.AssignFromValues(0, 0, 0, 0);
+  FHAlign := halLeft;
+  FStyleChanged := False;
+  FWrapMode := wrAround;
 end;
 
 function TKMemoBlockStyle.GetAllPaddingsBottom: Integer;
@@ -3262,15 +3306,8 @@ end;
 
 procedure TKMemoBlockStyle.NotifyChange(AValue: TKMemoBlockStyle);
 begin
-  if not (FStyleChanged or FLocked) then
-  begin
-    FLocked := True;
-    try
-      Assign(AValue);
-    finally
-      FLocked := False;
-    end;
-  end;
+  if not FStyleChanged and UpdateUnlocked then
+    AssignNC(Avalue);
 end;
 
 procedure TKMemoBlockStyle.PaintBox(ACanvas: TCanvas; const ARect: TRect);
@@ -3336,12 +3373,20 @@ begin
   end;
 end;
 
+procedure TKMemoBlockStyle.PropsChanged(AReasons: TKMemoUpdateReasons);
+begin
+  FUpdateReasons := AReasons;
+  if Changeable then
+    FStyleChanged := True;
+  Changed;
+end;
+
 procedure TKMemoBlockStyle.SetBorderColor(const Value: TColor);
 begin
   if Value <> FBorderColor then
   begin
     FBorderColor := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3350,7 +3395,7 @@ begin
   if Value <> FBorderRadius then
   begin
     FBorderRadius := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3359,7 +3404,7 @@ begin
   if Value <> FBorderWidth then
   begin
     FBorderWidth := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3388,7 +3433,7 @@ begin
   if Value <> FWrapMode then
   begin
     FWrapMode := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3413,7 +3458,7 @@ begin
     FFillBlip := Cls.Create;
     FFillBlip.Assign(Value);
   end;
-  Changed([muExtent]);
+  PropsChanged([muExtent]);
 end;
 
 procedure TKMemoBlockStyle.SetHAlign(const Value: TKHAlign);
@@ -3421,7 +3466,7 @@ begin
   if Value <> FHAlign then
   begin
     FHAlign := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3453,6 +3498,12 @@ end;
 procedure TKMemoBlockStyle.SetTopPadding(const Value: Integer);
 begin
   FContentPadding.Top := Value;
+end;
+
+procedure TKMemoBlockStyle.Update;
+begin
+  if Assigned(FOnChanged) then
+    FOnChanged(Self, FUpdateReasons);
 end;
 
 { TKMemoParagraphStyle }
@@ -3491,7 +3542,7 @@ begin
   if Value <> FFirstIndent then
   begin
     FFirstIndent := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3500,7 +3551,7 @@ begin
   if Value <> FLineSpacingValue then
   begin
     FLineSpacingValue := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3509,7 +3560,7 @@ begin
   if Value <> FLineSpacingFactor then
   begin
     FLineSpacingFactor := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3518,7 +3569,7 @@ begin
   if Value <> FLineSpacingMode then
   begin
     FLineSpacingMode := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3527,7 +3578,7 @@ begin
   if Value <> FNumberStartAt then
   begin
     FNumberStartAt := Value;
-    Changed([muContent]);
+    PropsChanged([muContent]);
   end;
 end;
 
@@ -3540,7 +3591,7 @@ begin
       FNumberingListLevel := Max(FNumberingListLevel, 0)
     else
       FNumberingListLevel := -1;
-    Changed([muContent]);
+    PropsChanged([muContent]);
   end;
 end;
 
@@ -3548,7 +3599,7 @@ procedure TKMemoParaStyle.SetNumberingListAndLevel(AListID, ALevelIndex: Integer
 begin
   FNumberingList := AListID;
   FNumberingListLevel := ALevelIndex;
-  Changed([muContent]);
+  PropsChanged([muContent]);
 end;
 
 procedure TKMemoParaStyle.SetNumberingListLevel(const Value: Integer);
@@ -3556,7 +3607,7 @@ begin
   if Value <> FNumberingListLevel then
   begin
     FNumberingListLevel := Value;
-    Changed([muContent]);
+    PropsChanged([muContent]);
   end;
 end;
 
@@ -3565,7 +3616,7 @@ begin
   if Value <> FWordWrap then
   begin
     FWordWrap := Value;
-    Changed([muExtent]);
+    PropsChanged([muExtent]);
   end;
 end;
 
@@ -3851,6 +3902,7 @@ begin
   FMaxWordLength := cMaxWordLengthDef;
   FMouseWheelAccumulator := 0;
   FNewTextStyle := TKMemoTextStyle.Create;
+  FNewTextStyle.Changeable := False;
   FNewTextStyleValid := False;
   FOldCaretRect := CreateEmptyRect;
   FOptions := cKMemoOptionsDef;
@@ -3858,6 +3910,7 @@ begin
   FPreferredCaretPos := 0;
   FKeyMapping := TKEditKeyMapping.Create;
   FParaStyle := TKMemoParaStyle.Create;
+  FParaStyle.Changeable := False;
   FParaStyle.OnChanged := ParaStyleChanged;
   FRedoList := TKMemoChangeList.Create(Self, nil);
   FRequiredContentWidth := 0;
@@ -3870,7 +3923,9 @@ begin
   FScrollTimer.OnTimer := ScrollTimerHandler;
   FStates := [];
   FTextStyle := TKMemoTextStyle.Create;
+  FTextStyle.Changeable := False;
   FTextStyle.Font.Assign(Font);
+  FTextStyle.UnlockUpdate;
   FTextStyle.OnChanged := TextStyleChanged;
   FTopPos := 0;
   FUndoList := TKMemoChangeList.Create(Self, FRedoList);
@@ -3952,7 +4007,7 @@ begin
       Self.KeyMapping.Assign(KeyMapping);
       Self.Modified := False;
       Self.Options := Options;
-      Self.ParaStyle.Assign(ParaStyle);
+      Self.ParaStyle.AssignNC(ParaStyle);
       Self.ParentBiDiMode := ParentBiDiMode;
       Self.ParentColor := ParentColor;
     {$IFNDEF FPC}
@@ -3967,7 +4022,7 @@ begin
       Self.ShowHint := ShowHint;
       Self.TabOrder := TabOrder;
       Self.TabStop := TabStop;
-      Self.TextStyle.Assign(TextStyle);
+      Self.TextStyle.AssignNC(TextStyle);
       Self.Visible := Visible;
     finally
       Self.UnlockUpdate;
@@ -5344,12 +5399,13 @@ begin
     SaveToTXT(AFileName);
 end;
 
-procedure TKCustomMemo.SaveToRTF(const AFileName: TKString; ASelectedOnly: Boolean);
+procedure TKCustomMemo.SaveToRTF(const AFileName: TKString; ASelectedOnly, AReadableOutput: Boolean);
 var
   Writer: TKMemoRTFWriter;
 begin
   Writer := TKMemoRTFWriter.Create(Self);
   try
+    Writer.ReadableOutput := AReadableOutput;
     Writer.SaveToFile(AFileName, ASelectedOnly);
   finally
     Writer.Free;
@@ -5357,12 +5413,13 @@ begin
 end;
 
 procedure TKCustomMemo.SaveToRTFStream(AStream: TStream;
-  ASelectedOnly: Boolean);
+  ASelectedOnly, AReadableOutput: Boolean);
 var
   Writer: TKMemoRTFWriter;
 begin
   Writer := TKMemoRTFWriter.Create(Self);
   try
+    Writer.ReadableOutput := AReadableOutput;
     Writer.SaveToStream(AStream, ASelectedOnly);
   finally
     Writer.Free;
@@ -6911,8 +6968,6 @@ begin
 end;
 
 function TKMemoTextBlock.IndexToTextIndex(const AText: TKString; AIndex: Integer): Integer;
-var
-  I: Integer;
 begin
   AIndex := MinMax(AIndex, 0, ContentLength);
   Result := StrCPIndexToByteIndex(AText, AIndex);
@@ -7113,8 +7168,6 @@ begin
 end;
 
 function TKMemoTextBlock.TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer;
-var
-  I: Integer;
 begin
   if ATextIndex >= 0 then
     Result := StrByteIndexToCPIndex(AText, ATextIndex)
@@ -7534,7 +7587,12 @@ constructor TKMemoParagraph.Create;
 begin
   inherited;
   FExtent := CreateEmptyPoint;
-  FTextStyle.AllowBrush := False;
+  FTextStyle.Changeable := False;
+  try
+    FTextStyle.AllowBrush := False;
+  finally
+    FTextStyle.Changeable := True;
+  end;
   FNumberBlock := nil;
   FParaStyle := TKMemoParaStyle.Create;
   FParaStyle.OnChanged := ParaStyleChanged;
@@ -8844,7 +8902,7 @@ begin
       if (Cell.ColSpan > 0) and (Cell.RowSpan > 0) then
       begin
         W := FCellStyle.BorderWidth;
-        Cell.BlockStyle.Assign(FCellStyle);
+        Cell.BlockStyle.AssignNC(FCellStyle);
         Cell.BlockStyle.BorderWidth := 0;
         Cell.BlockStyle.BorderWidths.AssignFromValues(0, 0, 0, 0);
         Cell.RequiredBorderWidths.AssignFromValues(W, W, W, W);
@@ -11189,7 +11247,7 @@ begin
           begin
             // take rectangle from last word
             TmpRect := Item.WordIndexToRect(ACanvas, J, AIndex - LastIndex - 1, ACaret);
-            TmpFound := True;
+            TmpFound := not IsRectEmpty(TmpRect);
           end
           else if (AIndex >= LastIndex) and (AIndex < CurIndex) then
           begin

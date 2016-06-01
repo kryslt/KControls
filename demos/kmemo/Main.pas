@@ -22,6 +22,7 @@ type
     BUtest: TButton;
     BUPreview: TButton;
     BUPrint: TButton;
+    CoBTest: TComboBox;
     PNMain: TPanel;
     Panel1: TPanel;
     Panel2: TPanel;
@@ -40,7 +41,11 @@ type
     { Private declarations }
     KMemo1: TKMemo;
     KMemo2: TKMemo;
+    function Call(MethodName: string): string;
     procedure LoadFiles;
+  public
+    { Public declarations }
+  published
     procedure Test1;
     procedure Test2;
     procedure Test3;
@@ -65,8 +70,6 @@ type
     procedure Test22;
     procedure Test23;
     procedure Test24;
-  public
-    { Public declarations }
   end;
 
 var
@@ -81,6 +84,8 @@ implementation
 {$ENDIF}
 
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+  I: Integer;
 begin
   KMemo1 := TKMemo.Create(Self);
   KMemo1.ContentPadding.Top := 20;
@@ -103,6 +108,21 @@ begin
   KMemo2.Options := KMemo2.Options + [eoShowFormatting, eoWantTab];
   KMemo2.Parent := Panel2;
   KMemo2.Clear;
+
+  for I := 1 to 24 do
+    CoBTest.Items.Add('Test ' + IntToStr(I));
+end;
+
+function TMainForm.Call(MethodName: string): string;
+type
+  TProc = procedure of object;
+var
+  m: TMethod;
+begin
+  m.Code := Self.MethodAddress(MethodName); //find method code
+  m.Data := pointer(Self); //store pointer to object instance
+  if m.Code <> nil then
+    TProc(m);
 end;
 
 procedure TMainForm.FormResize(Sender: TObject);
@@ -135,10 +155,10 @@ begin
 //  KMemo1.LoadFromRTF('simpletable.rtf');
 //  KMemo1.LoadFromRTF('advancedtable.rtf');
 //  KMemo1.Select(10, 510);
-  KMemo1.SaveToRTF('test_save.rtf');
+  KMemo1.SaveToRTF('test_save.rtf', False, True);
 
   KMemo2.LoadFromRTF('test_save.rtf');
-  KMemo2.SaveToRTF('test_copy_save.rtf');
+  KMemo2.SaveToRTF('test_save_copy.rtf', False, True);
 end;
 
 procedure TMainForm.KMemo1DropFiles(Sender: TObject; X, Y: Integer;  Files: TStrings);
@@ -148,7 +168,8 @@ end;
 
 procedure TMainForm.BUTestClick(Sender: TObject);
 begin
-  Test24;
+  if CoBTest.ItemIndex >= 0 then
+    Call('Test' + IntToStr(CoBTest.ItemIndex + 1));
 end;
 
 procedure TMainForm.Test1;
