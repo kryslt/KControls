@@ -1044,8 +1044,6 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     { Paints paper and control shape. }
     procedure Paint; override;
-    { Does nothing for this control. }
-    procedure PaintToCanvas(ACanvas: TCanvas); override;
     { Calls the @link(OnChanged) event. }
     procedure Changed;
     { Grants the input focus to the control when possible and the control has had none before. }
@@ -1067,6 +1065,8 @@ type
     procedure LastPage;
     { Shows next page. }
     procedure NextPage;
+    { Paints the entire current page to another Canvas. }
+    procedure PaintToCanvas(ACanvas: TCanvas); override;
     { Shows previous page. }
     procedure PreviousPage;
     { Updates the preview. }
@@ -3439,7 +3439,24 @@ begin
 end;
 
 procedure TKPrintPreview.PaintToCanvas(ACanvas: TCanvas);
+var
+  OldCanvas: TCanvas;
+  OldOffset, OldScrollPos: TPoint;
 begin
+  // will paint only the page (not the borders) on given canvas
+  OldCanvas := Canvas;
+  OldOffset := FPageOffset;
+  OldScrollPos := FScrollPos;
+  try
+    Canvas := ACanvas;
+    FPageOffset := Point(0, 0);
+    FScrollPos := Point(0, 0);
+    Paint;
+  finally
+    Canvas := OldCanvas;
+    FPageOffset := OldOffset;
+    FScrollPos := OldScrollPos;
+  end;
 end;
 
 procedure TKPrintPreview.Changed;
@@ -3707,4 +3724,4 @@ initialization
 {$ELSE}
   {$R kcontrols.res}
 {$ENDIF}
-end.
+end.

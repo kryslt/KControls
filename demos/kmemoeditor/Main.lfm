@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 469
+  Left = 510
   Height = 457
-  Top = 328
+  Top = 277
   Width = 684
   Caption = 'KMemo editor'
   Color = clBtnFace
@@ -11,5 +11,5 @@ object MainForm: TMainForm
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '1.4.2.0'
+  LCLVersion = '1.6.0.4'
 end
