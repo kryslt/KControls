@@ -572,7 +572,7 @@ begin
     Preview.Page := 2;
     BM.Width := Preview.PageRect.Right - Preview.PageRect.Left;
     BM.Height := Preview.PageRect.Bottom - Preview.PageRect.Top;
-    Preview.PaintToCanvas(BM.Canvas);
+    Preview.PaintTo(BM.Canvas);
     BM.SaveToFile('test.bmp');
   finally
     Preview.Free;

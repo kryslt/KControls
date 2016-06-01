@@ -1013,6 +1013,7 @@ type
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
     procedure SetColors(const Value: TKPreviewColors);
   protected
+    FCurrentCanvas: TCanvas;
     { Initializes a scroll message handling. }
     procedure BeginScrollWindow;
     { Defines additional styles. }
@@ -1044,6 +1045,8 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     { Paints paper and control shape. }
     procedure Paint; override;
+    { Paints the control to given canvas. }
+    procedure PaintToCanvas(ACanvas: TCanvas); override;
     { Calls the @link(OnChanged) event. }
     procedure Changed;
     { Grants the input focus to the control when possible and the control has had none before. }
@@ -1054,6 +1057,7 @@ type
     procedure UpdateScrollRange;
     { Updates the control size. }
     procedure UpdateSize; override;
+    property CurrentCanvas: TCanvas read FCurrentCanvas;
   public
     { Performs necessary initializations - default values to properties. }
     constructor Create(AOwner: TComponent); override;
@@ -1065,8 +1069,8 @@ type
     procedure LastPage;
     { Shows next page. }
     procedure NextPage;
-    { Paints the entire current page to another Canvas. }
-    procedure PaintToCanvas(ACanvas: TCanvas); override;
+    { Paints the current page to another canvas, without the top and left space around paper. }
+    procedure PaintTo(ACanvas: TCanvas);
     { Shows previous page. }
     procedure PreviousPage;
     { Updates the preview. }
@@ -2336,7 +2340,7 @@ begin
       Invalidate
     else
     begin
-      FCanvas := APreview.Canvas;
+      FCanvas := APreview.CurrentCanvas;
       FActive := True;
       FPreviewing := True;
       try
@@ -3002,6 +3006,7 @@ begin
   inherited;
   FColors := TKPreviewColors.Create(Self);
   FControl := nil;
+  FCurrentCanvas := Canvas;
   FMouseWheelAccumulator := 0;
   FPage := 1;
   FPageSize := CreateEmptyPoint;
@@ -3322,7 +3327,7 @@ begin
   end;
 end;
 
-procedure TKPrintPreview.Paint;
+procedure TKPrintPreview.PaintToCanvas(ACanvas: TCanvas);
 
   procedure DoPaint(IsBuffer: Boolean);
   var
@@ -3330,10 +3335,10 @@ procedure TKPrintPreview.Paint;
     R, RPaper, RPage: TRect;
     RgnPaper: HRGN;
   begin
-    Canvas.Brush.Style := bsSolid;
-    Canvas.Pen.Mode := pmCopy;
-    Canvas.Pen.Style := psSolid;
-    Canvas.Pen.Width := 1;
+    ACanvas.Brush.Style := bsSolid;
+    ACanvas.Pen.Mode := pmCopy;
+    ACanvas.Pen.Style := psSolid;
+    ACanvas.Pen.Width := 1;
     RPage := GetPageRect;
     RPaper := RPage;
     with RPaper do
@@ -3347,13 +3352,13 @@ procedure TKPrintPreview.Paint;
       RgnPaper := 0;
     try
       // paint background around paper, we don't want at least this to flicker
-      if IsBuffer or (ExtSelectClipRgn(Canvas.Handle, RgnPaper, RGN_DIFF) <> NULLREGION) then
+      if IsBuffer or (ExtSelectClipRgn(ACanvas.Handle, RgnPaper, RGN_DIFF) <> NULLREGION) then
       begin
-        Canvas.Brush.Color := FColors.BkGnd;
-        Canvas.FillRect(ClientRect);
+        ACanvas.Brush.Color := FColors.BkGnd;
+        ACanvas.FillRect(ClientRect);
       end;
       if not IsBuffer then
-        SelectClipRgn(Canvas.Handle, RgnPaper);
+        SelectClipRgn(ACanvas.Handle, RgnPaper);
     finally
       if not IsBuffer then
         DeleteObject(rgnPaper);
@@ -3363,19 +3368,19 @@ procedure TKPrintPreview.Paint;
       C := FColors.SelectedBorder
     else
       C := FColors.Border;
-    Canvas.Pen.Color := C;
-    Canvas.Brush.Color := FColors.Paper;
-    Canvas.Rectangle(RPage);
-    Canvas.Brush.Color := FColors.BkGnd;
+    ACanvas.Pen.Color := C;
+    ACanvas.Brush.Color := FColors.Paper;
+    ACanvas.Rectangle(RPage);
+    ACanvas.Brush.Color := FColors.BkGnd;
     R := Rect(RPage.Left, RPage.Bottom, RPage.Left + cPreviewShadowSize, RPage.Bottom + cPreviewShadowSize);
-    Canvas.FillRect(R);
+    ACanvas.FillRect(R);
     R := Rect(RPage.Right, RPage.Top, RPage.Right + cPreviewShadowSize, RPage.Top + cPreviewShadowSize);
-    Canvas.FillRect(R);
-    Canvas.Brush.Color := C;
+    ACanvas.FillRect(R);
+    ACanvas.Brush.Color := C;
     R := Rect(RPage.Left + cPreviewShadowSize, RPage.Bottom, RPaper.Right, RPaper.Bottom);
-    Canvas.FillRect(R);
+    ACanvas.FillRect(R);
     R := Rect(RPage.Right, RPage.Top + cPreviewShadowSize, RPaper.Right, RPaper.Bottom);
-    Canvas.FillRect(R);
+    ACanvas.FillRect(R);
     // paint page outline
     InflateRect(RPage, -1, -1);
     FControl.PageSetup.PaintPageToPreview(Self);
@@ -3393,29 +3398,29 @@ begin
   RClient := ClientRect;
   if Assigned(FControl) then
   begin
-    SaveIndex := SaveDC(Canvas.Handle);
+    SaveIndex := SaveDC(ACanvas.Handle);
     try
     {$IFDEF USE_WINAPI}
       if DoubleBuffered then
       begin
         // we must paint always the entire client because of canvas scaling
-        MemBitmap := CreateCompatibleBitmap(Canvas.Handle, RClient.Right - RClient.Left, RClient.Bottom - RClient.Top);
+        MemBitmap := CreateCompatibleBitmap(ACanvas.Handle, RClient.Right - RClient.Left, RClient.Bottom - RClient.Top);
         try
-          OldBitmap := SelectObject(Canvas.Handle, MemBitmap);
+          OldBitmap := SelectObject(ACanvas.Handle, MemBitmap);
           try
-            SetWindowOrgEx(Canvas.Handle, 0, 0, @Org);
-            SelectClipRect(Canvas.Handle, Rect(0, 0, RClient.Right - RClient.Left, RClient.Bottom - RClient.Top));
+            SetWindowOrgEx(ACanvas.Handle, 0, 0, @Org);
+            SelectClipRect(ACanvas.Handle, Rect(0, 0, RClient.Right - RClient.Left, RClient.Bottom - RClient.Top));
             DoPaint(True);
           finally
-            SelectObject(Canvas.Handle, OldBitmap);
-            SetWindowOrgEx(Canvas.Handle, Org.X, Org.Y, nil);
+            SelectObject(ACanvas.Handle, OldBitmap);
+            SetWindowOrgEx(ACanvas.Handle, Org.X, Org.Y, nil);
           end;
           // copy MemBitmap to original canvas
-          DC := CreateCompatibleDC(Canvas.Handle);
+          DC := CreateCompatibleDC(ACanvas.Handle);
           try
             OldBitmap := SelectObject(DC, MemBitmap);
             try
-              CopyBitmap(Canvas.Handle, RClient, DC, 0, 0);
+              CopyBitmap(ACanvas.Handle, RClient, DC, 0, 0);
             finally
               SelectObject(DC, OldBitmap);
             end;
@@ -3429,33 +3434,36 @@ begin
     {$ENDIF}
         DoPaint(False);
     finally
-      RestoreDC(Canvas.Handle, SaveIndex);
+      RestoreDC(ACanvas.Handle, SaveIndex);
     end;
   end else
   begin
-    Canvas.Brush.Color := FColors.BkGnd;
-    Canvas.FillRect(RClient);
+    ACanvas.Brush.Color := FColors.BkGnd;
+    ACanvas.FillRect(RClient);
   end;
 end;
 
-procedure TKPrintPreview.PaintToCanvas(ACanvas: TCanvas);
+procedure TKPrintPreview.Paint;
+begin
+  PaintToCanvas(Canvas);
+end;
+
+procedure TKPrintPreview.PaintTo(ACanvas: TCanvas);
 var
-  OldCanvas: TCanvas;
   OldOffset, OldScrollPos: TPoint;
 begin
-  // will paint only the page (not the borders) on given canvas
-  OldCanvas := Canvas;
+  // will paint the page on given canvas
+  FCurrentCanvas := ACanvas;
   OldOffset := FPageOffset;
   OldScrollPos := FScrollPos;
   try
-    Canvas := ACanvas;
-    FPageOffset := Point(0, 0);
+    FPageOffset := Point(0, 0); // don't paint left and top space around paper
     FScrollPos := Point(0, 0);
-    Paint;
+    PaintToCanvas(ACanvas);
   finally
-    Canvas := OldCanvas;
     FPageOffset := OldOffset;
     FScrollPos := OldScrollPos;
+    FCurrentCanvas := Canvas;
   end;
 end;
 
