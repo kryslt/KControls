@@ -434,7 +434,6 @@ type
     procedure WriteTextStyle(ATextStyle: TKMemoTextStyle); virtual;
     procedure WriteUnicodeString(const AText: TKString); virtual;
     procedure WriteUnknownGroup;
-  published
   public
     constructor Create(AMemo: TKCustomMemo); virtual;
     destructor Destroy; override;
@@ -3377,8 +3376,6 @@ begin
 end;
 
 procedure TKMemoRTFWriter.WriteGroupBegin;
-var
-  I: Integer;
 begin
   if FReadableOutput and (FStream.Size > 0) then
     WriteString(cCR+cLF);

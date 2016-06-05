@@ -359,10 +359,10 @@ type
     procedure SetRepeatY(const Value: Boolean);
     procedure SetColor(const Value: TColor);
   protected
-    procedure Changed;
     procedure ImageChanged(Sender: TObject);
+    procedure Update; override;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
     procedure Clear;
@@ -403,7 +403,7 @@ type
     procedure PropsChanged; virtual;
     procedure Update; override;
   public
-    constructor Create; virtual;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
     procedure AssignNC(ASource: TKMemoTextStyle); virtual;
@@ -500,7 +500,7 @@ type
     procedure PropsChanged(AReasons: TKMemoUpdateReasons); virtual;
     procedure Update; override;
   public
-    constructor Create; virtual;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
     procedure AssignNC(ASource: TKMemoBlockStyle); virtual;
@@ -2875,6 +2875,7 @@ end;
 
 constructor TKMemoBackground.Create;
 begin
+  inherited;
   FColor := clNone;
   FImage := TPicture.Create;
   FImage.OnChange := ImageChanged;
@@ -2903,12 +2904,6 @@ begin
     RepeatX := TKMemoBackground(ASource).RepeatX;
     RepeatY := TKMemoBackground(ASource).RepeatY;
   end;
-end;
-
-procedure TKMemoBackground.Changed;
-begin
-  if Assigned(FOnChanged) then
-    FOnChanged(Self);
 end;
 
 procedure TKMemoBackground.Clear;
@@ -2947,6 +2942,13 @@ begin
     FRepeatY := Value;
     Changed;
   end;
+end;
+
+procedure TKMemoBackground.Update;
+begin
+  inherited;
+  if Assigned(FOnChanged) then
+    FOnChanged(Self);
 end;
 
 { TKMemoTextStyle }
