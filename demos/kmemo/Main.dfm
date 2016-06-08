@@ -98,6 +98,7 @@ object MainForm: TMainForm
     Width = 145
     Height = 21
     Style = csDropDownList
+    Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
   object KPrintPreviewDialog1: TKPrintPreviewDialog

@@ -316,11 +316,6 @@
   {$DEFINE USE_PNG_SUPPORT}
 {$IFEND}
 
-{ Disable kerning pairs. This is done by very simple manner - character by character measuring and output.
-  Because different OSes output kerning pairs differently and there is no dedicated kerning pair API in Lazarus.
-  My approach is slower but safe. Enable only when kerning pairs are shown incorrectly. }
-{.$DEFINE KMEMO_DISABLE_KERNING}
-
 {$ENDIF ~KCONTROLS_INC}
 
 

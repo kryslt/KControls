@@ -160,6 +160,8 @@ type
     elMouseCapture,
     { Overwrite mode active. }
     elOverwrite,
+    { Content is being printed or previewed. }
+    elPrinting,
     { Read only editor. }
     elReadOnly
   );
@@ -585,12 +587,14 @@ type
     FStartBlock: Integer;
     FStartIndex: Integer;
     FStartWord: Integer;
+    function GetLineRect: TRect;
   public
     constructor Create;
     property EndBlock: Integer read FEndBlock write FEndBlock;
     property EndIndex: Integer read FEndIndex write FEndIndex;
     property EndWord: Integer read FEndWord write FEndWord;
     property Extent: TPoint read FExtent write FExtent;
+    property LineRect: TRect read GetLineRect;
     property Position: TPoint read FPosition write FPosition;
     property StartBlock: Integer read FStartBlock write FStartBlock;
     property StartIndex: Integer read FStartIndex write FStartIndex;
@@ -617,6 +621,7 @@ type
     FTopPadding: Integer;
   public
     constructor Create;
+    procedure Clear;
     property BaseLine: Integer read FBaseLine write FBaseLine;
     property BottomPadding: Integer read FBottomPadding write FBottomPadding;
     property Clipped: Boolean read FClipped write FClipped;
@@ -641,6 +646,7 @@ type
     procedure BlocksFreeNotification(ABlocks: TKMemoBlocks);
     function GetDefaultTextStyle: TKMemoTextStyle;
     function GetDefaultParaStyle: TKMemoParaStyle;
+    function GetDrawSingleChars: Boolean;
     function GetLinePosition: TKMemoLinePosition;
     function GetListTable: TKMemoListTable;
     function GetMemo: TKCustomMemo;
@@ -731,6 +737,9 @@ type
     function MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer): TPoint; virtual;
     procedure NotifyDefaultTextChange; virtual;
     procedure NotifyDefaultParaChange; virtual;
+    procedure NotifyOptionsChange; virtual;
+    procedure NotifyPrintBegin; virtual;
+    procedure NotifyPrintEnd; virtual;
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; virtual;
     procedure SelectAll; virtual;
@@ -804,10 +813,12 @@ type
     FScriptVertOffset: Integer;
     FScriptFontHeight: Integer;
     FTextLength: Integer;
+    FWordCount: Integer;
     FWords: TKMemoWordList;
     function ApplyFormatting(const AText: TKString): TKString;
     procedure ApplyTextStyle(ACanvas: TCanvas); virtual;
     function ContentLength: Integer; override;
+    function DrawSingleChars: Boolean; virtual;
     function GetCanAddText: Boolean; override;
     function GetKerningDistance(ACanvas: TCanvas; const AChar1, AChar2: TKChar): Integer;
     function GetSelText: TKString; override;
@@ -827,6 +838,8 @@ type
     function GetWordTopPadding(Index: Integer): Integer; override;
     function GetWordWidth(Index: Integer): Integer; override;
     function IndexToTextIndex(const AText: TKString; AIndex: Integer): Integer; virtual;
+    function InternalTextExtent(ACanvas: TCanvas; const AText: TKString): TSize; virtual;
+    procedure InternalTextOutput(ACanvas: TCanvas; ALeft, ATop: Integer; const AText: TKString); virtual;
     function ModifiedTextExtent(ACanvas: TCanvas; const AText: TKString): TPoint; virtual;
     procedure ParentChanged; override;
     procedure SetText(const Value: TKString); virtual;
@@ -839,9 +852,7 @@ type
     procedure SetWordTopPadding(Index: Integer; const Value: Integer); override;
     procedure SetWordWidth(Index: Integer; const Value: Integer); override;
     class procedure SplitText(const ASource: TKString; At: Integer; out APart1, APart2: TKString);
-    function TextExtentDepOnKerning(ACanvas: TCanvas; const AText: TKString): TSize; virtual;
     function TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer; virtual;
-    procedure TextOutputDepOnKerning(ACanvas: TCanvas; ALeft, ATop: Integer; const AText: TKString); virtual;
     procedure TextStyleChanged(Sender: TObject);
     procedure UpdateWords; virtual;
   public
@@ -857,6 +868,9 @@ type
     procedure GetWordIndexes(AIndex: Integer; out ASt, AEn: Integer); override;
     function InsertString(const AText: TKString; At: Integer = -1): Boolean; override;
     procedure NotifyDefaultTextChange; override;
+    procedure NotifyOptionsChange; override;
+    procedure NotifyPrintBegin; override;
+    procedure NotifyPrintEnd; override;
     function Split(At: Integer; AllowEmpty: Boolean = False): TKMemoBlock; override;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
     function WordMeasureExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
@@ -1015,6 +1029,7 @@ type
   protected
     FRequiredHeight: Integer;
     FRequiredWidth: Integer;
+    function AddRectOffset(const ARect: TRect): TRect; virtual;
     procedure AddSingleLine; virtual;
     procedure AddBlockLine(AStartBlock, AStartIndex, AEndBlock, AEndIndex,
       ALeft, ATop, AWidth, AHeight: Integer); virtual;
@@ -1029,6 +1044,8 @@ type
     function GetSelText: TKString; override;
     function GetText: TKString; override;
     function GetTopPadding: Integer; override;
+    function GetTotalLineCount: Integer; virtual;
+    function GetTotalLineRect(Index: Integer): TRect; virtual;
     function GetWordBottomPadding(Index: Integer): Integer; override;
     function GetWordBoundsRect(Index: Integer): TRect; override;
     function GetWordCount: Integer; override;
@@ -1058,6 +1075,8 @@ type
     function InsertString(const AText: TKString; At: Integer = -1): Boolean; override;
     procedure NotifyDefaultParaChange; override;
     procedure NotifyDefaultTextChange; override;
+    procedure NotifyPrintBegin; override;
+    procedure NotifyPrintEnd; override;
     function Select(ASelStart, ASelLength: Integer): Boolean; override;
     procedure SetBlockExtent(AWidth, AHeight: Integer); virtual;
     procedure UpdateAttributes; virtual;
@@ -1075,6 +1094,8 @@ type
     property FixedWidth: Boolean read FFixedWidth write SetFixedWidth;
     property RequiredHeight: Integer read FRequiredHeight write SetRequiredHeight;
     property RequiredWidth: Integer read FRequiredWidth write SetRequiredWidth;
+    property TotalLineCount: Integer read GetTotalLineCount;
+    property TotalLineRect[Index: Integer]: TRect read GetTotalLineRect;
   end;
 
   TKMemoTable = class;
@@ -1119,6 +1140,8 @@ type
     procedure SetCellCount(const Value: Integer);
     function GetParentTable: TKMemoTable;
   protected
+    function GetTotalLineCount: Integer; override;
+    function GetTotalLineRect(Index: Integer): TRect; override;
     procedure RequiredHeightChanged; override;
     procedure RequiredWidthChanged; override;
   public
@@ -1241,6 +1264,8 @@ type
     function GetShowFormatting: Boolean; virtual;
     function GetText: TKString; virtual;
     function GetTotalLeftOffset: Integer; virtual;
+    function GetTotalLineCount: Integer; virtual;
+    function GetTotalLineRect(Index: Integer): TRect; virtual;
     function GetTotalTopOffset: Integer; virtual;
     procedure GetWordIndexes(const ABlockIndex, ALineIndex: Integer; out AStart, AEnd: Integer); virtual;
     function LineToRect(ACanvas: TCanvas; AIndex, ALineIndex: Integer; ACaret: Boolean): TRect; virtual;
@@ -1276,12 +1301,14 @@ type
     procedure DeleteLine(At: Integer); virtual;
     procedure FixEmptyBlocks; virtual;
     procedure FixEOL(AIndex: Integer; AAdjust: Boolean; var ALinePos: TKMemoLinePosition); virtual;
+    function GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetNearestAnchorIndex(AIndex: Integer): Integer; virtual;
     function GetNearestParagraph(AIndex: Integer): TKMemoParagraph; virtual;
-    function GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
-    function GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean;
       AIncludeWhiteSpaces: Boolean; out AStart, AEnd: Integer): Boolean; virtual;
+    function GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
+    function GetPageCount(APageHeight: Integer): Integer; virtual;
+    procedure GetPageData(APageHeight, APage: Integer; out AOffset, AHeight: Integer); virtual;
     procedure GetSelColors(out TextColor, Background: TColor); virtual;
     function IndexAboveLastLine(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
     function IndexAtBeginningOfContainer(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
@@ -1307,6 +1334,9 @@ type
     function MouseAction(AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; virtual;
     procedure NotifyDefaultParaChange; virtual;
     procedure NotifyDefaultTextChange; virtual;
+    procedure NotifyOptionsChange; virtual;
+    procedure NotifyPrintBegin; virtual;
+    procedure NotifyPrintEnd; virtual;
     function NextIndexByCharCount(AIndex, ACharCount: Integer): Integer;
     function NextIndexByHorzExtent(ACanvas: TCanvas; AIndex, AWidth: Integer; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function NextIndexByRowDelta(ACanvas: TCanvas; AIndex, ARowDelta, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): Integer; virtual;
@@ -1360,6 +1390,8 @@ type
     property ShowFormatting: Boolean read GetShowFormatting;
     property Text: TKString read GetText write SetText;
     property TotalLeftOffset: Integer read GetTotalLeftOffset;
+    property TotalLineCount: Integer read GetTotalLineCount;
+    property TotalLineRect[Index: Integer]: TRect read GetTotalLineRect;
     property TotalTopOffset: Integer read GetTotalTopOffset;
     property Width: Integer read FExtent.X;
     property OnUpdate: TKMemoUpdateEvent read FOnUpdate write FOnUpdate;
@@ -1628,7 +1660,6 @@ type
     FLinePosition: TKMemoLinePosition;
     FNewTextStyleValid: Boolean;
     FOldCaretRect: TRect;
-    FPrinting: Boolean;
     FPreferredCaretPos: Integer;
     FRequiredMouseCursor: TCursor;
     FVertExtent: Integer;
@@ -1705,6 +1736,8 @@ type
     function GetDefaultTextStyle: TKMemoTextStyle;
     { IKMemoNotifier implementation. }
     function GetDefaultParaStyle: TKMemoParaStyle;
+    { IKMemoNotifier implementation. }
+    function GetDrawSingleChars: Boolean;
     { Returns actual scroll padding in horizontal direction. }
     function GetHorzScrollPadding: Integer; virtual;
     { IKMemoNotifier implementation. }
@@ -1769,6 +1802,10 @@ type
     procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons); virtual;
     { Converts a point relative to TKMemo to a point relative to active blocks. }
     function PointToBlockPoint(const APoint: TPoint; ACalcActive: Boolean = True): TPoint; virtual;
+    { Make the blocks ready for normal work. }
+    procedure PrepareToPaint; virtual;
+    { Make the blocks ready for preview or printing. }
+    procedure PrepareToPrint(AScale: Double); virtual;
     { Overriden method - calls MeasureExtent to update document metrics for printing. }
     procedure PrintPaintBegin; override;
     { Overriden method - calls necessary functions to update document metrics for normal painting. }
@@ -3636,6 +3673,11 @@ begin
   FStartWord := 0;
 end;
 
+function TKMemoLine.GetLineRect: TRect;
+begin
+  Result := Rect(FPosition.X, FPosition.Y, FPosition.X + FExtent.X, FPosition.Y + FExtent.Y);
+end;
+
 { TKMemoLines }
 
 function TKMemoLines.GetItem(Index: Integer): TKMemoLine;
@@ -3650,7 +3692,7 @@ end;
 
 { TKWord }
 
-constructor TKMemoWord.Create;
+procedure TKMemoWord.Clear;
 begin
   FBaseLine := 0;
   FBottomPadding := 0;
@@ -3660,6 +3702,11 @@ begin
   FPosition := CreateEmptyPoint;
   FStartIndex := 0;
   FTopPadding := 0;
+end;
+
+constructor TKMemoWord.Create;
+begin
+  Clear;
 end;
 
 { TKWordList }
@@ -3908,7 +3955,6 @@ begin
   FNewTextStyleValid := False;
   FOldCaretRect := CreateEmptyRect;
   FOptions := cKMemoOptionsDef;
-  FPrinting := False;
   FPreferredCaretPos := 0;
   FKeyMapping := TKEditKeyMapping.Create;
   FParaStyle := TKMemoParaStyle.Create;
@@ -4759,6 +4805,11 @@ begin
   Result := FTextStyle;
 end;
 
+function TKCustomMemo.GetDrawSingleChars: Boolean;
+begin
+  Result := (eoDrawSingleChars in FOptions) or (elPrinting in FStates);
+end;
+
 function TKCustomMemo.GetDefaultParaStyle: TKMemoParaStyle;
 begin
   Result := FParaStyle;
@@ -4814,7 +4865,7 @@ end;
 
 function TKCustomMemo.GetPaintSelection: Boolean;
 begin
-  if FPrinting then
+  if elPrinting in FStates then
     Result := poPaintSelection in PageSetup.Options
   else
     Result := True;
@@ -4822,7 +4873,7 @@ end;
 
 function TKCustomMemo.GetPrinting: Boolean;
 begin
-  Result := FPrinting;
+  Result := elPrinting in FStates;
 end;
 
 function TKCustomMemo.GetMaxLeftPos: Integer;
@@ -4945,7 +4996,7 @@ end;
 
 function TKCustomMemo.GetShowFormatting: Boolean;
 begin
-  if FPrinting then
+  if elPrinting in States then
     Result := False
   else
     Result := eoShowFormatting in FOptions;
@@ -5152,20 +5203,25 @@ procedure TKCustomMemo.MeasurePages(var Info: TKPrintMeasureInfo);
 var
   FitToPage: Boolean;
   Scale: Double;
+  TmpContentWidth, PageHeight, PageCount: Integer;
   APageSetup: TKPrintPageSetup;
 begin
   APageSetup := PageSetup;
   FitToPage := poFitToPage in APageSetup.Options;
   Scale := APageSetup.Scale / 100;
-  Info.OutlineWidth := ContentWidth;
-  Info.OutlineHeight := ContentHeight;
-  Info.ControlHorzPageCount := 1; // cut text off
-  if Info.OutlineWidth > 0 then
+  Info.ControlHorzPageCount := 1; // no horizontal page splitting yet, cut it
+  if ContentWidth > 0 then
   begin
     if FitToPage then
-      Scale := APageSetup.MappedControlPaintAreaWidth / Info.OutlineWidth;
-    Info.ControlVertPageCount := DivUp(ContentHeight, Round(APageSetup.MappedPaintAreaHeight / Scale));
-  end;
+      Scale := APageSetup.MappedControlPaintAreaWidth / ContentWidth;
+    PageHeight := Round(APageSetup.MappedPaintAreaHeight / Scale);
+    PrepareToPrint(Scale);
+    PageCount := FBlocks.GetPageCount(PageHeight);
+    Info.OutlineWidth := FBlocks.Width;
+    Info.OutlineHeight := PageCount * PageHeight;
+    Info.ControlVertPageCount := PageCount;
+  end else
+    Info.ControlVertPageCount := 1;
 end;
 
 procedure TKCustomMemo.MouseDown(Button: TMouseButton; Shift: TShiftState;
@@ -5312,7 +5368,7 @@ end;
 
 procedure TKCustomMemo.PaintPage;
 var
-  AreaWidth, AreaHeight: Integer;
+  AreaWidth, AreaHeight, PageOffset, PageHeight: Integer;
   TmpRect, TmpRect1: TRect;
   APageSetup: TKPrintPageSetup;
 begin
@@ -5322,21 +5378,14 @@ begin
   AreaWidth := Round(APageSetup.MappedControlPaintAreaWidth / APageSetup.CurrentScale);
   AreaHeight := Round(APageSetup.MappedPaintAreaHeight / APageSetup.CurrentScale);
   TmpRect := Rect(0, 0, APageSetup.MappedOutlineWidth, APageSetup.MappedOutlineHeight);
-  TmpRect1 := Rect(0, 0, AreaWidth, AreaHeight);
+//    FBlocks.MeasureExtent(APageSetup.Canvas, AreaWidth);
+  FBlocks.GetPageData(AreaHeight, APageSetup.CurrentPageControl - 1, PageOffset, PageHeight);
+  TmpRect1 := Rect(0, 0, AreaWidth, PageHeight);
   IntersectRect(TmpRect, TmpRect, TmpRect1);
   TmpRect1 := TmpRect;
   TranslateRectToDevice(APageSetup.Canvas.Handle, TmpRect1);
   SelectClipRect(APageSetup.Canvas.Handle, TmpRect1);
-
-  FPrinting := True;
-  try
-    FBlocks.MeasureExtent(APageSetup.Canvas, RequiredContentWidth);
-    PaintContent(APageSetup.Canvas, TmpRect,
-      FContentPadding.Left,
-      FContentPadding.Top - (APageSetup.CurrentPageControl - 1) * AreaHeight);
-  finally
-    FPrinting := False;
-  end;
+  PaintContent(APageSetup.Canvas, TmpRect, 0, - PageOffset);
 end;
 
 procedure TKCustomMemo.PaintToCanvas(ACanvas: TCanvas);
@@ -5346,6 +5395,7 @@ begin
     HideEditorCaret;
   try
 {$ENDIF}
+    PrepareToPaint;
     PaintContent(ACanvas, ClientRect, ContentLeft, ContentTop);
 {$IFDEF FPC}
   finally
@@ -5375,13 +5425,37 @@ begin
   Result := FActiveBlocks.PointToIndex(Canvas, PointToBlockPoint(APoint), AOutOfArea, ASelectionExpanding, ALinePos);
 end;
 
+procedure TKCustomMemo.PrepareToPaint;
+begin
+  if elPrinting in FStates then
+  begin
+    Exclude(FStates, elPrinting);
+    FBlocks.NotifyPrintEnd;
+    FBlocks.MeasureExtent(Canvas, RequiredContentWidth);
+  end;
+end;
+
+procedure TKCustomMemo.PrepareToPrint(AScale: Double);
+begin
+  if not (elPrinting in FStates) then
+  begin
+    Include(FStates, elPrinting);
+    FBlocks.NotifyPrintBegin;
+    FBlocks.MeasureExtent(Canvas, Round(PageSetup.MappedControlPaintAreaWidth / AScale));
+  end;
+end;
+
 procedure TKCustomMemo.PrintPaintBegin;
 begin
+  if not (elPrinting in FStates) then
+  begin
+    Include(FStates, elPrinting);
+    PrepareToPrint(PageSetup.CurrentScale);
+  end;
 end;
 
 procedure TKCustomMemo.PrintPaintEnd;
 begin
-  FBlocks.MeasureExtent(Canvas, RequiredContentWidth)
 end;
 
 procedure TKCustomMemo.SafeSetFocus;
@@ -5709,7 +5783,7 @@ end;
 
 procedure TKCustomMemo.SetOptions(const Value: TKEditOptions);
 var
-  UpdateShowFormatting: Boolean;
+  UpdateShowFormatting, UpdateSingleChars: Boolean;
 {$IFDEF USE_WINAPI}
   UpdateDropFiles: Boolean;
 {$ENDIF}
@@ -5720,8 +5794,10 @@ begin
   {$IFDEF USE_WINAPI}
     UpdateDropFiles := (eoDropFiles in Value) <> (eoDropFiles in FOptions);
   {$ENDIF}
+    UpdateSingleChars := (eoDrawSingleChars in Value) <> (eoDrawSingleChars in FOptions);
     FOptions := Value;
-    if UpdateShowFormatting then
+    FBlocks.NotifyOptionsChange;
+    if UpdateShowFormatting or UpdateSingleChars then
       BlocksChanged([muExtent]);
   {$IFDEF USE_WINAPI}
     // (un)register HWND as drop target
@@ -6027,6 +6103,7 @@ begin
       end;
     end;
     InvalidatePageSetup;
+    PrepareToPaint;
   end;
 end;
 
@@ -6482,6 +6559,18 @@ procedure TKMemoBlock.NotifyDefaultTextChange;
 begin
 end;
 
+procedure TKMemoBlock.NotifyOptionsChange;
+begin
+end;
+
+procedure TKMemoBlock.NotifyPrintBegin;
+begin
+end;
+
+procedure TKMemoBlock.NotifyPrintEnd;
+begin
+end;
+
 procedure TKMemoBlock.PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer);
 var
   I: Integer;
@@ -6666,6 +6755,7 @@ begin
   inherited;
   FText := '';
   FTextLength := 0;
+  FWordCount := 0;
   FWords := TKMemoWordList.Create;
 end;
 
@@ -6673,7 +6763,19 @@ destructor TKMemoTextBlock.Destroy;
 begin
   FTextStyle.Free;
   FWords.Free;
+  FWordCount := 0;
   inherited;
+end;
+
+function TKMemoTextBlock.DrawSingleChars: Boolean;
+var
+  Notifier: IKMemoNotifier;
+begin
+  Notifier := MemoNotifier;
+  if Notifier <> nil then
+    Result := Notifier.GetDrawSingleChars
+  else
+    Result := False;
 end;
 
 function TKMemoTextBlock.EqualProperties(ASource: TKObject): Boolean;
@@ -6872,7 +6974,7 @@ end;
 
 function TKMemoTextBlock.GetWordCount: Integer;
 begin
-  Result := FWords.Count;
+  Result := FWordCount;
 end;
 
 function TKMemoTextBlock.GetWordHeight(Index: Integer): Integer;
@@ -6886,7 +6988,7 @@ var
   I: Integer;
 begin
   inherited;
-  for I := 0 to FWords.Count - 1 do
+  for I := 0 to FWordCount - 1 do
     if (AIndex >= FWords[I].StartIndex) and (AIndex < FWords[I].EndIndex) then
     begin
       ASt := FWords[I].StartIndex;
@@ -6995,6 +7097,16 @@ begin
   end;
 end;
 
+function TKMemoTextBlock.InternalTextExtent(ACanvas: TCanvas; const AText: TKString): TSize;
+begin
+  Result := TKTextBox.TextExtent(ACanvas, AText, 1, Length(AText));
+end;
+
+procedure TKMemoTextBlock.InternalTextOutput(ACanvas: TCanvas; ALeft, ATop: Integer; const AText: TKString);
+begin
+  TKTextBox.TextOutput(ACanvas, ALeft, ATop, AText, 1, Length(AText));
+end;
+
 function TKMemoTextBlock.ModifiedTextExtent(ACanvas: TCanvas; const AText: TKString): TPoint;
 var
   Size: TSize;
@@ -7004,19 +7116,19 @@ begin
   if Pos(cTab, AText) <> 0 then
   begin
     SU := UnicodeStringReplace(AText, cTab, TabChar, [rfReplaceAll]);
-    Size := TextExtentDepOnKerning(ACanvas, SU);
+    Size := InternalTextExtent(ACanvas, SU);
     Result := Point(Size.cx, Size.cy);
   end
   else if FTextStyle.Capitals = tcaNone then
   begin
-    Size := TextExtentDepOnKerning(ACanvas, AText);
+    Size := InternalTextExtent(ACanvas, AText);
     Result := Point(Size.cx, Size.cy);
   end else
   begin
     SU := UnicodeUpperCase(AText);
     if FTextStyle.Capitals = tcaNormal then
     begin
-      Size := TextExtentDepOnKerning(ACanvas, SU);
+      Size := InternalTextExtent(ACanvas, SU);
       Result := Point(Size.cx, Size.cy);
     end else
     begin
@@ -7030,7 +7142,7 @@ begin
           ACanvas.Font.Height := SmallFontheight
         else
           ACanvas.Font.Height := FScriptFontheight;
-        Size := TextExtentDepOnKerning(ACanvas, CU);
+        Size := InternalTextExtent(ACanvas, CU);
         Inc(X, Size.cx);
         Y := Max(Y, Size.cy);
       end;
@@ -7042,6 +7154,24 @@ end;
 procedure TKMemoTextBlock.NotifyDefaultTextChange;
 begin
   FTextStyle.NotifyChange(GetDefaultTextStyle);
+end;
+
+procedure TKMemoTextBlock.NotifyOptionsChange;
+begin
+  inherited;
+  UpdateWords;
+end;
+
+procedure TKMemoTextBlock.NotifyPrintBegin;
+begin
+  inherited;
+  UpdateWords; // update words to take each character separately
+end;
+
+procedure TKMemoTextBlock.NotifyPrintEnd;
+begin
+  inherited;
+  UpdateWords; // restore words
 end;
 
 procedure TKMemoTextBlock.ParentChanged;
@@ -7143,62 +7273,12 @@ begin
   APart2 := StringCopy(ASource, At, Length(ASource) - At + 1);
 end;
 
-function TKMemoTextBlock.TextExtentDepOnKerning(ACanvas: TCanvas; const AText: TKString): TSize;
-{$IFDEF KMEMO_DISABLE_KERNING}
-var
-  CharIndex, NewCharIndex: Integer;
-  Size: TSize;
-{$ENDIF}
-begin
-{$IFDEF KMEMO_DISABLE_KERNING}
-  // character by character
-  Result.cx := 0;
-  Result.cy := 0;
-  CharIndex := 1;
-  while CharIndex <= Length(AText) do
-  begin
-    NewCharIndex := StrNextCharIndex(AText, CharIndex);
-    Size := TKTextBox.TextExtent(ACanvas, AText, CharIndex, NewCharIndex - CharIndex);
-    Inc(Result.cx, Size.cx);
-    Result.cy := Max(Result.cy, Size.cy);
-    CharIndex := NewCharIndex;
-  end;
-{$ELSE}
-  // system default
-  Result := TKTextBox.TextExtent(ACanvas, AText, 1, Length(AText));
-{$ENDIF}
-end;
-
 function TKMemoTextBlock.TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer;
 begin
   if ATextIndex >= 0 then
     Result := StrByteIndexToCPIndex(AText, ATextIndex)
   else
     Result := -1;
-end;
-
-procedure TKMemoTextBlock.TextOutputDepOnKerning(ACanvas: TCanvas; ALeft, ATop: Integer; const AText: TKString);
-{$IFDEF KMEMO_DISABLE_KERNING}
-var
-  CharIndex, NewCharIndex: Integer;
-  Size: TSize;
-{$ENDIF}
-begin
-{$IFDEF KMEMO_DISABLE_KERNING}
-  // character by character
-  CharIndex := 1;
-  while CharIndex <= Length(AText) do
-  begin
-    NewCharIndex := StrNextCharIndex(AText, CharIndex);
-    TKTextBox.TextOutput(ACanvas, ALeft, ATop, AText, CharIndex, NewCharIndex - CharIndex);
-    Size := TKTextBox.TextExtent(ACanvas, AText, CharIndex, NewCharIndex - CharIndex);
-    Inc(ALeft, Size.cx);
-    CharIndex := NewCharIndex;
-  end;
-{$ELSE}
-  // system default
-  TKTextBox.TextOutput(ACanvas, ALeft, ATop, AText, 1, Length(AText));
-{$ENDIF}
 end;
 
 procedure TKMemoTextBlock.TextStyleChanged(Sender: TObject);
@@ -7212,17 +7292,25 @@ procedure TKMemoTextBlock.UpdateWords;
   var
     Word: TKMemoWord;
   begin
-    Word := TKMemoWord.Create;
+    if WordCount < FWords.Count then
+    begin
+      Word := FWords[WordCount];
+      Word.Clear;
+    end else
+    begin
+      Word := TKMemoWord.Create;
+      FWords.Add(Word);
+    end;
     Word.StartIndex := AStart - 1;
     Word.EndIndex := AEnd - 1;
-    FWords.Add(Word);
+    Inc(FWordCount);
   end;
 
 var
   Index, PrevIndex, CharIndex: Integer;
-  WasBreak, IsTab, WasTab: Boolean;
+  WasBreak, IsTab, WasTab, SingleChars: Boolean;
 begin
-  FWords.Clear;
+  FWordCount := 0;
   if FText <> '' then
   begin
     CharIndex := 1;
@@ -7230,25 +7318,31 @@ begin
     PrevIndex := 1;
     IsTab := False;
     WasBreak := False;
+    SingleChars := DrawSingleChars;
     while Index <= FTextLength do
     begin
-      if CharInSetEx(FText[CharIndex], WordBreaks) then
-        WasBreak := True
+      if SingleChars then
+        AddWord(Index, Index)
       else
       begin
-        WasTab := IsTab;
-        IsTab := CharInSetEx(FText[CharIndex], [cTab]);
-        if WasBreak or (WasTab and not IsTab) or (IsTab and not WasTab) then
+        if CharInSetEx(FText[CharIndex], WordBreaks) then
+          WasBreak := True
+        else
         begin
-          AddWord(PrevIndex, Index - 1);
-          PrevIndex := Index;
-          WasBreak := False;
+          WasTab := IsTab;
+          IsTab := CharInSetEx(FText[CharIndex], [cTab]);
+          if WasBreak or (WasTab and not IsTab) or (IsTab and not WasTab) then
+          begin
+            AddWord(PrevIndex, Index - 1);
+            PrevIndex := Index;
+            WasBreak := False;
+          end;
         end;
       end;
       Inc(Index);
       CharIndex := StrNextCharIndex(FText, CharIndex);
     end;
-    if Index > PrevIndex then
+    if not SingleChars and (Index > PrevIndex) then
       AddWord(PrevIndex, Index - 1);
   end;
 end;
@@ -7324,16 +7418,16 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
       if (Pos(cTab, AText) <> 0) and ShowFormatting then
       begin
         SU := UnicodeStringReplace(AText, cTab, TabChar, [rfReplaceAll]);
-        TextOutputDepOnKerning(ACanvas, ARect.Left, AdjBaseLine, SU);
+        InternalTextOutput(ACanvas, ARect.Left, AdjBaseLine, SU);
       end
       else if FTextStyle.Capitals = tcaNone then
       begin
-        TextOutputDepOnKerning(ACanvas, ARect.Left, AdjBaseLine, AText);
+        InternalTextOutput(ACanvas, ARect.Left, AdjBaseLine, AText);
       end else
       begin
         SU := UnicodeUpperCase(AText);
         if FTextStyle.Capitals = tcaNormal then
-          TextOutputDepOnKerning(ACanvas, ARect.Left, AdjBaseLine, SU)
+          InternalTextOutput(ACanvas, ARect.Left, AdjBaseLine, SU)
         else
         begin
           SmallFontHeight := MulDiv(FScriptFontHeight, 4, 5);
@@ -7347,8 +7441,8 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
             else
               Font.Height := FScriptFontHeight;
             AdjBaseLine := AdjustBaseLine(ABaseLine);
-            TextOutputDepOnKerning(ACanvas, X, AdjBaseLine, CU);
-            Size := TextExtentDepOnKerning(ACanvas, CU);
+            InternalTextOutput(ACanvas, X, AdjBaseLine, CU);
+            Size := InternalTextExtent(ACanvas, CU);
             Inc(X, Size.cx);
           end;
         end;
@@ -8201,6 +8295,14 @@ begin
   inherited;
 end;
 
+function TKMemoContainer.AddRectOffset(const ARect: TRect): TRect;
+begin
+  Result := ARect;
+  KFunctions.OffsetRect(Result,
+    Left + InternalLeftOffset + FBlockStyle.AllPaddingsLeft,
+    Top + InternalTopOffset + FBlockStyle.AllPaddingsTop + FWordTopPadding);
+end;
+
 procedure TKMemoContainer.AddSingleLine;
 var
   Line: TKMemoLine;
@@ -8332,6 +8434,16 @@ begin
   Result := FBlockStyle.TopPadding;
 end;
 
+function TKMemoContainer.GetTotalLineCount: Integer;
+begin
+  Result := FBlocks.TotalLineCount;
+end;
+
+function TKMemoContainer.GetTotalLineRect(Index: Integer): TRect;
+begin
+  Result := AddRectOffset(FBlocks.TotalLineRect[Index]);
+end;
+
 function TKMemoContainer.GetWordBottomPadding(Index: Integer): Integer;
 begin
   Result := FWordBottomPadding;
@@ -8409,6 +8521,16 @@ end;
 procedure TKMemoContainer.NotifyDefaultTextChange;
 begin
   FBlocks.NotifyDefaultTextChange;
+end;
+
+procedure TKMemoContainer.NotifyPrintBegin;
+begin
+  FBlocks.NotifyPrintBegin;
+end;
+
+procedure TKMemoContainer.NotifyPrintEnd;
+begin
+  FBlocks.NotifyPrintEnd;
 end;
 
 procedure TKMemoContainer.ParentChanged;
@@ -8528,9 +8650,7 @@ begin
     if Result.Bottom = FBlocks.Height then
       Inc(Result.Bottom, Height - FBlocks.Height - FBlockStyle.AllPaddingsTop - FWordTopPadding);
   end;
-  KFunctions.OffsetRect(Result,
-    Left + InternalLeftOffset + FBlockStyle.AllPaddingsLeft,
-    Top + InternalTopOffset + FBlockStyle.AllPaddingsTop + FWordTopPadding);
+  Result := AddRectOffset(Result);
 end;
 
 function TKMemoContainer.WordMeasureExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint;
@@ -8799,6 +8919,16 @@ begin
     Result := ParentBlocks.Parent as TKMemoTable
   else
     Result := nil;
+end;
+
+function TKMemoTableRow.GetTotalLineCount: Integer;
+begin
+  Result := 1; // do not add lines in cells
+end;
+
+function TKMemoTableRow.GetTotalLineRect(Index: Integer): TRect;
+begin
+  Result := CreateEmptyRect; // use line info from Parent instead
 end;
 
 function TKMemoTableRow.GetCellCount: Integer;
@@ -10291,11 +10421,7 @@ end;
 function TKMemoBlocks.GetLineRect(ALineIndex: Integer): TRect;
 begin
   if (ALineIndex >= 0) and (ALineIndex < LineCount) then
-    Result := Rect(
-      FLines[ALineIndex].Position.X,
-      FLines[ALineIndex].Position.Y,
-      FLines[ALineIndex].Position.X + FLines[ALineIndex].Extent.X,
-      FLines[ALineIndex].Position.Y + FLines[ALineIndex].Extent.Y)
+    FLines[ALineIndex].LineRect
   else
     Result := CreateEmptyRect;
 end;
@@ -10540,6 +10666,91 @@ begin
   end;
 end;
 
+function TKMemoBlocks.GetPageCount(APageHeight: Integer): Integer;
+var
+  I, J, TmpPageBegin, TmpSum, TmpHeight, MaxLine: Integer;
+  Item: TKMemoBlock;
+  R: TRect;
+begin
+  Result := 0;
+  TmpHeight := 0;
+  if FLines.Count > 0 then
+    TmpPageBegin := FLines[0].Position.Y
+  else
+    TmpPageBegin := 0;
+  TmpSum := 0;
+  I := 0;
+  J := -1;
+  MaxLine := TotalLineCount - 1;
+  while I <= MaxLine do
+  begin
+    if I <> J then
+    begin
+      R := TotalLineRect[I];
+      J := I;
+    end;
+    if R.Bottom - TmpPageBegin > APageHeight then
+    begin
+      TmpPageBegin := R.Top;
+      if R.Bottom - R.Top > APageHeight then
+        Inc(TmpPageBegin, APageHeight)
+      else
+        Inc(I);
+      Inc(Result);
+    end else
+    begin
+      if I = MaxLine then
+        Inc(Result);
+      Inc(I);
+    end;
+  end;
+end;
+
+procedure TKMemoBlocks.GetPageData(APageHeight, APage: Integer; out AOffset, AHeight: Integer);
+var
+  I, J, TmpPageBegin, TmpPage, MaxLine: Integer;
+  Item: TKMemoBlock;
+  R: TRect;
+begin
+  TmpPage := 0;
+  AHeight := 0;
+  AOffset := 0;
+  if FLines.Count > 0 then
+    TmpPageBegin := FLines[0].Position.Y
+  else
+    TmpPageBegin := 0;
+  I := 0;
+  J := -1;
+  MaxLine := TotalLineCount - 1;
+  while (I <= MaxLine) and (TmpPage <= APage) do
+  begin
+    if I <> J then
+    begin
+      R := TotalLineRect[I];
+      J := I;
+    end;
+    if R.Bottom - TmpPageBegin > APageHeight then
+    begin
+      AHeight := R.Top - TmpPageBegin;
+      AOffset := TmpPageBegin;
+      TmpPageBegin := R.Top;
+      if R.Bottom - R.Top > APageHeight then
+        Inc(TmpPageBegin, APageHeight)
+      else
+        Inc(I);
+      Inc(TmpPage);
+    end else
+    begin
+      if I = MaxLine then
+      begin
+        AOffset := TmpPageBegin;
+        AHeight := R.Bottom - TmpPageBegin;
+      end;
+      Inc(I);
+    end;
+  end;
+end;
+
 function TKMemoBlocks.GetParentBlocks: TKMemoBlocks;
 begin
   if FParent is TKMemoContainer then
@@ -10709,6 +10920,62 @@ begin
       Inc(Result, TKMemoContainer(FParent).BlockStyle.AllPaddingsLeft + TKMemoContainer(FParent).ParentBlocks.TotalLeftOffset);
   end else
     Result := 0;
+end;
+
+function TKMemoBlocks.GetTotalLineCount: Integer;
+var
+  I: Integer;
+  Line: TKMemoLine;
+  Item: TKMemoBlock;
+begin
+  Result := 0;
+  for I := 0 to FLines.Count - 1 do
+  begin
+    Line := FLines[I];
+    Item := Items[Line.StartBlock];
+    if Item is TKMemoContainer then
+      Inc(Result, TKMemoContainer(Item).TotalLineCount)
+    else
+      Inc(Result);
+  end;
+end;
+
+function TKMemoBlocks.GetTotalLineRect(Index: Integer): TRect;
+var
+  I, TmpIndex, TmpCount: Integer;
+  Line: TKMemoLine;
+  Item: TKMemoBlock;
+  R: TRect;
+begin
+  Result := CreateEmptyRect;
+  TmpIndex := 0;
+  for I := 0 to FLines.Count - 1 do
+  begin
+    Line := FLines[I];
+    Item := Items[Line.StartBlock];
+    if Item is TKMemoContainer then
+    begin
+      TmpCount := TKMemoContainer(Item).TotalLineCount;
+      if (Index >= TmpIndex) and (Index < TmpIndex + TmpCount) then
+      begin
+        R := TKMemoContainer(Item).TotalLineRect[Index - TmpIndex];
+        if R.Bottom = R.Top then // empty line info
+          Result := Line.LineRect
+        else
+          Result := R;
+        Break;
+      end else
+        Inc(TmpIndex, TmpCount);
+    end else
+    begin
+      if Index = TmpIndex then
+      begin
+        Result := Line.LineRect;
+        Break;
+      end else
+        Inc(TmpIndex);
+    end;
+  end;
 end;
 
 function TKMemoBlocks.GetTotalTopOffset: Integer;
@@ -11945,6 +12212,30 @@ var
 begin
   for I := 0 to Count - 1 do
     Items[I].NotifyDefaultTextChange;
+end;
+
+procedure TKMemoBlocks.NotifyOptionsChange;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    Items[I].NotifyOptionsChange;
+end;
+
+procedure TKMemoBlocks.NotifyPrintBegin;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    Items[I].NotifyPrintBegin;
+end;
+
+procedure TKMemoBlocks.NotifyPrintEnd;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    Items[I].NotifyPrintEnd;
 end;
 
 procedure TKMemoBlocks.PaintLineBackground(ACanvas: TCanvas; ALineIndex, ALeft, ATop: Integer);

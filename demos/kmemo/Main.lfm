@@ -93,6 +93,7 @@ object MainForm: TMainForm
     Height = 23
     Top = 544
     Width = 144
+    Anchors = [akLeft, akBottom]
     ItemHeight = 15
     Style = csDropDownList
     TabOrder = 5

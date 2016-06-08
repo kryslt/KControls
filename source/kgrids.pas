@@ -1357,7 +1357,7 @@ type
     { Read method for the @link(TKGridAxisItem.Objects) property. Implementation for columns. }
     function GetObjects(Index: Integer): TObject; override;
     { Read method for the @link(TKGridAxisItem.Strings) property. Implementation for columns. }
-    function GetStrings(Index: Integer): TKString; override;
+    function GetStrings(Index: Integer): KFunctions.TKString; override;
     { Called on parent grid change. }
     procedure GridChanged; override;
     { Write method for the @link(TKGridAxisItem.Extent) property. Implementation for columns. }
@@ -1369,7 +1369,7 @@ type
     { Write method for the @link(TKGridAxisItem.SortMode) property. Implementation for columns. }
     procedure SetSortMode(const Value: TKGridSortMode); override;
     { Write method for the @link(TKGridAxisItem.Strings) property. Implementation for columns. }
-    procedure SetStrings(Index: Integer; const Value: TKString); override;
+    procedure SetStrings(Index: Integer; const Value: KFunctions.TKString); override;
     { Write method for the @link(TKGridAxisItem.Visible) property. Implementation for columns. }
     procedure SetVisible(Value: Boolean); override;
     { Validate initial column position. }
@@ -1578,13 +1578,13 @@ type
     FText: PWideChar; // WideString is slow as storage here
     function GetText: TKString;
   {$ENDIF}
-    procedure SetText(const Value: TKString);
+    procedure SetText(const Value: KFunctions.TKString);
   protected
     { Assigns a new text string into this TKGridTextCell instance. The new
       string will be assigned by a grow on demand method, i.e. the memory
       allocated for the string can only grow within each assignment. It continues
       to grow until the TKGridTextCell instance is destroyed. }
-    procedure AssignText(const Value: TKString); virtual;
+    procedure AssignText(const Value: KFunctions.TKString); virtual;
     { Cell class aware version of @link(TKCustomGrid.OnEditorCreate).
       Creates a TEdit inplace editor. }
     procedure EditorCreate(ACol, ARow: Integer; var AEditor: TWinControl); override;
@@ -2145,7 +2145,7 @@ type
     function GetAllRowsSelected: Boolean;
     function GetAllColsSelected: Boolean;
     function GetCell(ACol, ARow: Integer): TKGridCell;
-    function GetCells(ACol, ARow: Integer): TKString;
+    function GetCells(ACol, ARow: Integer): KFunctions.TKString;
     function GetCellSpan(ACol, ARow: Integer): TKGridCellSpan;
     function GetCols(Index: Integer): TKGridCol;
     function GetColWidths(Index: Integer): Integer;
@@ -2532,7 +2532,7 @@ type
     { Used internally to assign new cell value. }
     procedure InternalSetCell(ACol, ARow: Integer; Value: TKGridCell); virtual;
     { Used internally to assign new text to a cell. }
-    procedure InternalSetCells(ACol, ARow: Integer; const Text: TKString); virtual;
+    procedure InternalSetCells(ACol, ARow: Integer; const Text: KFunctions.TKString); virtual;
     { Sets the cell span paramters according to given parameters. Automatically
       splits any existing overlapping areas. Returns a grid rectangle that can
       be used to update all affected cells. }
@@ -2729,7 +2729,12 @@ type
       of respective grid areas. Set UpdateNeeded to False to let UpdateScrollRange
       decide whether these need to be invalidated. }
     procedure UpdateScrollRange(Horz, Vert, UpdateNeeded: Boolean); virtual;
-    procedure ValidateInitialPositions; virtual;
+    { Validate initial row indexes. }
+    procedure ValidateInitialRowPositions;
+    { Validate initial column indexes. }
+    procedure ValidateInitialColPositions;
+    { Validate initial row and column indexes. }
+    procedure ValidateInitialPositions;
   {$IFNDEF FPC}
     { Inherited method. Used to ensure correct painting for transparent inplace
       editors. }
@@ -3828,7 +3833,7 @@ function CompareAxisItems(AxisItems1, AxisItems2: TKGridAxisItems): Boolean;
   Call TKCustomGrid.CellPainter.@link(TKGridCellPainter.DefaultDraw) instead. }
 procedure DefaultDrawCell(AGrid: TKCustomGrid; ACol, ARow: Integer; ARect: TRect;
   AState: TKGridDrawState; HAlign: TKHAlign; VAlign: TKVAlign;
-  HPadding, VPadding: Integer; const AText: TKString);
+  HPadding, VPadding: Integer; const AText: KFunctions.TKString);
 
 { Obsolete function. Call TKCustomGrid.@link(TKCustomGrid.DefaultEditorKeyPreview) instead. }
 procedure DefaultKeyPreview(AGrid: TKCustomGrid; AEditor: TWinControl;
@@ -9405,7 +9410,6 @@ end;
 procedure TKCustomGrid.InternalUnlockUpdate;
 begin
   ClearSortMode;
-  ValidateInitialPositions;
   UpdateAxes(True, cAll, True, cAll, [afCheckMinExtent]);
 end;
 
@@ -10334,7 +10338,8 @@ begin
   Result := Max(Info.FullVisCells - Info.FirstGridCell, 1);
 end;
 
-procedure TKCustomGrid.PaintCell(ACanvas: TCanvas; ACol, ARow: Integer; AX, AY: Integer; APrinting: Boolean; ABlockRect: PRect);
+procedure TKCustomGrid.PaintCell(ACanvas: TCanvas; ACol, ARow: Integer;
+  AX: Integer; AY: Integer; APrinting: Boolean; ABlockRect: PRect);
 var
   R, ClipRect, TmpRect, TmpBlockRect: TRect;
   CellBitmap: TKAlphaBitmap;
@@ -13186,19 +13191,26 @@ begin
   end;
 end;
 
-procedure TKCustomGrid.ValidateInitialPositions;
-
-  procedure Axis(AxisItems: TKGridAxisItems);
-  var
-    I: Integer;
-  begin
-    for I := 0 to AxisItems.Count - 1 do
-      AxisItems[I].ValidateInitialPos;
-  end;
-
+procedure TKCustomGrid.ValidateInitialRowPositions;
+var
+  I: Integer;
 begin
-  Axis(FCols);
-  Axis(FRows);
+  for I := 0 to FRows.Count - 1 do
+    FRows[I].ValidateInitialPos;
+end;
+
+procedure TKCustomGrid.ValidateInitialColPositions;
+var
+  I: Integer;
+begin
+  for I := 0 to FCols.Count - 1 do
+    FCols[I].ValidateInitialPos;
+end;
+
+procedure TKCustomGrid.ValidateInitialPositions;
+begin
+  ValidateInitialColPositions;
+  ValidateInitialRowPositions;
 end;
 
 procedure TKCustomGrid.WMChar(var Msg: {$IFDEF FPC}TLMChar{$ELSE}TWMChar{$ENDIF});

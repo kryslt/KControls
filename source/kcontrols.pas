@@ -126,12 +126,19 @@ const
   { Default value for the @link(TKPrintPageSetup.Options) property. }
   cRangeDef = prAll;
 
-  { Minimum for the @link(TKPrintPageSetup.Scale) property }
-  cScaleDef = 100;
-  { Maximum for the @link(TKPrintPageSetup.Scale) property }
-  cScaleMin = 10;
   { Default value for the @link(TKPrintPageSetup.Scale) property }
+  cScaleDef = 100;
+  { Minimum for the @link(TKPrintPageSetup.Scale) property }
+  cScaleMin = 10;
+  { Maximum for the @link(TKPrintPageSetup.Scale) property }
   cScaleMax = 500;
+
+  { Default DPI value }
+  cDPIDef = 96;
+  { Minimum DPI value }
+  cDPIMin = 50;
+  { Maximum DPI value }
+  cDPIMax = 1000;
 
   { Default value for the @link(TKPrintPageSetup.Units) property. }
   cUnitsDef = puCM;
@@ -323,12 +330,25 @@ type
     FChanged: Boolean;
     FUpdateLock: Integer;
   protected
+    { Call in property setters to track changes to this class. }
     procedure Changed;
+    { Override to perform requested actions when changing properties in this class.
+      Update will be called either immediately when you call Changed or on next
+      UnlockUpdate call if Changed has been called while updating was locked. }
     procedure Update; virtual; abstract;
   public
+    { Creates the instance. }
     constructor Create; virtual;
+    { Locks updating. Use this if you assign many properties at the
+      same time. Every LockUpdate call must have a corresponding
+      @link(TKPersistent.UnlockUpdate) call, please use a try-finally section. }
     procedure LockUpdate;
+    { Unlocks page setup updating and updates the page settings.
+      Each @link(TKPersistent.LockUpdate) call must be always followed
+      by the UnlockUpdate call. }
     procedure UnlockUpdate(ACallUpdate: Boolean = True);
+    { Returns True if updating is not locked, i.e. there is no open
+      LockUpdate and UnlockUpdate pair. }
     function UpdateUnlocked: Boolean;
     property UpdateLock: Integer read FUpdateLock;
   end;
@@ -642,7 +662,7 @@ type
   TKPrintMeasureEvent = procedure(Sender: TObject; var Info: TKPrintMeasureInfo) of object;
 
   { @abstract(Class to specify the print job parameters) }
-  TKPrintPageSetup = class(TPersistent)
+  TKPrintPageSetup = class(TKPersistent)
   private
     FActive: Boolean;
     FCanvas: TCanvas;
@@ -720,7 +740,6 @@ type
     FUnitPaintAreaHeight: Double;
     FUnitPaintAreaWidth: Double;
     FUnits: TKPrintUnits;
-    FUpdateLock: Integer;
     FValidating: Boolean;
     FOnPrintMeasure: TKPrintMeasureEvent;
     FOnUpdateSettings: TNotifyEvent;
@@ -758,11 +777,13 @@ type
     procedure PrintPageNumber(Value: Integer); virtual;
     { Prints the title at the top of the page. }
     procedure PrintTitle; virtual;
+    { Inherited method. Calls UpdateSettings. }
+    procedure Update; override;
     { Updates entire printing information. }
     procedure UpdateSettings; virtual;
   public
     { Creates the instance. Assigns default values to properties. }
-    constructor Create(AControl: TKCustomControl);
+    constructor Create(AControl: TKCustomControl); reintroduce; virtual;
     { Copies shareable properties of another TKPrintPageSetup instance
       to this instance. }
     procedure Assign(Source: TPersistent); override;
@@ -772,17 +793,6 @@ type
     procedure Invalidate;
     { Prints the associated control. }
     procedure PrintOut;
-    { Locks page setup updating. Use this if you assign many properties at the
-      same time. Every LockUpdate call must have a corresponding
-      @link(TKPrintPageSetup.UnlockUpdate) call, please use a try-finally section. }
-    procedure LockUpdate; virtual;
-    { Unlocks page setup updating and updates the page settings.
-      Each @link(TKPrintPageSetup.LockUpdate) call must be always followed
-      by the UnlockUpdate call. }
-    procedure UnlockUpdate; virtual;
-    { Returns True if updating is not locked, i.e. there is no open
-      LockUpdate and UnlockUpdate pair. }
-    function UpdateUnlocked: Boolean; virtual;
     { Validates the settings. }
     procedure Validate;
     { Returns a value mapped from desktop vertical units to printer vertical units. }
@@ -998,11 +1008,16 @@ type
     FX: Integer;
     FY: Integer;
     FOnChanged: TKPreviewChangedEvent;
+    FPixelsPerInchX: Integer;
+    FPixelsPerInchY: Integer;
     function GetCurrentScale: Integer;
     function GetEndPage: Integer;
     function GetStartPage: Integer;
+    procedure SetColors(const Value: TKPreviewColors);
     procedure SetControl(Value: TKCustomControl);
     procedure SetPage(Value: Integer);
+    procedure SetPixelsPerInchX(Value: Integer);
+    procedure SetPixelsPerInchY(Value: Integer);
     procedure SetScale(Value: Integer);
     procedure SetScaleMode(Value: TKPreviewScaleMode);
     procedure WMEraseBkgnd(var Msg: TLMessage); message LM_ERASEBKGND;
@@ -1011,7 +1026,6 @@ type
     procedure WMKillFocus(var Msg: TLMKillFocus); message LM_KILLFOCUS;
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
-    procedure SetColors(const Value: TKPreviewColors);
   protected
     FCurrentCanvas: TCanvas;
     { Initializes a scroll message handling. }
@@ -1110,6 +1124,10 @@ type
     property ParentShowHint;
     { Inherited property - see Delphi help. }
     property PopupMenu;
+    { The horizontal DPI at which to show the 100% scaled page. }
+    property PixelsPerInchX: Integer read FPixelsPerInchX write SetPixelsPerInchX default cDPIDef;
+    { The vertical DPI at which to show the 100% scaled page. }
+    property PixelsPerInchY: Integer read FPixelsPerInchY write SetPixelsPerInchY default cDPIDef;
     { Specifies the user defined page scale - i.e. when ScaleMode = smScale. }
     property Scale: Integer read FScale write SetScale default 100;
     { Specifies the scale mode to display and scroll previewed pages. }
@@ -2322,11 +2340,6 @@ begin
   FIsValid := False;
 end;
 
-procedure TKPrintPageSetup.LockUpdate;
-begin
-  Inc(FUpdateLock);
-end;
-
 procedure TKPrintPageSetup.PaintPageToPreview(APreview: TKPrintPreview);
 var
   PaperWidth, PaperHeight,
@@ -2549,7 +2562,6 @@ begin
       Printer.BeginDoc;
       FActive := True;
       try
-        FControl.PrintPaintBegin;
         FCanvas := Printer.Canvas;
         FControl.PrintNotify(epsBegin, AbortPrint);
 {        Printer.Canvas.Font.Name := 'Arial';
@@ -2558,35 +2570,39 @@ begin
         Printer.Canvas.TextOut(200, 200, 'hello!');}
         if not AbortPrint then
         begin
-          if poCollate in FOptions then
-            for I := 1 to FCopies do
-            begin
-              FCurrentCopy := I;
-              for J := FStartPage to FEndPage do
-              begin
-                FCurrentPage := J;
-                AbortPrint := DoPrint;
-                if AbortPrint then Break;
-              end;
-              if AbortPrint then Break;
-            end
-          else
-            for J := FStartPage to FEndPage do
-            begin
-              FCurrentPage := J;
+          FControl.PrintPaintBegin;
+          try
+            if poCollate in FOptions then
               for I := 1 to FCopies do
               begin
                 FCurrentCopy := I;
-                AbortPrint := DoPrint;
+                for J := FStartPage to FEndPage do
+                begin
+                  FCurrentPage := J;
+                  AbortPrint := DoPrint;
+                  if AbortPrint then Break;
+                end;
                 if AbortPrint then Break;
-              end;
-              if AbortPrint then Break;
-            end
+              end
+            else
+              for J := FStartPage to FEndPage do
+              begin
+                FCurrentPage := J;
+                for I := 1 to FCopies do
+                begin
+                  FCurrentCopy := I;
+                  AbortPrint := DoPrint;
+                  if AbortPrint then Break;
+                end;
+                if AbortPrint then Break;
+              end
+          finally
+            FControl.PrintPaintEnd;
+          end;
         end;
         FCurrentPage := 0;
         FCurrentCopy := 0;
         FControl.PrintNotify(epsEnd, AbortPrint);
-        FControl.PrintPaintEnd;
       finally
         FActive := False;
         Printer.EndDoc;
@@ -2602,7 +2618,7 @@ begin
   if Value <> FCopies then
   begin
     FCopies := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2612,7 +2628,7 @@ begin
   if Value <> FEndPage then
   begin
     FEndPage := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2622,7 +2638,7 @@ begin
   if Value <> FOptions then
   begin
     FOptions := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2631,7 +2647,7 @@ begin
   if AValue <> FOrientation then
   begin
     FOrientation := AValue;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2641,7 +2657,7 @@ begin
   if Value <> FPrinterName then
   begin
     FPrinterName := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2651,7 +2667,7 @@ begin
   if Value <> FPrintingMapped then
   begin
     FPrintingMapped := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2661,7 +2677,7 @@ begin
   if Value <> FRange then
   begin
     FRange := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2671,7 +2687,7 @@ begin
   if Value <> FScale then
   begin
     FScale := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2681,7 +2697,7 @@ begin
   if Value <> FStartPage then
   begin
     FStartPage := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2691,7 +2707,7 @@ begin
   if Value <> FUnitExtraSpaceLeft then
   begin
     FUnitExtraSpaceLeft := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2701,7 +2717,7 @@ begin
   if Value <> FUnitExtraSpaceRight then
   begin
     FUnitExtraSpaceRight := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2711,7 +2727,7 @@ begin
   if Value <> FUnitFooterSpace then
   begin
     FUnitFooterSpace := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2721,7 +2737,7 @@ begin
   if Value <> FUnitHeaderSpace then
   begin
     FUnitHeaderSpace := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2731,7 +2747,7 @@ begin
   if Value <> FUnitMarginBottom then
   begin
     FUnitMarginBottom := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2741,7 +2757,7 @@ begin
   if Value <> FUnitMarginLeft then
   begin
     FUnitMarginLeft := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2751,7 +2767,7 @@ begin
   if Value <> FUnitMarginRight then
   begin
     FUnitMarginRight := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2761,7 +2777,7 @@ begin
   if Value <> FUnitMarginTop then
   begin
     FUnitMarginTop := Value;
-    UpdateSettings;
+    Changed;
   end;
 end;
 
@@ -2776,13 +2792,9 @@ begin
   end;
 end;
 
-procedure TKPrintPageSetup.UnlockUpdate;
+procedure TKPrintPageSetup.Update;
 begin
-  if FUpdateLock > 0 then
-  begin
-    Dec(FUpdateLock);
-    UpdateSettings;
-  end;
+  UpdateSettings;
 end;
 
 procedure TKPrintPageSetup.UpdateSettings;
@@ -2964,11 +2976,6 @@ begin
   end;
 end;
 
-function TKPrintPageSetup.UpdateUnlocked: Boolean;
-begin
-  Result := FUpdateLock = 0;
-end;
-
 procedure TKPrintPageSetup.Validate;
 begin
   if not FIsValid and not FValidating then
@@ -3010,6 +3017,8 @@ begin
   FMouseWheelAccumulator := 0;
   FPage := 1;
   FPageSize := CreateEmptyPoint;
+  FPixelsPerInchX := cDPIDef;
+  FPixelsPerInchY := cDPIDef;
   FScale := 100;
   FScaleMode := smPageWidth;
   FOnChanged := nil;
@@ -3520,6 +3529,26 @@ begin
   end;
 end;
 
+procedure TKPrintPreview.SetPixelsPerInchX(Value: Integer);
+begin
+  Value := MinMax(Value, cDPIMin, cDPIMax);
+  if Value <> FPixelsPerInchX then
+  begin
+    FPixelsPerInchX := Value;
+    UpdatePreview;
+  end;
+end;
+
+procedure TKPrintPreview.SetPixelsPerInchY(Value: Integer);
+begin
+  Value := MinMax(Value, cDPIMin, cDPIMax);
+  if Value <> FPixelsPerInchY then
+  begin
+    FPixelsPerInchY := Value;
+    UpdatePreview;
+  end;
+end;
+
 procedure TKPrintPreview.SetScale(Value: Integer);
 begin
   Value := MinMax(Value, cScaleMin, cScaleMax);
@@ -3579,9 +3608,8 @@ begin
     try
       if Assigned(FControl) then
       begin
-        // get isotropic page size in 300 dpi
-        PageWidth100Percent := MulDiv(FControl.PageSetup.PrinterPageWidth, 300, FControl.PageSetup.PrinterPixelsPerInchX);
-        PageHeight100Percent := MulDiv(FControl.PageSetup.PrinterPageHeight, 300, FControl.PageSetup.PrinterPixelsPerInchY);
+        PageWidth100Percent := MulDiv(FControl.PageSetup.PrinterPageWidth, FPixelsPerInchX, FControl.PageSetup.PrinterPixelsPerInchX);
+        PageHeight100Percent := MulDiv(FControl.PageSetup.PrinterPageHeight, FPixelsPerInchY, FControl.PageSetup.PrinterPixelsPerInchY);
         case FScaleMode of
           smScale:
           begin
