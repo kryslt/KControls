@@ -1,0 +1,489 @@
+object KMemoImageForm: TKMemoImageForm
+  Left = 603
+  Height = 435
+  Top = 167
+  Width = 527
+  BorderStyle = bsDialog
+  Caption = 'Insert/edit image'
+  ClientHeight = 435
+  ClientWidth = 527
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '1.6.0.4'
+  object BUOk: TButton
+    Left = 360
+    Height = 25
+    Top = 399
+    Width = 75
+    Caption = 'OK'
+    Default = True
+    ModalResult = 1
+    TabOrder = 0
+  end
+  object BUCancel: TButton
+    Left = 441
+    Height = 25
+    Top = 399
+    Width = 75
+    Cancel = True
+    Caption = 'Cancel'
+    ModalResult = 2
+    TabOrder = 1
+  end
+  object BUBrowse: TButton
+    Left = 8
+    Height = 25
+    Top = 399
+    Width = 116
+    Caption = 'Browse...'
+    OnClick = BUBrowseClick
+    TabOrder = 2
+  end
+  object PCMain: TPageControl
+    Left = 8
+    Height = 385
+    Top = 8
+    Width = 508
+    ActivePage = TSBasic
+    TabIndex = 0
+    TabOrder = 3
+    object TSBasic: TTabSheet
+      Caption = 'Basic'
+      ClientHeight = 359
+      ClientWidth = 500
+      object GBPreview: TGroupBox
+        Left = 210
+        Height = 348
+        Top = 3
+        Width = 285
+        Caption = 'Image preview'
+        ClientHeight = 330
+        ClientWidth = 281
+        TabOrder = 0
+        object IMPreview: TImage
+          Left = 0
+          Height = 330
+          Top = 0
+          Width = 281
+          Align = alClient
+          Center = True
+          Proportional = True
+          Stretch = True
+        end
+      end
+      object GBPosition: TGroupBox
+        Left = 8
+        Height = 98
+        Top = 3
+        Width = 196
+        Caption = 'Position'
+        ClientHeight = 80
+        ClientWidth = 192
+        TabOrder = 1
+        object RBPositionText: TRadioButton
+          Left = 14
+          Height = 19
+          Top = 6
+          Width = 53
+          Caption = 'In text'
+          TabOrder = 0
+        end
+        object RBPositionRelative: TRadioButton
+          Left = 14
+          Height = 19
+          Top = 29
+          Width = 59
+          Caption = 'Relative'
+          TabOrder = 1
+        end
+        object RBPositionAbsolute: TRadioButton
+          Left = 14
+          Height = 19
+          Top = 52
+          Width = 62
+          Caption = 'Absolute'
+          TabOrder = 2
+        end
+        object EDOffsetX: TKNumberEdit
+          Left = 126
+          Height = 23
+          Top = 13
+          Width = 43
+          Caption = 'Horz. offset:'
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Max = 10000
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 3
+        end
+        object EDOffsetY: TKNumberEdit
+          Left = 126
+          Height = 23
+          Top = 53
+          Width = 43
+          Caption = 'Vert. offset:'
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Max = 10000
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 5
+        end
+      end
+      object GBSize: TGroupBox
+        Left = 8
+        Height = 86
+        Top = 107
+        Width = 196
+        Caption = 'Size'
+        ClientHeight = 68
+        ClientWidth = 192
+        TabOrder = 2
+        object EDScaleX: TKNumberEdit
+          Left = 14
+          Height = 23
+          Top = 18
+          Width = 51
+          Caption = 'Horz. scale:'
+          CustomSuffix = '%'
+          DecimalSeparator = ','
+          Min = 1
+          Value = 100
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 0
+          OnChange = EDScaleXChange
+        end
+        object EDScaleY: TKNumberEdit
+          Left = 117
+          Height = 23
+          Top = 18
+          Width = 52
+          Caption = 'Vert. scale:'
+          CustomSuffix = '%'
+          DecimalSeparator = ','
+          Min = 1
+          Value = 100
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 2
+          OnChange = EDScaleYChange
+        end
+        object CBProportional: TCheckBox
+          Left = 14
+          Height = 19
+          Top = 45
+          Width = 78
+          Caption = 'Proportional'
+          Checked = True
+          OnClick = EDScaleXChange
+          State = cbChecked
+          TabOrder = 4
+        end
+      end
+      object GBWrap: TGroupBox
+        Left = 8
+        Height = 114
+        Top = 199
+        Width = 196
+        Caption = 'Content floating'
+        ClientHeight = 96
+        ClientWidth = 192
+        TabOrder = 3
+        object RBWrapAround: TRadioButton
+          Left = 14
+          Height = 19
+          Top = 4
+          Width = 111
+          Caption = 'Float on both sides'
+          TabOrder = 0
+        end
+        object RBWrapAroundLeft: TRadioButton
+          Left = 14
+          Height = 19
+          Top = 27
+          Width = 100
+          Caption = 'Float on left side'
+          TabOrder = 1
+        end
+        object RBWrapAroundRight: TRadioButton
+          Left = 14
+          Height = 19
+          Top = 50
+          Width = 106
+          Caption = 'Float on right side'
+          TabOrder = 2
+        end
+        object RBWrapTopBottom: TRadioButton
+          Left = 14
+          Height = 19
+          Top = 73
+          Width = 58
+          Caption = 'No float'
+          TabOrder = 3
+        end
+      end
+    end
+    object TSAdvanced: TTabSheet
+      Caption = 'Advanced'
+      ClientHeight = 359
+      ClientWidth = 500
+      ImageIndex = 1
+      object GBShading: TGroupBox
+        Left = 8
+        Height = 143
+        Top = 8
+        Width = 359
+        Caption = 'Borders and shading'
+        ClientHeight = 125
+        ClientWidth = 355
+        TabOrder = 0
+        object LBBorderLeft: TLabel
+          Left = 18
+          Height = 13
+          Top = 7
+          Width = 58
+          Caption = 'Left border:'
+          ParentColor = False
+        end
+        object LBBorderRight: TLabel
+          Left = 18
+          Height = 13
+          Top = 37
+          Width = 64
+          Caption = 'Right border:'
+          ParentColor = False
+        end
+        object LBBorderTop: TLabel
+          Left = 183
+          Height = 13
+          Top = 7
+          Width = 57
+          Caption = 'Top border:'
+          ParentColor = False
+        end
+        object LBBorderBottom: TLabel
+          Left = 183
+          Height = 13
+          Top = 37
+          Width = 73
+          Caption = 'Bottom border:'
+          ParentColor = False
+        end
+        object LBBorderColor: TLabel
+          Left = 18
+          Height = 13
+          Top = 67
+          Width = 62
+          Caption = 'Border color:'
+          ParentColor = False
+        end
+        object LBShading: TLabel
+          Left = 183
+          Height = 13
+          Top = 67
+          Width = 42
+          Caption = 'Shading:'
+          ParentColor = False
+        end
+        object LBBorderRadius: TLabel
+          Left = 18
+          Height = 13
+          Top = 96
+          Width = 68
+          Caption = 'Border radius:'
+          ParentColor = False
+        end
+        object EDBorderLeft: TKNumberEdit
+          Left = 98
+          Height = 23
+          Top = 4
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Max = 10
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 0
+        end
+        object EDBorderRight: TKNumberEdit
+          Left = 98
+          Height = 23
+          Top = 34
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Max = 10
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 2
+        end
+        object EDBorderTop: TKNumberEdit
+          Left = 271
+          Height = 23
+          Top = 4
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Max = 10
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 4
+        end
+        object EDBorderBottom: TKNumberEdit
+          Left = 271
+          Height = 23
+          Top = 34
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Max = 10
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 6
+        end
+        object CLBBorder: TKColorButton
+          Left = 98
+          Height = 25
+          Top = 62
+          Width = 70
+          Font.Color = clBtnText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          ParentFont = False
+          TabOrder = 8
+          ColorDlgOptions = []
+        end
+        object CLBShading: TKColorButton
+          Left = 271
+          Height = 25
+          Top = 62
+          Width = 70
+          Font.Color = clBtnText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          ParentFont = False
+          TabOrder = 9
+          ColorDlgOptions = []
+        end
+        object EDBorderRadius: TKNumberEdit
+          Left = 98
+          Height = 23
+          Top = 93
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Max = 10
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 10
+        end
+      end
+      object GBCrop: TGroupBox
+        Left = 8
+        Height = 100
+        Top = 157
+        Width = 359
+        Caption = 'Crop'
+        ClientHeight = 82
+        ClientWidth = 355
+        TabOrder = 1
+        object LBCropLeft: TLabel
+          Left = 18
+          Height = 13
+          Top = 17
+          Width = 47
+          Caption = 'Left crop:'
+          ParentColor = False
+        end
+        object LBCropRight: TLabel
+          Left = 18
+          Height = 13
+          Top = 47
+          Width = 53
+          Caption = 'Right crop:'
+          ParentColor = False
+        end
+        object LBCropTop: TLabel
+          Left = 183
+          Height = 13
+          Top = 17
+          Width = 46
+          Caption = 'Top crop:'
+          ParentColor = False
+        end
+        object LBCropBottom: TLabel
+          Left = 183
+          Height = 13
+          Top = 47
+          Width = 62
+          Caption = 'Bottom crop:'
+          ParentColor = False
+        end
+        object EDCropLeft: TKNumberEdit
+          Left = 98
+          Height = 23
+          Top = 14
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 0
+        end
+        object EDCropRight: TKNumberEdit
+          Left = 98
+          Height = 23
+          Top = 44
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 2
+        end
+        object EDCropTop: TKNumberEdit
+          Left = 271
+          Height = 23
+          Top = 14
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 4
+        end
+        object EDCropBottom: TKNumberEdit
+          Left = 271
+          Height = 23
+          Top = 44
+          Width = 55
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 6
+        end
+      end
+    end
+  end
+  object ODMain: TOpenPictureDialog
+    Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
+    left = 296
+    top = 392
+  end
+end

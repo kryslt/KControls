@@ -1,5 +1,5 @@
 object KMemoHyperlinkForm: TKMemoHyperlinkForm
-  Left = 484
+  Left = 487
   Height = 135
   Top = 182
   Width = 524
@@ -12,7 +12,7 @@ object KMemoHyperlinkForm: TKMemoHyperlinkForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Position = poScreenCenter
-  LCLVersion = '1.2.4.0'
+  LCLVersion = '1.6.0.4'
   object LBText: TLabel
     Left = 24
     Height = 13
@@ -62,6 +62,7 @@ object KMemoHyperlinkForm: TKMemoHyperlinkForm
     Height = 21
     Top = 53
     Width = 370
+    Anchors = [akTop, akLeft, akRight]
     ItemHeight = 13
     TabOrder = 3
   end

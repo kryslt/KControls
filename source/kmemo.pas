@@ -640,6 +640,8 @@ type
     property Items[Index: Integer]: TKMemoWord read GetItem write SetItem; default;
   end;
 
+  TKMemoBlock = class;
+
   TKMemoBlocks = class;
 
   IKMemoNotifier = interface(IInterface)
@@ -657,6 +659,7 @@ type
     procedure GetSelColors(out Foreground, Background: TColor);
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
+    procedure SelectBlock(AItem: TKMemoBlock);
     procedure SetReqMouseCursor(ACursor: TCursor);
   end;
 
@@ -993,6 +996,7 @@ type
     function OuterRect(ACaret: Boolean): TRect; virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
     function WordMeasureExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
+    function WordMouseAction(AWordIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property Crop: TKRect read FCrop write SetCrop;
@@ -1342,7 +1346,8 @@ type
     function NextIndexByRowDelta(ACanvas: TCanvas; AIndex, ARowDelta, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function NextIndexByVertExtent(ACanvas: TCanvas; AIndex, AHeight, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function NextIndexByVertValue(ACanvas: TCanvas; AValue, ALeftPos: Integer; ADirection: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
-    function PointToBlocks(ACanvas: TCanvas; const APoint: TPoint): TKMemoBlocks; virtual;
+    function PointToBlock(const APoint: TPoint): TKMemoBlock; virtual;
+    function PointToBlocks(const APoint: TPoint): TKMemoBlocks; virtual;
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function PointToIndexOnLine(ACanvas: TCanvas; ALineIndex: Integer; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
@@ -1550,6 +1555,9 @@ type
   TKMemoRTFString = type string;
 
   { @abstract(Multi line text editor base component). }
+
+  { TKCustomMemo }
+
   TKCustomMemo = class(TKCustomControl, IKMemoNotifier)
   private
     FBackground: TKMemoBackground;
@@ -1700,8 +1708,6 @@ type
     procedure BlocksFreeNotification(ABlocks: TKMemoBlocks);
     { Update the editor after block changes. }
     procedure BlocksChanged(Reasons: TKMemoUpdateReasons);
-    { Calls mouse move action for all blocks with current mouse coordinates and shift state. }
-    procedure BlocksMouseMove; virtual;
     { Determines whether an ecScroll* command can be executed. }
     function CanScroll(ACommand: TKEditCommand): Boolean; virtual;
     { Called by ContentPadding class to update the memo control. }
@@ -1833,6 +1839,8 @@ type
     { Initializes the current selection and performs all necessary adjustments. }
     procedure SelectionInit(const APoint: TPoint; ADoScroll: Boolean = True); overload; virtual;
     { IKMemoNotifier implementation. }
+    procedure SelectBlock(AItem: TKMemoBlock);
+    { IKMemoNotifier implementation. }
     procedure SetReqMouseCursor(ACursor: TCursor);
     { Updates mouse cursor according to the state determined from current mouse
       position. Returns True if cursor has been changed. }
@@ -1846,10 +1854,11 @@ type
     { Updates caret position, shows/hides caret according to the input focus
       <UL>
       <LH>Parameters:</LH>
-      <LI><I>Recreate</I> - set to True to recreate the caret after it has already
-      been created and displayed</LI>
+      <LI><I>AShow</I> - set to True to show the caret</LI>
       </UL> }
     procedure UpdateEditorCaret(AShow: Boolean = True); virtual;
+    { Update the mouse cursor. }
+    procedure UpdateMouseCursor; virtual;
     { Update the preferred caret horizontal position. }
     procedure UpdatePreferredCaretPos; virtual;
     { Updates the scrolling range. }
@@ -4129,18 +4138,6 @@ begin
   end;
 end;
 
-procedure TKCustomMemo.BlocksMouseMove;
-var
-  P: TPoint;
-  OldCursor: TCursor;
-begin
-  P := ScreenToClient(Mouse.CursorPos);
-  OldCursor := FRequiredMouseCursor;
-  FBlocks.MouseAction(maMove, PointToBlockPoint(P, False), GetShiftState);
-  if FRequiredMouseCursor <> OldCursor then
-    SetMouseCursor(P.X, P.Y);
-end;
-
 function TKCustomMemo.CanScroll(ACommand: TKEditCommand): Boolean;
 var
   R: TRect;
@@ -4743,17 +4740,23 @@ end;
 
 function TKCustomMemo.GetActiveBlock: TKMemoBlock;
 var
-  Dummy: Integer;
+  Dummy, Index: Integer;
 begin
+  Index := FActiveBlocks.SelEnd;
+  if SelAvail and (FActiveBlocks.SelEnd > FActiveBlocks.SelStart) then
+    Dec(Index);
   Result := FActiveBlocks.IndexToItem(FActiveBlocks.SelEnd, Dummy);
 end;
 
 function TKCustomMemo.GetActiveInnerBlock: TKMemoBlock;
 var
-  LocalIndex: Integer;
+  Index, LocalIndex: Integer;
   Items: TKmemoBlocks;
 begin
-  Items := FActiveBlocks.IndexToBlocks(FActiveBlocks.SelEnd, LocalIndex);
+  Index := FActiveBlocks.SelEnd;
+  if SelAvail and (FActiveBlocks.SelEnd > FActiveBlocks.SelStart) then
+    Dec(Index);
+  Items := FActiveBlocks.IndexToBlocks(Index, LocalIndex);
   if Items <> nil then
     Result := Items.IndexToItem(LocalIndex, LocalIndex)
   else
@@ -4764,7 +4767,7 @@ function TKCustomMemo.GetActiveInnerBlocks: TKMemoBlocks;
 var
   Dummy: Integer;
 begin
-  Result := FActiveBlocks.IndexToBlocks(FActiveBlocks.SelEnd, Dummy);
+  Result := FActiveBlocks.IndexToBlocks(FActiveBlocks.RealSelEnd, Dummy);
 end;
 
 function TKCustomMemo.GetCaretVisible: Boolean;
@@ -5095,7 +5098,7 @@ begin
     end;
     case Key of
       VK_ESCAPE: Include(FStates, elIgnoreNextChar);
-      VK_SHIFT, VK_CONTROL, VK_MENU: BlocksMouseMove;
+      VK_SHIFT, VK_CONTROL, VK_MENU: UpdateMouseCursor;
     end;
   end;
 end;
@@ -5130,7 +5133,7 @@ begin
   if not (csDesigning in ComponentState) then
   begin
     case Key of
-      VK_SHIFT, VK_CONTROL, VK_MENU: BlocksMouseMove;
+      VK_SHIFT, VK_CONTROL, VK_MENU: UpdateMouseCursor;
     end;
   end;
 end;
@@ -5230,6 +5233,7 @@ var
   P: TPoint;
   Action: TKMemoMouseAction;
   StartIndex, EndIndex: Integer;
+  Item: TKMemoBlock;
 begin
   inherited;
   if Enabled then
@@ -5260,6 +5264,7 @@ begin
       end;
     end;
   end;
+  UpdateMouseCursor;
 end;
 
 procedure TKCustomMemo.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -5268,17 +5273,14 @@ var
 begin
   inherited;
   P := Point(X, Y);
-  if (elMouseCapture in FStates) then
+  if elMouseCapture in FStates then
   begin
     if not FScrollTimer.Enabled then
     begin
       SelectionExpand(P, True);
     end;
-  end else
-  begin
-    FRequiredMouseCursor := crIBeam;
-    FBlocks.MouseAction(maMove, PointToBlockPoint(P, False), GetShiftState);
   end;
+  UpdateMouseCursor;
 end;
 
 procedure TKCustomMemo.MouseUp(Button: TMouseButton; Shift: TShiftState;
@@ -5298,6 +5300,7 @@ begin
   end;
   P := Point(X, Y);
   FBlocks.MouseAction(Action, PointToBlockPoint(P, False), Shift);
+  UpdateMouseCursor;
 end;
 
 procedure TKCustomMemo.MoveCaretToMouseCursor(AIfOutsideOfSelection: Boolean);
@@ -5378,7 +5381,6 @@ begin
   AreaWidth := Round(APageSetup.MappedControlPaintAreaWidth / APageSetup.CurrentScale);
   AreaHeight := Round(APageSetup.MappedPaintAreaHeight / APageSetup.CurrentScale);
   TmpRect := Rect(0, 0, APageSetup.MappedOutlineWidth, APageSetup.MappedOutlineHeight);
-//    FBlocks.MeasureExtent(APageSetup.Canvas, AreaWidth);
   FBlocks.GetPageData(AreaHeight, APageSetup.CurrentPageControl - 1, PageOffset, PageHeight);
   TmpRect1 := Rect(0, 0, AreaWidth, PageHeight);
   IntersectRect(TmpRect, TmpRect, TmpRect1);
@@ -5447,11 +5449,7 @@ end;
 
 procedure TKCustomMemo.PrintPaintBegin;
 begin
-  if not (elPrinting in FStates) then
-  begin
-    Include(FStates, elPrinting);
-    PrepareToPrint(PageSetup.CurrentScale);
-  end;
+  PrepareToPrint(PageSetup.CurrentScale);
 end;
 
 procedure TKCustomMemo.PrintPaintEnd;
@@ -5475,7 +5473,8 @@ begin
     SaveToTXT(AFileName);
 end;
 
-procedure TKCustomMemo.SaveToRTF(const AFileName: TKString; ASelectedOnly, AReadableOutput: Boolean);
+procedure TKCustomMemo.SaveToRTF(const AFileName: TKString;
+  ASelectedOnly: Boolean; AReadableOutput: Boolean);
 var
   Writer: TKMemoRTFWriter;
 begin
@@ -5489,7 +5488,7 @@ begin
 end;
 
 procedure TKCustomMemo.SaveToRTFStream(AStream: TStream;
-  ASelectedOnly, AReadableOutput: Boolean);
+  ASelectedOnly: Boolean; AReadableOutput: Boolean);
 var
   Writer: TKMemoRTFWriter;
 begin
@@ -5682,9 +5681,19 @@ begin
   UpdatePreferredCaretPos;
 end;
 
+procedure TKCustomMemo.SelectBlock(AItem: TKMemoBlock);
+begin
+//  StartIndex := PointToIndex(P, False, False, FLinePosition);
+//  Item := FActiveBlocks.IndexToItem(StartIndex, EndIndex);
+//  if Item is TKMemoImageBlock then
+//  begin
+//    Select(StartIndex, 1, True);
+//  end
+end;
+
 procedure TKCustomMemo.SetActiveBlocksForPoint(const APoint: TPoint);
 begin
-  FActiveBlocks := FBlocks.PointToBlocks(Canvas, PointToBlockPoint(APoint, False));
+  FActiveBlocks := FBlocks.PointToBlocks(PointToBlockPoint(APoint, False));
   if FActiveBlocks = nil then
     FActiveBlocks := FBlocks;
 end;
@@ -6032,6 +6041,34 @@ begin
       Exclude(FStates, elCaretUpdate);
     end;
   end;
+end;
+
+procedure TKCustomMemo.UpdateMouseCursor;
+var
+  P: TPoint;
+  OldCursor, NewCursor: TCursor;
+  DoUpdate: Boolean;
+begin
+  DoUpdate := False;
+  P := ScreenToClient(Mouse.CursorPos);
+  if SelAvail then
+    NewCursor := crDefault
+  else
+    NewCursor := crIBeam;
+  if NewCursor <> FRequiredMouseCursor then
+  begin
+    FRequiredMouseCursor := NewCursor;
+    DoUpdate := True;
+  end;
+  if not (elMouseCapture in FStates) then
+  begin
+    OldCursor := FRequiredMouseCursor;
+    FBlocks.MouseAction(maMove, PointToBlockPoint(P, False), GetShiftState);
+    if FRequiredMouseCursor <> OldCursor then
+      DoUpdate := True;
+  end;
+  if DoUpdate then
+    SetMouseCursor(P.X, P.Y);
 end;
 
 procedure TKCustomMemo.UpdatePreferredCaretPos;
@@ -7629,9 +7666,7 @@ begin
         maMove:
         begin
           if (ssCtrl in AShift) or ReadOnly then
-            Notifier.SetReqMouseCursor(crHandPoint)
-          else
-            Notifier.SetReqMouseCursor(crIBeam);
+            Notifier.SetReqMouseCursor(crHandPoint);
           Result := True;
         end;
         maLeftDown:
@@ -8204,6 +8239,30 @@ begin
     Result.X := ARequiredWidth;
   end;
   FExtent := Result;
+end;
+
+function TKMemoImageBlock.WordMouseAction(AWordIndex: Integer;
+  AAction: TKMemoMouseAction; const APoint: TPoint;
+  AShift: TShiftState): Boolean;
+var
+  R: TRect;
+  Notifier: IKMemoNotifier;
+begin
+  Result := False;
+  R := Rect(FPosition.X, FPosition.Y, FPosition.X + FExtent.X, FPosition.Y + FExtent.Y);
+  if PtInRect(R, APoint) then
+  begin
+    Notifier := MemoNotifier;
+    if Notifier <> nil then
+    begin
+      case AAction of
+        maLeftDown:
+        begin
+          Notifier.SelectBlock(Self);
+        end;
+      end;
+    end;
+  end;
 end;
 
 procedure TKMemoImageBlock.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
@@ -10006,7 +10065,7 @@ begin
   AddAt(Result, At);
 end;
 
-function TKMemoBlocks.AddImageBlock(AImage: TPicture;  At: Integer): TKMemoImageBlock;
+function TKMemoBlocks.AddImageBlock(AImage: TPicture; At: Integer): TKMemoImageBlock;
 begin
   Result := TKMemoImageBlock.Create;
   Result.Image := AImage;
@@ -12106,6 +12165,11 @@ begin
       end;
     end;
   end;
+  for I := 0 to FRelPos.Count - 1 do
+  begin
+    Item := Items[FRelPos[I].Index];
+    Result := Result or Item.WordMouseAction(0, AAction, APoint, AShift);
+  end;
 end;
 
 function TKMemoBlocks.NextIndexByCharCount(AIndex, ACharCount: Integer): Integer;
@@ -12435,7 +12499,29 @@ begin
   end;
 end;
 
-function TKMemoBlocks.PointToBlocks(ACanvas: TCanvas; const APoint: TPoint): TKMemoBlocks;
+function TKMemoBlocks.PointToBlock(const APoint: TPoint): TKMemoBlock;
+var
+  I: Integer;
+  Item: TKMemoBlock;
+  R: TRect;
+  P: TPoint;
+begin
+  Result := nil;
+  for I := 0 to Count - 1 do
+  begin
+    Item := Items[I];
+    R := Item.BoundsRect;
+    if Item.Position <> mbpText then
+      KFunctions.OffsetRect(R, Item.LeftOffset, Item.TopOffset);
+    if PtInRect(R, APoint) then
+    begin
+      Result := Item;
+      Exit;
+    end;
+  end;
+end;
+
+function TKMemoBlocks.PointToBlocks(const APoint: TPoint): TKMemoBlocks;
 var
   I: Integer;
   Item: TKMemoBlock;
@@ -12466,7 +12552,7 @@ begin
       begin
         P := APoint;
         OffsetPoint(P, -TKMemoContainer(Item).Left - TKMemoContainer(Item).BlockStyle.AllPaddingsLeft, -TKMemoContainer(Item).Top - TKMemoContainer(Item).BlockStyle.AllPaddingsTop);
-        Result := TKMemoContainer(Item).Blocks.PointToBlocks(ACanvas, P);
+        Result := TKMemoContainer(Item).Blocks.PointToBlocks(P);
         if Result <> nil then
           break;
       end;
@@ -12515,29 +12601,32 @@ begin
       for I := 0 to Count - 1 do
       begin
         Item := Items[I];
-        LastIndex := CurIndex;
-        Inc(CurIndex, Item.SelectableLength);
-        if (ASelStart >= LastIndex) and (NewSelEnd < CurIndex) then
+        if Item.Position = mbpText then
         begin
-          // selection within the same block
-          Item.Select(ASelStart - LastIndex, NewSelEnd - ASelStart);
-        end
-        else if (ASelStart >= LastIndex) and (ASelStart < CurIndex) and (NewSelEnd >= CurIndex) then
-          // selection starts in this block
-          Item.Select(ASelStart - LastIndex, CurIndex - ASelStart)
-        else if (ASelStart < LastIndex) and (NewSelEnd >= LastIndex) and (NewSelEnd < CurIndex) then
-          // selection ends in this block
-          Item.Select(0, NewSelEnd - LastIndex)
-        else if (ASelStart <= LastIndex) and (NewSelEnd >= CurIndex) then
-        begin
-          // selection goes through this block
-          if not ATextOnly and ((ASelLength <> 0) and (Item.Position <> mbpText)) then
-            LocalSelLength := Item.SelectableLength(True)
-          else
-            LocalSelLength := CurIndex - LastIndex;
-          Item.Select(0, LocalSelLength)
-        end else
-          Item.Select(-1, 0);
+          LastIndex := CurIndex;
+          Inc(CurIndex, Item.SelectableLength);
+          if (ASelStart >= LastIndex) and (NewSelEnd < CurIndex) then
+          begin
+            // selection within the same block
+            Item.Select(ASelStart - LastIndex, NewSelEnd - ASelStart);
+          end
+          else if (ASelStart >= LastIndex) and (ASelStart < CurIndex) and (NewSelEnd >= CurIndex) then
+            // selection starts in this block
+            Item.Select(ASelStart - LastIndex, CurIndex - ASelStart)
+          else if (ASelStart < LastIndex) and (NewSelEnd >= LastIndex) and (NewSelEnd < CurIndex) then
+            // selection ends in this block
+            Item.Select(0, NewSelEnd - LastIndex)
+          else if (ASelStart <= LastIndex) and (NewSelEnd >= CurIndex) then
+          begin
+            // selection goes through this block
+            if not ATextOnly and ((ASelLength <> 0) and (Item.Position <> mbpText)) then
+              LocalSelLength := Item.SelectableLength(True)
+            else
+              LocalSelLength := CurIndex - LastIndex;
+            Item.Select(0, LocalSelLength)
+          end else
+            Item.Select(-1, 0);
+        end;
       end;
       if ADoScroll then
       begin

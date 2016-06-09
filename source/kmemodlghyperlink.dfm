@@ -65,6 +65,7 @@ object KMemoHyperlinkForm: TKMemoHyperlinkForm
     Top = 53
     Width = 370
     Height = 21
+    Anchors = [akLeft, akTop, akRight]
     TabOrder = 3
   end
 end
