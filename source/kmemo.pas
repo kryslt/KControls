@@ -646,6 +646,7 @@ type
 
   IKMemoNotifier = interface(IInterface)
     procedure BlocksFreeNotification(ABlocks: TKMemoBlocks);
+    function EditBlock(AItem: TKMemoBlock): Boolean;
     function GetDefaultTextStyle: TKMemoTextStyle;
     function GetDefaultParaStyle: TKMemoParaStyle;
     function GetDrawSingleChars: Boolean;
@@ -659,7 +660,7 @@ type
     procedure GetSelColors(out Foreground, Background: TColor);
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
-    procedure SelectBlock(AItem: TKMemoBlock);
+    function SelectBlock(AItem: TKMemoBlock): Boolean;
     procedure SetReqMouseCursor(ACursor: TCursor);
   end;
 
@@ -1329,6 +1330,7 @@ type
     procedure InsertPlainText(AIndex: Integer; const AValue: TKString); virtual;
     function InsertParagraph(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
     function InsertString(AIndex: Integer; AAdjust: Boolean; const AValue: TKString; ATextStyle: TKMemoTextStyle = nil): Boolean; virtual;
+    function ItemToIndex(AItem: TKMemoBlock): Integer; virtual;
     function LastTextStyle(AIndex: Integer): TKMemoTextStyle; virtual;
     function LineEndIndexByIndex(AIndex: Integer; AAdjust, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function LineStartIndexByIndex(AIndex: Integer; AAdjust: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
@@ -1554,10 +1556,9 @@ type
 
   TKMemoRTFString = type string;
 
+  TKMemoEditBlockEvent = procedure(AItem: TKMemoBlock; var Result: Boolean) of object;
+
   { @abstract(Multi line text editor base component). }
-
-  { TKCustomMemo }
-
   TKCustomMemo = class(TKCustomControl, IKMemoNotifier)
   private
     FBackground: TKMemoBackground;
@@ -1570,6 +1571,7 @@ type
     FListTable: TKMemoListTable;
     FMaxWordLength: Integer;
     FMouseWheelAccumulator: Integer;
+    FNewTextStyle: TKMemoTextStyle;
     FOptions: TKEditOptions;
     FParaStyle: TKMemoParaStyle;
     FRedoList: TKMemoChangeList;
@@ -1586,8 +1588,8 @@ type
     FWordBreaks: TKSysCharSet;
     FOnChange: TNotifyEvent;
     FOnDropFiles: TKEditDropFilesEvent;
+    FOnEditBlock: TKMemoEditBlockEvent;
     FOnReplaceText: TKEditReplaceTextEvent;
-    FNewTextStyle: TKMemoTextStyle;
     function GetActiveBlock: TKMemoBlock;
     function GetActiveInnerBlock: TKMemoBlock;
     function GetActiveInnerBlocks: TKMemoBlocks;
@@ -1734,6 +1736,8 @@ type
     function DoSearchReplace(AReplace: Boolean): Boolean; virtual;
     { Performs the Undo command. }
     function DoUndo: Boolean; virtual;
+    { IKMemoNotifier implementation. }
+    function EditBlock(AItem: TKMemoBlock): Boolean;
     { Closes the undo group created by @link(TKCustomMemo.BeginUndoGroup). }
     procedure EndUndoGroup;
     { Notify blocks about memo font change. }
@@ -1839,7 +1843,7 @@ type
     { Initializes the current selection and performs all necessary adjustments. }
     procedure SelectionInit(const APoint: TPoint; ADoScroll: Boolean = True); overload; virtual;
     { IKMemoNotifier implementation. }
-    procedure SelectBlock(AItem: TKMemoBlock);
+    function SelectBlock(AItem: TKMemoBlock): Boolean;
     { IKMemoNotifier implementation. }
     procedure SetReqMouseCursor(ACursor: TCursor);
     { Updates mouse cursor according to the state determined from current mouse
@@ -2102,6 +2106,9 @@ type
     { When assigned, this event will be invoked when the user drops any files onto
       the window. }
     property OnDropFiles: TKEditDropFilesEvent read FOnDropFiles write FOnDropFiles;
+    { When assigned, this event will be invoked if some internal event in KMemo needs to edit
+      a block externally. }
+    property OnEditBlock: TKMemoEditBlockEvent read FOnEditBlock write FOnEditBlock;
     { When assigned, this event will be invoked at each prompt-forced search match. }
     property OnReplaceText: TKEditReplaceTextEvent read FOnReplaceText write FOnReplaceText;
   end;
@@ -2188,6 +2195,8 @@ type
     property OnDragOver;
     { See TKCustomMemo.@link(TKCustomMemo.OnDropFiles) for details. }
     property OnDropFiles;
+    { See TKCustomMemo.@link(TKCustomMemo.OnEditBlock) for details. }
+    property OnEditBlock;
     { Inherited property - see Delphi help. }
     property OnEndDock;
     { Inherited property - see Delphi help. }
@@ -3991,6 +4000,8 @@ begin
   FVertScrollStep := cVertScrollStepDef;
   FWordBreaks := cDefaultWordBreaks;
   FOnChange := nil;
+  FOnDropFiles := nil;
+  FOnEditBlock := nil;
   FOnReplaceText := nil;
   if csDesigning in ComponentState then
     Text := 'This is beta state control.'+cEOL+'You may already use it in your programs'+cEOL+'but some important functions may still be missing.'+cEOL
@@ -4471,6 +4482,13 @@ function TKCustomMemo.DoUndo: Boolean;
 begin
   //TODO
   Result := False;
+end;
+
+function TKCustomMemo.EditBlock(AItem: TKMemoBlock): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnEditBlock) then
+    FOnEditBlock(AItem, Result);
 end;
 
 {$IFNDEF FPC}
@@ -5681,14 +5699,25 @@ begin
   UpdatePreferredCaretPos;
 end;
 
-procedure TKCustomMemo.SelectBlock(AItem: TKMemoBlock);
+function TKCustomMemo.SelectBlock(AItem: TKMemoBlock): Boolean;
+var
+  StartIndex: Integer;
 begin
-//  StartIndex := PointToIndex(P, False, False, FLinePosition);
-//  Item := FActiveBlocks.IndexToItem(StartIndex, EndIndex);
-//  if Item is TKMemoImageBlock then
-//  begin
-//    Select(StartIndex, 1, True);
-//  end
+  Result := False;
+  if AItem.Position = mbpText then
+  begin
+    FActiveBlocks := AItem.ParentBlocks;
+    StartIndex := FActiveBlocks.ItemToIndex(AItem);
+    Result := StartIndex >= 0;
+    if Result then
+      FActiveBlocks.Select(StartIndex, AItem.SelectableLength);
+  end else
+  begin
+    // just select locally and invalidate
+    AItem.Select(0, AItem.SelectableLength);
+    Invalidate;
+    Result := True;
+  end;
 end;
 
 procedure TKCustomMemo.SetActiveBlocksForPoint(const APoint: TPoint);
@@ -8258,7 +8287,9 @@ begin
       case AAction of
         maLeftDown:
         begin
-          Notifier.SelectBlock(Self);
+          Result := Notifier.SelectBlock(Self);
+          if Result and (ssDouble in AShift) then
+            Notifier.EditBlock(Self)
         end;
       end;
     end;
@@ -11474,6 +11505,28 @@ begin
     Result := TKMemoContainer(FParent).ParentBlocks.InsideOfTable
   else
     Result := False;
+end;
+
+function TKMemoBlocks.ItemToIndex(AItem: TKMemoBlock): Integer;
+var
+  I, LastIndex: Integer;
+  Item: TKMemoBlock;
+begin
+  Result := -1;
+  if AItem.Position = mbpText then
+  begin
+    LastIndex := 0;
+    for I := 0 to Count - 1 do
+    begin
+      Item := Items[I];
+      if AItem = Item then
+      begin
+        Result := LastIndex;
+        Exit;
+      end;
+      Inc(LastIndex, Item.SelectableLength);
+    end;
+  end;
 end;
 
 function TKMemoBlocks.LastTextStyle(AIndex: Integer): TKMemoTextStyle;

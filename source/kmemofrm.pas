@@ -186,6 +186,8 @@ type
     FTextStyleForm: TKMemoTextStyleForm;
     procedure AddToMRUFs(const AFileName: TKString); virtual;
     procedure DeleteFromMRUFs(const AFileName: TKString); virtual;
+    function EditImage(AItem: TKMemoBlock): Boolean; virtual;
+    procedure EventEditBlock(AItem: TKMemoBlock; var Result: Boolean);
   public
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
@@ -226,6 +228,7 @@ begin
   FTextStyle := TKMemoTextStyle.Create;
   FTextStyle.OnChanged := TextStyleChanged;
   FTextStyleForm := TKMemoTextStyleForm.Create(Self);
+  Editor.OnEditBlock := EventEditBlock;
   OpenNewFile;
 end;
 
@@ -438,34 +441,8 @@ begin
 end;
 
 procedure TKMemoFrame.ACInsertImageExecute(Sender: TObject);
-var
-  Item: TKMemoBlock;
-  Image: TKMemoImageBlock;
-  Created: Boolean;
 begin
-  Created := False;
-  Item := Editor.ActiveInnerBlock;
-  if Item is TKMemoImageBlock then
-    Image := TKMemoImageBlock(Item)
-  else
-  begin
-    Image := TKMemoImageBlock.Create;
-    Created := True;
-  end;
-  FImageForm.Load(Image);
-  if FImageForm.ShowModal = mrOk then
-  begin
-    FImageForm.Save(Image);
-    if Created then
-    begin
-      if Editor.SelAvail then
-        Editor.ClearSelection;
-      Editor.ActiveInnerBlocks.AddAt(Image, Editor.SplitAt(Editor.SelEnd));
-    end;
-    Editor.Modified := True;
-  end
-  else if Created then
-    Image.Free;
+  EditImage(Editor.ActiveInnerBlock);
 end;
 
 procedure TKMemoFrame.ACParaCenterExecute(Sender: TObject);
@@ -576,6 +553,35 @@ procedure TKMemoFrame.DeleteFromMRUFs(const AFileName: TKString);
 begin
 end;
 
+function TKMemoFrame.EditImage(AItem: TKMemoBlock): Boolean;
+var
+  Image: TKMemoImageBlock;
+  Created: Boolean;
+begin
+  Created := False;
+  if AItem is TKMemoImageBlock then
+    Image := TKMemoImageBlock(AItem)
+  else
+  begin
+    Image := TKMemoImageBlock.Create;
+    Created := True;
+  end;
+  FImageForm.Load(Image);
+  if FImageForm.ShowModal = mrOk then
+  begin
+    FImageForm.Save(Image);
+    if Created then
+    begin
+      if Editor.SelAvail then
+        Editor.ClearSelection;
+      Editor.ActiveInnerBlocks.AddAt(Image, Editor.SplitAt(Editor.SelEnd));
+    end;
+    Editor.Modified := True;
+  end
+  else if Created then
+    Image.Free;
+end;
+
 procedure TKMemoFrame.EditorDropFiles(Sender: TObject; X, Y: Integer;
   Files: TStrings);
 begin
@@ -605,6 +611,12 @@ begin
     end;
     ACFormatCopy.Checked := False;
   end;
+end;
+
+procedure TKMemoFrame.EventEditBlock(AItem: TKMemoBlock; var Result: Boolean);
+begin
+  if AItem is TKMemoImageBlock then
+    Result := EditImage(AItem);
 end;
 
 procedure TKMemoFrame.OpenNewFile;
