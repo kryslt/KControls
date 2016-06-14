@@ -40,20 +40,12 @@ type
     GBPreview: TGroupBox;
     IMPreview: TImage;
     GBShading: TGroupBox;
-    LBBorderLeft: TLabel;
-    LBBorderRight: TLabel;
-    LBBorderTop: TLabel;
-    LBBorderBottom: TLabel;
+    LBBorderWidth: TLabel;
     LBBorderColor: TLabel;
     LBShading: TLabel;
-    LBBorderRadius: TLabel;
-    EDBorderLeft: TKNumberEdit;
-    EDBorderRight: TKNumberEdit;
-    EDBorderTop: TKNumberEdit;
-    EDBorderBottom: TKNumberEdit;
+    EDBorderWidth: TKNumberEdit;
     CLBBorder: TKColorButton;
     CLBShading: TKColorButton;
-    EDBorderRadius: TKNumberEdit;
     GBCrop: TGroupBox;
     LBCropLeft: TLabel;
     LBCropRight: TLabel;
@@ -153,11 +145,7 @@ begin
     else
       RBWrapTopBottom.Checked := True;
     end;
-    EDBorderBottom.ValueAsInt := AItem.ImageStyle.BorderWidths.Bottom;
-    EDBorderLeft.ValueAsInt := AItem.ImageStyle.BorderWidths.Left;
-    EDBorderRight.ValueAsInt := AItem.ImageStyle.BorderWidths.Right;
-    EDBorderTop.ValueAsInt := AItem.ImageStyle.BorderWidths.Top;
-    EDBorderRadius.ValueAsInt := AItem.ImageStyle.BorderRadius;
+    EDBorderWidth.ValueAsInt := AItem.ImageStyle.BorderWidth;
     CLBBorder.DlgColor := AItem.ImageStyle.BorderColor;
     if AItem.ImageStyle.Brush.Style <> bsClear then
       CLBShading.DlgColor := AItem.ImageStyle.Brush.Color
@@ -200,11 +188,7 @@ begin
       AItem.ImageStyle.WrapMode := wrAroundRight
     else
       AItem.ImageStyle.WrapMode := wrTopBottom;
-    AItem.ImageStyle.BorderWidths.Bottom := EDBorderBottom.ValueAsInt;
-    AItem.ImageStyle.BorderWidths.Left := EDBorderLeft.ValueAsInt;
-    AItem.ImageStyle.BorderWidths.Right := EDBorderRight.ValueAsInt;
-    AItem.ImageStyle.BorderWidths.Top := EDBorderTop.ValueAsInt;
-    AItem.ImageStyle.BorderRadius := EDBorderRadius.ValueAsInt;
+    AItem.ImageStyle.BorderWidth := EDBorderWidth.ValueAsInt;
     AItem.ImageStyle.BorderColor := CLBBorder.DlgColor;
     if CLBShading.DlgColor <> clNone then
       AItem.ImageStyle.Brush.Color := CLBShading.DlgColor;

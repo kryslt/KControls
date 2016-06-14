@@ -660,6 +660,7 @@ type
     procedure GetSelColors(out Foreground, Background: TColor);
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
+    function MoveBlock(AItem: TKMemoBlock): Boolean;
     function SelectBlock(AItem: TKMemoBlock): Boolean;
     procedure SetReqMouseCursor(ACursor: TCursor);
   end;
@@ -966,8 +967,10 @@ type
     procedure SetScaleY(const Value: Integer);
   protected
     FCalcBaseLine: Integer;
+    FMouseCapture: Boolean;
     FScaledRect: TRect;
     function ContentLength: Integer; override;
+    procedure CropChanged(Sender: TObject);
     function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetImageHeight: Integer; virtual;
     function GetImageWidth: Integer; virtual;
@@ -1661,6 +1664,7 @@ type
     procedure WMPaste(var Msg: TLMessage); message LM_PASTE;
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
+    function GetRelativeSelected: Boolean;
   protected
     FActiveBlocks: TKMemoBlocks;
     FCaretRect: TRect;
@@ -1668,10 +1672,12 @@ type
     FHorzScrollExtent: Integer;
     FHorzScrollStep: Integer;
     FLinePosition: TKMemoLinePosition;
+    FMousePos: TPoint;
     FNewTextStyleValid: Boolean;
     FOldCaretRect: TRect;
     FPreferredCaretPos: Integer;
     FRequiredMouseCursor: TCursor;
+    FSelectedRelBlock: TKMemoBlock;
     FVertExtent: Integer;
     FVertScrollExtent: Integer;
     FVertScrollStep: Integer;
@@ -1802,6 +1808,8 @@ type
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     { Overriden method - releases mouse capture acquired by MouseDown. }
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    { IKMemoNotifier implementation. }
+    function MoveBlock(AItem: TKMemoBlock): Boolean;
     { Paints the document to specified canvas. }
     procedure PaintContent(ACanvas: TCanvas; const ARect: TRect; ALeftOfs, ATopOfs: Integer);
     { Paints a page to a printer/preview canvas. }
@@ -1914,6 +1922,8 @@ type
     procedure DeleteLastChar(At: Integer); virtual;
     { Delete whole line at position At. }
     procedure DeleteLine(At: Integer);
+    { Delete selected relative or absolute positioned block. Does nothing when no such block is selected. }
+    procedure DeleteRelativeSelected; virtual;
     { Executes given command. This function first calls CommandEnabled to
       assure given command can be executed.
       <UL>
@@ -2057,6 +2067,8 @@ type
     property RealSelEnd: Integer read GetRealSelEnd;
     { Returns "real" selection start - with always lower index value than selection end value. }
     property RealSelStart: Integer read GetRealSelStart;
+    { Returns true when a relative or absolute positioned block is selected. }
+    property RelativeSelected: Boolean read GetRelativeSelected;
     { Specifies the required content width. }
     property RequiredContentWidth: Integer read GetRequiredContentWidth write SetRequiredContentWidth;
     { Allows to save and load the memo contents to/from RTF string.}
@@ -2071,6 +2083,10 @@ type
     property SelAvail: Boolean read GetSelAvail;
     { Returns selectable length. }
     property SelectableLength: Integer read GetSelectableLength;
+    { Returns selected block with relative or absolute position.
+      If SelectedRelBlock is not nil, SelLength is always 0.
+      If SelLength is nonzero, SelectedRelBlock is always nil. }
+    property SelectedRelBlock: TKMemoBlock read FSelectedRelBlock;
     { Determines whether a selection contains a paragraph. }
     property SelectionHasPara: Boolean read GetSelectionHasPara;
     { Specifies paragraph style for active selection. }
@@ -3373,43 +3389,37 @@ var
 begin
   if (FBrush.Style <> bsClear) or (FBorderWidth > 0) or FBorderWidths.NonZero then with ACanvas do
   begin
-    if FBorderWidth > 0 then
-    begin
-      Pen.Style := psSolid;
-      Pen.Width := FBorderWidth;
-      Pen.Color := FBorderColor;
-    end else
-      Pen.Style := psClear;
-    if FBorderWidths.NonZero then
+    if FBorderWidths.NonZero or (FBorderWidth > 0) and (FBorderRadius = 0) then
     begin
       R := ARect;
+      Pen.Style := psClear;
       Brush.Color := FBorderColor;
       Brush.Style := bsSolid;
-      if FBorderWidths.Left <> 0 then
+      if LeftBorderWidth <> 0 then
       begin
         RB := ARect;
-        RB.Right := RB.Left + FBorderWidths.Left;
+        RB.Right := RB.Left + LeftBorderWidth;
         R.Left := RB.Right;
         FillRect(RB);
       end;
-      if FBorderWidths.Top <> 0 then
+      if TopBorderWidth <> 0 then
       begin
         RB := ARect;
-        RB.Bottom := RB.Top + FBorderWidths.Top;
+        RB.Bottom := RB.Top + TopBorderWidth;
         R.Top := RB.Bottom;
         FillRect(RB);
       end;
-      if FBorderWidths.Right <> 0 then
+      if RightBorderWidth <> 0 then
       begin
         RB := ARect;
-        RB.Left := RB.Right - FBorderWidths.Right;
+        RB.Left := RB.Right - RightBorderWidth;
         R.Right := RB.Left;
         FillRect(RB);
       end;
-      if FBorderWidths.Bottom <> 0 then
+      if BottomBorderWidth <> 0 then
       begin
         RB := ARect;
-        RB.Top := RB.Bottom - FBorderWidths.Bottom;
+        RB.Top := RB.Bottom - BottomBorderWidth;
         R.Bottom := RB.Top;
         FillRect(RB);
       end;
@@ -3420,6 +3430,9 @@ begin
     end else
     begin
       Brush.Assign(FBrush);
+      Pen.Style := psSolid;
+      Pen.Width := FBorderWidth;
+      Pen.Color := FBorderColor;
       if FBorderRadius > 0 then
         RoundRectangle(ACanvas, ARect, FBorderRadius, FBorderRadius)
       else if FBorderWidth > 0 then
@@ -3954,7 +3967,6 @@ begin
   FBlocks.MemoNotifier := Self;
   FBlocks.OnUpdate := BlocksChanged;
   FActiveBlocks := FBlocks;
-  FRequiredMouseCursor := crIBeam;
   FCaretRect := CreateEmptyRect;
   FColors := TKMemoColors.Create(Self);
   FContentPadding := TKRect.Create;
@@ -3980,6 +3992,7 @@ begin
   FParaStyle.OnChanged := ParaStyleChanged;
   FRedoList := TKMemoChangeList.Create(Self, nil);
   FRequiredContentWidth := 0;
+  FRequiredMouseCursor := crIBeam;
   FScrollBars := ssBoth;
   FScrollPadding := cScrollPaddingDef;
   FScrollSpeed := cScrollSpeedDef;
@@ -3987,6 +4000,7 @@ begin
   FScrollTimer.Enabled := False;
   FScrollTimer.Interval := FScrollSpeed;
   FScrollTimer.OnTimer := ScrollTimerHandler;
+  FSelectedRelBlock := nil;
   FStates := [];
   FTextStyle := TKMemoTextStyle.Create;
   FTextStyle.Changeable := False;
@@ -4291,19 +4305,19 @@ begin
       ecPaste:
         Result := not ReadOnly and (ClipBoard.FormatCount > 0);
       ecInsertChar, ecInsertString, ecInsertNewLine:
-        Result := not ReadOnly;
+        Result := not (ReadOnly or RelativeSelected);
       ecDeleteLastChar:
         Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd > 0));
       ecDeleteChar:
         Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd < FActiveBlocks.SelectableLength - 1));
       ecDeleteBOL:
-        Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd <> FActiveBlocks.LineStartIndexByIndex(TmpSelEnd, True, TmpLinePos)));
+        Result := not (Empty or ReadOnly or RelativeSelected) and ((TmpSelLength > 0) or (TmpSelEnd <> FActiveBlocks.LineStartIndexByIndex(TmpSelEnd, True, TmpLinePos)));
       ecDeleteEOL:
-        Result := not (Empty or ReadOnly) and ((TmpSelLength > 0) or (TmpSelEnd <> FActiveBlocks.LineEndIndexByIndex(TmpSelEnd, True, True, TmpLinePos)));
+        Result := not (Empty or ReadOnly or RelativeSelected) and ((TmpSelLength > 0) or (TmpSelEnd <> FActiveBlocks.LineEndIndexByIndex(TmpSelEnd, True, True, TmpLinePos)));
       ecDeleteLine, ecClearAll, ecReplace:
-        Result := not (Empty or ReadOnly);
+        Result := not (Empty or ReadOnly or RelativeSelected);
       ecClearSelection:
-        Result := not (Empty or ReadOnly) and (TmpSelLength > 0);
+        Result := not (Empty or ReadOnly or RelativeSelected) and (TmpSelLength > 0);
       ecSearch:
         Result := not Empty;
       ecSelectAll:
@@ -4361,7 +4375,10 @@ end;
 
 procedure TKCustomMemo.DeleteChar(At: Integer);
 begin
-  FActiveBlocks.DeleteChar(At);
+  if RelativeSelected then
+    DeleteRelativeSelected
+  else
+    FActiveBlocks.DeleteChar(At);
   Modified := True;
 end;
 
@@ -4373,7 +4390,10 @@ end;
 
 procedure TKCustomMemo.DeleteLastChar(At: Integer);
 begin
-  FActiveBlocks.DeleteLastChar(At);
+  if RelativeSelected then
+    DeleteRelativeSelected
+  else
+    FActiveBlocks.DeleteLastChar(At);
   Modified := True;
 end;
 
@@ -4381,6 +4401,21 @@ procedure TKCustomMemo.DeleteLine(At: Integer);
 begin
   FActiveBlocks.DeleteLine(At);
   Modified := True;
+end;
+
+procedure TKCustomMemo.DeleteRelativeSelected;
+var
+  Blocks: TKMemoBlocks;
+begin
+  if FSelectedRelBlock <> nil then
+  begin
+    Blocks := FSelectedRelBlock.Parent as TKMemoBlocks;
+    if Blocks <> nil then
+    begin
+      Blocks.Remove(FSelectedRelBlock);
+      FSelectedRelBlock := nil;
+    end;
+  end;
 end;
 
 procedure TKCustomMemo.DestroyWnd;
@@ -4932,6 +4967,11 @@ begin
   Result := FActiveBlocks.RealSelStart;
 end;
 
+function TKCustomMemo.GetRelativeSelected: Boolean;
+begin
+  Result := FSelectedRelBlock <> nil;
+end;
+
 function TKCustomMemo.GetRequiredContentWidth: Integer;
 begin
   if FRequiredContentWidth > 0 then
@@ -5293,12 +5333,11 @@ begin
   P := Point(X, Y);
   if elMouseCapture in FStates then
   begin
-    if not FScrollTimer.Enabled then
-    begin
-      SelectionExpand(P, True);
-    end;
-  end;
-  UpdateMouseCursor;
+    if not FBlocks.MouseAction(maMove, PointToBlockPoint(P, False), Shift) then
+      if not FScrollTimer.Enabled then
+        SelectionExpand(P, True);
+  end else
+    UpdateMouseCursor;
 end;
 
 procedure TKCustomMemo.MouseUp(Button: TMouseButton; Shift: TShiftState;
@@ -5319,6 +5358,25 @@ begin
   P := Point(X, Y);
   FBlocks.MouseAction(Action, PointToBlockPoint(P, False), Shift);
   UpdateMouseCursor;
+end;
+
+function TKCustomMemo.MoveBlock(AItem: TKMemoBlock): Boolean;
+var
+  P: TPoint;
+begin
+  Result := (AItem = FSelectedRelBlock) and (elMouseCapture in FStates);
+  if Result then
+  begin
+    P := ScreenToClient(Mouse.CursorPos);
+    AItem.LockUpdate;
+    try
+      AItem.LeftOffset := AItem.LeftOffset + P.X - FMousePos.X;
+      AItem.TopOffset := AItem.TopOffset + P.Y - FMousePos.Y;
+      FMousePos := P;
+    finally
+      AItem.UnLockUpdate;
+    end;
+  end;
 end;
 
 procedure TKCustomMemo.MoveCaretToMouseCursor(AIfOutsideOfSelection: Boolean);
@@ -5665,6 +5723,11 @@ end;
 
 procedure TKCustomMemo.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean);
 begin
+  if FSelectedRelBlock <> nil then
+  begin
+    FSelectedRelBlock.Select(0, 0);
+    FSelectedRelBlock := nil;
+  end;
   FActiveBlocks.Select(ASelStart, ASelLength, ADoScroll);
 end;
 
@@ -5710,12 +5773,15 @@ begin
     StartIndex := FActiveBlocks.ItemToIndex(AItem);
     Result := StartIndex >= 0;
     if Result then
-      FActiveBlocks.Select(StartIndex, AItem.SelectableLength);
+      Select(StartIndex, AItem.SelectableLength);
   end else
   begin
     // just select locally and invalidate
-    AItem.Select(0, AItem.SelectableLength);
-    Invalidate;
+    Select(SelStart, 0, False);
+    FSelectedRelBlock := AItem;
+    AItem.Select(0, AItem.SelectableLength(True));
+    FMousePos := ScreenToClient(Mouse.CursorPos);
+    Include(FStates, elMouseCapture);
     Result := True;
   end;
 end;
@@ -6034,7 +6100,8 @@ begin
 
       if AShow then
       begin
-        if Enabled and Focused and not (csDesigning in ComponentState) and (SelLength = 0) and not (eoDisableCaret in FOptions) then
+        if Enabled and Focused and not (csDesigning in ComponentState) and (SelLength = 0)
+          and not (eoDisableCaret in FOptions) and not RelativeSelected then
         begin
           if not (elOverwrite in FStates) then
             FCaretRect.Right := MinMax(FCaretRect.Bottom div 10, 2, 3);
@@ -6078,26 +6145,26 @@ var
   OldCursor, NewCursor: TCursor;
   DoUpdate: Boolean;
 begin
-  DoUpdate := False;
-  P := ScreenToClient(Mouse.CursorPos);
-  if SelAvail then
-    NewCursor := crDefault
-  else
-    NewCursor := crIBeam;
-  if NewCursor <> FRequiredMouseCursor then
-  begin
-    FRequiredMouseCursor := NewCursor;
-    DoUpdate := True;
-  end;
   if not (elMouseCapture in FStates) then
   begin
+    DoUpdate := False;
+    P := ScreenToClient(Mouse.CursorPos);
+    if SelAvail then
+      NewCursor := crDefault
+    else
+      NewCursor := crIBeam;
+    if NewCursor <> FRequiredMouseCursor then
+    begin
+      FRequiredMouseCursor := NewCursor;
+      DoUpdate := True;
+    end;
     OldCursor := FRequiredMouseCursor;
     FBlocks.MouseAction(maMove, PointToBlockPoint(P, False), GetShiftState);
     if FRequiredMouseCursor <> OldCursor then
       DoUpdate := True;
+    if DoUpdate then
+      SetMouseCursor(P.X, P.Y);
   end;
-  if DoUpdate then
-    SetMouseCursor(P.X, P.Y);
 end;
 
 procedure TKCustomMemo.UpdatePreferredCaretPos;
@@ -7910,12 +7977,14 @@ begin
   FBaseLine := 0;
   FWordBottomPadding := 0;
   FCrop := TKRect.Create;
+  FCrop.OnChanged := CropChanged;
   FCalcBaseLine := 0;
   FExtent := CreateEmptyPoint;
   FImage := TPicture.Create;
   FImageStyle := TKMemoBlockStyle.Create;
   FImageStyle.ContentMargin.AssignFromValues(5, 5, 5, 5);
   FImageStyle.OnChanged := ImageStyleChanged;
+  FMouseCapture := False;
   FOriginalExtent := CreateEmptyPoint;
   FPosition := CreateEmptyPoint;
   FScale := Point(100, 100);
@@ -8102,6 +8171,12 @@ begin
   KFunctions.OffsetRect(Result, InternalLeftOffset, InternalTopOffset);
 end;
 
+procedure TKMemoImageBlock.CropChanged(Sender: TObject);
+begin
+  FreeAndNil(FCroppedImage);
+  Update([muExtent]);
+end;
+
 function TKMemoImageBlock.CroppedImage: TKAlphaBitmap;
 var
   ExtentX, ExtentY, NewExtentX: Integer;
@@ -8140,7 +8215,7 @@ begin
     begin
       FCroppedImage := TKAlphaBitmap.Create;
       FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
-      FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Right);
+      FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Top);
     {$IFDEF USE_PNG_SUPPORT}
       if not (FImage.Graphic is TKPngImage) then
     {$ENDIF}
@@ -8259,8 +8334,8 @@ function TKMemoImageBlock.WordMeasureExtent(ACanvas: TCanvas; AIndex, ARequiredW
 begin
   FreeAndNil(FCroppedImage);
   Result := Point(
-    ImageWidth + FImageStyle.LeftPadding + FImageStyle.RightPadding + FImageStyle.LeftMargin + FImageStyle.RightMargin,
-    ImageHeight + FImageStyle.TopPadding + FImageStyle.BottomPadding + FImageStyle.TopMargin + FImageStyle.BottomMargin);
+    ImageWidth + FImageStyle.AllPaddingsLeft + FImageStyle.AllPaddingsRight,
+    ImageHeight + FImageStyle.AllPaddingsTop + FImageStyle.AllPaddingsBottom);
   if (Position = mbpText) and (Result.X > ARequiredWidth) then
   begin
     // when image is placed in text it should be adjusted to page width
@@ -8278,19 +8353,33 @@ var
   Notifier: IKMemoNotifier;
 begin
   Result := False;
-  R := Rect(FPosition.X, FPosition.Y, FPosition.X + FExtent.X, FPosition.Y + FExtent.Y);
+  R := Rect(0, 0, FExtent.X, FExtent.Y);
+  KFunctions.OffsetRect(R, FPosition.X + FOffset.X, FPosition.Y + FOffset.Y);
   if PtInRect(R, APoint) then
   begin
     Notifier := MemoNotifier;
     if Notifier <> nil then
     begin
       case AAction of
+        maMove:
+        begin
+          if Position = mbpText then
+            Notifier.SetReqMouseCursor(crDefault)
+          else
+          begin
+            Notifier.SetReqMouseCursor(crSizeAll);
+            Result := Notifier.MoveBlock(Self);
+          end;
+        end;
         maLeftDown:
         begin
-          Result := Notifier.SelectBlock(Self);
-          if Result and (ssDouble in AShift) then
-            Notifier.EditBlock(Self)
+          if ssDouble in AShift then
+            Result := Notifier.EditBlock(Self)
+          else
+            Result := Notifier.SelectBlock(Self);
         end;
+        maRightDown:
+          Result := Notifier.SelectBlock(Self);
       end;
     end;
   end;
@@ -8307,17 +8396,16 @@ begin
   inherited;
   ROuter := OuterRect(False);
   KFunctions.OffsetRect(ROuter, ALeft, ATop);
-  X := ROuter.Left + FImageStyle.LeftPadding + FImageStyle.LeftMargin;
-  Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FWordTopPadding + FBaseLine - FCalcBaseLine;
+  X := ROuter.Left + FImageStyle.LeftPadding + FImageStyle.LeftMargin + FImageStyle.LeftBorderWidth;
+  Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FImageStyle.TopBorderWidth + FWordTopPadding + FBaseLine - FCalcBaseLine;
   CroppedImage;
   R := FScaledRect;
   KFunctions.OffsetRect(R, X, Y);
+  ROuter := ImageStyle.MarginRect(ROuter);
   if PaintSelection and (SelLength > 0) then
   begin
     GetSelColors(Color, BkGnd);
     ACanvas.Brush.Color := BkGnd;
-    if Position <> mbpText then
-      ROuter := ImageStyle.MarginRect(ROuter);
     ACanvas.FillRect(ROuter);
     if FCroppedImage <> nil then
     begin
@@ -8341,7 +8429,6 @@ begin
     end;
   end else
   begin
-    ROuter := ImageStyle.MarginRect(ROuter);
     FImageStyle.PaintBox(ACanvas, ROuter);
     if FCroppedImage <> nil then
       ACanvas.StretchDraw(R, FCroppedImage);

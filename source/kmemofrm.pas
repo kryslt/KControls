@@ -173,6 +173,7 @@ type
     FNewFile: Boolean;
     FLastFileName: TKString;
     procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
+    function SelectedBlock: TKMemoBlock;
     procedure TextStyleChanged(Sender: TObject);
   protected
     FFormatCopyParaStyle: TKMemoParaStyle;
@@ -243,12 +244,12 @@ end;
 
 procedure TKMemoFrame.ACEditHyperlinkUpdate(Sender: TObject);
 begin
-  TAction(Sender).Visible := Editor.ActiveInnerBlock is TKMemoHyperlink;
+  TAction(Sender).Visible := SelectedBlock is TKMemoHyperlink;
 end;
 
 procedure TKMemoFrame.ACEditImageUpdate(Sender: TObject);
 begin
-  TAction(Sender).Visible := Editor.ActiveInnerBlock is TKMemoImageBlock;
+  TAction(Sender).Visible := SelectedBlock is TKMemoImageBlock;
 end;
 
 procedure TKMemoFrame.ACFileNewExecute(Sender: TObject);
@@ -442,7 +443,7 @@ end;
 
 procedure TKMemoFrame.ACInsertImageExecute(Sender: TObject);
 begin
-  EditImage(Editor.ActiveInnerBlock);
+  EditImage(SelectedBlock);
 end;
 
 procedure TKMemoFrame.ACParaCenterExecute(Sender: TObject);
@@ -703,6 +704,14 @@ begin
   end;
   if Result then
     Editor.Modified := False;
+end;
+
+function TKMemoFrame.SelectedBlock: TKMemoBlock;
+begin
+  if Editor.SelectedRelBlock <> nil then
+    Result := Editor.SelectedRelBlock
+  else
+    Result := Editor.ActiveInnerBlock;
 end;
 
 procedure TKMemoFrame.TextStyleChanged(Sender: TObject);

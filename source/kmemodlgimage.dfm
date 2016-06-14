@@ -54,8 +54,6 @@ object KMemoImageForm: TKMemoImageForm
     TabOrder = 3
     object TSBasic: TTabSheet
       Caption = 'Basic'
-      ExplicitLeft = 0
-      ExplicitTop = 28
       object GBPreview: TGroupBox
         Left = 210
         Top = 3
@@ -224,59 +222,31 @@ object KMemoImageForm: TKMemoImageForm
         Left = 8
         Top = 8
         Width = 359
-        Height = 143
+        Height = 97
         Caption = 'Borders and shading'
         TabOrder = 0
-        object LBBorderLeft: TLabel
+        object LBBorderWidth: TLabel
           Left = 18
           Top = 27
           Width = 58
           Height = 13
           Caption = 'Left border:'
         end
-        object LBBorderRight: TLabel
-          Left = 18
-          Top = 57
-          Width = 64
-          Height = 13
-          Caption = 'Right border:'
-        end
-        object LBBorderTop: TLabel
-          Left = 183
-          Top = 27
-          Width = 57
-          Height = 13
-          Caption = 'Top border:'
-        end
-        object LBBorderBottom: TLabel
-          Left = 183
-          Top = 57
-          Width = 73
-          Height = 13
-          Caption = 'Bottom border:'
-        end
         object LBBorderColor: TLabel
           Left = 18
-          Top = 87
+          Top = 56
           Width = 62
           Height = 13
           Caption = 'Border color:'
         end
         object LBShading: TLabel
           Left = 183
-          Top = 87
+          Top = 56
           Width = 42
           Height = 13
           Caption = 'Shading:'
         end
-        object LBBorderRadius: TLabel
-          Left = 18
-          Top = 116
-          Width = 68
-          Height = 13
-          Caption = 'Border radius:'
-        end
-        object EDBorderLeft: TKNumberEdit
+        object EDBorderWidth: TKNumberEdit
           Left = 98
           Top = 24
           Width = 55
@@ -287,42 +257,9 @@ object KMemoImageForm: TKMemoImageForm
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
           TabOrder = 0
         end
-        object EDBorderRight: TKNumberEdit
-          Left = 98
-          Top = 54
-          Width = 55
-          Height = 21
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10.000000000000000000
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          TabOrder = 2
-        end
-        object EDBorderTop: TKNumberEdit
-          Left = 271
-          Top = 24
-          Width = 55
-          Height = 21
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10.000000000000000000
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          TabOrder = 4
-        end
-        object EDBorderBottom: TKNumberEdit
-          Left = 271
-          Top = 54
-          Width = 55
-          Height = 21
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10.000000000000000000
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          TabOrder = 6
-        end
         object CLBBorder: TKColorButton
           Left = 98
-          Top = 82
+          Top = 51
           Width = 70
           Height = 25
           Font.Charset = DEFAULT_CHARSET
@@ -331,12 +268,12 @@ object KMemoImageForm: TKMemoImageForm
           Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
-          TabOrder = 8
+          TabOrder = 2
           ColorDlgOptions = []
         end
         object CLBShading: TKColorButton
           Left = 271
-          Top = 82
+          Top = 51
           Width = 70
           Height = 25
           Font.Charset = DEFAULT_CHARSET
@@ -345,24 +282,13 @@ object KMemoImageForm: TKMemoImageForm
           Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
-          TabOrder = 9
+          TabOrder = 3
           ColorDlgOptions = []
-        end
-        object EDBorderRadius: TKNumberEdit
-          Left = 98
-          Top = 113
-          Width = 55
-          Height = 21
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10.000000000000000000
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          TabOrder = 10
         end
       end
       object GBCrop: TGroupBox
         Left = 8
-        Top = 157
+        Top = 111
         Width = 359
         Height = 100
         Caption = 'Crop'
