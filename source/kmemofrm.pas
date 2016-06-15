@@ -42,7 +42,7 @@ type
     ACInsertImage: TAction;
     Editor: TKMemo;
     ILMain: TImageList;
-    MIEditImage: TMenuItem;
+    PMIEditImage: TMenuItem;
     ToBFirst: TToolBar;
     ToBNew: TToolButton;
     ToBOpen: TToolButton;
@@ -87,16 +87,16 @@ type
     ACInsertHyperlink: TAction;
     ToBInsertHyperlink: TToolButton;
     PMMain: TPopupMenu;
-    MIEditCopy: TMenuItem;
-    MIEditCut: TMenuItem;
-    MIEditPaste: TMenuItem;
+    PMIEditCopy: TMenuItem;
+    PMIEditCut: TMenuItem;
+    PMIEditPaste: TMenuItem;
     N1: TMenuItem;
-    MIEditSelectAll: TMenuItem;
+    PMIEditSelectAll: TMenuItem;
     ACEditSelectAll: TKMemoEditSelectAllAction;
     N2: TMenuItem;
-    MIFontStyle: TMenuItem;
-    MIParaStyle: TMenuItem;
-    MIEditHyperlink: TMenuItem;
+    PMIFontStyle: TMenuItem;
+    PMIParaStyle: TMenuItem;
+    PMIEditHyperlink: TMenuItem;
     N3: TMenuItem;
     ACEditHyperlink: TAction;
     ToBSecond: TToolBar;
@@ -120,6 +120,50 @@ type
     ToBFontSuperscript: TToolButton;
     ToBSelectAll: TToolButton;
     ToBInsertImage: TToolButton;
+    MainMenu: TMainMenu;
+    MGFile: TMenuItem;
+    MGEdit: TMenuItem;
+    MGFont: TMenuItem;
+    MGInsert: TMenuItem;
+    MIFileNew: TMenuItem;
+    MIFileOpen: TMenuItem;
+    MIFileSave: TMenuItem;
+    MiFileSaveAs: TMenuItem;
+    MIFilePreview: TMenuItem;
+    MIFilePrint: TMenuItem;
+    MIFileExit: TMenuItem;
+    N4: TMenuItem;
+    N5: TMenuItem;
+    MIEditCopy: TMenuItem;
+    MIEditCut: TMenuItem;
+    MIEditPaste: TMenuItem;
+    MIEditSelectAll: TMenuItem;
+    MIFontBold: TMenuItem;
+    MIFontItalic: TMenuItem;
+    MiFontStrikeout: TMenuItem;
+    MIFontUnderline: TMenuItem;
+    MIFontSubscript: TMenuItem;
+    MIFontSuperscript: TMenuItem;
+    MIFontStyle: TMenuItem;
+    N6: TMenuItem;
+    N7: TMenuItem;
+    MIFormatCopy: TMenuItem;
+    MGPara: TMenuItem;
+    MIParaLeft: TMenuItem;
+    MIParaCenter: TMenuItem;
+    MIParaRight: TMenuItem;
+    MIParaIncIndent: TMenuItem;
+    N8: TMenuItem;
+    MIParaDecIndent: TMenuItem;
+    N9: TMenuItem;
+    MIParaNumbering: TMenuItem;
+    N10: TMenuItem;
+    MIParaStyle: TMenuItem;
+    N11: TMenuItem;
+    N12: TMenuItem;
+    MIInsertHyperlink: TMenuItem;
+    MIInsertImage: TMenuItem;
+    MIShowFormatting: TMenuItem;
     procedure ACFileNewExecute(Sender: TObject);
     procedure ACFileNewUpdate(Sender: TObject);
     procedure ACFileOpenExecute(Sender: TObject);
@@ -168,6 +212,7 @@ type
     procedure ACInsertImageExecute(Sender: TObject);
     procedure ACEditImageUpdate(Sender: TObject);
     procedure PMMainPopup(Sender: TObject);
+    procedure MIFileExitClick(Sender: TObject);
   private
     { Private declarations }
     FNewFile: Boolean;
@@ -618,6 +663,15 @@ procedure TKMemoFrame.EventEditBlock(AItem: TKMemoBlock; var Result: Boolean);
 begin
   if AItem is TKMemoImageBlock then
     Result := EditImage(AItem);
+end;
+
+procedure TKMemoFrame.MIFileExitClick(Sender: TObject);
+var
+  Form: TCustomForm;
+begin
+  Form := GetParentForm(Self);
+  if Form <> nil then
+    Form.Close;
 end;
 
 procedure TKMemoFrame.OpenNewFile;

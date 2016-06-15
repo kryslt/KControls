@@ -241,7 +241,7 @@ object KMemoFrame: TKMemoFrame
     Left = 280
     Top = 72
     Bitmap = {
-      494C010121002500040010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
+      494C010121002500080010001000FFFFFFFF2110FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000009000000001002000000000000090
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1442,7 +1442,7 @@ object KMemoFrame: TKMemoFrame
     Top = 72
     object ACInsertImage: TAction
       Category = 'Insert'
-      Caption = 'Insert hyperlink'
+      Caption = 'Insert or edit image'
       Hint = 'Insert or edit image'
       ImageIndex = 32
       OnExecute = ACInsertImageExecute
@@ -1602,8 +1602,8 @@ object KMemoFrame: TKMemoFrame
     end
     object ACParaIncIndent: TAction
       Category = 'Paragraph'
-      Caption = 'Increse indent'
-      Hint = 'Increse indent'
+      Caption = 'Increase indent'
+      Hint = 'Increase indent'
       ImageIndex = 17
       OnExecute = ACParaIncIndentExecute
       OnUpdate = ACParaIncIndentUpdate
@@ -1662,8 +1662,8 @@ object KMemoFrame: TKMemoFrame
     end
     object ACEditHyperlink: TAction
       Category = 'Edit'
-      Caption = 'Edit hyperlink'
-      Hint = 'Edit hyperlink'
+      Caption = 'Edit Hyperlink'
+      Hint = 'Edit Hyperlink'
       ImageIndex = 28
       OnExecute = ACInsertHyperlinkExecute
       OnUpdate = ACEditHyperlinkUpdate
@@ -1711,38 +1711,174 @@ object KMemoFrame: TKMemoFrame
     OnPopup = PMMainPopup
     Left = 504
     Top = 128
-    object MIEditCopy: TMenuItem
+    object PMIEditCopy: TMenuItem
       Action = ACEditCopy
     end
-    object MIEditCut: TMenuItem
+    object PMIEditCut: TMenuItem
       Action = ACEditCut
     end
-    object MIEditPaste: TMenuItem
+    object PMIEditPaste: TMenuItem
       Action = ACEditPaste
     end
     object N1: TMenuItem
       Caption = '-'
     end
-    object MIEditSelectAll: TMenuItem
+    object PMIEditSelectAll: TMenuItem
       Action = ACEditSelectAll
     end
     object N2: TMenuItem
       Caption = '-'
     end
-    object MIFontStyle: TMenuItem
+    object PMIFontStyle: TMenuItem
       Action = ACFontStyle
     end
-    object MIParaStyle: TMenuItem
+    object PMIParaStyle: TMenuItem
       Action = ACParaStyle
     end
     object N3: TMenuItem
       Caption = '-'
     end
-    object MIEditHyperlink: TMenuItem
+    object PMIEditHyperlink: TMenuItem
       Action = ACEditHyperlink
     end
-    object MIEditImage: TMenuItem
+    object PMIEditImage: TMenuItem
       Action = ACEditImage
+    end
+  end
+  object MainMenu: TMainMenu
+    Images = ILMain
+    Left = 464
+    Top = 128
+    object MGFile: TMenuItem
+      Caption = 'File'
+      object MIFileNew: TMenuItem
+        Action = ACFileNew
+      end
+      object MIFileOpen: TMenuItem
+        Action = ACFileOpen
+      end
+      object MIFileSave: TMenuItem
+        Action = ACFileSave
+      end
+      object MiFileSaveAs: TMenuItem
+        Action = ACFileSaveAs
+      end
+      object N4: TMenuItem
+        Caption = '-'
+      end
+      object MIFilePreview: TMenuItem
+        Action = ACFilePreview
+      end
+      object MIFilePrint: TMenuItem
+        Action = ACFilePrint
+      end
+      object N5: TMenuItem
+        Caption = '-'
+      end
+      object MIFileExit: TMenuItem
+        Caption = 'Exit'
+        OnClick = MIFileExitClick
+      end
+    end
+    object MGEdit: TMenuItem
+      Caption = 'Edit'
+      object MIEditCopy: TMenuItem
+        Action = ACEditCopy
+      end
+      object MIEditCut: TMenuItem
+        Action = ACEditCut
+      end
+      object MIEditPaste: TMenuItem
+        Action = ACEditPaste
+      end
+      object N6: TMenuItem
+        Caption = '-'
+      end
+      object MIEditSelectAll: TMenuItem
+        Action = ACEditSelectAll
+      end
+      object N7: TMenuItem
+        Caption = '-'
+      end
+      object MIFormatCopy: TMenuItem
+        Action = ACFormatCopy
+      end
+      object MIShowFormatting: TMenuItem
+        Action = ACShowFormatting
+      end
+    end
+    object MGFont: TMenuItem
+      Caption = 'Text'
+      OnClick = ACFontBoldExecute
+      object MIFontBold: TMenuItem
+        Action = ACFontBold
+      end
+      object MIFontItalic: TMenuItem
+        Action = ACFontItalic
+      end
+      object MIFontUnderline: TMenuItem
+        Action = ACFontUnderline
+      end
+      object MiFontStrikeout: TMenuItem
+        Action = ACFontStrikeout
+      end
+      object N11: TMenuItem
+        Caption = '-'
+      end
+      object MIFontSubscript: TMenuItem
+        Action = ACFontSubscript
+      end
+      object MIFontSuperscript: TMenuItem
+        Action = ACFontSuperscript
+      end
+      object N12: TMenuItem
+        Caption = '-'
+      end
+      object MIFontStyle: TMenuItem
+        Action = ACFontStyle
+      end
+    end
+    object MGPara: TMenuItem
+      Caption = 'Paragraph'
+      object MIParaLeft: TMenuItem
+        Action = ACParaLeft
+      end
+      object MIParaCenter: TMenuItem
+        Action = ACParaCenter
+      end
+      object MIParaRight: TMenuItem
+        Action = ACParaRight
+      end
+      object N8: TMenuItem
+        Caption = '-'
+      end
+      object MIParaIncIndent: TMenuItem
+        Action = ACParaIncIndent
+      end
+      object MIParaDecIndent: TMenuItem
+        Action = ACParaDecIndent
+      end
+      object N9: TMenuItem
+        Caption = '-'
+      end
+      object MIParaNumbering: TMenuItem
+        Action = ACParaNumbering
+      end
+      object N10: TMenuItem
+        Caption = '-'
+      end
+      object MIParaStyle: TMenuItem
+        Action = ACParaStyle
+      end
+    end
+    object MGInsert: TMenuItem
+      Caption = 'Insert'
+      object MIInsertHyperlink: TMenuItem
+        Action = ACInsertHyperlink
+      end
+      object MIInsertImage: TMenuItem
+        Action = ACInsertImage
+      end
     end
   end
 end

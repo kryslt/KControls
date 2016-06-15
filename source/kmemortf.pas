@@ -1348,9 +1348,7 @@ constructor TKMemoRTFState.Create;
 begin
   FGroup := rgNone;
   FParaStyle := TKMemoParaStyle.Create;
-  FParaStyle.Changeable := False;
   FTextStyle := TKMemoTextStyle.Create;
-  FTextStyle.Changeable := False;
 end;
 
 destructor TKMemoRTFState.Destroy;

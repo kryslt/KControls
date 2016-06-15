@@ -50,7 +50,7 @@ object KMemoImageForm: TKMemoImageForm
     Top = 8
     Width = 508
     Height = 385
-    ActivePage = TSAdvanced
+    ActivePage = TSBasic
     TabOrder = 3
     object TSBasic: TTabSheet
       Caption = 'Basic'
@@ -115,6 +115,7 @@ object KMemoImageForm: TKMemoImageForm
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 10000.000000000000000000
+          Min = -10000.000000000000000000
           TabOrder = 3
         end
         object EDOffsetY: TKNumberEdit
@@ -126,6 +127,7 @@ object KMemoImageForm: TKMemoImageForm
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 10000.000000000000000000
+          Min = -10000.000000000000000000
           TabOrder = 5
         end
       end
@@ -218,6 +220,10 @@ object KMemoImageForm: TKMemoImageForm
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object GBShading: TGroupBox
         Left = 8
         Top = 8
@@ -228,9 +234,9 @@ object KMemoImageForm: TKMemoImageForm
         object LBBorderWidth: TLabel
           Left = 18
           Top = 27
-          Width = 58
+          Width = 65
           Height = 13
-          Caption = 'Left border:'
+          Caption = 'Border width:'
         end
         object LBBorderColor: TLabel
           Left = 18

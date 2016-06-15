@@ -236,49 +236,25 @@ object KMemoImageForm: TKMemoImageForm
       ImageIndex = 1
       object GBShading: TGroupBox
         Left = 8
-        Height = 143
+        Height = 96
         Top = 8
         Width = 359
         Caption = 'Borders and shading'
-        ClientHeight = 125
+        ClientHeight = 78
         ClientWidth = 355
         TabOrder = 0
-        object LBBorderLeft: TLabel
+        object LBBorderWidth: TLabel
           Left = 18
           Height = 13
           Top = 7
-          Width = 58
-          Caption = 'Left border:'
-          ParentColor = False
-        end
-        object LBBorderRight: TLabel
-          Left = 18
-          Height = 13
-          Top = 37
-          Width = 64
-          Caption = 'Right border:'
-          ParentColor = False
-        end
-        object LBBorderTop: TLabel
-          Left = 183
-          Height = 13
-          Top = 7
-          Width = 57
-          Caption = 'Top border:'
-          ParentColor = False
-        end
-        object LBBorderBottom: TLabel
-          Left = 183
-          Height = 13
-          Top = 37
-          Width = 73
-          Caption = 'Bottom border:'
+          Width = 65
+          Caption = 'Border width:'
           ParentColor = False
         end
         object LBBorderColor: TLabel
           Left = 18
           Height = 13
-          Top = 67
+          Top = 42
           Width = 62
           Caption = 'Border color:'
           ParentColor = False
@@ -286,20 +262,12 @@ object KMemoImageForm: TKMemoImageForm
         object LBShading: TLabel
           Left = 183
           Height = 13
-          Top = 67
+          Top = 42
           Width = 42
           Caption = 'Shading:'
           ParentColor = False
         end
-        object LBBorderRadius: TLabel
-          Left = 18
-          Height = 13
-          Top = 96
-          Width = 68
-          Caption = 'Border radius:'
-          ParentColor = False
-        end
-        object EDBorderLeft: TKNumberEdit
+        object EDBorderWidth: TKNumberEdit
           Left = 98
           Height = 23
           Top = 4
@@ -312,87 +280,35 @@ object KMemoImageForm: TKMemoImageForm
           ParentFont = False
           TabOrder = 0
         end
-        object EDBorderRight: TKNumberEdit
-          Left = 98
-          Height = 23
-          Top = 34
-          Width = 55
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          Font.Color = clWindowText
-          ParentFont = False
-          TabOrder = 2
-        end
-        object EDBorderTop: TKNumberEdit
-          Left = 271
-          Height = 23
-          Top = 4
-          Width = 55
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          Font.Color = clWindowText
-          ParentFont = False
-          TabOrder = 4
-        end
-        object EDBorderBottom: TKNumberEdit
-          Left = 271
-          Height = 23
-          Top = 34
-          Width = 55
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          Font.Color = clWindowText
-          ParentFont = False
-          TabOrder = 6
-        end
         object CLBBorder: TKColorButton
           Left = 98
           Height = 25
-          Top = 62
+          Top = 37
           Width = 70
           Font.Color = clBtnText
           Font.Height = -11
           Font.Name = 'Tahoma'
           ParentFont = False
-          TabOrder = 8
+          TabOrder = 2
           ColorDlgOptions = []
         end
         object CLBShading: TKColorButton
           Left = 271
           Height = 25
-          Top = 62
+          Top = 37
           Width = 70
           Font.Color = clBtnText
           Font.Height = -11
           Font.Name = 'Tahoma'
           ParentFont = False
-          TabOrder = 9
+          TabOrder = 3
           ColorDlgOptions = []
-        end
-        object EDBorderRadius: TKNumberEdit
-          Left = 98
-          Height = 23
-          Top = 93
-          Width = 55
-          CustomSuffix = 'pt'
-          DecimalSeparator = ','
-          Max = 10
-          Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-          Font.Color = clWindowText
-          ParentFont = False
-          TabOrder = 10
         end
       end
       object GBCrop: TGroupBox
         Left = 8
         Height = 100
-        Top = 157
+        Top = 112
         Width = 359
         Caption = 'Crop'
         ClientHeight = 82
