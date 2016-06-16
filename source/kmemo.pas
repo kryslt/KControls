@@ -4824,7 +4824,7 @@ begin
   Index := FActiveBlocks.SelEnd;
   if SelAvail and (FActiveBlocks.SelEnd > FActiveBlocks.SelStart) then
     Dec(Index);
-  Result := FActiveBlocks.IndexToItem(FActiveBlocks.SelEnd, Dummy);
+  Result := FActiveBlocks.IndexToItem(Index, Dummy);
 end;
 
 function TKCustomMemo.GetActiveInnerBlock: TKMemoBlock;
@@ -5297,7 +5297,7 @@ procedure TKCustomMemo.MeasurePages(var Info: TKPrintMeasureInfo);
 var
   FitToPage: Boolean;
   Scale: Double;
-  TmpContentWidth, PageHeight, PageCount: Integer;
+  PageHeight, PageCount: Integer;
   APageSetup: TKPrintPageSetup;
 begin
   APageSetup := PageSetup;
@@ -5324,7 +5324,6 @@ var
   P: TPoint;
   Action: TKMemoMouseAction;
   StartIndex, EndIndex: Integer;
-  Item: TKMemoBlock;
 begin
   inherited;
   if Enabled then
@@ -5513,7 +5512,11 @@ begin
     PrepareToPaint;
     PaintContent(ACanvas, ClientRect, ContentLeft, ContentTop);
     if elMouseDrag in FStates then
+    begin
+      SetBkColor(ACanvas.Handle, $FFFFFF);
+      SetTextColor(ACanvas.Handle, 0);
       ACanvas.DrawFocusRect(FDragRect);
+    end;
 {$IFDEF FPC}
   finally
     if CaretVisible then
@@ -5805,7 +5808,6 @@ function TKCustomMemo.SelectBlock(AItem: TKMemoBlock): Boolean;
 var
   StartIndex: Integer;
 begin
-  Result := False;
   if AItem.Position = mbpText then
   begin
     FActiveBlocks := AItem.ParentBlocks;
@@ -10919,17 +10921,14 @@ end;
 
 function TKMemoBlocks.GetPageCount(APageHeight: Integer): Integer;
 var
-  I, J, TmpPageBegin, TmpSum, TmpHeight, MaxLine: Integer;
-  Item: TKMemoBlock;
+  I, J, TmpPageBegin, MaxLine: Integer;
   R: TRect;
 begin
-  Result := 0;
-  TmpHeight := 0;
+  Result := 1; // always at least one page
   if FLines.Count > 0 then
     TmpPageBegin := FLines[0].Position.Y
   else
     TmpPageBegin := 0;
-  TmpSum := 0;
   I := 0;
   J := -1;
   MaxLine := TotalLineCount - 1;
@@ -10949,23 +10948,16 @@ begin
         Inc(I);
       Inc(Result);
     end else
-    begin
-      if I = MaxLine then
-        Inc(Result);
       Inc(I);
-    end;
   end;
 end;
 
 procedure TKMemoBlocks.GetPageData(APageHeight, APage: Integer; out AOffset, AHeight: Integer);
 var
   I, J, TmpPageBegin, TmpPage, MaxLine: Integer;
-  Item: TKMemoBlock;
   R: TRect;
 begin
   TmpPage := 0;
-  AHeight := 0;
-  AOffset := 0;
   if FLines.Count > 0 then
     TmpPageBegin := FLines[0].Position.Y
   else
@@ -10982,24 +10974,25 @@ begin
     end;
     if R.Bottom - TmpPageBegin > APageHeight then
     begin
-      AHeight := R.Top - TmpPageBegin;
-      AOffset := TmpPageBegin;
-      TmpPageBegin := R.Top;
-      if R.Bottom - R.Top > APageHeight then
-        Inc(TmpPageBegin, APageHeight)
-      else
-        Inc(I);
-      Inc(TmpPage);
-    end else
-    begin
-      if I = MaxLine then
+      if TmpPage < APage then
       begin
-        AOffset := TmpPageBegin;
-        AHeight := R.Bottom - TmpPageBegin;
+        TmpPageBegin := R.Top;
+        if R.Bottom - R.Top > APageHeight then
+          Inc(TmpPageBegin, APageHeight)
+        else
+          Inc(I);
+        Inc(TmpPage);
+      end else
+      begin
+        // finished measuring current page
+        R.Bottom := R.Top; // take bottom coord of previous line
+        Break;
       end;
+    end else
       Inc(I);
-    end;
   end;
+  AOffset := TmpPageBegin;
+  AHeight := Min(R.Bottom - TmpPageBegin, APageHeight);
 end;
 
 function TKMemoBlocks.GetParentBlocks: TKMemoBlocks;
@@ -12723,7 +12716,6 @@ var
   I: Integer;
   Item: TKMemoBlock;
   R: TRect;
-  P: TPoint;
 begin
   Result := nil;
   for I := 0 to Count - 1 do

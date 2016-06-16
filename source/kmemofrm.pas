@@ -604,6 +604,7 @@ var
   Image: TKMemoImageBlock;
   Created: Boolean;
 begin
+  Result := False;
   Created := False;
   if AItem is TKMemoImageBlock then
     Image := TKMemoImageBlock(AItem)
@@ -623,6 +624,7 @@ begin
       Editor.ActiveInnerBlocks.AddAt(Image, Editor.SplitAt(Editor.SelEnd));
     end;
     Editor.Modified := True;
+    Result := True;
   end
   else if Created then
     Image.Free;
