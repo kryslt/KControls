@@ -764,9 +764,8 @@ end;
 
 function TKMemoFrame.SelectedBlock: TKMemoBlock;
 begin
-  if Editor.SelectedRelBlock <> nil then
-    Result := Editor.SelectedRelBlock
-  else
+  Result := Editor.SelectedBlock;
+  if Result = nil then
     Result := Editor.ActiveInnerBlock;
 end;
 

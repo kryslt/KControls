@@ -1,7 +1,7 @@
 object KMemoImageForm: TKMemoImageForm
-  Left = 603
+  Left = 605
   Height = 435
-  Top = 167
+  Top = 177
   Width = 527
   BorderStyle = bsDialog
   Caption = 'Insert/edit image'
@@ -90,6 +90,7 @@ object KMemoImageForm: TKMemoImageForm
           Top = 6
           Width = 53
           Caption = 'In text'
+          OnClick = RBPositionTextClick
           TabOrder = 0
         end
         object RBPositionRelative: TRadioButton
@@ -98,6 +99,7 @@ object KMemoImageForm: TKMemoImageForm
           Top = 29
           Width = 59
           Caption = 'Relative'
+          OnClick = RBPositionTextClick
           TabOrder = 1
         end
         object RBPositionAbsolute: TRadioButton
@@ -106,6 +108,7 @@ object KMemoImageForm: TKMemoImageForm
           Top = 52
           Width = 62
           Caption = 'Absolute'
+          OnClick = RBPositionTextClick
           TabOrder = 2
         end
         object EDOffsetX: TKNumberEdit
@@ -274,7 +277,7 @@ object KMemoImageForm: TKMemoImageForm
           Width = 55
           CustomSuffix = 'pt'
           DecimalSeparator = ','
-          Max = 10
+          Max = 20
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
           Font.Color = clWindowText
           ParentFont = False

@@ -89,6 +89,7 @@ object KMemoImageForm: TKMemoImageForm
           Height = 17
           Caption = 'In text'
           TabOrder = 0
+          OnClick = RBPositionTextClick
         end
         object RBPositionRelative: TRadioButton
           Left = 14
@@ -97,6 +98,7 @@ object KMemoImageForm: TKMemoImageForm
           Height = 17
           Caption = 'Relative'
           TabOrder = 1
+          OnClick = RBPositionTextClick
         end
         object RBPositionAbsolute: TRadioButton
           Left = 14
@@ -105,6 +107,7 @@ object KMemoImageForm: TKMemoImageForm
           Height = 17
           Caption = 'Absolute'
           TabOrder = 2
+          OnClick = RBPositionTextClick
         end
         object EDOffsetX: TKNumberEdit
           Left = 126
@@ -220,10 +223,6 @@ object KMemoImageForm: TKMemoImageForm
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object GBShading: TGroupBox
         Left = 8
         Top = 8
@@ -259,7 +258,7 @@ object KMemoImageForm: TKMemoImageForm
           Height = 21
           CustomSuffix = 'pt'
           DecimalSeparator = ','
-          Max = 10.000000000000000000
+          Max = 20.000000000000000000
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
           TabOrder = 0
         end

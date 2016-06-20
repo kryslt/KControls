@@ -51,6 +51,13 @@ const
   PNGHeader = #137'PNG'#13#10#26#10;
   MNGHeader = #138'MNG'#13#10#26#10;
 
+  { Default value for the @link(TKSizingGrips.GripColor) property. }
+  cSizingGripColor = clNavy;
+  { Default value for the @link(TKSizingGrips.GripSize) property. }
+  cSizingGripSize = 8;
+  { Default value for the @link(TKSizingGrips.MidGripConstraint) property. }
+  cSizingMidGripConstraint = (3 * cSizingGripSize + 10);
+
 type
   { Declares possible values for the Style parameter of the @link(BrightColor) function. }
   TKBrightMode = (
@@ -531,10 +538,12 @@ type
   public
     { Creates the instance. }
     constructor Create(AOwner: TComponent); override;
-    { }
+    { Text to show in the hint. }
     property Text: TKString read FText write SetText;
   end;
 
+  { @abstract(Hint window to display graphic)
+    This class implements the hint window to show an image. }
   TKGraphicHint = class(TKHintWindow)
   private
     FGraphic: TGraphic;
@@ -543,8 +552,44 @@ type
     { Overriden method. Paints the hint. }
     procedure Paint; override;
   public
+    { Creates the instance. }
     constructor Create(AOwner: TComponent); override;
+    { Image to show in the hint. }
     property Graphic: TGraphic read FGraphic write SetGraphic;
+  end;
+
+  TKSizingGripPosition = (
+    sgpNone,
+    sgpLeft,
+    sgpRight,
+    sgpTop,
+    sgpBottom,
+    sgpTopLeft,
+    sgpTopRight,
+    sgpBottomLeft,
+    sgpBottomRight
+  );
+
+  TKSizingGrips = class
+  private
+    FBoundsRect: TRect;
+    FGripColor: TColor;
+    FGripSize: Integer;
+    FMidGripConstraint: Integer;
+  protected
+    function GripRect(APosition: TKSizingGripPosition): TRect;
+  public
+    constructor Create;
+    class procedure ClsAffectRect(APosition: TKSizingGripPosition;
+      ADX, ADY: Integer; var ARect: TRect);
+    procedure DrawTo(ACanvas: TCanvas);
+    function HitTest(const APoint: TPoint): TKSizingGripPosition;
+    function CursorAt(const APoint: TPoint): TCursor;
+    function CursorFor(APosition: TKSizingGripPosition): TCursor;
+    property BoundsRect: TRect read FBoundsRect write FBoundsRect;
+    property GripColor: TColor read FGripColor write FGripColor default cSizingGripColor;
+    property GripSize: Integer read FGripSize write FGripSize default cSizingGripSize;
+    property MidGripConstraint: Integer read FMidGripConstraint write FMidGripConstraint default cSizingMidGripConstraint;
   end;
 
 { Draws Src to Dest with per pixel weighting by alpha channel saved in Src. }
@@ -3494,6 +3539,165 @@ begin
     FGraphic := Value;
     FExtent.X := FGraphic.Width;
     FExtent.Y := FGraphic.Height;
+  end;
+end;
+
+{ TKSizingGrips }
+
+constructor TKSizingGrips.Create;
+begin
+  FBoundsRect := CreateEmptyRect;
+  FGripColor := cSizingGripColor;
+  FGripSize := cSizingGripSize;
+  FMidGripConstraint := cSizingMidGripConstraint;
+end;
+
+class procedure TKSizingGrips.ClsAffectRect(APosition: TKSizingGripPosition;
+  ADX, ADY: Integer; var ARect: TRect);
+begin
+  case APosition of
+    sgpLeft:
+      Inc(ARect.Left, ADX);
+    sgpRight:
+      Inc(ARect.Right, ADX);
+    sgpTop:
+      Inc(ARect.Top, ADY);
+    sgpBottom:
+      Inc(ARect.Bottom, ADY);
+    sgpTopLeft:
+    begin
+      Inc(ARect.Left, ADX);
+      Inc(ARect.Top, ADY);
+    end;
+    sgpTopRight:
+    begin
+      Inc(ARect.Right, ADX);
+      Inc(ARect.Top, ADY);
+    end;
+    sgpBottomLeft:
+    begin
+      Inc(ARect.Left, ADX);
+      Inc(ARect.Bottom, ADY);
+    end;
+    sgpBottomRight:
+    begin
+      Inc(ARect.Right, ADX);
+      Inc(ARect.Bottom, ADY);
+    end;
+  else
+    KFunctions.OffsetRect(ARect, ADX, ADY);
+  end;
+end;
+
+function TKSizingGrips.CursorAt(const APoint: TPoint): TCursor;
+begin
+  Result := CursorFor(HitTest(APoint));
+end;
+
+function TKSizingGrips.CursorFor(APosition: TKSizingGripPosition): TCursor;
+begin
+  case APosition of
+    sgpLeft, sgpRight: Result := crSizeWE;
+    sgpTop, sgpBottom: Result := crSizeNS;
+    sgpTopLeft, sgpBottomRight: Result := crSizeNWSE;
+    sgpTopRight, sgpBottomLeft: Result := crSizeNESW;
+  else
+    Result := crDefault;
+  end;
+end;
+
+procedure TKSizingGrips.DrawTo(ACanvas: TCanvas);
+begin
+  with ACanvas do
+  begin
+    Brush.Style := bsSolid;
+    Brush.Color := FGripColor;
+    // take the corners first
+    ACanvas.FillRect(GripRect(sgpTopLeft));
+    ACanvas.FillRect(GripRect(sgpTopRight));
+    ACanvas.FillRect(GripRect(sgpBottomLeft));
+    ACanvas.FillRect(GripRect(sgpBottomRight));
+    // take middle grips
+    if FBoundsRect.Right - FBoundsRect.Left >= FMidGripConstraint then
+    begin
+      ACanvas.FillRect(GripRect(sgpTop));
+      ACanvas.FillRect(GripRect(sgpBottom));
+    end;
+    if FBoundsRect.Bottom - FBoundsRect.Top >= FMidGripConstraint then
+    begin
+      ACanvas.FillRect(GripRect(sgpLeft));
+      ACanvas.FillRect(GripRect(sgpRight));
+    end;
+  end;
+end;
+
+function TKSizingGrips.GripRect(APosition: TKSizingGripPosition): TRect;
+begin
+  case APosition of
+    sgpLeft:
+    begin
+      Result.Left := FBoundsRect.Left;
+      Result.Top := FBoundsRect.Top + (FBoundsRect.Bottom - FBoundsRect.Top - FGripSize) div 2;
+    end;
+    sgpRight:
+    begin
+      Result.Left := FBoundsRect.Right - FGripSize;
+      Result.Top := FBoundsRect.Top + (FBoundsRect.Bottom - FBoundsRect.Top - FGripSize) div 2;
+    end;
+    sgpTop:
+    begin
+      Result.Left := FBoundsRect.Left + (FBoundsRect.Right - FBoundsRect.Left - FGripSize) div 2;
+      Result.Top := FBoundsRect.Top;
+    end;
+    sgpBottom:
+    begin
+      Result.Left := FBoundsRect.Left + (FBoundsRect.Right - FBoundsRect.Left - FGripSize) div 2;
+      Result.Top := FBoundsRect.Bottom - FGripSize;
+    end;
+    sgpTopLeft:
+    begin
+      Result.Left := FBoundsRect.Left;
+      Result.Top := FBoundsRect.Top;
+    end;
+    sgpTopRight:
+    begin
+      Result.Left := FBoundsRect.Right - FGripSize;
+      Result.Top :=  FBoundsRect.Top;
+    end;
+    sgpBottomLeft:
+    begin
+      Result.Left := FBoundsRect.Left;
+      Result.Top := FBoundsRect.Bottom - FGripSize;
+    end;
+    sgpBottomRight:
+    begin
+      Result.Left := FBoundsRect.Right - FGripSize;
+      Result.Top := FBoundsRect.Bottom - FGripSize;
+    end
+  else
+    Result := CreateEmptyRect;
+  end;
+  if APosition <> sgpNone then
+  begin
+    Result.Right := Result.Left + FGripSize;
+    Result.Bottom := Result.Top + FGripSize;
+  end;
+end;
+
+function TKSizingGrips.HitTest(const APoint: TPoint): TKSizingGripPosition;
+var
+  I: TKSizingGripPosition;
+  R: TRect;
+begin
+  Result := sgpNone;
+  for I := Low(TKSizingGripPosition) to High(TKSizingGripPosition) do if I <> sgpNone then
+  begin
+    R := GripRect(I);
+    if PtInRect(R, APoint) then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
 end;
 

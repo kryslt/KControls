@@ -660,9 +660,10 @@ type
     function GetPrinting: Boolean;
     function GetReadOnly: Boolean;
     procedure GetSelColors(out Foreground, Background: TColor);
+    function GetSelectedBlock: TKMemoBlock;
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
-    function SelectBlock(AItem: TKMemoBlock): Boolean;
+    function SelectBlock(AItem: TKMemoBlock; APosition: TKSizingGripPosition): Boolean;
     procedure SetReqMouseCursor(ACursor: TCursor);
   end;
 
@@ -682,6 +683,9 @@ type
     procedure SetPosition(const Value: TKMemoBlockPosition);
     function GetParentBlocks: TKMemoBlocks;
   protected
+    procedure SizingGripsDraw(ACanvas: TCanvas; const ARect: TRect); virtual;
+    function SizingGripsCursor(const ARect: TRect; const APoint: TPoint): TCursor; virtual;
+    function SizingGripsPosition(const ARect: TRect; const APoint: TPoint): TKSizingGripPosition; virtual;
     function ContentLength: Integer; virtual;
     function GetBottomPadding: Integer; virtual;
     function GetCanAddText: Boolean; virtual;
@@ -696,6 +700,7 @@ type
     function GetSelStart: Integer; virtual;
     function GetSelText: TKString; virtual;
     function GetShowFormatting: Boolean; virtual;
+    function GetSizingRect: TRect; virtual;
     function GetText: TKString; virtual;
     function GetTop: Integer; virtual;
     function GetTopPadding: Integer; virtual;
@@ -748,9 +753,11 @@ type
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; virtual;
     function RealLeftOffset: Integer;
     function RealTopOffset: Integer;
+    procedure Resize(ANewWidth, ANewHeight: Integer); virtual;
     procedure SelectAll; virtual;
     function Select(ASelStart, ASelLength: Integer): Boolean; virtual;
     function SelectableLength(ALocalCalc: Boolean = False): Integer; virtual;
+    function SelectedBlock: TKMemoBlock; virtual;
     function Split(At: Integer; AllowEmpty: Boolean = False): TKMemoBlock; virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; virtual;
     function WordMeasureExtent(ACanvas: TCanvas; AWordIndex, ARequiredWidth: Integer): TPoint; virtual;
@@ -776,6 +783,7 @@ type
     property SelStart: Integer read GetSelStart;
     property SelText: TKString read GetSelText;
     property ShowFormatting: Boolean read GetShowFormatting;
+    property SizingRect: TRect read GetSizingRect;
     property Text: TKString read GetText;
     property Top: Integer read GetTop;
     property TopOffset: Integer read FOffset.Y write SetTopOffset;
@@ -975,6 +983,7 @@ type
     function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetImageHeight: Integer; virtual;
     function GetImageWidth: Integer; virtual;
+    function GetSizingRect: TRect; override;
     function GetWordBottomPadding(Index: Integer): Integer; override;
     function GetWordBoundsRect(Index: Integer): TRect; override;
     function GetWordCount: Integer; override;
@@ -999,6 +1008,7 @@ type
     procedure Assign(ASource: TKObject); override;
     function CalcAscent(ACanvas: TCanvas): Integer; override;
     function OuterRect(ACaret: Boolean): TRect; virtual;
+    procedure Resize(ANewWidth, ANewHeight: Integer); override;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer; AIndex: Integer; ACaret: Boolean): TRect; override;
     function WordMeasureExtent(ACanvas: TCanvas; AIndex, ARequiredWidth: Integer): TPoint; override;
     function WordMouseAction(AWordIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
@@ -1669,9 +1679,10 @@ type
   protected
     FActiveBlocks: TKMemoBlocks;
     FCaretRect: TRect;
-    FDragRect: TRect;
-    FDragOrigPos: TPoint;
     FDragCurPos: TPoint;
+    FDragMode: TKSizingGripPosition;
+    FDragOrigRect: TRect;
+    FDragRect: TRect;
     FHorzExtent: Integer;
     FHorzScrollExtent: Integer;
     FHorzScrollStep: Integer;
@@ -1680,7 +1691,7 @@ type
     FOldCaretRect: TRect;
     FPreferredCaretPos: Integer;
     FRequiredMouseCursor: TCursor;
-    FSelectedRelBlock: TKMemoBlock;
+    FSelectedBlock: TKMemoBlock;
     FVertExtent: Integer;
     FVertScrollExtent: Integer;
     FVertScrollStep: Integer;
@@ -1782,6 +1793,8 @@ type
     { IKMemoNotifier implementation. }
     procedure GetSelColors(out Foreground, Background: TColor);
     { IKMemoNotifier implementation. }
+    function GetSelectedBlock: TKMemoBlock;
+    { IKMemoNotifier implementation. }
     function GetShowFormatting: Boolean;
     { Returns "real" selection end - with always higher index value than selection start value. }
     function GetRealSelEnd: Integer; virtual;
@@ -1858,7 +1871,7 @@ type
     { Initializes the current selection and performs all necessary adjustments. }
     procedure SelectionInit(const APoint: TPoint; ADoScroll: Boolean = True); overload; virtual;
     { IKMemoNotifier implementation. }
-    function SelectBlock(AItem: TKMemoBlock): Boolean;
+    function SelectBlock(AItem: TKMemoBlock; APosition: TKSizingGripPosition): Boolean;
     { IKMemoNotifier implementation. }
     procedure SetReqMouseCursor(ACursor: TCursor);
     { Updates mouse cursor according to the state determined from current mouse
@@ -1929,8 +1942,8 @@ type
     procedure DeleteLastChar(At: Integer); virtual;
     { Delete whole line at position At. }
     procedure DeleteLine(At: Integer);
-    { Delete selected relative or absolute positioned block. Does nothing when no such block is selected. }
-    procedure DeleteRelativeSelected; virtual;
+    { Delete block previously selected with @link(TKCustomMemo.SelectBlock), if any. }
+    procedure DeleteSelectedBlock; virtual;
     { Executes given command. This function first calls CommandEnabled to
       assure given command can be executed.
       <UL>
@@ -2090,10 +2103,8 @@ type
     property SelAvail: Boolean read GetSelAvail;
     { Returns selectable length. }
     property SelectableLength: Integer read GetSelectableLength;
-    { Returns selected block with relative or absolute position.
-      If SelectedRelBlock is not nil, SelLength is always 0.
-      If SelLength is nonzero, SelectedRelBlock is always nil. }
-    property SelectedRelBlock: TKMemoBlock read FSelectedRelBlock;
+    { Returns block previously selected with @link(TKCustomMemo.SelectBlock). }
+    property SelectedBlock: TKMemoBlock read FSelectedBlock;
     { Determines whether a selection contains a paragraph. }
     property SelectionHasPara: Boolean read GetSelectionHasPara;
     { Specifies paragraph style for active selection. }
@@ -3976,6 +3987,7 @@ begin
   FContentPadding.All := 5;
   FContentPadding.OnChanged := ContentPaddingChanged;
   FDisabledDrawStyle := cEditDisabledDrawStyleDef;
+  FDragMode := sgpNone;
   FDragRect := CreateEmptyRect;
   FHorzScrollStep := cHorzScrollStepDef;
   FLeftPos := 0;
@@ -4004,7 +4016,7 @@ begin
   FScrollTimer.Enabled := False;
   FScrollTimer.Interval := FScrollSpeed;
   FScrollTimer.OnTimer := ScrollTimerHandler;
-  FSelectedRelBlock := nil;
+  FSelectedBlock := nil;
   FStates := [];
   FTextStyle := TKMemoTextStyle.Create;
   FTextStyle.Changeable := False;
@@ -4389,7 +4401,7 @@ end;
 procedure TKCustomMemo.DeleteChar(At: Integer);
 begin
   if RelativeSelected then
-    DeleteRelativeSelected
+    DeleteSelectedBlock
   else
     FActiveBlocks.DeleteChar(At);
   Modified := True;
@@ -4404,7 +4416,7 @@ end;
 procedure TKCustomMemo.DeleteLastChar(At: Integer);
 begin
   if RelativeSelected then
-    DeleteRelativeSelected
+    DeleteSelectedBlock
   else
     FActiveBlocks.DeleteLastChar(At);
   Modified := True;
@@ -4416,17 +4428,17 @@ begin
   Modified := True;
 end;
 
-procedure TKCustomMemo.DeleteRelativeSelected;
+procedure TKCustomMemo.DeleteSelectedBlock;
 var
   Blocks: TKMemoBlocks;
 begin
-  if FSelectedRelBlock <> nil then
+  if FSelectedBlock <> nil then
   begin
-    Blocks := FSelectedRelBlock.ParentBlocks;
+    Blocks := FSelectedBlock.ParentBlocks;
     if Blocks <> nil then
     begin
-      Blocks.Remove(FSelectedRelBlock);
-      FSelectedRelBlock := nil;
+      Blocks.Remove(FSelectedBlock);
+      FSelectedBlock := nil;
     end;
   end;
 end;
@@ -4535,11 +4547,14 @@ end;
 procedure TKCustomMemo.DragBlock;
 var
   P: TPoint;
+  DX, DY: Integer;
 begin
   if elMouseDrag in FStates then
   begin
     P := ScreenToClient(Mouse.CursorPos);
-    KFunctions.OffsetRect(FDragRect, P.X - FDragCurPos.X, P.Y - FDragCurPos.Y);
+    DX := P.X - FDragCurPos.X;
+    DY := P.Y - FDragCurPos.Y;
+    TKSizingGrips.ClsAffectRect(FDragMode, DX, DY, FDragRect);
     FDragCurPos := P;
     Invalidate;
   end;
@@ -4548,7 +4563,7 @@ end;
 function TKCustomMemo.EditBlock(AItem: TKMemoBlock): Boolean;
 begin
   Result := False;
-  if Assigned(FOnEditBlock) then
+  if Assigned(FOnEditBlock) and not ReadOnly then
     FOnEditBlock(AItem, Result);
 end;
 
@@ -4995,7 +5010,7 @@ end;
 
 function TKCustomMemo.GetRelativeSelected: Boolean;
 begin
-  Result := FSelectedRelBlock <> nil;
+  Result := (FSelectedBlock <> nil) and (FSelectedBlock.Position <> mbpText);
 end;
 
 function TKCustomMemo.GetRequiredContentWidth: Integer;
@@ -5040,6 +5055,11 @@ end;
 function TKCustomMemo.GetSelectableLength: Integer;
 begin
   Result := FActiveBlocks.SelectableLength;
+end;
+
+function TKCustomMemo.GetSelectedBlock: TKMemoBlock;
+begin
+  Result := FSelectedBlock;
 end;
 
 function TKCustomMemo.GetSelectionHasPara: Boolean;
@@ -5404,14 +5424,19 @@ begin
   if elMouseDrag in FStates then
   begin
     Exclude(FStates, elMouseDrag);
-    FSelectedRelBlock.LockUpdate;
-    try
-      FSelectedRelBlock.LeftOffset := FSelectedRelBlock.LeftOffset + FDragCurPos.X - FDragOrigPos.X;
-      FSelectedRelBlock.TopOffset := FSelectedRelBlock.TopOffset + FDragCurPos.Y - FDragOrigPos.Y;
-    finally
-      Blocks.UnlockUpdate;
+    FDragRect := NormalizeRect(FDragRect);
+    if (FSelectedBlock <> nil) and not EqualRect(FDragRect, FDragOrigRect) then
+    begin
+      FSelectedBlock.LockUpdate;
+      try
+        FSelectedBlock.LeftOffset := FSelectedBlock.LeftOffset + FDragRect.Left - FDragOrigRect.Left;
+        FSelectedBlock.TopOffset := FSelectedBlock.TopOffset + FDragRect.Top - FDragOrigRect.Top;
+        FSelectedBlock.Resize(FDragRect.Right - FDragRect.Left, FDragRect.Bottom - FDragRect.Top);
+      finally
+        FSelectedBlock.UnlockUpdate;
+      end;
+      Modified := True;
     end;
-    Modified := True;
   end;
 end;
 
@@ -5515,7 +5540,7 @@ begin
     begin
       SetBkColor(ACanvas.Handle, $FFFFFF);
       SetTextColor(ACanvas.Handle, 0);
-      ACanvas.DrawFocusRect(FDragRect);
+      ACanvas.DrawFocusRect(NormalizeRect(FDragRect));
     end;
 {$IFDEF FPC}
   finally
@@ -5765,10 +5790,10 @@ end;
 
 procedure TKCustomMemo.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean);
 begin
-  if FSelectedRelBlock <> nil then
+  if (FSelectedBlock <> nil) and (FSelectedBlock.Position <> mbpText) then
   begin
-    FSelectedRelBlock.Select(0, 0);
-    FSelectedRelBlock := nil;
+    FSelectedBlock.Select(0, 0);
+    FSelectedBlock := nil;
   end;
   FActiveBlocks.Select(ASelStart, ASelLength, ADoScroll);
 end;
@@ -5804,7 +5829,7 @@ begin
   UpdatePreferredCaretPos;
 end;
 
-function TKCustomMemo.SelectBlock(AItem: TKMemoBlock): Boolean;
+function TKCustomMemo.SelectBlock(AItem: TKMemoBlock; APosition: TKSizingGripPosition): Boolean;
 var
   StartIndex: Integer;
 begin
@@ -5814,20 +5839,28 @@ begin
     StartIndex := FActiveBlocks.ItemToIndex(AItem);
     Result := StartIndex >= 0;
     if Result then
+    begin
       Select(StartIndex, AItem.SelectableLength);
+      FSelectedBlock := AItem;
+    end;
   end else
   begin
     // just select locally and invalidate
     Select(SelStart, 0, False);
-    FSelectedRelBlock := AItem;
+    FSelectedBlock := AItem;
     AItem.Select(0, AItem.SelectableLength(True));
-    FDragOrigPos := ScreenToClient(Mouse.CursorPos);
-    FDragCurPos := FDragOrigPos;
-    FDragRect := AItem.BoundsRect;
-    KFunctions.OffsetRect(FDragRect, FSelectedRelBlock.RealLeftOffset + ContentLeft, FSelectedRelBlock.RealTopOffset + ContentTop);
-    Include(FStates, elMouseDrag);
     Invalidate;
     Result := True;
+  end;
+  // initialize dragging
+  if not ReadOnly and ((AItem.Position <> mbpText) or (APosition <> sgpNone)) then
+  begin
+    FDragCurPos := ScreenToClient(Mouse.CursorPos);
+    FDragMode := APosition;
+    FDragRect := AItem.SizingRect;
+    KFunctions.OffsetRect(FDragRect, ContentLeft, ContentTop);
+    FDragOrigRect := FDragRect;
+    Include(FStates, elMouseDrag);
   end;
 end;
 
@@ -6556,6 +6589,12 @@ begin
     Result := False;
 end;
 
+function TKMemoBlock.GetSizingRect: TRect;
+begin
+  Result := BoundsRect;
+  KFunctions.OffsetRect(Result, RealLeftOffset, RealTopOffset);
+end;
+
 function TKMemoBlock.GetText: TKString;
 begin
   Result := '';
@@ -6715,6 +6754,10 @@ begin
     Result := 0;
 end;
 
+procedure TKMemoBlock.Resize(ANewWidth, ANewHeight: Integer);
+begin
+end;
+
 function TKMemoBlock.MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer): TPoint;
 var
   I: Integer;
@@ -6792,6 +6835,17 @@ end;
 procedure TKMemoBlock.SelectAll;
 begin
   Select(0, SelectableLength);
+end;
+
+function TKMemoBlock.SelectedBlock: TKMemoBlock;
+var
+  Notifier: IKMemoNotifier;
+begin
+  Notifier := MemoNotifier;
+  if Notifier <> nil then
+    Result := Notifier.GetSelectedBlock
+  else
+    Result := nil;
 end;
 
 procedure TKMemoBlock.SetLeftOffset(const Value: Integer);
@@ -6886,6 +6940,46 @@ end;
 
 procedure TKMemoBlock.SetWordWidth(Index: Integer; const Value: Integer);
 begin
+end;
+
+function TKMemoBlock.SizingGripsCursor(const ARect: TRect; const APoint: TPoint): TCursor;
+var
+  Grips: TKSizingGrips;
+begin
+  Grips := TKSizingGrips.Create;
+  try
+    Grips.BoundsRect := ARect;
+    Result := Grips.CursorAt(APoint);
+  finally
+    Grips.Free;
+  end;
+end;
+
+procedure TKMemoBlock.SizingGripsDraw(ACanvas: TCanvas; const ARect: TRect);
+var
+  Grips: TKSizingGrips;
+begin
+  Grips := TKSizingGrips.Create;
+  try
+    Grips.BoundsRect := ARect;
+    Grips.DrawTo(ACanvas);
+  finally
+    Grips.Free;
+  end;
+end;
+
+function TKMemoBlock.SizingGripsPosition(const ARect: TRect;
+  const APoint: TPoint): TKSizingGripPosition;
+var
+  Grips: TKSizingGrips;
+begin
+  Grips := TKSizingGrips.Create;
+  try
+    Grips.BoundsRect := ARect;
+    Result := Grips.HitTest(APoint);
+  finally
+    Grips.Free;
+  end;
 end;
 
 function TKMemoBlock.Split(At: Integer; AllowEmpty: Boolean): TKMemoBlock;
@@ -8180,6 +8274,16 @@ begin
   Result := MulDiv(OriginalWidth, FScale.X, 100);
 end;
 
+function TKMemoImageBlock.GetSizingRect: TRect;
+var
+  ROuter: TRect;
+begin
+  ROuter := OuterRect(False);
+  CroppedImage;
+  Result := FScaledRect;
+  KFunctions.OffsetRect(Result, ROuter.Left + FImageStyle.AllPaddingsLeft, ROuter.Top + FImageStyle.AllPaddingsTop + FWordTopPadding + FBaseLine - FCalcBaseLine);
+end;
+
 function TKMemoImageBlock.GetWordBottomPadding(Index: Integer): Integer;
 begin
   Result := FWordBottomPadding;
@@ -8248,6 +8352,12 @@ begin
     Dec(Result.Bottom, FWordBottomPadding);
   end;
   KFunctions.OffsetRect(Result, RealLeftOffset, RealTopOffset);
+end;
+
+procedure TKMemoImageBlock.Resize(ANewWidth, ANewHeight: Integer);
+begin
+  ScaleWidth := ANewWidth;
+  ScaleHeight := ANewHeight;
 end;
 
 procedure TKMemoImageBlock.CropChanged(Sender: TObject);
@@ -8430,10 +8540,10 @@ function TKMemoImageBlock.WordMouseAction(AWordIndex: Integer;
 var
   R: TRect;
   Notifier: IKMemoNotifier;
+  Cursor: TCursor;
 begin
   Result := False;
-  R := Rect(0, 0, FExtent.X, FExtent.Y);
-  KFunctions.OffsetRect(R, FPosition.X + FOffset.X, FPosition.Y + FOffset.Y);
+  R := GetSizingRect;
   if PtInRect(R, APoint) then
   begin
     Notifier := MemoNotifier;
@@ -8442,21 +8552,33 @@ begin
       case AAction of
         maMove:
         begin
-          if Position = mbpText then
-            Notifier.SetReqMouseCursor(crDefault)
+          if ReadOnly then
+            Cursor := crDefault
           else
-            Notifier.SetReqMouseCursor(crSizeAll);
+          begin
+            if SelLength > 0 then
+            begin
+              Cursor := SizingGripsCursor(R, APoint);
+              if Cursor = crDefault then
+                Cursor := crSizeAll;
+            end else
+              Cursor := crSizeAll;
+            if (Position = mbpText) and (Cursor = crSizeAll) then
+              Cursor := crDefault;
+          end;
+          Notifier.SetReqMouseCursor(Cursor);
         end;
         maLeftDown:
         begin
           if ssDouble in AShift then
-            Result := Notifier.EditBlock(Self)
+            Notifier.EditBlock(Self)
           else
-            Result := Notifier.SelectBlock(Self);
+            Notifier.SelectBlock(Self, SizingGripsPosition(R, APoint));
+          Result := True;
         end;
         maRightDown:
         begin
-          Result := Notifier.SelectBlock(Self);
+          Result := Notifier.SelectBlock(Self, sgpNone);
         end;
       end;
     end;
@@ -8474,8 +8596,8 @@ begin
   inherited;
   ROuter := OuterRect(False);
   KFunctions.OffsetRect(ROuter, ALeft, ATop);
-  X := ROuter.Left + FImageStyle.LeftPadding + FImageStyle.LeftMargin + FImageStyle.LeftBorderWidth;
-  Y := ROuter.Top + FImageStyle.TopPadding + FImageStyle.TopMargin + FImageStyle.TopBorderWidth + FWordTopPadding + FBaseLine - FCalcBaseLine;
+  X := ROuter.Left + FImageStyle.AllPaddingsLeft;
+  Y := ROuter.Top + FImageStyle.AllPaddingsTop + FWordTopPadding + FBaseLine - FCalcBaseLine;
   CroppedImage;
   R := FScaledRect;
   KFunctions.OffsetRect(R, X, Y);
@@ -8501,6 +8623,8 @@ begin
       {$ENDIF}
         Bitmap.AlphaFillPercent(50, True);
         ACanvas.StretchDraw(R, Bitmap);
+        if not ReadOnly and (SelectedBlock = Self) then
+          SizingGripsDraw(ACanvas, R);
       finally
         Bitmap.Free;
       end;

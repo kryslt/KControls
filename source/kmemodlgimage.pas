@@ -1,4 +1,4 @@
-{ @abstract(This unit contains a dialog for editing an image)
+{ @abstract(This unit contains a dialog for image editing)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(28 Apr 2009)
   @lastmod(30 July 2015)
@@ -25,10 +25,13 @@ uses
   Windows, Messages,
 {$ENDIF}
   SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, KControls, KMemo, ExtCtrls, ExtDlgs, kbuttons, kedits,
+  Dialogs, StdCtrls, KControls, KMemo, ExtCtrls, ExtDlgs, KButtons, KEdits,
   ComCtrls;
 
 type
+
+  { TKMemoImageForm }
+
   TKMemoImageForm = class(TForm)
     BUOk: TButton;
     BUCancel: TButton;
@@ -74,8 +77,11 @@ type
     procedure FormCreate(Sender: TObject);
     procedure EDScaleXChange(Sender: TObject);
     procedure EDScaleYChange(Sender: TObject);
+    procedure RBPositionTextClick(Sender: TObject);
   private
     { Private declarations }
+    FScaleLock: Boolean;
+    procedure UpdateFields;
   public
     { Public declarations }
     procedure Clear;
@@ -108,14 +114,28 @@ end;
 
 procedure TKMemoImageForm.EDScaleXChange(Sender: TObject);
 begin
-  if CBProportional.Checked then
-    EDScaleY.ValueAsInt := EDScaleX.ValueAsInt
+  if CBProportional.Checked and not FScaleLock then
+  begin
+    FScaleLock := True;
+    try
+      EDScaleY.ValueAsInt := EDScaleX.ValueAsInt
+    finally
+      FScaleLock := False;
+    end;
+  end;
 end;
 
 procedure TKMemoImageForm.EDScaleYChange(Sender: TObject);
 begin
-  if CBProportional.Checked then
-    EDScaleX.ValueAsInt := EDScaleY.ValueAsInt
+  if CBProportional.Checked and not FScaleLock then
+  begin
+    FScaleLock := True;
+    try
+      EDScaleX.ValueAsInt := EDScaleY.ValueAsInt
+    finally
+      FScaleLock := False;
+    end;
+  end;
 end;
 
 procedure TKMemoImageForm.FormCreate(Sender: TObject);
@@ -127,35 +147,46 @@ procedure TKMemoImageForm.Load(AItem: TKMemoImageBlock);
 begin
   if AItem <> nil then
   begin
-    IMPreview.Picture := AItem.Image;
-    case AItem.Position of
-      mbpText: RBPositionText.Checked := True;
-      mbpRelative: RBPositionRelative.Checked := True;
-      mbpAbsolute: RBPositionAbsolute.Checked := True;
+    FScaleLock := True; // lock scaling constraint
+    try
+      IMPreview.Picture := AItem.Image;
+      case AItem.Position of
+        mbpText: RBPositionText.Checked := True;
+        mbpRelative: RBPositionRelative.Checked := True;
+        mbpAbsolute: RBPositionAbsolute.Checked := True;
+      end;
+      EDOffsetX.ValueAsInt := AItem.LeftOffset;
+      EDOffsetY.ValueAsInt := AItem.TopOffset;
+      EDScaleX.ValueAsInt := AItem.ScaleX;
+      EDScaleY.ValueAsInt := AItem.ScaleY;
+      CBProportional.Checked := AItem.ScaleX = AItem.ScaleY;
+      case AItem.ImageStyle.WrapMode of
+        wrAround, wrTight: RBWrapAround.Checked := True;
+        wrAroundLeft, wrTightLeft: RBWrapAroundLeft.Checked := True;
+        wrAroundRight, wrTightRight: RBWrapAroundRight.Checked := True;
+      else
+        RBWrapTopBottom.Checked := True;
+      end;
+      EDBorderWidth.ValueAsInt := AItem.ImageStyle.BorderWidth;
+      CLBBorder.DlgColor := AItem.ImageStyle.BorderColor;
+      if AItem.ImageStyle.Brush.Style <> bsClear then
+        CLBShading.DlgColor := AItem.ImageStyle.Brush.Color
+      else
+        CLBShading.DlgColor := clNone;
+      EDCropLeft.ValueAsInt := AItem.Crop.Left;
+      EDCropRight.ValueAsInt := AItem.Crop.Right;
+      EDCropTop.ValueAsInt := AItem.Crop.Top;
+      EDCropBottom.ValueAsInt := AItem.Crop.Bottom;
+      UpdateFields;
+    finally
+      FScaleLock := False;
     end;
-    EDOffsetX.ValueAsInt := AItem.LeftOffset;
-    EDOffsetY.ValueAsInt := AItem.TopOffset;
-    EDScaleX.ValueAsInt := AItem.ScaleX;
-    EDScaleY.ValueAsInt := AItem.ScaleY;
-    CBProportional.Checked := AItem.ScaleX = AItem.ScaleY;
-    case AItem.ImageStyle.WrapMode of
-      wrAround, wrTight: RBWrapAround.Checked := True;
-      wrAroundLeft, wrTightLeft: RBWrapAroundLeft.Checked := True;
-      wrAroundRight, wrTightRight: RBWrapAroundRight.Checked := True;
-    else
-      RBWrapTopBottom.Checked := True;
-    end;
-    EDBorderWidth.ValueAsInt := AItem.ImageStyle.BorderWidth;
-    CLBBorder.DlgColor := AItem.ImageStyle.BorderColor;
-    if AItem.ImageStyle.Brush.Style <> bsClear then
-      CLBShading.DlgColor := AItem.ImageStyle.Brush.Color
-    else
-      CLBShading.DlgColor := clNone;
-    EDCropLeft.ValueAsInt := AItem.Crop.Left;
-    EDCropRight.ValueAsInt := AItem.Crop.Right;
-    EDCropTop.ValueAsInt := AItem.Crop.Top;
-    EDCropBottom.ValueAsInt := AItem.Crop.Bottom;
   end;
+end;
+
+procedure TKMemoImageForm.RBPositionTextClick(Sender: TObject);
+begin
+  UpdateFields;
 end;
 
 procedure TKMemoImageForm.Save(AItem: TKMemoImageBlock);
@@ -197,6 +228,19 @@ begin
     AItem.Crop.Top := EDCropTop.ValueAsInt;
     AItem.Crop.Bottom := EDCropBottom.ValueAsInt;
   end;
+end;
+
+procedure TKMemoImageForm.UpdateFields;
+var
+  RelOrAbs: Boolean;
+begin
+  RelOrAbs := not RBPositionText.Checked;
+  RBWrapAround.Enabled := RelOrAbs;
+  RBWrapAroundLeft.Enabled := RelOrAbs;
+  RBWrapAroundRight.Enabled := RelOrAbs;
+  RBWrapTopBottom.Enabled := RelOrAbs;
+  EDOffsetX.Enabled := RelOrAbs;
+  EDOffsetY.Enabled := RelOrAbs;
 end;
 
 end.

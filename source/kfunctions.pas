@@ -744,6 +744,9 @@ procedure OffsetPoint(var APoint: TPoint; AX, AY: Integer); overload;
 { Add AOffset to APoint. }
 procedure OffsetPoint(var APoint: TPoint; const AOffset: TPoint); overload;
 
+{ Normalizes the given input rectangle. }
+function NormalizeRect(const ARect: TRect): TRect;
+
 { Examines if some part of Rect lies within Bounds. }
 function RectInRect(Bounds, Rect: TRect): Boolean;
 
@@ -2363,6 +2366,15 @@ procedure OffsetPoint(var APoint: TPoint; const AOffset: TPoint);
 begin
   Inc(APoint.X, AOffset.X);
   Inc(APoint.Y, AOffset.Y);
+end;
+
+function NormalizeRect(const ARect: TRect): TRect;
+begin
+  Result := ARect;
+  if Result.Left > Result.Right then
+    Exchange(Result.Left, Result.Right);
+  if Result.Top > Result.Bottom then
+    Exchange(Result.Top, Result.Bottom);
 end;
 
 function RectInRect(Bounds, Rect: TRect): Boolean;

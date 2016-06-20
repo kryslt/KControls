@@ -42,6 +42,7 @@ begin
   FFrame.Align := alClient;
   FFrame.Parent := Self;
   FFrame.OpenFile('kmemo_manual.rtf');
+  Menu := FFrame.MainMenu;
 end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
