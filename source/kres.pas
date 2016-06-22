@@ -137,6 +137,8 @@ resourcestring
   sQueryFileSave = 'File "%s" has been changed. Do you want to save it?';
   sErrMemoLoadFromFile = 'Error while loading file "%s".';
   sErrMemoSaveToFile = 'Error while saving file "%s".';
+  sMemoSampleTextBox = 'Enter the text box contents. The textbox can be placed anywhere in the document.';
+
 
 { Localize given resourcestring directly.
   Usage: ResMod(@sYourResourceString, 'New text');
@@ -311,6 +313,7 @@ begin
   ResMod(@sQueryFileSave, 'Soubor "%s" byl zmìnìn. Pøejete si jej uložit?');
   ResMod(@sErrMemoLoadFromFile, 'Chyba pøi ètení souboru "%s".');
   ResMod(@sErrMemoSaveToFile, 'Chyba pøi zápisu souboru "%s".');
+  ResMod(@sMemoSampleTextBox, 'Vyplòte obsah textového pole. Pole lze umístit kdekoli v dokumentu.');
 
 end;
 

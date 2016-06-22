@@ -40,8 +40,6 @@ type
     PCMain: TPageControl;
     TSBasic: TTabSheet;
     TSAdvanced: TTabSheet;
-    GBPreview: TGroupBox;
-    IMPreview: TImage;
     GBShading: TGroupBox;
     LBBorderWidth: TLabel;
     LBBorderColor: TLabel;
@@ -73,14 +71,23 @@ type
     RBWrapAroundLeft: TRadioButton;
     RBWrapAroundRight: TRadioButton;
     RBWrapTopBottom: TRadioButton;
+    GBPreview: TGroupBox;
+    MEPreview: TKMemo;
+    EDExplicitWidth: TKNumberEdit;
+    EDExplicitHeight: TKNumberEdit;
+    BUResetOriginalSize: TButton;
     procedure BUBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure EDScaleXChange(Sender: TObject);
     procedure EDScaleYChange(Sender: TObject);
     procedure RBPositionTextClick(Sender: TObject);
+    procedure EDScaleXExit(Sender: TObject);
+    procedure CBProportionalClick(Sender: TObject);
+    procedure BUResetOriginalSizeClick(Sender: TObject);
   private
     { Private declarations }
-    FScaleLock: Boolean;
+    FPreviewImage: TKMemoImageBlock;
+    FLockUpdate: Boolean;
     procedure UpdateFields;
   public
     { Public declarations }
@@ -98,14 +105,32 @@ implementation
 {$ENDIF}
 
 uses
-  KGraphics;
+  KEditCommon, KGraphics;
 
 { TKMemoHyperlinkForm }
 
 procedure TKMemoImageForm.BUBrowseClick(Sender: TObject);
 begin
   if ODMain.Execute then
-    IMPreview.Picture.LoadFromFile(ODMain.FileName);
+    FPreviewImage.Image.LoadFromFile(ODMain.FileName);
+end;
+
+procedure TKMemoImageForm.BUResetOriginalSizeClick(Sender: TObject);
+begin
+  FLockUpdate := True;
+  try
+    EDExplicitWidth.ValueAsInt := 0;
+    EDExplicitHeight.ValueAsInt := 0;
+  finally
+    FLockUpdate := False;
+  end;
+  EDScaleXExit(Sender);
+end;
+
+procedure TKMemoImageForm.CBProportionalClick(Sender: TObject);
+begin
+  EDScaleXChange(Sender);
+  EDScaleXExit(Sender);
 end;
 
 procedure TKMemoImageForm.Clear;
@@ -114,26 +139,32 @@ end;
 
 procedure TKMemoImageForm.EDScaleXChange(Sender: TObject);
 begin
-  if CBProportional.Checked and not FScaleLock then
+  if CBProportional.Checked and not FLockUpdate then
   begin
-    FScaleLock := True;
+    FLockUpdate := True;
     try
-      EDScaleY.ValueAsInt := EDScaleX.ValueAsInt
+      EDScaleY.ValueAsInt := EDScaleX.ValueAsInt;
     finally
-      FScaleLock := False;
+      FLockUpdate := False;
     end;
   end;
 end;
 
+procedure TKMemoImageForm.EDScaleXExit(Sender: TObject);
+begin
+  if not FLockUpdate then
+    Save(FPreviewImage);
+end;
+
 procedure TKMemoImageForm.EDScaleYChange(Sender: TObject);
 begin
-  if CBProportional.Checked and not FScaleLock then
+  if CBProportional.Checked and not FLockUpdate then
   begin
-    FScaleLock := True;
+    FLockUpdate := True;
     try
-      EDScaleX.ValueAsInt := EDScaleY.ValueAsInt
+      EDScaleX.ValueAsInt := EDScaleY.ValueAsInt;
     finally
-      FScaleLock := False;
+      FLockUpdate := False;
     end;
   end;
 end;
@@ -147,9 +178,15 @@ procedure TKMemoImageForm.Load(AItem: TKMemoImageBlock);
 begin
   if AItem <> nil then
   begin
-    FScaleLock := True; // lock scaling constraint
+    FLockUpdate := True; // lock scaling constraint
     try
-      IMPreview.Picture := AItem.Image;
+      MEPreview.Clear;
+      FPreviewImage := MEPreview.Blocks.AddImageBlock(nil);
+      FPreviewImage.Assign(AItem);
+      FPreviewImage.Position := mbpRelative;
+      FPreviewImage.LeftOffset := 0;
+      FPreviewImage.TopOffset := 0;
+      FPreviewImage.Select(-1, 0, False);
       case AItem.Position of
         mbpText: RBPositionText.Checked := True;
         mbpRelative: RBPositionRelative.Checked := True;
@@ -157,6 +194,8 @@ begin
       end;
       EDOffsetX.ValueAsInt := AItem.LeftOffset;
       EDOffsetY.ValueAsInt := AItem.TopOffset;
+      EDExplicitWidth.ValueAsInt := AItem.ExplicitWidth;
+      EDExplicitHeight.ValueAsInt := AItem.ExplicitHeight;
       EDScaleX.ValueAsInt := AItem.ScaleX;
       EDScaleY.ValueAsInt := AItem.ScaleY;
       CBProportional.Checked := AItem.ScaleX = AItem.ScaleY;
@@ -179,7 +218,7 @@ begin
       EDCropBottom.ValueAsInt := AItem.Crop.Bottom;
       UpdateFields;
     finally
-      FScaleLock := False;
+      FLockUpdate := False;
     end;
   end;
 end;
@@ -193,40 +232,50 @@ procedure TKMemoImageForm.Save(AItem: TKMemoImageBlock);
 begin
   if AItem <> nil then
   begin
-    AItem.Image := IMPreview.Picture;
-    if RBPositionText.Checked then
-      AItem.Position := mbpText
-    else if RBPositionRelative.Checked then
-      AItem.Position := mbpRelative
-    else
-      AItem.Position := mbpAbsolute;
-    if AItem.Position = mbpText then
-    begin
-      AItem.LeftOffset := 0;
-      AItem.TopOffset := 0;
-    end else
-    begin
-      AItem.LeftOffset := EDOffsetX.ValueAsInt;
-      AItem.TopOffset := EDOffsetY.ValueAsInt;
+    AItem.LockUpdate;
+    try
+      if AItem <> FPreviewImage then
+      begin
+        AItem.Image := FPreviewImage.Image;
+        if RBPositionText.Checked then
+          AItem.Position := mbpText
+        else if RBPositionRelative.Checked then
+          AItem.Position := mbpRelative
+        else
+          AItem.Position := mbpAbsolute;
+        if AItem.Position = mbpText then
+        begin
+          AItem.LeftOffset := 0;
+          AItem.TopOffset := 0;
+        end else
+        begin
+          AItem.LeftOffset := EDOffsetX.ValueAsInt;
+          AItem.TopOffset := EDOffsetY.ValueAsInt;
+        end;
+      end;
+      AItem.ExplicitWidth := EDExplicitWidth.ValueAsInt;
+      AItem.ExplicitHeight := EDExplicitHeight.ValueAsInt;
+      AItem.ScaleX := EDScaleX.ValueAsInt;
+      AItem.ScaleY := EDScaleY.ValueAsInt;
+      if RBWrapAround.Checked then
+        AItem.ImageStyle.WrapMode := wrAround
+      else if RBWrapAroundLeft.Checked then
+        AItem.ImageStyle.WrapMode := wrAroundLeft
+      else if RBWrapAroundRight.Checked then
+        AItem.ImageStyle.WrapMode := wrAroundRight
+      else
+        AItem.ImageStyle.WrapMode := wrTopBottom;
+      AItem.ImageStyle.BorderWidth := EDBorderWidth.ValueAsInt;
+      AItem.ImageStyle.BorderColor := CLBBorder.DlgColor;
+      if CLBShading.DlgColor <> clNone then
+        AItem.ImageStyle.Brush.Color := CLBShading.DlgColor;
+      AItem.Crop.Left := EDCropLeft.ValueAsInt;
+      AItem.Crop.Right := EDCropRight.ValueAsInt;
+      AItem.Crop.Top := EDCropTop.ValueAsInt;
+      AItem.Crop.Bottom := EDCropBottom.ValueAsInt;
+    finally
+      AItem.UnLockUpdate;
     end;
-    AItem.ScaleX := EDScaleX.ValueAsInt;
-    AItem.ScaleY := EDScaleY.ValueAsInt;
-    if RBWrapAround.Checked then
-      AItem.ImageStyle.WrapMode := wrAround
-    else if RBWrapAroundLeft.Checked then
-      AItem.ImageStyle.WrapMode := wrAroundLeft
-    else if RBWrapAroundRight.Checked then
-      AItem.ImageStyle.WrapMode := wrAroundRight
-    else
-      AItem.ImageStyle.WrapMode := wrTopBottom;
-    AItem.ImageStyle.BorderWidth := EDBorderWidth.ValueAsInt;
-    AItem.ImageStyle.BorderColor := CLBBorder.DlgColor;
-    if CLBShading.DlgColor <> clNone then
-      AItem.ImageStyle.Brush.Color := CLBShading.DlgColor;
-    AItem.Crop.Left := EDCropLeft.ValueAsInt;
-    AItem.Crop.Right := EDCropRight.ValueAsInt;
-    AItem.Crop.Top := EDCropTop.ValueAsInt;
-    AItem.Crop.Bottom := EDCropBottom.ValueAsInt;
   end;
 end;
 

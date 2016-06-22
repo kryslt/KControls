@@ -62,6 +62,8 @@ contains
   kmemodlgnumbering in '..\..\source\kmemodlgnumbering.pas',
   kmemodlgparastyle in '..\..\source\kmemodlgparastyle.pas',
   kmemodlgtextstyle in '..\..\source\kmemodlgtextstyle.pas',
+  kmemodlgimage in '..\..\source\kmemodlgimage.pas',
+  kmemodlgcontainer in '..\..\source\kmemodlgcontainer.pas',
   kpagecontrol in '..\..\source\kpagecontrol.pas',
   kmemortf in '..\..\source\kmemortf.pas',
   kmemofrm in '..\..\source\kmemofrm.pas' {KMemoFrame: TFrame},

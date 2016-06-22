@@ -1976,25 +1976,24 @@ end;
 
 procedure TKMemoRTFReader.LoadFromStream(AStream: TStream; AtIndex: Integer; AActiveBlocks: TKMemoBlocks);
 var
-  Item, NewItem: TKMemoBlock;
   ContLocalIndex, BlockLocalIndex: Integer;
+  Item, NewItem: TKMemoBlock;
+  Items: TKMemoBlocks;
 begin
   try
     if AActiveBlocks <> nil then
-    begin
-      FActiveBlocks := AActiveBlocks
-    end
+      Items := AActiveBlocks
     else if FMemo <> nil then
+      Items := FMemo.ActiveBlocks;
+    if Items <> nil then
     begin
       if AtIndex < 0 then
       begin
-        FMemo.Clear;
-        FMemo.Blocks.Clear; // delete everything
-        FActiveBlocks := FMemo.Blocks;
-        FAtIndex := 0; // just append new blocks to active blocks
+        FActiveBlocks := Items;
+        FAtIndex := 0; // just append new blocks
       end else
       begin
-        FActiveBlocks := FMemo.Blocks.IndexToBlocks(AtIndex, ContLocalIndex); // get active blocks
+        FActiveBlocks := Items.IndexToItems(AtIndex, ContLocalIndex); // get active inner blocks
         if FActiveBlocks <> nil then
         begin
           FAtIndex := FActiveBlocks.IndexToBlock(ContLocalIndex, BlockLocalIndex); // get block index within active blocks
@@ -2012,13 +2011,10 @@ begin
             FAtIndex := 0; // just append new blocks to active blocks
         end else
         begin
-          FActiveBlocks := FMemo.Blocks;
+          FActiveBlocks := Items;
           FAtIndex := 0; // just append new blocks to active blocks
         end;
       end;
-    end;
-    if FActiveBlocks <> nil then
-    begin
       FActiveBlocks.LockUpdate;
       try
         FActiveColor := nil;
@@ -2511,8 +2507,8 @@ begin
         FActiveImageIsEMF := False;
       end;
     {$ENDIF}
-      rpiWidth: ActiveImage.OriginalWidth := TwipsToPoints(AParam);
-      rpiHeight: ActiveImage.OriginalHeight := TwipsToPoints(AParam);
+      rpiWidth: ActiveImage.ExplicitWidth := TwipsToPoints(AParam);
+      rpiHeight: ActiveImage.ExplicitHeight := TwipsToPoints(AParam);
       rpiCropBottom: ActiveImage.Crop.Bottom := TwipsToPoints(AParam);
       rpiCropLeft: ActiveImage.Crop.Left := TwipsToPoints(AParam);
       rpiCropRight: ActiveImage.Crop.Right := TwipsToPoints(AParam);
@@ -2527,15 +2523,15 @@ begin
         if AParam > 0 then
           ActiveImage.ScaleY := AParam;
       end;
-      rpiReqWidth: if ActiveImage.OriginalWidth > 0 then
+      rpiReqWidth: if ActiveImage.ExplicitWidth > 0 then
       begin
-        Tmp := MulDiv(TwipsToPoints(AParam), 100, ActiveImage.OriginalWidth);
+        Tmp := MulDiv(TwipsToPoints(AParam), 100, ActiveImage.ExplicitWidth);
         if Tmp < ActiveImage.ScaleX then
           ActiveImage.ScaleX := Tmp;
       end;
-      rpiReqHeight: if ActiveImage.OriginalHeight > 0 then
+      rpiReqHeight: if ActiveImage.ExplicitHeight > 0 then
       begin
-        Tmp := MulDiv(TwipsToPoints(AParam), 100, ActiveImage.OriginalHeight);
+        Tmp := MulDiv(TwipsToPoints(AParam), 100, ActiveImage.ExplicitHeight);
         if Tmp < ActiveImage.ScaleY then
           ActiveImage.ScaleY := Tmp;
       end;
@@ -2565,8 +2561,8 @@ begin
                   if not FActiveImageIsEMF then
                   begin
                     // WMF extent could be incorrect here, so use RTF info
-                    TKMetafile(Image).Width := PointsToTwips(ActiveImage.OriginalWidth);
-                    TKMetafile(Image).Height := PointsToTwips(ActiveImage.OriginalHeight);
+                    TKMetafile(Image).Width := PointsToTwips(ActiveImage.ExplicitWidth);
+                    TKMetafile(Image).Height := PointsToTwips(ActiveImage.ExplicitHeight);
                   end;
                 end else
               {$ENDIF}
@@ -3138,14 +3134,14 @@ begin
     if AActiveBlocks <> nil then
       ActiveBlocks := AActiveBlocks
     else
-      ActiveBlocks := FMemo.Blocks;
+      ActiveBlocks := FMemo.ActiveBlocks;
     if ActiveBlocks <> nil then
     begin
       if FSelectedOnly then
       begin
         // find common parent blocks for the selection and use this instead of main blocks
-        Blocks1 := ActiveBlocks.IndexToBlocks(ActiveBlocks.SelStart, LocalIndex);
-        Blocks2 := ActiveBlocks.IndexToBlocks(ActiveBlocks.SelEnd, LocalIndex);
+        Blocks1 := ActiveBlocks.IndexToItems(ActiveBlocks.SelStart, LocalIndex);
+        Blocks2 := ActiveBlocks.IndexToItems(ActiveBlocks.SelEnd, LocalIndex);
         SavedBlocks1 := Blocks1;
         while Blocks1 <> Blocks2 do
         begin
@@ -3249,7 +3245,7 @@ begin
           end;
           if IsParagraph then
           begin
-            PA := ABlocks.GetNearestParagraph(I);
+            PA := ABlocks.GetNearestParagraphItem(I);
             if PA <> nil then
               WriteListText(PA.NumberBlock);
             IsParagraph := False;
@@ -3434,10 +3430,10 @@ end;
 
 procedure TKMemoRTFWriter.WriteImage(AItem: TKmemoImageBlock);
 begin
-  WriteCtrlParam('picw', PointsToTwips(AItem.OriginalWidth));
-  WriteCtrlParam('pich', PointsToTwips(AItem.OriginalHeight));
-  WriteCtrlParam('picscalex', MulDiv(AItem.ScaleWidth, 100, AItem.OriginalWidth));
-  WriteCtrlParam('picscaley', MulDiv(AItem.ScaleHeight, 100, AItem.OriginalHeight));
+  WriteCtrlParam('picw', PointsToTwips(AItem.NativeOrExplicitWidth));
+  WriteCtrlParam('pich', PointsToTwips(AItem.NativeOrExplicitHeight));
+  WriteCtrlParam('picscalex', MulDiv(AItem.ScaleWidth, 100, AItem.NativeOrExplicitWidth));
+  WriteCtrlParam('picscaley', MulDiv(AItem.ScaleHeight, 100, AItem.NativeOrExplicitHeight));
   WriteCtrlParam('picwgoal', PointsToTwips(AItem.ScaleWidth));
   WriteCtrlParam('pichgoal', PointsToTwips(AItem.ScaleHeight));
   WriteCtrlParam('piccropb', PointsToTwips(AItem.Crop.Bottom));

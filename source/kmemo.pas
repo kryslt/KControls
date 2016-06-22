@@ -1,3 +1,4 @@
+
 { @abstract(This unit contains native replacement for TMemo/TRichEdit components)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(28 Apr 2009)
@@ -684,7 +685,10 @@ type
     function GetReadOnly: Boolean;
     function GetSelEnd: Integer;
     procedure SetPosition(const Value: TKMemoBlockPosition);
+    function GetParentRootBlocks: TKMemoBlocks;
   protected
+    procedure CallAfterUpdate; override;
+    procedure CallBeforeUpdate; override;
     procedure SizingGripsDraw(ACanvas: TCanvas; const ARect: TRect); virtual;
     function SizingGripsCursor(const ARect: TRect; const APoint: TPoint): TCursor; virtual;
     function SizingGripsPosition(const ARect: TRect; const APoint: TPoint): TKSizingGripPosition; virtual;
@@ -779,6 +783,7 @@ type
     property PaintSelection: Boolean read GetPaintSelection;
     property ParaStyle: TKMemoParaStyle read GetParaStyle;
     property ParentBlocks: TKMemoBlocks read GetParentBlocks;
+    property ParentRootBlocks: TKMemoBlocks read GetParentRootBlocks;
     property Position: TKMemoBlockPosition read FPosition write SetPosition;
     property Printing: Boolean read GetPrinting;
     property ReadOnly: Boolean read GetReadOnly;
@@ -922,7 +927,7 @@ type
   TKMemoParagraph = class(TKMemoTextBlock)
   private
     FExtent: TPoint;
-    FPosition: TPoint;
+    FOrigin: TPoint;
     FParaStyle: TKMemoParaStyle;
     function GetNumbering: TKMemoParaNumbering;
     function GetNumberingList: TKMemoList;
@@ -944,12 +949,12 @@ type
     function Split(At: Integer; AllowEmpty: Boolean = False): TKMemoBlock; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AWordIndex, ALeft, ATop: Integer); override;
     property Height: Integer read FExtent.Y write FExtent.Y;
-    property Left: Integer read FPosition.X write FPosition.X;
+    property Left: Integer read FOrigin.X write FOrigin.X;
     property Numbering: TKMemoParaNumbering read GetNumbering write SetNumbering;
     property NumberingList: TKMemoList read GetNumberingList;
     property NumberingListLevel: TKMemoListLevel read GetNumberingListLevel;
     property NumberBlock: TKMemoTextBlock read GetNumberBlock;
-    property Top: Integer read FPosition.Y write FPosition.Y;
+    property Top: Integer read FOrigin.Y write FOrigin.Y;
     property Width: Integer read FExtent.X write FExtent.X;
   end;
 
@@ -960,8 +965,8 @@ type
     FImage: TPicture;
     FImageStyle: TKMemoBlockStyle;
     FExtent: TPoint; // extent given by word processor
-    FOriginalExtent: TPoint; // original extent
-    FPosition: TPoint;
+    FOrigin: TPoint;
+    FExplicitExtent: TPoint; // explicit extent
     FScale: TPoint; // scaled extent
     FCroppedImage: TKAlphaBitmap;
     FWordBottomPadding: Integer;
@@ -971,16 +976,17 @@ type
     procedure SetImagePath(const Value: TKString);
     procedure SetScaleHeight(const Value: Integer);
     procedure SetScaleWidth(const Value: Integer);
-    function GetOriginalHeight: Integer;
-    function GetOriginalWidth: Integer;
-    procedure SetOriginalHeight(const Value: Integer);
-    procedure SetOriginalWidth(const Value: Integer);
+    procedure SetExplicitHeight(const Value: Integer);
+    procedure SetExplicitWidth(const Value: Integer);
+    function GetNativeOrExplicitHeight: Integer;
+    function GetNativeOrExplicitWidth: Integer;
     function GetScaleHeight: Integer;
     function GetScaleWidth: Integer;
     procedure SetScaleX(const Value: Integer);
     procedure SetScaleY(const Value: Integer);
   protected
     FCalcBaseLine: Integer;
+    FCreatingCroppedImage: Boolean;
     FMouseCapture: Boolean;
     FScaledRect: TRect;
     function ContentLength: Integer; override;
@@ -999,6 +1005,7 @@ type
     function GetWordTop(Index: Integer): Integer; override;
     function GetWordTopPadding(Index: Integer): Integer; override;
     function GetWordWidth(Index: Integer): Integer; override;
+    procedure ImageChanged(Sender: TObject);
     procedure ImageStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     function CroppedImage: TKAlphaBitmap; virtual;
     procedure SetWordBaseLine(Index: Integer; const Value: Integer); override;
@@ -1011,6 +1018,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TKObject); override;
+    procedure AssignAttributes(AItem: TKMemoBlock); override;
     function CalcAscent(ACanvas: TCanvas): Integer; override;
     function OuterRect(ACaret: Boolean): TRect; virtual;
     procedure Resize(ANewWidth, ANewHeight: Integer); override;
@@ -1024,8 +1032,10 @@ type
     property ImageStyle: TKMemoBlockStyle read FImageStyle;
     property ImageHeight: Integer read GetImageHeight;
     property ImageWidth: Integer read GetImageWidth;
-    property OriginalHeight: Integer read GetOriginalHeight write SetOriginalHeight;
-    property OriginalWidth: Integer read GetOriginalWidth write SetOriginalWidth;
+    property ExplicitHeight: Integer read FExplicitExtent.Y write SetExplicitHeight;
+    property ExplicitWidth: Integer read FExplicitExtent.X write SetExplicitWidth;
+    property NativeOrExplicitHeight: Integer read GetNativeOrExplicitHeight;
+    property NativeOrExplicitWidth: Integer read GetNativeOrExplicitWidth;
     property Path: TKString write SetImagePath;
     property ScaleHeight: Integer read GetScaleHeight write SetScaleHeight;
     property ScaleWidth: Integer read GetScaleWidth write SetScaleWidth;
@@ -1042,7 +1052,9 @@ type
     FCurrentRequiredHeight: Integer;
     FFixedHeight: Boolean;
     FFixedWidth: Boolean;
-    FPosition: TPoint;
+    FOrigin: TPoint;
+    FRequiredHeight: Integer;
+    FRequiredWidth: Integer;
     FWordBottomPadding: Integer;
     FWordTopPadding: Integer;
     procedure SetFixedWidth(const Value: Boolean);
@@ -1051,8 +1063,6 @@ type
     procedure SetClip(const Value: Boolean);
     procedure SetFixedHeight(const Value: Boolean);
   protected
-    FRequiredHeight: Integer;
-    FRequiredWidth: Integer;
     function AddRectOffset(const ARect: TRect): TRect; virtual;
     procedure AddSingleLine; virtual;
     procedure AddBlockLine(AStartBlock, AStartIndex, AEndBlock, AEndIndex,
@@ -1092,6 +1102,8 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    procedure Assign(ASource: TKObject); override;
+    procedure AssignAttributes(AItem: TKMemoBlock); override;
     function CalcAscent(ACanvas: TCanvas): Integer; override;
     function CanAdd(AItem: TKMemoBlock): Boolean; override;
     procedure ClearSelection(ATextOnly: Boolean); override;
@@ -1248,6 +1260,7 @@ type
     function GetLineCount: Integer;
     function GetParentBlocks: TKMemoBlocks;
     function GetRealSelEnd: Integer;
+    function GetRealSelLength: Integer;
     function GetRealSelStart: Integer;
     function GetSelLength: Integer;
     procedure SetIgnoreParaMark(const Value: Boolean);
@@ -1316,6 +1329,7 @@ type
     function AddParagraph(At: Integer = -1): TKMemoParagraph;
     function AddTable(At: Integer = -1): TKMemoTable;
     function AddTextBlock(const AText: TKString; At: Integer = -1): TKMemoTextBlock;
+    function BlockToItem(ABlock: Integer): TKMemoBlock;
     procedure Clear; override;
     procedure ClearSelection(ATextOnly: Boolean = True); virtual;
     procedure ConcatEqualBlocks; virtual;
@@ -1328,7 +1342,8 @@ type
     procedure FixEOL(AIndex: Integer; AAdjust: Boolean; var ALinePos: TKMemoLinePosition); virtual;
     function GetLastItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetNearestAnchorIndex(AIndex: Integer): Integer; virtual;
-    function GetNearestParagraph(AIndex: Integer): TKMemoParagraph; virtual;
+    function GetNearestParagraphBlock(AIndex: Integer): Integer;
+    function GetNearestParagraphItem(AIndex: Integer): TKMemoParagraph;
     function GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean;
       AIncludeWhiteSpaces: Boolean; out AStart, AEnd: Integer): Boolean; virtual;
     function GetNextItemByClass(AIndex: Integer; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
@@ -1340,7 +1355,7 @@ type
     function IndexAtEndOfContainer(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
     function IndexBelowFirstLine(AIndex: Integer; AAdjust: Boolean): Boolean; virtual;
     function IndexToBlock(AIndex: Integer; out ALocalIndex: Integer): Integer; virtual;
-    function IndexToBlocks(AIndex: Integer; out ALocalIndex: Integer): TKMemoBlocks; virtual;
+    function IndexToItems(AIndex: Integer; out ALocalIndex: Integer): TKMemoBlocks; virtual;
     function IndexToItem(AIndex: Integer; out ALocalIndex: Integer): TKMemoBlock; virtual;
     function IndexToLine(AIndex: Integer): Integer; virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: Integer; ACaret, AAdjust: Boolean): TRect; virtual;
@@ -1368,8 +1383,8 @@ type
     function NextIndexByRowDelta(ACanvas: TCanvas; AIndex, ARowDelta, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function NextIndexByVertExtent(ACanvas: TCanvas; AIndex, AHeight, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function NextIndexByVertValue(ACanvas: TCanvas; AValue, ALeftPos: Integer; ADirection: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
-    function PointToBlock(const APoint: TPoint): TKMemoBlock; virtual;
-    function PointToBlocks(const APoint: TPoint): TKMemoBlocks; virtual;
+    function PointToItem(const APoint: TPoint): TKMemoBlock; virtual;
+    function PointToItems(const APoint: TPoint): TKMemoBlocks; virtual;
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function PointToIndexOnLine(ACanvas: TCanvas; ALineIndex: Integer; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
@@ -1405,6 +1420,7 @@ type
     property ParentBlocks: TKMemoBlocks read GetParentBlocks;
     property ParentMemo: TKCustomMemo read GetParentMemo;
     property RealSelEnd: Integer read GetRealSelEnd;
+    property RealSelLength: Integer read GetRealSelLength;
     property RealSelStart: Integer read GetRealSelStart;
     property SelectableLength: Integer read FSelectableLength;
     property SelectionHasPara: Boolean read GetSelectionHasPara;
@@ -1793,6 +1809,8 @@ type
     function GetMaxWordLength: Integer;
     { Return nearest paragraph. }
     function GetNearestParagraph: TKMemoParagraph; virtual;
+    { Return block index of nearest paragraph. }
+    function GetNearestParagraphIndex: Integer; virtual;
     { IKMemoNotifier implementation. }
     function GetPaintSelection: Boolean;
     { IKMemoNotifier implementation. }
@@ -1807,6 +1825,8 @@ type
     function GetShowFormatting: Boolean;
     { Returns "real" selection end - with always higher index value than selection start value. }
     function GetRealSelEnd: Integer; virtual;
+    { Returns "real" selection length - always non-negative number. }
+    function GetRealSelLength: Integer;
     { Returns "real" selection start - with always lower index value than selection end value. }
     function GetRealSelStart: Integer; virtual;
     { Returns actual scroll padding in vertical direction. }
@@ -1925,7 +1945,7 @@ type
     { Forces the caret position to become visible. }
     function ClampInView(AMousePos: PPoint; ACallScrollWindow: Boolean): Boolean; virtual;
     { Clears all blocks. Unlike @link(ecClearAll) clears everything inclusive undo a redo lists. }
-    procedure Clear;
+    procedure Clear(AKeepOnePara: Boolean = True);
     { Deletes blocks or parts of blocks corresponding to the active selection.
       <UL>
       <LH>Parameters:</LH>
@@ -2082,6 +2102,8 @@ type
     property Modified: Boolean read GetModified write SetModified;
     { Returns nearest paragraph to caret location. }
     property NearestParagraph: TKMemoParagraph read GetNearestParagraph;
+    { Returns block index of nearest paragraph to caret location. }
+    property NearestParagraphIndex: Integer read GetNearestParagraphIndex;
     { Specifies text style for newly entered character. }
     property NewTextStyle: TKMemoTextStyle read FNewTextStyle write SetNewTextStyle;
     { Indicates that style for newly entered text is valid and will be used for next character. }
@@ -2094,6 +2116,8 @@ type
     property ReadOnly: Boolean read GetReadOnly write SetReadOnly default False;
     { Returns "real" selection end - with always higher index value than selection start value. }
     property RealSelEnd: Integer read GetRealSelEnd;
+    { Returns "real" selection lenth - always non-negative number. }
+    property RealSelLength: Integer read GetRealSelLength;
     { Returns "real" selection start - with always lower index value than selection end value. }
     property RealSelStart: Integer read GetRealSelStart;
     { Returns true when a relative or absolute positioned block is selected. }
@@ -3287,10 +3311,10 @@ begin
   FBorderColor := clBlack;
   FBorderRadius := 0;
   FBorderWidth := 0;
-  FBorderWidths.AssignFromValues(0, 0, 0, 0);
+  FBorderWidths.All := 0;
   FBrush.Style := bsClear;
-  FContentPadding.AssignFromValues(0, 0, 0, 0);
-  FContentMargin.AssignFromValues(0, 0, 0, 0);
+  FContentPadding.All := 0;
+  FContentMargin.All := 0;
   FHAlign := halLeft;
   FStyleChanged := False;
   FWrapMode := wrAround;
@@ -4246,7 +4270,8 @@ begin
   FBlocks.LockUpdate;
   try
     FBlocks.Clear;
-    FBlocks.FixEmptyBlocks;
+    if AKeepOnePara then
+      FBlocks.FixEmptyBlocks;
     FTextStyle.Defaults;
     FTextStyle.Font.Assign(Font);
     FParaStyle.Defaults;
@@ -4297,7 +4322,7 @@ begin
   if Enabled and Visible and not (csDesigning in ComponentState) then
   begin
     TmpSelEnd := SelEnd;
-    TmpSelLength := SelLength;
+    TmpSelLength := RealSelLength;
     case Command of
       // movement commands
       ecLeft, ecSelLeft:
@@ -4335,7 +4360,7 @@ begin
       ecRedo:
         Result := not ReadOnly and FRedoList.CanPeek;
       ecCopy, ecCut:
-        Result := not Empty and (not ReadOnly or (Command = ecCopy)) and (TmpSelLength <> 0);
+        Result := not Empty and (not ReadOnly or (Command = ecCopy)) and ((TmpSelLength > 0) or RelativeSelected);
       ecPaste:
         Result := not ReadOnly and (ClipBoard.FormatCount > 0);
       ecInsertChar, ecInsertString, ecInsertNewLine:
@@ -4471,15 +4496,32 @@ function TKCustomMemo.DoCopy: Boolean;
 var
   Stream: TMemoryStream;
   S: TKString;
+  TmpItems: TKMemoBlocks;
+  TmpSelect: Boolean;
 begin
+  // temporary select entire FSelectedBlock (floating TKMemoContainer)
+  TmpItems := ActiveBlocks;
+  TmpSelect := (FSelectedBlock <> nil) and (FSelectedBlock.SelLength = 0);
+  if TmpSelect then
+  begin
+    FSelectedBlock.Select(0, FSelectedBlock.SelectableLength(True), False);
+    FActiveBlocks := FBlocks;
+  end;
   // copy selected blocks as plain text and RTF to clipboard
   S := ActiveBlocks.SelText;
   Stream := TMemoryStream.Create;
   try
     SaveToRTFStream(Stream, True);
+    Stream.SaveToFile('copied.rtf'); //debug line
     Result := ClipBoardSaveStreamAs(cRichText, Stream, S);
   finally
     Stream.Free;
+    // clear selection
+    if TmpSelect then
+    begin
+      FSelectedBlock.Select(-1, 0, False);
+      FActiveBlocks := TmpItems;
+    end;
   end;
 end;
 
@@ -4517,11 +4559,12 @@ begin
     Result := ClipBoardLoadStreamAs(cRichText, Stream, S);
     if Result then
     begin
+      ExecuteCommand(ecClearSelection);
       OldSelectableLength := ActiveBlocks.SelectableLength;
       if Stream.Size > 0 then
       begin
         Stream.Seek(0, soFromBeginning);
-        //Stream.SaveToFile('pasted.rtf'); debug line
+        //Stream.SaveToFile('pasted.rtf'); //debug line
         LoadFromRTFStream(Stream, SelEnd);
       end else
         ActiveBlocks.InsertPlainText(SelEnd, S);
@@ -4864,7 +4907,7 @@ begin
   Index := ActiveBlocks.SelEnd;
   if SelAvail and (ActiveBlocks.SelEnd > ActiveBlocks.SelStart) then
     Dec(Index);
-  Items := ActiveBlocks.IndexToBlocks(Index, LocalIndex);
+  Items := ActiveBlocks.IndexToItems(Index, LocalIndex);
   if Items <> nil then
     Result := Items.IndexToItem(LocalIndex, LocalIndex)
   else
@@ -4875,7 +4918,7 @@ function TKCustomMemo.GetActiveInnerBlocks: TKMemoBlocks;
 var
   Dummy: Integer;
 begin
-  Result := ActiveBlocks.IndexToBlocks(ActiveBlocks.RealSelEnd, Dummy);
+  Result := ActiveBlocks.IndexToItems(ActiveBlocks.RealSelEnd, Dummy);
 end;
 
 function TKCustomMemo.GetCaretVisible: Boolean;
@@ -4957,14 +5000,19 @@ begin
 end;
 
 function TKCustomMemo.GetNearestParagraph: TKMemoParagraph;
+begin
+  Result := ActiveBlocks.BlockToItem(GetNearestParagraphIndex) as TKMemoParagraph;
+end;
+
+function TKCustomMemo.GetNearestParagraphIndex: Integer;
 var
   Block, LocalIndex: Integer;
 begin
   Block := ActiveBlocks.IndexToBlock(RealSelEnd, LocalIndex);
   if Block >= 0 then
-    Result := ActiveBlocks.GetNearestParagraph(Block)
+    Result := ActiveBlocks.GetNearestParagraphBlock(Block)
   else
-    Result := nil;
+    Result := -1;
 end;
 
 function TKCustomMemo.GetNearestWordIndexes(AIndex: Integer; AIncludeWhiteSpaces: Boolean;
@@ -5017,6 +5065,11 @@ begin
   Result := ActiveBlocks.RealSelEnd;
 end;
 
+function TKCustomMemo.GetRealSelLength: Integer;
+begin
+  Result := RealSelEnd - RealSelStart;
+end;
+
 function TKCustomMemo.GetRealSelStart: Integer;
 begin
   Result := ActiveBlocks.RealSelStart;
@@ -5041,6 +5094,7 @@ var
 begin
   Stream := TStringStream.Create{$IFnDEF COMPILER12_UP}(''){$ENDIF};
   try
+    ActiveBlocks := FBlocks;
     SaveToRTFStream(Stream, False);
     Result := Stream.DataString;
   finally
@@ -5287,6 +5341,7 @@ var
 begin
   Reader := TKMemoRTFReader.Create(Self);
   try
+    Clear(False);
     Reader.LoadFromFile(AFileName);
   finally
     Reader.Free;
@@ -5311,16 +5366,11 @@ var
 begin
   if FileExists(AFileName) then
   begin
+    Clear(False);
     List := TStringList.Create;
     try
       List.LoadFromFile(AFileName);
-      FBlocks.LockUpdate;
-      try
-        FBlocks.Clear;
-        FBlocks.Text := List.Text;
-      finally
-        FBlocks.UnlockUpdate;
-      end;
+      Text := List.Text;
     finally
       List.Free;
     end;
@@ -5635,6 +5685,7 @@ procedure TKCustomMemo.SaveToRTF(const AFileName: TKString;
 var
   Writer: TKMemoRTFWriter;
 begin
+  ActiveBlocks := FBlocks;
   Writer := TKMemoRTFWriter.Create(Self);
   try
     Writer.ReadableOutput := AReadableOutput;
@@ -5804,10 +5855,9 @@ end;
 
 procedure TKCustomMemo.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean);
 begin
-  if (FSelectedBlock <> nil) and (FSelectedBlock.Position <> mbpText) then
+  if FSelectedBlock <> nil then
   begin
-    if FSelectedBlock.SelLength > 0 then
-      FSelectedBlock.Select(0, 0, False);
+    FSelectedBlock.Select(0, 0, False);
     FSelectedBlock := nil;
   end;
   ActiveBlocks.Select(ASelStart, ASelLength, ADoScroll);
@@ -5850,10 +5900,10 @@ var
 begin
   if AItem.Position = mbpText then
   begin
-    ActiveBlocks := AItem.ParentBlocks;
+    ActiveBlocks := AItem.ParentRootBlocks;
     StartIndex := ActiveBlocks.ItemToIndex(AItem);
     Result := StartIndex >= 0;
-    if Result then
+    if Result and (FSelectedBlock <> AItem) then
     begin
       Select(StartIndex, AItem.SelectableLength);
       FSelectedBlock := AItem;
@@ -5900,7 +5950,7 @@ procedure TKCustomMemo.SetActiveBlocksForPoint(const APoint: TPoint);
 var
   TmpBlocks: TKMemoBlocks;
 begin
-  TmpBlocks := FBlocks.PointToBlocks(PointToBlockPoint(APoint, False));
+  TmpBlocks := FBlocks.PointToItems(PointToBlockPoint(APoint, False));
   if TmpBlocks <> nil then
     ActiveBlocks := TmpBlocks
   else
@@ -6171,7 +6221,7 @@ var
   Items: TKmemoBlocks;
   Item, NewItem: TKMemoBlock;
 begin
-  Items := ActiveBlocks.IndexToBlocks(AIndex, LocalIndex);
+  Items := ActiveBlocks.IndexToItems(AIndex, LocalIndex);
   if Items <> nil then
   begin
     Result := Items.IndexToBlock(LocalIndex, InnerLocalIndex);
@@ -6479,11 +6529,29 @@ end;
 
 procedure TKMemoBlock.AssignAttributes(AItem: TKMemoBlock);
 begin
+  if AItem <> nil then
+  begin
+    Position := AItem.Position;
+    LeftOffset := AItem.LeftOffset;
+    TopOffset := AItem.TopOffset;
+  end;
 end;
 
 function TKMemoBlock.CalcAscent(ACanvas: TCanvas): Integer;
 begin
   Result := 0;
+end;
+
+procedure TKMemoBlock.CallAfterUpdate;
+begin
+  if ParentBlocks <> nil then
+    ParentBlocks.UnlockUpdate;
+end;
+
+procedure TKMemoBlock.CallBeforeUpdate;
+begin
+  if ParentBlocks <> nil then
+    ParentBlocks.LockUpdate;
 end;
 
 function TKMemoBlock.CanAdd(AItem: TKMemoBlock): Boolean;
@@ -6578,6 +6646,23 @@ end;
 function TKMemoBlock.GetParentBlocks: TKMemoBlocks;
 begin
   Result := Parent as TKMemoBlocks;
+end;
+
+function TKMemoBlock.GetParentRootBlocks: TKMemoBlocks;
+var
+  Item: TKMemoBlock;
+begin
+  Result := ParentBlocks;
+
+  if Result <> nil then
+  begin
+    Item := Result.Parent;
+    while (Item <> nil) and (Item.Position = mbpText) do
+    begin
+      Result := Item.ParentBlocks;
+      Item := Result.Parent;
+    end;
+  end;
 end;
 
 function TKMemoBlock.GetPrinting: Boolean;
@@ -8083,7 +8168,7 @@ begin
   FNumberBlock := nil;
   FParaStyle := TKMemoParaStyle.Create;
   FParaStyle.OnChanged := ParaStyleChanged;
-  FPosition := CreateEmptyPoint;
+  FOrigin := CreateEmptyPoint;
   Text := NewLineChar;
 end;
 
@@ -8236,17 +8321,19 @@ begin
   inherited;
   FBaseLine := 0;
   FWordBottomPadding := 0;
+  FCreatingCroppedImage := False;
   FCrop := TKRect.Create;
   FCrop.OnChanged := CropChanged;
   FCalcBaseLine := 0;
   FExtent := CreateEmptyPoint;
   FImage := TPicture.Create;
+  FImage.OnChange := ImageChanged;
   FImageStyle := TKMemoBlockStyle.Create;
-  FImageStyle.ContentMargin.AssignFromValues(5, 5, 5, 5);
+  FImageStyle.ContentMargin.All := 5;
   FImageStyle.OnChanged := ImageStyleChanged;
   FMouseCapture := False;
-  FOriginalExtent := CreateEmptyPoint;
-  FPosition := CreateEmptyPoint;
+  FExplicitExtent := CreateEmptyPoint;
+  FOrigin := CreateEmptyPoint;
   FScale := Point(100, 100);
   FCroppedImage := nil;
   FWordTopPadding := 0;
@@ -8265,11 +8352,20 @@ procedure TKMemoImageBlock.Assign(ASource: TKObject);
 begin
   inherited;
   if ASource is TKMemoImageBlock then
+    Image.Assign(TKMemoImageBlock(ASource).Image);
+end;
+
+procedure TKMemoImageBlock.AssignAttributes(AItem: TKMemoBlock);
+begin
+  inherited;
+  if AItem is TKMemoImageBlock then
   begin
-    FCrop.Assign(TKMemoImageBlock(ASource).Crop);
-    FImage.Assign(TKMemoImageBlock(ASource).Image);
-    ScaleHeight := TKMemoImageBlock(ASource).ScaleHeight;
-    ScaleWidth := TKMemoImageBlock(ASource).ScaleWidth;
+    Crop.Assign(TKMemoImageBlock(AItem).Crop);
+    ImageStyle.Assign(TKMemoImageBlock(AItem).ImageStyle);
+    ExplicitWidth := TKMemoImageBlock(AItem).ExplicitWidth;
+    ExplicitHeight := TKMemoImageBlock(AItem).ExplicitHeight;
+    ScaleX := TKMemoImageBlock(AItem).ScaleX;
+    ScaleY := TKMemoImageBlock(AItem).ScaleY;
   end;
 end;
 
@@ -8294,7 +8390,7 @@ begin
         Result := (FExtent.Y - (Ascent + Descent)) div 2 + Ascent;
       end else
       begin
-        Item := ParentBlocks.GetNearestParagraph(Index);
+        Item := ParentBlocks.GetNearestParagraphItem(Index);
         if Item <> nil then
         begin
           Descent := TKMemoTextBlock(Item).CalcDescent(ACanvas);
@@ -8335,30 +8431,30 @@ begin
   Dec(Result, FCrop.Left + FCrop.Right);
 end;
 
-function TKMemoImageBlock.GetOriginalHeight: Integer;
+function TKMemoImageBlock.GetNativeOrExplicitHeight: Integer;
 begin
-  if FOriginalExtent.Y <> 0 then
-    Result := FOriginalExtent.Y
+  if FExplicitExtent.Y <> 0 then
+    Result := FExplicitExtent.Y
   else
     Result := FImage.Height;
 end;
 
-function TKMemoImageBlock.GetOriginalWidth: Integer;
+function TKMemoImageBlock.GetNativeOrExplicitWidth: Integer;
 begin
-  if FOriginalExtent.X <> 0 then
-    Result := FOriginalExtent.X
+  if FExplicitExtent.X <> 0 then
+    Result := FExplicitExtent.X
   else
     Result := FImage.Width;
 end;
 
 function TKMemoImageBlock.GetScaleHeight: Integer;
 begin
-  Result := MulDiv(OriginalHeight, FScale.Y, 100);
+  Result := MulDiv(NativeOrExplicitHeight, FScale.Y, 100);
 end;
 
 function TKMemoImageBlock.GetScaleWidth: Integer;
 begin
-  Result := MulDiv(OriginalWidth, FScale.X, 100);
+  Result := MulDiv(NativeOrExplicitWidth, FScale.X, 100);
 end;
 
 function TKMemoImageBlock.GetSizingRect: TRect;
@@ -8380,7 +8476,7 @@ function TKMemoImageBlock.GetWordBoundsRect(Index: Integer): TRect;
 begin
   Result.TopLeft := CreateEmptyPoint;
   Result.BottomRight := FExtent;
-  KFunctions.OffsetRect(Result, FPosition);
+  KFunctions.OffsetRect(Result, FOrigin);
 end;
 
 function TKMemoImageBlock.GetWordCount: Integer;
@@ -8395,7 +8491,7 @@ end;
 
 function TKMemoImageBlock.GetWordLeft(Index: Integer): Integer;
 begin
-  Result := FPosition.X;
+  Result := FOrigin.X;
 end;
 
 function TKMemoImageBlock.GetWordLength(Index: Integer): Integer;
@@ -8410,7 +8506,7 @@ end;
 
 function TKMemoImageBlock.GetWordTop(Index: Integer): Integer;
 begin
-  Result := FPosition.Y;
+  Result := FOrigin.Y;
 end;
 
 function TKMemoImageBlock.GetWordTopPadding(Index: Integer): Integer;
@@ -8423,6 +8519,15 @@ begin
   Result := FExtent.X;
 end;
 
+procedure TKMemoImageBlock.ImageChanged(Sender: TObject);
+begin
+  if not FCreatingCroppedImage then
+  begin
+    FreeAndNil(FCroppedImage);
+    Update([muContent]);
+  end;
+end;
+
 procedure TKMemoImageBlock.ImageStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
 begin
   Update(AReasons);
@@ -8430,7 +8535,7 @@ end;
 
 function TKMemoImageBlock.OuterRect(ACaret: Boolean): TRect;
 begin
-  Result.TopLeft := FPosition;
+  Result.TopLeft := FOrigin;
   Result.Right := Result.Left + FExtent.X;
   Result.Bottom := Result.Top + FExtent.Y;
   if ACaret then
@@ -8459,43 +8564,48 @@ var
   RatioX, RatioY: Double;
   OrigCrop: TRect;
 begin
-  if (FCroppedImage = nil) and (FImage.Graphic <> nil) then
+  if (FCroppedImage = nil) and (FImage.Graphic <> nil) and not FCreatingCroppedImage then
   begin
-    // get scaled image only on demand
-    ExtentX := ScaleWidth;
-    if ExtentX = 0 then
-      ExtentX := FImage.Width;
-    ExtentY := ScaleHeight;
-    if ExtentY = 0 then
-      ExtentY := FImage.Height;
-    RatioX := ExtentX / FImage.Width;
-    RatioY := ExtentY / FImage.Height;
-    // crop in original units
-    OrigCrop := Rect(Round(FCrop.Left / RatioX), Round(FCrop.Top / RatioY), Round(FCrop.Right / RatioX), Round(FCrop.Bottom / RatioY));
-    // handle desired image size differently with respect to its position mode
-    if Position = mbpText then
-    begin
-      // when image is placed in text it should be adjusted to page width
-      NewExtentX := FExtent.X - FImageStyle.AllPaddingsLeft - FImageStyle.AllPaddingsRight;
-      ExtentY := Min(MulDiv(NewExtentX, ExtentY, ExtentX),
-        FExtent.Y - FImageStyle.AllPaddingsBottom - FImageStyle.AllPaddingsTop - FWordTopPadding - FWordBottomPadding);
-      ExtentX := NewExtentX;
-    end else
-    begin
-      // otherwise respect desired size
-      Dec(ExtentX, FCrop.Left + FCrop.Right);
-      Dec(ExtentY, FCrop.Top + FCrop.Bottom);
-    end;
-    FScaledRect := Rect(0, 0, ExtentX, ExtentY);
-    if (ExtentX * ExtentY <> 0) and (FImage.Width * FImage.Height <> 0) then
-    begin
-      FCroppedImage := TKAlphaBitmap.Create;
-      FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
-      FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Top);
-    {$IFDEF USE_PNG_SUPPORT}
-      if not (FImage.Graphic is TKPngImage) then
-    {$ENDIF}
-        FCroppedImage.AlphaFill(255);
+    FCreatingCroppedImage := True;
+    try
+      // get scaled image only on demand
+      ExtentX := ScaleWidth;
+      if ExtentX = 0 then
+        ExtentX := FImage.Width;
+      ExtentY := ScaleHeight;
+      if ExtentY = 0 then
+        ExtentY := FImage.Height;
+      RatioX := ExtentX / FImage.Width;
+      RatioY := ExtentY / FImage.Height;
+      // crop in original units
+      OrigCrop := Rect(Round(FCrop.Left / RatioX), Round(FCrop.Top / RatioY), Round(FCrop.Right / RatioX), Round(FCrop.Bottom / RatioY));
+      // handle desired image size differently with respect to its position mode
+      if Position = mbpText then
+      begin
+        // when image is placed in text it should be adjusted to page width
+        NewExtentX := FExtent.X - FImageStyle.AllPaddingsLeft - FImageStyle.AllPaddingsRight;
+        ExtentY := Min(MulDiv(NewExtentX, ExtentY, ExtentX),
+          FExtent.Y - FImageStyle.AllPaddingsBottom - FImageStyle.AllPaddingsTop - FWordTopPadding - FWordBottomPadding);
+        ExtentX := NewExtentX;
+      end else
+      begin
+        // otherwise respect desired size
+        Dec(ExtentX, FCrop.Left + FCrop.Right);
+        Dec(ExtentY, FCrop.Top + FCrop.Bottom);
+      end;
+      FScaledRect := Rect(0, 0, ExtentX, ExtentY);
+      if (ExtentX * ExtentY <> 0) and (FImage.Width * FImage.Height <> 0) then
+      begin
+        FCroppedImage := TKAlphaBitmap.Create;
+        FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
+        FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Top);
+      {$IFDEF USE_PNG_SUPPORT}
+        if not (FImage.Graphic is TKPngImage) then
+      {$ENDIF}
+          FCroppedImage.AlphaFill(255);
+      end;
+    finally
+      FCreatingCroppedImage := False;
     end;
   end;
   Result := FCroppedImage;
@@ -8520,21 +8630,25 @@ begin
   Update([muContent]);
 end;
 
-procedure TKMemoImageBlock.SetOriginalHeight(const Value: Integer);
+procedure TKMemoImageBlock.SetExplicitHeight(const Value: Integer);
 begin
-  FOriginalExtent.Y := Value;
+  FExplicitExtent.Y := Value;
+  FreeAndNil(FCroppedImage);
+  Update([muContent]);
 end;
 
-procedure TKMemoImageBlock.SetOriginalWidth(const Value: Integer);
+procedure TKMemoImageBlock.SetExplicitWidth(const Value: Integer);
 begin
-  FOriginalExtent.X := Value;
+  FExplicitExtent.X := Value;
+  FreeAndNil(FCroppedImage);
+  Update([muContent]);
 end;
 
 procedure TKMemoImageBlock.SetScaleHeight(const Value: Integer);
 begin
   if Value <> ScaleHeight then
   begin
-    FScale.Y := MulDiv(Value, 100, OriginalHeight);
+    FScale.Y := MulDiv(Value, 100, NativeOrExplicitHeight);
     FreeAndNil(FCroppedImage);
     Update([muExtent]);
   end;
@@ -8544,7 +8658,7 @@ procedure TKMemoImageBlock.SetScaleWidth(const Value: Integer);
 begin
   if Value <> ScaleWidth then
   begin
-    FScale.X := MulDiv(Value, 100, OriginalWidth);
+    FScale.X := MulDiv(Value, 100, NativeOrExplicitWidth);
     FreeAndNil(FCroppedImage);
     Update([muExtent]);
   end;
@@ -8587,12 +8701,12 @@ end;
 
 procedure TKMemoImageBlock.SetWordLeft(Index: Integer; const Value: Integer);
 begin
-  FPosition.X := Value;
+  FOrigin.X := Value;
 end;
 
 procedure TKMemoImageBlock.SetWordTop(Index: Integer; const Value: Integer);
 begin
-  FPosition.Y := Value;
+  FOrigin.Y := Value;
 end;
 
 procedure TKMemoImageBlock.SetWordTopPadding(Index: Integer; const Value: Integer);
@@ -8750,7 +8864,7 @@ begin
   FCurrentRequiredWidth := 0;
   FFixedHeight := False;
   FFixedWidth := False;
-  FPosition := CreateEmptyPoint;
+  FOrigin := CreateEmptyPoint;
   FRequiredHeight := 0;
   FRequiredWidth := 0;
   FWordTopPadding := 0;
@@ -8794,6 +8908,32 @@ begin
   end;
 end;
 
+procedure TKMemoContainer.Assign(ASource: TKObject);
+begin
+  inherited;
+  if ASource is TKMemoContainer then
+    Blocks.Assign(TKMemoContainer(ASource).Blocks);
+end;
+
+procedure TKMemoContainer.AssignAttributes(AItem: TKMemoBlock);
+begin
+  inherited;
+  if AItem is TKMemoContainer then
+  begin
+    LockUpdate;
+    try
+      BlockStyle.Assign(TKMemoContainer(AItem).BlockStyle);
+      Clip := TKMemoContainer(AItem).Clip;
+      FixedWidth := TKMemoContainer(AItem).FixedWidth;
+      FixedHeight := TKMemoContainer(AItem).FixedHeight;
+      RequiredWidth := TKMemoContainer(AItem).RequiredWidth;
+      RequiredHeight := TKMemoContainer(AItem).RequiredHeight;
+    finally
+      UnlockUpdate;
+    end;
+  end;
+end;
+
 procedure TKMemoContainer.AddBlockLine(AStartBlock, AStartIndex, AEndBlock, AEndIndex, ALeft, ATop, AWidth, AHeight: Integer);
 var
   Line: TKMemoLine;
@@ -8829,7 +8969,7 @@ begin
   Result := 0;
   if (Parent <> nil) and (Position = mbpText) then
   begin
-    PA := ParentBlocks.GetNearestParagraph(ParentBlocks.IndexOf(Self));
+    PA := ParentBlocks.GetNearestParagraphItem(ParentBlocks.IndexOf(Self));
     if PA <> nil then
     begin
       ParaDescent := PA.CalcDescent(ACanvas);
@@ -8920,7 +9060,7 @@ end;
 function TKMemoContainer.GetWordBoundsRect(Index: Integer): TRect;
 begin
   Result := Rect(0, 0, Width, Height);
-  KFunctions.OffsetRect(Result, FPosition);
+  KFunctions.OffsetRect(Result, FOrigin);
 end;
 
 function TKMemoContainer.GetWordCount: Integer;
@@ -8938,7 +9078,7 @@ end;
 
 function TKMemoContainer.GetWordLeft(Index: Integer): Integer;
 begin
-  Result := FPosition.X;
+  Result := FOrigin.X;
 end;
 
 function TKMemoContainer.GetWordLength(Index: Integer): Integer;
@@ -8953,7 +9093,7 @@ end;
 
 function TKMemoContainer.GetWordTop(Index: Integer): Integer;
 begin
-  Result := FPosition.Y;
+  Result := FOrigin.Y;
 end;
 
 function TKMemoContainer.GetWordTopPadding(Index: Integer): Integer;
@@ -9092,12 +9232,12 @@ end;
 
 procedure TKMemoContainer.SetWordLeft(Index: Integer; const Value: Integer);
 begin
-  FPosition.X := Value;
+  FOrigin.X := Value;
 end;
 
 procedure TKMemoContainer.SetWordTop(Index: Integer; const Value: Integer);
 begin
-  FPosition.Y := Value;
+  FOrigin.Y := Value;
 end;
 
 procedure TKMemoContainer.SetWordTopPadding(Index: Integer; const Value: Integer);
@@ -9142,7 +9282,7 @@ end;
 
 function TKMemoContainer.WordMouseAction(ACanvas: TCanvas; AIndex: Integer; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
 var
-  P, P1: TPoint;
+  P: TPoint;
   R, RMargin, RInterior: TRect;
   Notifier: IKMemoNotifier;
   Cursor: TCursor;
@@ -9179,8 +9319,15 @@ begin
         end;
         maLeftDown:
         begin
-          Notifier.SelectBlock(Self, SizingGripsPosition(RMargin, P));
+          if ssDouble in AShift then
+            Notifier.EditBlock(Self)
+          else
+            Notifier.SelectBlock(Self, SizingGripsPosition(RMargin, P));
           Result := True;
+        end;
+        maRightDown:
+        begin
+          Result := Notifier.SelectBlock(Self, sgpNone);
         end;
       end;
     end;
@@ -9545,8 +9692,8 @@ begin
         W := FCellStyle.BorderWidth;
         Cell.BlockStyle.AssignNC(FCellStyle);
         Cell.BlockStyle.BorderWidth := 0;
-        Cell.BlockStyle.BorderWidths.AssignFromValues(0, 0, 0, 0);
-        Cell.RequiredBorderWidths.AssignFromValues(W, W, W, W);
+        Cell.BlockStyle.BorderWidths.All := 0;
+        Cell.RequiredBorderWidths.All := W;
       end;
     end;
   end;
@@ -10534,7 +10681,7 @@ var
   PA: TKMemoParagraph;
 begin
   Result := TKMemoParagraph.Create;
-  PA := GetNearestParagraph(At);
+  PA := GetNearestParagraphItem(At);
   if PA <> nil then
   begin
     Result.AssignAttributes(PA);
@@ -10562,6 +10709,14 @@ begin
   Result.TextStyle.Assign(LastTextStyle(At));
   Result.Text := AText;
   AddAt(Result, At);
+end;
+
+function TKMemoBlocks.BlockToItem(ABlock: Integer): TKMemoBlock;
+begin
+  if (ABlock >= 0) and (ABlock < Count) then
+    Result := Items[ABlock]
+  else
+    Result := nil;
 end;
 
 procedure TKMemoBlocks.ClearSelection(ATextOnly: Boolean);
@@ -11028,19 +11183,30 @@ begin
     end;
 end;
 
-function TKMemoBlocks.GetNearestParagraph(AIndex: Integer): TKMemoParagraph;
+function TKMemoBlocks.GetNearestParagraphBlock(AIndex: Integer): Integer;
 var
   Item: TKMemoBlock;
 begin
-  Result := nil;
+  Result := -1;
   if AIndex >= 0 then
-    while (Result = nil) and (AIndex < Count) do
+    while (Result < 0) and (AIndex < Count) do
     begin
       Item := Items[AIndex];
       if Item is TKMemoParagraph then
-        Result := Item as TKMemoParagraph;
+        Result := AIndex;
       Inc(AIndex);
     end;
+end;
+
+function TKMemoBlocks.GetNearestParagraphItem(AIndex: Integer): TKMemoParagraph;
+var
+  Block: Integer;
+begin
+  Block := GetNearestParagraphBlock(AIndex);
+  if Block >= 0 then
+    Result := BlockToItem(Block) as TKMemoParagraph
+  else
+    Result := nil;
 end;
 
 function TKMemoBlocks.GetNearestWordIndexes(AIndex: Integer; AAdjust: Boolean;
@@ -11273,6 +11439,11 @@ begin
     Result := FSelStart;
 end;
 
+function TKMemoBlocks.GetRealSelLength: Integer;
+begin
+  Result := RealSelEnd - RealSelStart;
+end;
+
 function TKMemoBlocks.GetRealSelStart: Integer;
 begin
   if FSelStart <= FSelEnd then
@@ -11329,7 +11500,7 @@ begin
       Result := TKMemoContainer(Item).Blocks.SelectionParaStyle
     else
     begin
-      Item := GetNearestParagraph(Block);
+      Item := GetNearestParagraphItem(Block);
       if Item <> nil then
         Result := Item.ParaStyle
       else
@@ -11600,14 +11771,14 @@ begin
   end
 end;
 
-function TKMemoBlocks.IndexToBlocks(AIndex: Integer; out ALocalIndex: Integer): TKMemoBlocks;
+function TKMemoBlocks.IndexToItems(AIndex: Integer; out ALocalIndex: Integer): TKMemoBlocks;
 var
   Item: TKMemoBlock;
   LocalIndex: Integer;
 begin
   Item := IndexToItem(AIndex, LocalIndex);
   if Item is TKMemoContainer then
-    Result := TKMemoContainer(Item).Blocks.IndexToBlocks(LocalIndex, ALocalIndex)
+    Result := TKMemoContainer(Item).Blocks.IndexToItems(LocalIndex, ALocalIndex)
   else
   begin
     Result := Self;
@@ -11931,6 +12102,15 @@ begin
       begin
         Result := LastIndex;
         Exit;
+      end
+      else if Item is TKMemoContainer then
+      begin
+        Result := TKMemoContainer(Item).Blocks.ItemToIndex(AItem);
+        if Result >= 0 then
+        begin
+          Inc(Result, LastIndex);
+          Exit;
+        end;
       end;
       Inc(LastIndex, Item.SelectableLength);
     end;
@@ -12377,7 +12557,7 @@ var
         TKMemoParagraph(EndItem).Top := ParaPosY;
         TKmemoParagraph(EndItem).Width := ParaWidth;
         TKmemoParagraph(EndItem).Height := PosY + LineHeight - ParaPosY - CurParaStyle.BottomPadding;
-        CurParagraph := GetNearestParagraph(CurBlock);
+        CurParagraph := GetNearestParagraphItem(CurBlock);
         CurParaStyle := GetParaStyle(CurParagraph);
         ParaWidth := 0;
         ParaPosY := PosY + LineHeight + CurParaStyle.TopPadding;
@@ -12487,7 +12667,7 @@ begin
   LastTotalWord := 0;
   CurTotalWord := 0;
   CurIndex := 0;
-  CurParagraph := GetNearestParagraph(0);
+  CurParagraph := GetNearestParagraphItem(0);
   CurParaStyle := GetParaStyle(CurParagraph);
   PosX := CurParaStyle.LeftPadding + CurParaStyle.FirstIndent;
   PosY := 0;
@@ -12508,7 +12688,7 @@ begin
     CurWord := 0;
     if IsParagraph or (CurBlock = 0) then
     begin
-      NextParagraph := GetNearestParagraph(CurBlock);
+      NextParagraph := GetNearestParagraphItem(CurBlock);
       NextParaStyle := GetParaStyle(NextParagraph);
       if NextParagraph <> nil then
         Item := NextParagraph.NumberBlock
@@ -12572,12 +12752,6 @@ begin
       end;
       mbpRelative:
       begin
-        // always place object anchor to the beginning of new paragraph
-        if IsParagraph then
-        begin
-          AddLine;
-          IsParagraph := False;
-        end;
         // position relative block correctly
         PrevPosX := PosX; PrevPosY := PosY;
         try
@@ -12592,6 +12766,12 @@ begin
           FExtent.Y := Max(FExtent.Y, PosY + Item.Height + Item.TopOffset);
         finally
           PosX := PrevPosX; PosY := PrevPosY;
+        end;
+        // always place object anchor to the beginning of new paragraph
+        if IsParagraph then
+        begin
+          AddLine;
+          IsParagraph := False;
         end;
       end;
       mbpAbsolute:
@@ -12779,7 +12959,7 @@ var
   PA: TKMemoParagraph;
   MainClipRgn: HRGN;
 begin
-  PA := GetNearestParagraph(FLines[ALineIndex].StartBlock);
+  PA := GetNearestParagraphItem(FLines[ALineIndex].StartBlock);
   if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
   begin
     R := Rect(0, 0, Max(FRequiredWidth, PA.Width), PA.Height);
@@ -12969,7 +13149,7 @@ begin
   end;
 end;
 
-function TKMemoBlocks.PointToBlock(const APoint: TPoint): TKMemoBlock;
+function TKMemoBlocks.PointToItem(const APoint: TPoint): TKMemoBlock;
 var
   I: Integer;
   Item: TKMemoBlock;
@@ -12990,7 +13170,7 @@ begin
   end;
 end;
 
-function TKMemoBlocks.PointToBlocks(const APoint: TPoint): TKMemoBlocks;
+function TKMemoBlocks.PointToItems(const APoint: TPoint): TKMemoBlocks;
 var
   I: Integer;
   Item: TKMemoBlock;
@@ -13021,7 +13201,7 @@ begin
       begin
         P := APoint;
         OffsetPoint(P, -TKMemoContainer(Item).Left - TKMemoContainer(Item).BlockStyle.AllPaddingsLeft, -TKMemoContainer(Item).Top - TKMemoContainer(Item).BlockStyle.AllPaddingsTop);
-        Result := TKMemoContainer(Item).Blocks.PointToBlocks(P);
+        Result := TKMemoContainer(Item).Blocks.PointToItems(P);
         if Result <> nil then
           break;
       end;

@@ -1,12 +1,12 @@
 object KMemoImageForm: TKMemoImageForm
-  Left = 605
-  Height = 435
-  Top = 177
-  Width = 527
+  Left = 0
+  Height = 438
+  Top = 0
+  Width = 524
   BorderStyle = bsDialog
   Caption = 'Insert/edit image'
-  ClientHeight = 435
-  ClientWidth = 527
+  ClientHeight = 438
+  ClientWidth = 524
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
@@ -17,7 +17,7 @@ object KMemoImageForm: TKMemoImageForm
   object BUOk: TButton
     Left = 360
     Height = 25
-    Top = 399
+    Top = 404
     Width = 75
     Caption = 'OK'
     Default = True
@@ -27,7 +27,7 @@ object KMemoImageForm: TKMemoImageForm
   object BUCancel: TButton
     Left = 441
     Height = 25
-    Top = 399
+    Top = 404
     Width = 75
     Cancel = True
     Caption = 'Cancel'
@@ -37,7 +37,7 @@ object KMemoImageForm: TKMemoImageForm
   object BUBrowse: TButton
     Left = 8
     Height = 25
-    Top = 399
+    Top = 404
     Width = 116
     Caption = 'Browse...'
     OnClick = BUBrowseClick
@@ -45,36 +45,16 @@ object KMemoImageForm: TKMemoImageForm
   end
   object PCMain: TPageControl
     Left = 8
-    Height = 385
+    Height = 389
     Top = 8
-    Width = 508
+    Width = 217
     ActivePage = TSBasic
     TabIndex = 0
     TabOrder = 3
     object TSBasic: TTabSheet
       Caption = 'Basic'
-      ClientHeight = 359
-      ClientWidth = 500
-      object GBPreview: TGroupBox
-        Left = 210
-        Height = 348
-        Top = 3
-        Width = 285
-        Caption = 'Image preview'
-        ClientHeight = 330
-        ClientWidth = 281
-        TabOrder = 0
-        object IMPreview: TImage
-          Left = 0
-          Height = 330
-          Top = 0
-          Width = 281
-          Align = alClient
-          Center = True
-          Proportional = True
-          Stretch = True
-        end
-      end
+      ClientHeight = 363
+      ClientWidth = 209
       object GBPosition: TGroupBox
         Left = 8
         Height = 98
@@ -83,11 +63,11 @@ object KMemoImageForm: TKMemoImageForm
         Caption = 'Position'
         ClientHeight = 80
         ClientWidth = 192
-        TabOrder = 1
+        TabOrder = 0
         object RBPositionText: TRadioButton
           Left = 14
           Height = 19
-          Top = 6
+          Top = 3
           Width = 53
           Caption = 'In text'
           OnClick = RBPositionTextClick
@@ -96,7 +76,7 @@ object KMemoImageForm: TKMemoImageForm
         object RBPositionRelative: TRadioButton
           Left = 14
           Height = 19
-          Top = 29
+          Top = 26
           Width = 59
           Caption = 'Relative'
           OnClick = RBPositionTextClick
@@ -105,7 +85,7 @@ object KMemoImageForm: TKMemoImageForm
         object RBPositionAbsolute: TRadioButton
           Left = 14
           Height = 19
-          Top = 52
+          Top = 49
           Width = 62
           Caption = 'Absolute'
           OnClick = RBPositionTextClick
@@ -114,12 +94,13 @@ object KMemoImageForm: TKMemoImageForm
         object EDOffsetX: TKNumberEdit
           Left = 126
           Height = 23
-          Top = 13
+          Top = 10
           Width = 43
           Caption = 'Horz. offset:'
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 10000
+          Min = -10000
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 3
@@ -127,12 +108,13 @@ object KMemoImageForm: TKMemoImageForm
         object EDOffsetY: TKNumberEdit
           Left = 126
           Height = 23
-          Top = 53
+          Top = 50
           Width = 43
           Caption = 'Vert. offset:'
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 10000
+          Min = -10000
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 5
@@ -140,15 +122,15 @@ object KMemoImageForm: TKMemoImageForm
       end
       object GBSize: TGroupBox
         Left = 8
-        Height = 86
-        Top = 107
+        Height = 133
+        Top = 106
         Width = 196
         Caption = 'Size'
-        ClientHeight = 68
+        ClientHeight = 115
         ClientWidth = 192
-        TabOrder = 2
+        TabOrder = 1
         object EDScaleX: TKNumberEdit
-          Left = 14
+          Left = 104
           Height = 23
           Top = 18
           Width = 51
@@ -157,99 +139,150 @@ object KMemoImageForm: TKMemoImageForm
           DecimalSeparator = ','
           Min = 1
           Value = 100
+          OnUpDownChange = EDScaleXExit
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 0
           OnChange = EDScaleXChange
+          OnExit = EDScaleXExit
         end
         object EDScaleY: TKNumberEdit
-          Left = 117
+          Left = 104
           Height = 23
-          Top = 18
+          Top = 60
           Width = 52
           Caption = 'Vert. scale:'
           CustomSuffix = '%'
           DecimalSeparator = ','
           Min = 1
           Value = 100
+          OnUpDownChange = EDScaleXExit
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 2
           OnChange = EDScaleYChange
+          OnExit = EDScaleXExit
         end
         object CBProportional: TCheckBox
-          Left = 14
+          Left = 103
           Height = 19
-          Top = 45
+          Top = 90
           Width = 78
           Caption = 'Proportional'
           Checked = True
-          OnClick = EDScaleXChange
+          OnClick = CBProportionalClick
           State = cbChecked
           TabOrder = 4
+        end
+        object EDExplicitWidth: TKNumberEdit
+          Left = 14
+          Height = 23
+          Top = 18
+          Width = 51
+          Caption = 'Explicit width:'
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Options = [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown]
+          Value = 100
+          OnUpDownChange = EDScaleXExit
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 5
+          OnChange = EDScaleXExit
+          OnExit = EDScaleXExit
+        end
+        object EDExplicitHeight: TKNumberEdit
+          Left = 14
+          Height = 23
+          Top = 60
+          Width = 51
+          Caption = 'Explicit height:'
+          CustomSuffix = 'pt'
+          DecimalSeparator = ','
+          Options = [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown]
+          Value = 100
+          OnUpDownChange = EDScaleXExit
+          Font.Color = clWindowText
+          ParentFont = False
+          TabOrder = 7
+          OnChange = EDScaleXExit
+          OnExit = EDScaleXExit
+        end
+        object BUResetOriginalSize: TButton
+          Left = 14
+          Height = 22
+          Top = 88
+          Width = 70
+          Caption = 'Reset'
+          OnClick = BUResetOriginalSizeClick
+          TabOrder = 9
         end
       end
       object GBWrap: TGroupBox
         Left = 8
         Height = 114
-        Top = 199
+        Top = 244
         Width = 196
         Caption = 'Content floating'
         ClientHeight = 96
         ClientWidth = 192
-        TabOrder = 3
+        TabOrder = 2
         object RBWrapAround: TRadioButton
           Left = 14
           Height = 19
-          Top = 4
+          Top = 3
           Width = 111
           Caption = 'Float on both sides'
+          OnClick = EDScaleXExit
           TabOrder = 0
         end
         object RBWrapAroundLeft: TRadioButton
           Left = 14
           Height = 19
-          Top = 27
+          Top = 26
           Width = 100
           Caption = 'Float on left side'
+          OnClick = EDScaleXExit
           TabOrder = 1
         end
         object RBWrapAroundRight: TRadioButton
           Left = 14
           Height = 19
-          Top = 50
+          Top = 49
           Width = 106
           Caption = 'Float on right side'
+          OnClick = EDScaleXExit
           TabOrder = 2
         end
         object RBWrapTopBottom: TRadioButton
           Left = 14
           Height = 19
-          Top = 73
+          Top = 72
           Width = 58
           Caption = 'No float'
+          OnClick = EDScaleXExit
           TabOrder = 3
         end
       end
     end
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
-      ClientHeight = 359
-      ClientWidth = 500
+      ClientHeight = 363
+      ClientWidth = 209
       ImageIndex = 1
       object GBShading: TGroupBox
-        Left = 8
-        Height = 96
-        Top = 8
-        Width = 359
+        Left = 7
+        Height = 129
+        Top = 9
+        Width = 193
         Caption = 'Borders and shading'
-        ClientHeight = 78
-        ClientWidth = 355
+        ClientHeight = 111
+        ClientWidth = 189
         TabOrder = 0
         object LBBorderWidth: TLabel
           Left = 18
           Height = 13
-          Top = 7
+          Top = 14
           Width = 65
           Caption = 'Border width:'
           ParentColor = False
@@ -257,15 +290,15 @@ object KMemoImageForm: TKMemoImageForm
         object LBBorderColor: TLabel
           Left = 18
           Height = 13
-          Top = 42
+          Top = 43
           Width = 62
           Caption = 'Border color:'
           ParentColor = False
         end
         object LBShading: TLabel
-          Left = 183
+          Left = 18
           Height = 13
-          Top = 42
+          Top = 74
           Width = 42
           Caption = 'Shading:'
           ParentColor = False
@@ -273,54 +306,58 @@ object KMemoImageForm: TKMemoImageForm
         object EDBorderWidth: TKNumberEdit
           Left = 98
           Height = 23
-          Top = 4
+          Top = 11
           Width = 55
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 20
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          OnUpDownChange = EDScaleXExit
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 0
+          OnExit = EDScaleXExit
         end
         object CLBBorder: TKColorButton
           Left = 98
           Height = 25
-          Top = 37
+          Top = 38
           Width = 70
           Font.Color = clBtnText
           Font.Height = -11
           Font.Name = 'Tahoma'
           ParentFont = False
           TabOrder = 2
+          OnClick = EDScaleXExit
           ColorDlgOptions = []
         end
         object CLBShading: TKColorButton
-          Left = 271
+          Left = 98
           Height = 25
-          Top = 37
+          Top = 69
           Width = 70
           Font.Color = clBtnText
           Font.Height = -11
           Font.Name = 'Tahoma'
           ParentFont = False
           TabOrder = 3
+          OnClick = EDScaleXExit
           ColorDlgOptions = []
         end
       end
       object GBCrop: TGroupBox
         Left = 8
-        Height = 100
-        Top = 112
-        Width = 359
+        Height = 162
+        Top = 152
+        Width = 193
         Caption = 'Crop'
-        ClientHeight = 82
-        ClientWidth = 355
+        ClientHeight = 144
+        ClientWidth = 189
         TabOrder = 1
         object LBCropLeft: TLabel
           Left = 18
           Height = 13
-          Top = 17
+          Top = 12
           Width = 47
           Caption = 'Left crop:'
           ParentColor = False
@@ -328,23 +365,23 @@ object KMemoImageForm: TKMemoImageForm
         object LBCropRight: TLabel
           Left = 18
           Height = 13
-          Top = 47
+          Top = 42
           Width = 53
           Caption = 'Right crop:'
           ParentColor = False
         end
         object LBCropTop: TLabel
-          Left = 183
+          Left = 18
           Height = 13
-          Top = 17
+          Top = 72
           Width = 46
           Caption = 'Top crop:'
           ParentColor = False
         end
         object LBCropBottom: TLabel
-          Left = 183
+          Left = 17
           Height = 13
-          Top = 47
+          Top = 102
           Width = 62
           Caption = 'Bottom crop:'
           ParentColor = False
@@ -352,52 +389,86 @@ object KMemoImageForm: TKMemoImageForm
         object EDCropLeft: TKNumberEdit
           Left = 98
           Height = 23
-          Top = 14
+          Top = 9
           Width = 55
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          OnUpDownChange = EDScaleXExit
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 0
+          OnExit = EDScaleXExit
         end
         object EDCropRight: TKNumberEdit
           Left = 98
           Height = 23
-          Top = 44
+          Top = 39
           Width = 55
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          OnUpDownChange = EDScaleXExit
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 2
+          OnExit = EDScaleXExit
         end
         object EDCropTop: TKNumberEdit
-          Left = 271
+          Left = 98
           Height = 23
-          Top = 14
+          Top = 69
           Width = 55
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          OnUpDownChange = EDScaleXExit
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 4
+          OnExit = EDScaleXExit
         end
         object EDCropBottom: TKNumberEdit
-          Left = 271
+          Left = 98
           Height = 23
-          Top = 44
+          Top = 99
           Width = 55
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          OnUpDownChange = EDScaleXExit
           Font.Color = clWindowText
           ParentFont = False
           TabOrder = 6
+          OnExit = EDScaleXExit
         end
       end
+    end
+  end
+  object GBPreview: TGroupBox
+    Left = 231
+    Height = 389
+    Top = 8
+    Width = 285
+    Caption = 'Image preview'
+    ClientHeight = 371
+    ClientWidth = 281
+    TabOrder = 4
+    object MEPreview: TKMemo
+      Left = 0
+      Height = 371
+      Top = 0
+      Width = 281
+      Align = alClient
+      ContentPadding.Left = 5
+      ContentPadding.Top = 5
+      ContentPadding.Right = 5
+      ContentPadding.Bottom = 5
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ReadOnly = True
+      TabOrder = 0
     end
   end
   object ODMain: TOpenPictureDialog
