@@ -1984,7 +1984,9 @@ begin
     if AActiveBlocks <> nil then
       Items := AActiveBlocks
     else if FMemo <> nil then
-      Items := FMemo.ActiveBlocks;
+      Items := FMemo.ActiveBlocks
+    else
+      Items := nil;
     if Items <> nil then
     begin
       if AtIndex < 0 then

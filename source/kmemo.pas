@@ -338,8 +338,8 @@ type
     procedure SetItem(Index: Integer; const Value: TKMemoList);
   protected
     FCallUpdate: Boolean;
-    procedure CallBeforeUpdate; override;
     procedure CallAfterUpdate; override;
+    procedure CallBeforeUpdate; override;
     procedure DoChanged(AList: TKMemoList; ALevel: TKMemoListLevel); virtual;
   public
     constructor Create; override;
@@ -648,6 +648,7 @@ type
   TKMemoBlocks = class;
 
   IKMemoNotifier = interface(IInterface)
+    procedure BlockFreeNotification(ABlock: TKMemoBlock);
     procedure BlocksFreeNotification(ABlocks: TKMemoBlocks);
     function EditBlock(AItem: TKMemoBlock): Boolean;
     function GetActiveBlocks: TKMemoBlocks;
@@ -738,6 +739,7 @@ type
     procedure Update(AReasons: TKMemoUpdateReasons); virtual;
   public
     constructor Create; override;
+    destructor Destroy; override;
     function ActiveBlocks: TKMemoBlocks; virtual;
     procedure Assign(ASource: TKObject); override;
     procedure AssignAttributes(AItem: TKMemoBlock); virtual;
@@ -1208,7 +1210,6 @@ type
     procedure SetRowCount(const Value: Integer);
     procedure SetRowHeights(Index: Integer; const Value: Integer);
   protected
-    procedure CallAfterUpdate; override;
     procedure InternalSetCellSpan(ACol, ARow: Integer;
       const Value: TKCellSpan); virtual;
     procedure RequiredWidthChanged; override;
@@ -1749,6 +1750,8 @@ type
     procedure BeginUndoGroup(AGroupKind: TKMemoChangeKind);
     { Converts a rectangle relative to active blocks to a rectangle relative to TKMemo. }
     function BlockRectToRect(const ARect: TRect): TRect; virtual;
+    { IKMemoNotifier implementation. }
+    procedure BlockFreeNotification(ABlock: TKMemoBlock);
     { IKMemoNotifier implementation. }
     procedure BlocksFreeNotification(ABlocks: TKMemoBlocks);
     { Update the editor after block changes. }
@@ -4183,6 +4186,15 @@ begin
   end;
 end;
 
+procedure TKCustomMemo.BlockFreeNotification(ABlock: TKMemoBlock);
+begin
+  if ABlock = FSelectedBlock then
+  begin
+    CancelDrag;
+    FSelectedBlock := nil;
+  end;
+end;
+
 procedure TKCustomMemo.BlocksFreeNotification(ABlocks: TKMemoBlocks);
 begin
   if ABlocks = ActiveBlocks then
@@ -4265,7 +4277,7 @@ begin
   end;
 end;
 
-procedure TKCustomMemo.Clear;
+procedure TKCustomMemo.Clear(AKeepOnePara: Boolean);
 begin
   FBlocks.LockUpdate;
   try
@@ -6502,6 +6514,13 @@ begin
   FOffset := CreateEmptyPoint;
 end;
 
+destructor TKMemoBlock.Destroy;
+begin
+  if MemoNotifier <> nil then
+    MemoNotifier.BlockFreeNotification(Self);
+  inherited Destroy;
+end;
+
 function TKMemoBlock.EqualProperties(ASource: TKObject): Boolean;
 begin
   Result := False;
@@ -8120,7 +8139,7 @@ begin
           end;
           maLeftUp:
           begin
-            if FMouseCaptureWord > 0 then
+            if FMouseCaptureWord >= 0 then
             begin
               FMouseCaptureWord := -1;
               if Assigned(FOnDblClick) and (ssDouble in AShift) then
@@ -9720,11 +9739,6 @@ begin
       W := Cell.Width;
     Inc(Result, W);
   end;
-end;
-
-procedure TKMemoTable.CallAfterUpdate;
-begin
-  Update([muContent]);
 end;
 
 function TKMemoTable.CanAdd(AItem: TKMemoBlock): Boolean;
@@ -12814,11 +12828,11 @@ begin
       end;
     end;
   end;
-  for I := 0 to FRelPos.Count - 1 do
+  for I := FRelPos.Count - 1 downto 0 do // reversed Z-order here
   begin
     Item := Items[FRelPos[I].Index];
     Result := Item.WordMouseAction(ACanvas, 0, AAction, APoint, AShift);
-   if Result then Exit;
+    if Result then Exit;
   end;
 end;
 
