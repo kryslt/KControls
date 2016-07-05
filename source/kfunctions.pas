@@ -2528,6 +2528,8 @@ begin
     else
       Inc(Result);
 {$ENDIF}
+    if Result > Length(AText) then
+      Break;
   end;
 end;
 

@@ -829,11 +829,15 @@ type
     function Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean): Boolean; override;
   end;
 
+  TKMemoWordBreakStyle = (wbsLastWordChar, wbsFirstWordChar, wbsEveryWord);
+
   TKMemoTextBlock = class(TKMemoSingleton)
   private
     FText: TKString;
     FTextStyle: TKMemoTextStyle;
+    FWordBreakStyle: TKMemoWordBreakStyle;
     function GetWordBreaks: TKSysCharSet;
+    procedure SetWordBreakStyle(const Value: TKMemoWordBreakStyle);
   protected
     FScriptVertOffset: Integer;
     FScriptFontHeight: Integer;
@@ -905,6 +909,7 @@ type
     property Text: TKString read GetText write SetText;
     property TextStyle: TKMemoTextStyle read FTextStyle;
     property WordBreaks: TKSysCharSet read GetWordBreaks;
+    property WordBreakStyle: TKMemoWordBreakStyle read FWordBreakStyle write SetWordBreakStyle;
   end;
 
   TKMemoHyperlink = class(TKMemoTextBlock)
@@ -7214,6 +7219,7 @@ constructor TKMemoTextBlock.Create;
 begin
   FTextStyle := TKMemoTextStyle.Create;
   FTextStyle.OnChanged := TextStyleChanged;
+  FWordBreakStyle := wbsLastWordChar;
   inherited;
   FText := '';
   FTextLength := 0;
@@ -7307,7 +7313,10 @@ procedure TKMemoTextBlock.AssignAttributes(AItem: TKMemoBlock);
 begin
   inherited;
   if AItem is TKMemoTextBlock then
+  begin
     TextStyle.Assign(TKMemoTextBlock(AItem).TextStyle);
+    WordBreakStyle := TKMemoTextBlock(AItem).WordBreakStyle;
+  end;
 end;
 
 function TKMemoTextBlock.CalcAscent(ACanvas: TCanvas): Integer;
@@ -7320,29 +7329,6 @@ function TKMemoTextBlock.CalcDescent(ACanvas: TCanvas): Integer;
 begin
   ApplyTextStyle(ACanvas);
   Result := GetFontDescent(ACanvas.Handle);
-end;
-
-procedure TKMemoBlocks.CallAfterUpdate;
-begin
-  if FUpdateReasons <> [] then
-    Update(FUpdateReasons);
-end;
-
-procedure TKMemoBlocks.CallBeforeUpdate;
-begin
-  FUpdateReasons := [];
-end;
-
-procedure TKMemoBlocks.Clear;
-begin
-  LockUpdate;
-  try
-    inherited;
-    FSelEnd := -1;
-    FSelStart := -1;
-  finally
-    UnlockUpdate;
-  end;  
 end;
 
 procedure TKMemoTextBlock.ClearSelection(ATextOnly: Boolean);
@@ -7497,8 +7483,14 @@ var
 begin
   S := Words[Index];
   if S <> '' then
-    Result := CharInSetEx(S[Length(S)], [cTAB] + Wordbreaks)
-  else
+  begin
+    case FWordBreakStyle of
+      wbsLastWordChar: Result := CharInSetEx(S[Length(S)], [cTAB] + Wordbreaks);
+      wbsFirstWordChar: Result := CharInSetEx(S[1], [cTAB] + Wordbreaks);
+    else
+      Result := True;
+    end;
+  end else
     Result := True;
 end;
 
@@ -7661,6 +7653,15 @@ end;
 procedure TKMemoTextBlock.SetWordBottomPadding(Index: Integer; const Value: Integer);
 begin
   FWords[Index].BottomPadding := Value;
+end;
+
+procedure TKMemoTextBlock.SetWordBreakStyle(const Value: TKMemoWordBreakStyle);
+begin
+  if Value <> FWordBreakStyle then
+  begin
+    FWordBreakStyle := Value;
+    Update([muExtent]);
+  end;
 end;
 
 procedure TKMemoTextBlock.SetWordClipped(Index: Integer; const Value: Boolean);
@@ -10731,6 +10732,29 @@ begin
     Result := Items[ABlock]
   else
     Result := nil;
+end;
+
+procedure TKMemoBlocks.CallAfterUpdate;
+begin
+  if FUpdateReasons <> [] then
+    Update(FUpdateReasons);
+end;
+
+procedure TKMemoBlocks.CallBeforeUpdate;
+begin
+  FUpdateReasons := [];
+end;
+
+procedure TKMemoBlocks.Clear;
+begin
+  LockUpdate;
+  try
+    inherited;
+    FSelEnd := -1;
+    FSelStart := -1;
+  finally
+    UnlockUpdate;
+  end;
 end;
 
 procedure TKMemoBlocks.ClearSelection(ATextOnly: Boolean);
