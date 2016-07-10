@@ -637,6 +637,7 @@ begin
     else
     begin
       Cont := TKMemoContainer.Create;
+      Cont.BlockStyle.ContentPadding.All := 5;
       Cont.BlockStyle.ContentMargin.All := 5;
       Cont.FixedWidth := True;
       Cont.FixedHeight := True;

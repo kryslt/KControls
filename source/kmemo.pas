@@ -175,6 +175,8 @@ type
   TKMemoUpdateReason = (
     { recalculate line info and extent. }
     muContent,
+    { continue previous line info and extent calculation. }
+    muContentAddOnly,
     { recalculate extent. }
     muExtent,
     { selection changed. }
@@ -1248,6 +1250,30 @@ type
     property Rows[Index: Integer]: TKMemoTableRow read GetRows;
   end;
 
+  TKMemoMeasState = record
+    PosX,
+    PosY,
+    RightX,
+    CurBlock,
+    CurIndex,
+    CurWord,
+    CurTotalWord,
+    LineHeight,
+    ParaWidth,
+    ParaPosY,
+    LastBlock,
+    LastIndex,
+    LastWord,
+    LastTotalWord,
+    RequiredWidth: Integer;
+    IsBreakable,
+    IsParagraph: Boolean;
+    CurParaStyle: TKMemoParaStyle;
+    CurParagraph: TKMemoParagraph;
+    procedure Clear;
+    function Initialized: Boolean;
+  end;
+
   TKMemoUpdateEvent = procedure(Reasons: TKMemoUpdateReasons) of object;
 
   TKMemoBlocks = class(TKObjectList)
@@ -1278,7 +1304,7 @@ type
   protected
     FLines: TKMemoLines;
     FRelPos: TKMemoSparseList;
-    FRequiredWidth: Integer;
+    FState, FBackState: TKMemoMeasState;
     FUpdateReasons: TKMemoUpdateReasons;
     procedure CallBeforeUpdate; override;
     procedure CallAfterUpdate; override;
@@ -4210,7 +4236,7 @@ procedure TKCustomMemo.BlocksChanged(Reasons: TKMemoUpdateReasons);
 begin
   if HandleAllocated and UpdateUnlocked then
   begin
-    if Reasons * [muContent, muExtent] <> [] then
+    if Reasons * [muContent, muContentAddOnly, muExtent] <> [] then
       UpdateScrollRange(True)
     else if muSelectionScroll in Reasons then
     begin
@@ -7147,7 +7173,7 @@ end;
 
 procedure TKMemoBlock.Update(AReasons: TKMemoUpdateReasons);
 begin
-  if Parent <> nil then
+  if (Parent <> nil) and UpdateUnlocked then
     ParentBlocks.Update(AReasons);
 end;
 
@@ -10586,20 +10612,52 @@ begin
   end;
 end;
 
+{ TKMemoMeasState }
+
+procedure TKMemoMeasState.Clear;
+begin
+  PosX := 0;
+  PosY := 0;
+  RightX := 0;
+  CurBlock := 0;
+  CurIndex := 0;
+  CurWord := 0;
+  CurTotalWord := 0;
+  LineHeight := 0;
+  ParaWidth := 0;
+  ParaPosY := 0;
+  LastBlock := 0;
+  LastIndex := 0;
+  LastWord := 0;
+  LastTotalWord := 0;
+  RequiredWidth := 0;
+  IsBreakable := False;
+  IsParagraph := False;
+  CurParaStyle := nil;
+  CurParagraph := nil;
+end;
+
+function TKMemoMeasState.Initialized: Boolean;
+begin
+  Result := CurParaStyle <> nil;
+end;
+
 { TKMemoBlocks }
 
 constructor TKMemoBlocks.Create;
 begin
   inherited;
   OwnsObjects := True;
+  FBackState.Clear;
+  FExtent := CreateEmptyPoint;
   FIgnoreParaMark := False;
   FLines := TKMemoLines.Create;
+  FMemoNotifier := nil;
   FParent := nil;
   FRelPos := TKMemoSparseList.Create;
-  FExtent := CreateEmptyPoint;
-  FMemoNotifier := nil;
   FSelEnd := 0;
   FSelStart := 0;
+  FState.Clear;
   FUpdateLock := 0;
   FOnUpdate := nil;
   Update([muContent]);
@@ -10632,8 +10690,9 @@ begin
       if Empty and (Count > 0) then
         inherited Delete(0);
       if (At < 0) or (At >= Count) then
-        Result := inherited Add(AObject)
-      else
+      begin
+        Result := inherited Add(AObject);
+      end else
       begin
         inherited Insert(At, AObject);
         Result := At;
@@ -10737,7 +10796,10 @@ end;
 procedure TKMemoBlocks.CallAfterUpdate;
 begin
   if FUpdateReasons <> [] then
+  begin
     Update(FUpdateReasons);
+    FUpdateReasons := [];
+  end;
 end;
 
 procedure TKMemoBlocks.CallBeforeUpdate;
@@ -12321,10 +12383,6 @@ begin
 end;
 
 procedure TKMemoBlocks.MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer);
-var
-  PosX, PosY, Right, CurBlock, CurIndex, CurWord, CurTotalWord, LineHeight, ParaWidth, ParaPosY, LastBlock, LastIndex, LastWord, LastTotalWord: Integer;
-  CurParaStyle: TKMemoParaStyle;
-  CurParagraph: TKMemoParagraph;
 
   function GetParaStyle(AParagraph: TKMemoParagraph): TKMemoParaStyle;
 {  var
@@ -12362,12 +12420,12 @@ var
         DoCheck := True;
         case Item.WrapMode of
           wrAround, wrTight:;
-          wrAroundLeft, wrTightLeft: ACollisionRect.Right := Right;
-          wrAroundRight, wrTightRight: ACollisionRect.Left := CurParaStyle.LeftPadding;
+          wrAroundLeft, wrTightLeft: ACollisionRect.Right := FState.RightX;
+          wrAroundRight, wrTightRight: ACollisionRect.Left := FState.CurParaStyle.LeftPadding;
           wrTopBottom:
           begin
-            ACollisionRect.Left := CurParaStyle.LeftPadding;
-            ACollisionRect.Right := Right;
+            ACollisionRect.Left := FState.CurParaStyle.LeftPadding;
+            ACollisionRect.Right := FState.RightX;
           end;
         else
           DoCheck := False;
@@ -12420,21 +12478,22 @@ var
     R, RW: TRect;
   begin
     Result := False;
-    if LastTotalWord <> CurTotalWord then
+    if FState.LastTotalWord <> FState.CurTotalWord then
     begin
-      LastTotalWord := CurTotalWord;
+      FBackState := FState;
+      FState.LastTotalWord := FState.CurTotalWord;
       // create new line
       if FLines.Count > 0 then
         LastLine := FLines[FLines.Count - 1]
       else
         LastLine := nil;
-      CurIndexCopy := CurIndex;
-      CurWordCopy := CurWord;
-      CurBlockCopy := CurBlock;
+      CurIndexCopy := FState.CurIndex;
+      CurWordCopy := FState.CurWord;
+      CurBlockCopy := FState.CurBlock;
       if (CurWordCopy <= 0) or (CurBlockCopy >= Count) or (Items[CurBlockCopy].Position <> mbpText) then
       begin
         I := 0;
-        while (CurBlockCopy > LastBlock) and ((CurBlockCopy >= Count) or (I = 0) or (Items[CurBlockCopy].Position <> mbpText)) do
+        while (CurBlockCopy > FState.LastBlock) and ((CurBlockCopy >= Count) or (I = 0) or (Items[CurBlockCopy].Position <> mbpText)) do
         begin
           Dec(CurBlockCopy);
           Inc(I);
@@ -12447,11 +12506,11 @@ var
       Dec(CurIndexCopy);
       Line := TKMemoLine.Create;
       LineIndex := FLines.Add(Line);
-      Line.StartBlock := LastBlock;
+      Line.StartBlock := FState.LastBlock;
       Line.EndBlock := CurBlockCopy;
-      Line.StartIndex := LastIndex;
+      Line.StartIndex := FState.LastIndex;
       Line.EndIndex := CurIndexCopy;
-      Line.StartWord := LastWord;
+      Line.StartWord := FState.LastWord;
       Line.EndWord := CurWordCopy;
 
       EndItem := Items[Line.EndBlock];
@@ -12459,10 +12518,10 @@ var
       WasParagraph := (LastLine = nil) or (Items[LastLine.EndBlock] is TKMemoParagraph);
       if WasParagraph then
       begin
-        FirstIndent := CurParaStyle.FirstIndent;
-        TopPadding := CurParaStyle.TopPadding;
-        if CurParagraph <> nil then
-          NumberBlock := CurParagraph.NumberBlock
+        FirstIndent := FState.CurParaStyle.FirstIndent;
+        TopPadding := FState.CurParaStyle.TopPadding;
+        if FState.CurParagraph <> nil then
+          NumberBlock := FState.CurParagraph.NumberBlock
         else
           NumberBlock := nil;
       end else
@@ -12473,7 +12532,7 @@ var
       end;
       if EndItem is TKMemoParagraph then
       begin
-        BottomPadding := CurParaStyle.BottomPadding;
+        BottomPadding := FState.CurParaStyle.BottomPadding;
         ParaMarkWidth := EndItem.WordWidth[EndItem.WordCount - 1];
       end else
       begin
@@ -12491,26 +12550,26 @@ var
       if NumberBlock <> nil then
         BaseLine := Max(BaseLine, NumberBlock.CalcAscent(ACanvas));
       // adjust line and paragraph heights
-      case CurParaStyle.LineSpacingMode of
+      case FState.CurParaStyle.LineSpacingMode of
         lsmFactor:
         begin
-          LineHeight := Round(CurParaStyle.LineSpacingFactor * LineHeight);
+          FState.LineHeight := Round(FState.CurParaStyle.LineSpacingFactor * FState.LineHeight);
         end;
         lsmValue:
         begin
-          if CurParaStyle.LineSpacingValue > 0 then
-            LineHeight := Max(LineHeight, CurParaStyle.LineSpacingValue)
-          else if CurParaStyle.LineSpacingValue < 0 then
-            LineHeight := -CurParaStyle.LineSpacingValue;
+          if FState.CurParaStyle.LineSpacingValue > 0 then
+            FState.LineHeight := Max(FState.LineHeight, FState.CurParaStyle.LineSpacingValue)
+          else if FState.CurParaStyle.LineSpacingValue < 0 then
+            FState.LineHeight := -FState.CurParaStyle.LineSpacingValue;
         end;
       end;
-      Inc(LineHeight, TopPadding + BottomPadding);
+      Inc(FState.LineHeight, TopPadding + BottomPadding);
       // adjust all words horizontally
-      if CurParaStyle.HAlign in [halCenter, halRight] then
+      if FState.CurParaStyle.HAlign in [halCenter, halRight] then
       begin
         // reposition all line chunks like MS Word does it
-        PosX := CurParaStyle.LeftPadding + FirstIndent;
-        StPosX := PosX;
+        FState.PosX := FState.CurParaStyle.LeftPadding + FirstIndent;
+        StPosX := FState.PosX;
         W := 0;
         ChunkCnt := 0;
         for I := Line.StartBlock to Line.EndBlock do
@@ -12521,40 +12580,40 @@ var
             GetWordIndexes(I, LineIndex, St, En);
             for J := St to En do
             begin
-              if Item.WordLeft[J] > PosX then
+              if Item.WordLeft[J] > FState.PosX then
               begin
                 // space here, get colliding rect
-                RW := Rect(PosX, PosY, PosX + Item.WordWidth[J], PosY + LineHeight);
+                RW := Rect(FState.PosX, FState.PosY, FState.PosX + Item.WordWidth[J], FState.PosY + FState.LineHeight);
                 if RectCollidesWithNonText(RW, R) then
                 begin
                   Delta := R.Left - StPosX - W;
-                  case CurParaStyle.HAlign of
+                  case FState.CurParaStyle.HAlign of
                     halCenter: Delta := Delta div 2;
                   end;
                   MoveWordsOnLine(LineIndex, StPosX, R.Left, Delta, ChunkCnt);
                 end;
-                PosX := Item.WordLeft[J];
-                StPosX := PosX;
+                FState.PosX := Item.WordLeft[J];
+                StPosX := FState.PosX;
                 W := 0;
               end;
-              Inc(PosX, Item.WordWidth[J]);
+              Inc(FState.PosX, Item.WordWidth[J]);
               Inc(W, Item.WordWidth[J]);
             end;
           end;
         end;
-        RW := Rect(StPosX, PosY, Right + ParaMarkWidth, PosY + LineHeight);
+        RW := Rect(StPosX, FState.PosY, FState.RightX + ParaMarkWidth, FState.PosY + FState.LineHeight);
         if RectCollidesWithNonText(RW, R) then
           Delta := R.Left - StPosX - W
         else
-          Delta := Right + ParaMarkWidth - StPosX - W;
-        case CurParaStyle.HAlign of
+          Delta := FState.RightX + ParaMarkWidth - StPosX - W;
+        case FState.CurParaStyle.HAlign of
           halCenter: Delta := Delta div 2;
         end;
-        MoveWordsOnLine(LineIndex, StPosX, Right + ParaMarkWidth, Delta, ChunkCnt);
+        MoveWordsOnLine(LineIndex, StPosX, FState.RightX + ParaMarkWidth, Delta, ChunkCnt);
       end;
       // adjust all words vertically, compute line extent
-      LineRight := CurParaStyle.LeftPadding;
-      LineLeft := Right;
+      LineRight := FState.CurParaStyle.LeftPadding;
+      LineLeft := FState.RightX;
       for I := Line.StartBlock to Line.EndBlock do
       begin
         Item := Items[I];
@@ -12565,7 +12624,7 @@ var
           begin
             Item.WordBaseLine[J] := BaseLine;
             Item.WordBottomPadding[J] := BottomPadding;
-            Item.WordHeight[J] := LineHeight;
+            Item.WordHeight[J] := FState.LineHeight;
             Item.WordTopPadding[J] := TopPadding;
             R := Item.WordBoundsRect[J];
             LineLeft := Min(LineLeft, R.Left);
@@ -12579,7 +12638,7 @@ var
         begin
           NumberBlock.WordBaseLine[J] := BaseLine;
           NumberBlock.WordBottomPadding[J] := BottomPadding;
-          NumberBlock.WordHeight[J] := LineHeight;
+          NumberBlock.WordHeight[J] := FState.LineHeight;
           NumberBlock.WordTopPadding[J] := TopPadding;
           R := NumberBlock.WordBoundsRect[J];
           LineLeft := Min(LineLeft, R.Left);
@@ -12589,35 +12648,44 @@ var
       // adjust paragraph extent
       if LineRight > ARequiredWidth then
         Dec(LineRight, ParaMarkWidth);
-      ParaWidth := Max(ParaWidth, LineRight - LineLeft);
+      FState.ParaWidth := Max(FState.ParaWidth, LineRight - LineLeft);
       if EndItem is TKMemoParagraph then
       begin
-        TKMemoParagraph(EndItem).Top := ParaPosY;
-        TKmemoParagraph(EndItem).Width := ParaWidth;
-        TKmemoParagraph(EndItem).Height := PosY + LineHeight - ParaPosY - CurParaStyle.BottomPadding;
-        CurParagraph := GetNearestParagraphItem(CurBlock);
-        CurParaStyle := GetParaStyle(CurParagraph);
-        ParaWidth := 0;
-        ParaPosY := PosY + LineHeight + CurParaStyle.TopPadding;
+        TKMemoParagraph(EndItem).Top := FState.ParaPosY;
+        TKmemoParagraph(EndItem).Width := FState.ParaWidth;
+        TKmemoParagraph(EndItem).Height := FState.PosY + FState.LineHeight - FState.ParaPosY - FState.CurParaStyle.BottomPadding;
+        FState.CurParagraph := GetNearestParagraphItem(FState.CurBlock);
+        FState.CurParaStyle := GetParaStyle(FState.CurParagraph);
+        FState.ParaWidth := 0;
+        FState.ParaPosY := FState.PosY + FState.LineHeight + FState.CurParaStyle.TopPadding;
       end;
       // adjust line extent
-      Line.Extent := Point(LineRight - LineLeft, LineHeight);
-      Line.Position := Point(LineLeft, PosY);
+      Line.Extent := Point(LineRight - LineLeft, FState.LineHeight);
+      Line.Position := Point(LineLeft, FState.PosY);
       // other tasks
       FExtent.X := Max(FExtent.X, LineRight);
-      PosX := CurParaStyle.LeftPadding;
+      FState.PosX := FState.CurParaStyle.LeftPadding;
       if EndItem is TKMemoParagraph then
       begin
-        Inc(PosX, CurParaStyle.FirstIndent);
+        Inc(FState.PosX, FState.CurParaStyle.FirstIndent);
       end;
-      Right := ARequiredWidth - CurParaStyle.RightPadding;
-      Inc(PosY, LineHeight);
-      FExtent.Y := Max(FExtent.Y, PosY);
-      LastBlock := CurBlock;
-      LastWord := CurWord;
-      LastIndex := CurIndex;
-      LineHeight := 0;
+      FState.RightX := ARequiredWidth - FState.CurParaStyle.RightPadding;
+      Inc(FState.PosY, FState.LineHeight);
+      FExtent.Y := Max(FExtent.Y, FState.PosY);
+      FState.LastBlock := FState.CurBlock;
+      FState.LastWord := FState.CurWord;
+      FState.LastIndex := FState.CurIndex;
+      FState.LineHeight := 0;
       Result := True;
+    end;
+  end;
+
+  procedure DeleteLine;
+  begin
+    if FLines.Count > 0 then
+    begin
+      FLines.Delete(FLines.Count - 1);
+      FState := FBackState;
     end;
   end;
 
@@ -12628,15 +12696,15 @@ var
   begin
     if AWordWidth <> 0 then
     begin
-      TmpHeight := Max(LineHeight, AWordHeight);
-      while RectCollidesWithNonText(Rect(PosX, PosY, PosX + AWordWidth, PosY + TmpHeight), R) do
+      TmpHeight := Max(FState.LineHeight, AWordHeight);
+      while RectCollidesWithNonText(Rect(FState.PosX, FState.PosY, FState.PosX + AWordWidth, FState.PosY + TmpHeight), R) do
       begin
-        PosX := R.Right;
-        if PosX + AWordWidth > Right then
+        FState.PosX := R.Right;
+        if FState.PosX + AWordWidth > FState.RightX then
         begin
           if not AddLine then
-            Inc(PosY, 5);
-          PosX := CurParaStyle.LeftPadding;
+            Inc(FState.PosY, 5);
+          FState.PosX := FState.CurParaStyle.LeftPadding;
         end;
       end;
     end;
@@ -12687,46 +12755,50 @@ var
 var
   Extent, NBExtent: TPoint;
   I, FirstIndent, WLen, PrevPosX, PrevPosY: Integer;
-  IsBreakable, IsParagraph, OutSide, WasBreakable, WasParagraph: Boolean;
+  OutSide, WasBreakable, WasParagraph: Boolean;
   Item: TKMemoBlock;
   NextParagraph: TKMemoParagraph;
   NextParaStyle: TKMemoParaStyle;
   S: TKString;
 begin
   // this is the main word processing calculation
-  FRequiredWidth := ARequiredWidth;
-  FLines.Clear;
   FExtent := CreateEmptyPoint;
-  LineHeight := 0;
-  ParaWidth := 0;
-  LastBlock := 0;
-  LastIndex := 0;
-  LastWord := 0;
-  LastTotalWord := 0;
-  CurTotalWord := 0;
-  CurIndex := 0;
-  CurParagraph := GetNearestParagraphItem(0);
-  CurParaStyle := GetParaStyle(CurParagraph);
-  PosX := CurParaStyle.LeftPadding + CurParaStyle.FirstIndent;
-  PosY := 0;
-  ParaPosY := CurParaStyle.TopPadding;
-  Right := ARequiredWidth - CurParaStyle.RightPadding;
-  // first measure all absolutely positioned items
-  for CurBlock := 0 to FRelPos.Count - 1 do
+  if not (FState.Initialized and (FUpdateReasons = [muContentAddOnly]) and (ARequiredWidth = FState.RequiredWidth)) then
   begin
-    Item := Items[FRelPos.Items[CurBlock].Index];
+    // measure everything, needed after most modifications
+    FLines.Clear;
+    FBackState.Clear;
+    FState.Clear;
+    FState.RequiredWidth := ARequiredWidth;
+    FState.CurParagraph := GetNearestParagraphItem(0);
+    FState.CurParaStyle := GetParaStyle(FState.CurParagraph);
+    FState.PosX := FState.CurParaStyle.LeftPadding + FState.CurParaStyle.FirstIndent;
+    FState.ParaPosY := FState.CurParaStyle.TopPadding;
+    FState.RightX := ARequiredWidth - FState.CurParaStyle.RightPadding;
+    FState.IsBreakable := True;
+    FState.IsParagraph := False;
+  end else
+  begin
+    // here we don't start from beginning and measure just
+    // the newly added blocks;
+    // it can be used only for blocks added at the end and
+    // with position "in text"
+    if not FState.IsParagraph then
+      DeleteLine; // continue on previous line when no paragraph was added
+  end;
+  // first measure all absolutely positioned items
+  for I := 0 to FRelPos.Count - 1 do
+  begin
+    Item := Items[FRelPos.Items[I].Index];
     Item.MeasureExtent(ACanvas, ARequiredWidth);
   end;
   // then measure all other items
-  CurBlock := 0;
-  IsBreakable := True;
-  IsParagraph := False;
-  while CurBlock < Count do
+  while FState.CurBlock < Count do
   begin
-    CurWord := 0;
-    if IsParagraph or (CurBlock = 0) then
+    FState.CurWord := 0;
+    if FState.IsParagraph or (FState.CurBlock = 0) then
     begin
-      NextParagraph := GetNearestParagraphItem(CurBlock);
+      NextParagraph := GetNearestParagraphItem(FState.CurBlock);
       NextParaStyle := GetParaStyle(NextParagraph);
       if NextParagraph <> nil then
         Item := NextParagraph.NumberBlock
@@ -12736,7 +12808,7 @@ begin
       begin
         // we must include the nonselectable bullet/number block into normal text flow
         AddLine;
-        IsParagraph := False;
+        FState.IsParagraph := False;
         NBExtent.X := 0;
         for I := 0 to Item.WordCount - 1 do
         begin
@@ -12749,67 +12821,69 @@ begin
             Item.WordWidth[I] := Extent.X;
             Item.WordClipped[I] := True;
           end;
-          MoveWordToFreeSpace(Extent.X, Extent.Y);
-          Item.WordLeft[I] := PosX;
-          Item.WordTop[I] := PosY;
-          Inc(PosX, Extent.X);
-          LineHeight := Max(LineHeight, Extent.Y);
+          if FRelPos.Count > 0 then
+            MoveWordToFreeSpace(Extent.X, Extent.Y);
+          Item.WordLeft[I] := FState.PosX;
+          Item.WordTop[I] := FState.PosY;
+          Inc(FState.PosX, Extent.X);
+          FState.LineHeight := Max(FState.LineHeight, Extent.Y);
           Inc(NBExtent.X, Extent.X);
         end;
       end
     end else
-      NextParaStyle := CurParaStyle;
-    Item := Items[CurBlock];
+      NextParaStyle := FState.CurParaStyle;
+    Item := Items[FState.CurBlock];
     case Item.Position of
       mbpText:
       begin
-        while CurWord < Item.WordCount do
+        while FState.CurWord < Item.WordCount do
         begin
-          WasParagraph := IsParagraph;
-          IsParagraph := (Item is TKMemoParagraph) and (CurWord = Item.WordCount - 1);
-          WLen := Item.WordLength[CurWord];
-          WasBreakable := IsBreakable or not (Item is TKMemoTextBlock);
-          IsBreakable := Item.WordBreakable[CurWord];
+          WasParagraph := FState.IsParagraph;
+          FState.IsParagraph := (Item is TKMemoParagraph) and (FState.CurWord = Item.WordCount - 1);
+          WLen := Item.WordLength[FState.CurWord];
+          WasBreakable := FState.IsBreakable or not (Item is TKMemoTextBlock);
+          FState.IsBreakable := Item.WordBreakable[FState.CurWord];
           if WasParagraph then
             FirstIndent := NextParaStyle.FirstIndent
           else
             FirstIndent := 0;
-          Extent := MeasureNextWords(ACanvas, CurBlock, CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - FirstIndent, IsBreakable, NBExtent);
-          OutSide := CurParaStyle.WordWrap and not IsParagraph and WasBreakable and (PosX + NBExtent.X > Right);
+          Extent := MeasureNextWords(ACanvas, FState.CurBlock, FState.CurWord, ARequiredWidth - NextParaStyle.LeftPadding - NextParaStyle.RightPadding - FirstIndent, FState.IsBreakable, NBExtent);
+          OutSide := FState.CurParaStyle.WordWrap and not FState.IsParagraph and WasBreakable and (FState.PosX + NBExtent.X > FState.RightX);
           if OutSide or WasParagraph then
             AddLine;
-          MoveWordToFreeSpace(NBExtent.X, NBExtent.Y);
-          Item.WordLeft[CurWord] := PosX;
-          Item.WordTop[CurWord] := PosY;
-          Inc(PosX, Extent.X);
-          LineHeight := Max(LineHeight, Extent.Y);
-          Inc(CurWord);
-          Inc(CurIndex, WLen);
-          Inc(CurTotalWord);
+          if FRelPos.Count > 0 then
+            MoveWordToFreeSpace(NBExtent.X, NBExtent.Y);
+          Item.WordLeft[FState.CurWord] := FState.PosX;
+          Item.WordTop[FState.CurWord] := FState.PosY;
+          Inc(FState.PosX, Extent.X);
+          FState.LineHeight := Max(FState.LineHeight, Extent.Y);
+          Inc(FState.CurWord);
+          Inc(FState.CurIndex, WLen);
+          Inc(FState.CurTotalWord);
         end;
       end;
       mbpRelative:
       begin
         // position relative block correctly
-        PrevPosX := PosX; PrevPosY := PosY;
+        PrevPosX := FState.PosX; PrevPosY := FState.PosY;
         try
           // starting position for relative object is currently always: X by column (currently always 0), Y by paragraph
           // the object position offsets (LeftOffset, TopOffset) are always counted from this default position
-          PosX := 0;
-          PosY := ParaPosY;
+          FState.PosX := 0;
+          FState.PosY := FState.ParaPosY;
           //MoveWordToFreeSpace(Item.Width, Item.Height);
-          Item.WordLeft[0] := PosX;
-          Item.WordTop[0] := PosY;
-          FExtent.X := Max(FExtent.X, PosX + Item.Width + Item.LeftOffset);
-          FExtent.Y := Max(FExtent.Y, PosY + Item.Height + Item.TopOffset);
+          Item.WordLeft[0] := FState.PosX;
+          Item.WordTop[0] := FState.PosY;
+          FExtent.X := Max(FExtent.X, FState.PosX + Item.Width + Item.LeftOffset);
+          FExtent.Y := Max(FExtent.Y, FState.PosY + Item.Height + Item.TopOffset);
         finally
-          PosX := PrevPosX; PosY := PrevPosY;
+          FState.PosX := PrevPosX; FState.PosY := PrevPosY;
         end;
         // always place object anchor to the beginning of new paragraph
-        if IsParagraph then
+        if FState.IsParagraph then
         begin
           AddLine;
-          IsParagraph := False;
+          FState.IsParagraph := False;
         end;
       end;
       mbpAbsolute:
@@ -12818,11 +12892,11 @@ begin
         FExtent.Y := Max(FExtent.Y, Item.Height + Item.TopOffset);
       end;
     end;
-    Inc(CurBlock);
+    Inc(FState.CurBlock);
   end;
-  if CurIndex > LastIndex then
+  if FState.CurIndex > FState.LastIndex then
   begin
-    CurWord := 0;
+    FState.CurWord := 0;
     AddLine;
   end;
 end;
@@ -12942,10 +13016,27 @@ begin
 end;
 
 procedure TKMemoBlocks.Notify(Ptr: Pointer; Action: TListNotification);
+var
+  Index: Integer;
 begin
   inherited;
-  if Action in [lnAdded, lnDeleted] then
-  begin
+  case Action of
+    lnAdded:
+    begin
+      // allow much faster incremental measurement of blocks
+      // it can be used only for blocks added at the end and
+      // with position "in text"
+      if TKmemoBlock(Ptr).Position = mbpText then
+      begin
+        Index := IndexOf(Ptr);
+        if Index = Count - 1 then
+          Update([muContentAddOnly])
+        else
+          Update([muContent]);
+      end else
+        Update([muContent]);
+    end
+  else
     Update([muContent]);
   end;
 end;
@@ -13000,7 +13091,7 @@ begin
   PA := GetNearestParagraphItem(FLines[ALineIndex].StartBlock);
   if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
   begin
-    R := Rect(0, 0, Max(FRequiredWidth, PA.Width), PA.Height);
+    R := Rect(0, 0, Max(FState.RequiredWidth, PA.Width), PA.Height);
     KFunctions.OffsetRect(R, PA.Left, PA.Top);
     RClip := R;
     RClip.Top := Max(RClip.Top, LineTop[ALineIndex]);
@@ -13522,7 +13613,7 @@ procedure TKMemoBlocks.Update(AReasons: TKMemoUpdateReasons);
 begin
   if UpdateUnlocked then
   begin
-    if muContent in AReasons then
+    if AReasons * [muContent, muContentAddOnly] <> [] then
       UpdateAttributes;
     DoUpdate(AReasons);
   end else
@@ -13599,15 +13690,22 @@ var
 begin
   Inc(FUpdateLock);
   try
-    FRelPos.Clear;
-    FSelectableLength := 0;
     if MemoNotifier <> nil then
-    begin
-      ListTable := MemoNotifier.GetListTable;
-      ListTable.ClearLevelCounters;
-    end else
+      ListTable := MemoNotifier.GetListTable
+    else
       ListTable := nil;
-    for I := 0 to Count - 1 do
+    if FUpdateReasons <> [muContentAddOnly] then
+    begin
+      FRelPos.Clear;
+      FSelectableLength := 0;
+      if ListTable <> nil then
+        ListTable.ClearLevelCounters;
+      I := 0;
+    end else
+    begin
+      I := FState.LastBlock;
+    end;
+    while I < Count do
     begin
       Item := Items[I];
       if Item.Position = mbpText then
@@ -13615,15 +13713,20 @@ begin
         if Item is TKMemoParagraph then
         begin
           PA := TKMemoParagraph(Item);
-          PA.AssignAttributes(GetLastItemByClass(I, TKMemoTextBlock)); // TODO: make this line optional
-          if ListTable <> nil then
-          begin
-            NumberBlock := PA.NumberBlock;
-            if NumberBlock <> nil then
+          PA.LockUpdate;
+          try
+            PA.AssignAttributes(GetLastItemByClass(I, TKMemoTextBlock)); // TODO: make this line optional
+            if ListTable <> nil then
             begin
-              NumberBlock.TextStyle.Assign(PA.TextStyle);
-              FormatNumberString(ListTable, PA.ParaStyle, NumberBlock);
+              NumberBlock := PA.NumberBlock;
+              if NumberBlock <> nil then
+              begin
+                NumberBlock.TextStyle.Assign(PA.TextStyle);
+                FormatNumberString(ListTable, PA.ParaStyle, NumberBlock);
+              end;
             end;
+          finally
+            PA.UnlockUpdate;
           end;
         end;
         Inc(FSelectableLength, Item.SelectableLength);
@@ -13631,10 +13734,10 @@ begin
       begin
         FRelPos.AddItem(I);
       end;
+      Inc(I);
     end;
   finally
     Dec(FUpdateLock);
-    FUpdateReasons := [];
   end;
   if Count > 0 then
   begin
