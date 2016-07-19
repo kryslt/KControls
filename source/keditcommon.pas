@@ -345,7 +345,7 @@ type
     ErrorReason: TKEditSearchError;
     Options: TKEditSearchOptions;
     SelStart,
-    SelEnd: Integer;
+    SelEnd: Int64;
     TextToFind,
     TextToReplace: string;
   end;

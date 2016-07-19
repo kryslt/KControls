@@ -390,7 +390,7 @@ type
   { Useful structure to handle general data and size as a single item }
   TDataSize = record
     Data: Pointer;
-    Size: Integer;
+    Size: Int64;
   end;
   { Pointer for TDataSize }
   PDataSize = ^TDataSize;
@@ -440,6 +440,34 @@ type
     ColSpan: Integer;
     RowSpan: Integer;
   end;
+
+  { @abstract(Declares a structure that holds point coordinates as 64-bit wide integers)
+    <UL>
+    <LH>Members:</LH>
+    <LI><I>X</I> - X coord.</LI>
+    <LI><I>Y</I> - Y coord.</LI>
+    </UL> }
+  TKPoint64 = record
+    X, Y: Int64;
+  end;
+
+  { Pointer }
+  PKPoint64 = ^TKPoint64;
+
+  { @abstract(Declares a structure that holds rectangle coordinates as 64-bit wide integers)
+    <UL>
+    <LH>Members:</LH>
+    <LI><I>Left</I> - left coord.</LI>
+    <LI><I>Right</I> - right coord.</LI>
+    <LI><I>Top</I> - top coord.</LI>
+    <LI><I>Bottom</I> - bottom coord.</LI>
+    </UL> }
+  TKRect64 = record
+    Left, Right, Top, Bottom: Int64;
+  end;
+
+  { Pointer }
+  PKRect64 = ^TKRect64;
 
 { Replaces possible decimal separators in S with DecimalSeparator variable.}
 function AdjustDecimalSeparator(const S: string): string;
@@ -527,9 +555,17 @@ function DigitToNibble(Digit: AnsiChar; var Nibble: Byte): Boolean;
   the result will be incremented. }
 function DivUp(Dividend, Divisor: Integer): Integer;
 
+{ Performs 64-bit integer division. If there is a nonzero remainder,
+  the result will be incremented. }
+function DivUp64(Dividend, Divisor: Int64): Int64;
+
 { Performs integer division. If there is a nonzero remainder,
   the result will be decremented. }
 function DivDown(Dividend, Divisor: Integer): Integer;
+
+{ Performs 64-bit integer division. If there is a nonzero remainder,
+  the result will be decremented. }
+function DivDown64(Dividend, Divisor: Int64): Int64;
 
 { Returns True if focused window is some text editing window, such as TEdit. }
 function EditIsFocused(AMustAllowWrite: Boolean): Boolean;
@@ -714,6 +750,9 @@ function MinMax(Value, Min, Max: Double): Double; overload;
 function MinMax(Value, Min, Max: Extended): Extended; overload;
 {$ENDIF}
 
+{ Fill the data & size structure. }
+function MakeDataSize(AData: Pointer; ASize: Integer): TDataSize;
+
 { Converts nibble to hexadecimal digit. }
 function NibbleToDigit(Nibble: Byte; UpperCase: Boolean): AnsiChar;
 
@@ -746,6 +785,21 @@ procedure OffsetPoint(var APoint: TPoint; const AOffset: TPoint); overload;
 
 { Normalizes the given input rectangle. }
 function NormalizeRect(const ARect: TRect): TRect;
+
+{ Create 64-bit point structure. }
+function Point64(AX, AY: Int64): TKPoint64;
+
+{ Convert point structure to 64-bit point structure. }
+function PointToPoint64(const APoint: TPoint): TKPoint64;
+
+{ Convert point structure to 64-bit point structure. }
+function Point64ToPoint(const APoint: TKPoint64): TPoint;
+
+{ Examines if APoint lies within ARect. }
+function Pt64InRect(const ARect: TRect; const APoint: TKPoint64): Boolean;
+
+{ Create 64-bit rectangle structure. }
+function Rect64(ALeft, ATop, ARight, ABottom: Int64): TKRect64;
 
 { Examines if some part of Rect lies within Bounds. }
 function RectInRect(Bounds, Rect: TRect): Boolean;
@@ -1226,7 +1280,27 @@ begin
     Result := Dividend div Divisor;
 end;
 
+function DivUp64(Dividend, Divisor: Int64): Int64;
+begin
+  if Divisor = 0 then
+    Result := 0
+  else if Dividend mod Divisor > 0 then
+    Result := Dividend div Divisor + 1
+  else
+    Result := Dividend div Divisor;
+end;
+
 function DivDown(Dividend, Divisor: Integer): Integer;
+begin
+  if Divisor = 0 then
+    Result := 0
+  else if Dividend mod Divisor < 0 then
+    Result := Dividend div Divisor - 1
+  else
+    Result := Dividend div Divisor;
+end;
+
+function DivDown64(Dividend, Divisor: Int64): Int64;
 begin
   if Divisor = 0 then
     Result := 0
@@ -2220,6 +2294,12 @@ begin
 end;
 {$ENDIF}
 
+function MakeDataSize(AData: Pointer; ASize: Integer): TDataSize;
+begin
+  Result.Data := AData;
+  Result.Size := ASize;
+end;
+
 function NibbleToDigit(Nibble: Byte; UpperCase: Boolean): AnsiChar;
 begin
   if Nibble < 10 then
@@ -2375,6 +2455,39 @@ begin
     Exchange(Result.Left, Result.Right);
   if Result.Top > Result.Bottom then
     Exchange(Result.Top, Result.Bottom);
+end;
+
+function Point64(AX, AY: Int64): TKPoint64;
+begin
+  Result.X:= AX;
+  Result.Y:= AY;
+end;
+
+function PointToPoint64(const APoint: TPoint): TKPoint64;
+begin
+  Result.X:= APoint.x;
+  Result.Y:= APoint.y;
+end;
+
+function Point64ToPoint(const APoint: TKPoint64): TPoint;
+begin
+  Result.X:= Integer(APoint.X);
+  Result.Y:= Integer(APoint.Y);
+end;
+
+function Pt64InRect(const ARect: TRect; const APoint: TKPoint64): Boolean;
+begin
+  Result :=
+    (APoint.X >= ARect.Left) and (APoint.X < ARect.Right) and
+    (APoint.Y >= ARect.Top) and (APoint.Y < ARect.Bottom);
+end;
+
+function Rect64(ALeft, ATop, ARight, ABottom: Int64): TKRect64;
+begin
+  Result.Left:= ALeft;
+  Result.Top:= ATop;
+  Result.Right:= ARight;
+  Result.Bottom:= ABottom;
 end;
 
 function RectInRect(Bounds, Rect: TRect): Boolean;

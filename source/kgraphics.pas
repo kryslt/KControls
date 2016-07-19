@@ -641,8 +641,14 @@ procedure CopyBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcX, SrcY: Integ
 { Creates an empty point. }
 function CreateEmptyPoint: TPoint;
 
+{ Creates an empty point. }
+function CreateEmptyPoint64: TKPoint64;
+
 { Creates an empty rectangle. }
 function CreateEmptyRect: TRect;
+
+{ Creates an empty rectangle. }
+function CreateEmptyRect64: TKRect64;
 
 { Creates an empty rectangular region. }
 function CreateEmptyRgn: HRGN;
@@ -992,9 +998,19 @@ begin
   Result := Point(0,0);
 end;
 
+function CreateEmptyPoint64: TKPoint64;
+begin
+  Result := Point64(0,0);
+end;
+
 function CreateEmptyRect: TRect;
 begin
   Result := Rect(0,0,0,0);
+end;
+
+function CreateEmptyRect64: TKRect64;
+begin
+  Result := Rect64(0,0,0,0);
 end;
 
 function CreateEmptyRgn: HRGN;
