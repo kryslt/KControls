@@ -765,6 +765,8 @@ type
     function RealLeftOffset: Integer;
     function RealTopOffset: Integer;
     procedure Resize(ANewWidth, ANewHeight: Integer); virtual;
+    procedure RestoreUpdateState(AValue: TKMemoUpdateReasons); virtual;
+    function SaveUpdateState: TKMemoUpdateReasons; virtual;
     procedure SelectAll; virtual;
     function Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean): Boolean; virtual;
     function SelectableLength(ALocalCalc: Boolean = False): Integer; virtual;
@@ -1420,7 +1422,9 @@ type
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
     function PointToIndexOnLine(ACanvas: TCanvas; ALineIndex: Integer; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
+    procedure RestoreUpdateState(AValue: TKMemoUpdateReasons); virtual;
     procedure SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean = False); virtual;
+    function SaveUpdateState: TKMemoUpdateReasons; virtual;
     procedure SetExtent(AWidth, AHeight: Integer); virtual;
     procedure UpdateAttributes; virtual;
     property BoundsRect: TRect read GetBoundsRect;
@@ -6942,6 +6946,12 @@ procedure TKMemoBlock.Resize(ANewWidth, ANewHeight: Integer);
 begin
 end;
 
+procedure TKMemoBlock.RestoreUpdateState(AValue: TKMemoUpdateReasons);
+begin
+  if ParentBlocks <> nil then
+    ParentBlocks.RestoreUpdateState(AValue);
+end;
+
 function TKMemoBlock.MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer): TPoint;
 var
   I: Integer;
@@ -7001,6 +7011,14 @@ function TKMemoBlock.WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint;
   AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer;
 begin
   Result := -1;
+end;
+
+function TKMemoBlock.SaveUpdateState: TKMemoUpdateReasons;
+begin
+  if ParentBlocks <> nil then
+    Result := ParentBlocks.SaveUpdateState
+  else
+    Result := [];
 end;
 
 function TKMemoBlock.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean): Boolean;
@@ -7173,8 +7191,8 @@ end;
 
 procedure TKMemoBlock.Update(AReasons: TKMemoUpdateReasons);
 begin
-  if (Parent <> nil) and UpdateUnlocked then
-    ParentBlocks.Update(AReasons);
+  if Parent <> nil then
+    ParentBlocks.Update(AReasons)
 end;
 
 function TKMemoBlock.WordIndexToRect(ACanvas: TCanvas; AWordIndex: Integer;
@@ -13338,6 +13356,11 @@ begin
   end;
 end;
 
+procedure TKMemoBlocks.RestoreUpdateState(AValue: TKMemoUpdateReasons);
+begin
+  FUpdateReasons := AValue;
+end;
+
 procedure TKMemoBlocks.SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean);
 var
   Writer: TKMemoRTFWriter;
@@ -13348,6 +13371,11 @@ begin
   finally
     Writer.Free;
   end;
+end;
+
+function TKMemoBlocks.SaveUpdateState: TKMemoUpdateReasons;
+begin
+  Result := FUpdateReasons;
 end;
 
 function TKMemoBlocks.Select(ASelStart, ASelLength: Integer; ADoScroll: Boolean; ATextOnly: Boolean): Boolean;
@@ -13687,14 +13715,16 @@ var
   PA: TKMemoParagraph;
   NumberBlock: TKMemoTextBlock;
   ListTable: TKMemoListTable;
+  State: TKMemoUpdateReasons;
 begin
+  State := SaveUpdateState;
   Inc(FUpdateLock);
   try
     if MemoNotifier <> nil then
       ListTable := MemoNotifier.GetListTable
     else
       ListTable := nil;
-    if FUpdateReasons <> [muContentAddOnly] then
+    if State <> [muContentAddOnly] then
     begin
       FRelPos.Clear;
       FSelectableLength := 0;
@@ -13738,6 +13768,7 @@ begin
     end;
   finally
     Dec(FUpdateLock);
+    RestoreUpdateState(State);
   end;
   if Count > 0 then
   begin

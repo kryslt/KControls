@@ -121,6 +121,8 @@ begin
   try
     EDExplicitWidth.ValueAsInt := 0;
     EDExplicitHeight.ValueAsInt := 0;
+    EDScaleX.ValueAsInt := 100;
+    EDScaleY.ValueAsInt := 100;
   finally
     FLockUpdate := False;
   end;
