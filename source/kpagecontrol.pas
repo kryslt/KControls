@@ -168,6 +168,8 @@ type
     FMouseInCloseButton: Boolean;
     FPageToClose: Integer;
     FRightScrollButton: TKSpeedButton;
+    FScrolling: Boolean;
+    FTabAreaExtent: Integer;
     FVisibleTabsExtent: Integer;
     function GetTabInfo(ACanvas: TCanvas; ATabIndex: Integer; out Info: TKTabInfo): Boolean; virtual;
     function GetTabPaintInfo(ACanvas: TCanvas; ATabIndex: Integer; out Info: TKTabPaintInfo): Boolean; virtual;
@@ -195,7 +197,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function IndexOfTabAt(X, Y: Integer): Integer; virtual;
-    function TabRect(Index: Integer): TRect; virtual;
+    function TabRect(AIndex: Integer): TRect; virtual;
     property FirstVisibleTab: Integer read FFirstVisibleTab write SetFirstVisibleTab;
     property Options: TKTabPanelOptions read FOptions write SetOptions;
     property PageControl: TKCustomPageControl read FPageControl write SetPageControl;
@@ -355,7 +357,7 @@ type
     procedure ShowControl(AControl: TControl); override;
     procedure UpdateAllDesignerFlags;
     procedure UpdateDesignerFlags(APageIndex: integer);
-    procedure UpdateTabPanel(AScrollToPageIndex: Integer = -1); virtual;
+    procedure UpdateTabPanel; virtual;
     procedure UpdateTabPanelPosition; virtual;
   public
     constructor Create(AOwner: TComponent); override;
@@ -621,6 +623,7 @@ begin
   FRightScrollButton.Visible := False;
   FRightScrollButton.OnClick := RightScrollButtonClick;
   FRightScrollButton.Parent := Self;
+  FScrolling := False;
   FVisibleTabsExtent := 0;
   UpdateTabPanel;
 end;
@@ -768,7 +771,7 @@ end;
 
 procedure TKTabPanel.LeftScrollButtonClick(Sender: TObject);
 begin
-  FirstVisibleTab := FFirstVisibleTab - 1;
+  FirstVisibleTab := FirstVisibleTab - 1;
 end;
 
 procedure TKTabPanel.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -788,8 +791,8 @@ begin
     for I := 0 to FPageControl.PageCount - 1 do
       if getTabPaintInfo(Canvas, I, Info) then
       begin
-        if I > FLastFullyVisibleTab then
-          FirstVisibleTab := FFirstVisibleTab + I - FLastFullyVisibleTab;
+        {if I > FLastFullyVisibleTab then
+          FirstVisibleTab := FFirstVisibleTab + I - FLastFullyVisibleTab;}
         if PtInRect(Info.CloseRect, MousePt) then
         begin
           FPageToClose := I;
@@ -999,7 +1002,10 @@ begin
         LineTo(R.Right, L);
         R := Rect(Width - ScrollButtonExtent, T, Width, B);
         FillRect(R);
-        MoveTo(FFullyVisibleTabsExtent + ScrollButtonExtent, L);
+        if FFullyVisibleTabsExtent = 0 then
+          MoveTo(R.Left, L)
+        else
+          MoveTo(FFullyVisibleTabsExtent + ScrollButtonExtent, L);
         LineTo(R.Right, L);
       end;
     end;
@@ -1163,7 +1169,7 @@ end;
 
 procedure TKTabPanel.RightScrollButtonClick(Sender: TObject);
 begin
-  FirstVisibleTab := FFirstVisibleTab + 1;
+  FirstVisibleTab := FirstVisibleTab + 1;
 end;
 
 procedure TKTabPanel.SetFirstVisibleTab(Value: Integer);
@@ -1171,8 +1177,13 @@ begin
   Value := MinMax(Value, 0, FMaxFirstVisibleTab);
   if Value <> FFirstVisibleTab then
   begin
-    FFirstVisibleTab := Value;
-    UpdateTabPanel;
+    FScrolling := True;
+    try
+      FFirstVisibleTab := Value;
+      UpdateTabPanel;
+    finally
+      FScrolling := False;
+    end;
   end;
 end;
 
@@ -1190,13 +1201,13 @@ begin
   FOptions.Assign(Value);
 end;
 
-function TKTabPanel.TabRect(Index: Integer): TRect;
+function TKTabPanel.TabRect(AIndex: Integer): TRect;
 var
   Info: TKTabPaintInfo;
 begin
   Result := CreateEmptyRect;
   if FPageControl <> nil then
-    if getTabPaintInfo(Canvas, Index, Info) then
+    if getTabPaintInfo(Canvas, AIndex, Info) then
       Result := Info.TabRect;
 end;
 
@@ -1239,12 +1250,11 @@ begin
   FLeftScrollButton.ImageIndex := FOptions.LeftButtonIndex;
   FRightScrollButton.ImageIndex := FOptions.RightButtonIndex;
   UpdateScrollRange;
-  Invalidate;
 end;
 
 procedure TKTabPanel.UpdateTabPanelLayout(ACanvas: TCanvas);
 var
-  I, Tmp, ScrollButtonExtent: Integer;
+  I, ScrollButtonExtent, ActivePageExtent, ActivePagePos: Integer;
   MaxFirstVisibleTabSet: Boolean;
   TI: TKTabInfo;
 begin
@@ -1260,6 +1270,9 @@ begin
   begin
     MaxFirstVisibleTabSet := False;
     ScrollButtonExtent := 2 * FOptions.Padding + FOptions.ScrollButtonSize;
+    ActivePageExtent := 0;
+    ActivePagePos := 0;
+    // calculate extent of all tabs and initialize some helper variables
     for I := FPageControl.PageCount - 1 downto 0 do
       if GetTabInfo(ACanvas, I, TI) then
       begin
@@ -1269,23 +1282,46 @@ begin
           FMaxFirstVisibleTab := I + 1;
           MaxFirstVisibleTabSet := True;
         end;
+        if I = FPageControl.ActivePageIndex then
+          ActivePageExtent := TI.TabExtent
+        else if I < FPageControl.ActivePageIndex then
+          Inc(ActivePagePos, TI.TabExtent);
       end;
     if FAllTabsExtent <= Width then
     begin
-      Tmp := Width;
+      FTabAreaExtent := Width;
       FMaxFirstVisibleTab := 0;
     end else
-      Tmp := Width - 2 * ScrollButtonExtent;
+      FTabAreaExtent := Width - 2 * ScrollButtonExtent;
+    // limit important tab indexes
     FMaxFirstVisibleTab := MinMax(FMaxFirstVisibleTab, 0, FPageControl.PageCount - 1);
     FFirstVisibleTab := MinMax(FFirstVisibleTab, 0, FMaxFirstVisibleTab);
-    for I := 0 to FPageControl.PageCount - 1 do
+    // ensure active page is visible if hidden to the left, do only when FirstVisibleTab is not being set explictly
+    if not FScrolling then
+    begin
+      if (FPageControl.ActivePageIndex >= 0) and (FPageControl.ActivePageIndex < FFirstVisibleTab) then
+        FFirstVisibleTab := FPageControl.ActivePageIndex;
+    end;
+    // calculate invisible tabs to the left
+    for I := 0 to FFirstVisibleTab - 1 do
+      if GetTabInfo(ACanvas, I, TI) then
+        Inc(FInvisibleTabsExtent, TI.TabExtent);
+    // ensure active page is visible if hidden to the right, do only when FirstVisibleTab is not being set explictly
+    if not FScrolling then
+    begin
+      while (FFirstVisibleTab < FMaxFirstVisibleTab) and (FTabAreaExtent > ActivePageExtent) and (ActivePagePos + ActivePageExtent - FInvisibleTabsExtent > FTabAreaExtent) do
+      begin
+        if GetTabInfo(ACanvas, FFirstVisibleTab, TI) then
+          Inc(FinvisibleTabsExtent, TI.TabExtent);
+        Inc(FFirstVisibleTab);
+      end;
+    end;
+    // calculate remaining tabs, including invisible ones to the right
+    for I := FFirstVisibleTab to FPageControl.PageCount - 1 do
       if GetTabInfo(ACanvas, I, TI) then
       begin
-        if I < FFirstVisibleTab then
-          Inc(FInvisibleTabsExtent, TI.TabExtent)
-        else
-          Inc(FVisibleTabsExtent, TI.TabExtent);
-        if FVisibleTabsExtent < Tmp then
+        Inc(FVisibleTabsExtent, TI.TabExtent);
+        if FVisibleTabsExtent < FTabAreaExtent then
         begin
           FFullyVisibleTabsExtent := FVisibleTabsExtent;
           FLastFullyVisibleTab := I;
@@ -1573,7 +1609,7 @@ begin
     end;
     Change;
     UpdateAllDesignerFlags;
-    UpdateTabPanel(FActivePageIndex);
+    UpdateTabPanel;
   end;
 end;
 
@@ -2055,13 +2091,11 @@ begin
     CurPage.ControlStyle := CurPage.ControlStyle - [csNoDesignVisible];
 end;
 
-procedure TKCustomPageControl.UpdateTabPanel(AScrollToPageIndex: Integer);
+procedure TKCustomPageControl.UpdateTabPanel;
 begin
   if (FTabPanel <> nil) and not (csDestroying in ComponentState) then
   begin
     FTabPanel.UpdateTabPanel;
-    if AScrollToPageIndex >= 0 then
-      FTabPanel.FirstVisibleTab := AScrollToPageIndex; // will be internally limited to show up correctly
   end;
 end;
 
