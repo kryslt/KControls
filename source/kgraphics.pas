@@ -1504,14 +1504,17 @@ end;
 
 procedure SafeStretchDraw(ACanvas: TCanvas; ARect: TRect; AGraphic: TGraphic; ABackColor: TColor);
 {$IFDEF USE_WINAPI}
-var
+{var
   BM: TBitmap;
   W, H, MulX, MulY, DivX, DivY: Integer;
-  R: TRect;
+  R: TRect;}
 {$ENDIF}
 begin
 {$IFDEF USE_WINAPI}
-  if AGraphic.Transparent then
+  // tk: I cannot see problem with StretchBlt anymore, perhaps it was in old Windows XP?
+  // Even if so, following implementation is buggy:
+
+  {if AGraphic.Transparent then
   begin
     // WinAPI StretchBlt function does not read properly from screen buffer
     // so we have to append double buffering
@@ -1530,7 +1533,7 @@ begin
     finally
       BM.Free;
     end;
-  end else
+  end else}
 {$ENDIF}
     ACanvas.StretchDraw(ARect, AGraphic);
 end;
