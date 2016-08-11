@@ -962,7 +962,8 @@ end;
 function TKCustomNumberEdit.GetValue: Extended;
 begin
   Result := GetFormat(Text, FLastInputFormat);
-  Result := MinMax(Result, FMin, FMax);
+  if neoClampToMinMax in FOptions then
+    Result := MinMax(Result, FMin, FMax);
 end;
 
 procedure TKCustomNumberEdit.SetValue(AValue: Extended);
