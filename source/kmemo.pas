@@ -2062,6 +2062,8 @@ type
     procedure LoadFromRTFStream(AStream: TStream; AtIndex: Integer = -1); virtual;
     { Load contents from a plain text file. }
     procedure LoadFromTXT(const AFileName: TKString); virtual;
+    { Load contents from a plain text stream. }
+    procedure LoadFromTXTStream(AStream: TStream); virtual;
     { Moves the caret nearest to current mouse position. }
     procedure MoveCaretToMouseCursor(AIfOutsideOfSelection: Boolean);
     { Converts client area coordinates into a text buffer index.
@@ -5421,6 +5423,20 @@ begin
     finally
       List.Free;
     end;
+  end;
+end;
+
+procedure TKCustomMemo.LoadFromTXTStream(AStream: TStream);
+var
+  List: TStringList;
+begin
+  Clear(False);
+  List := TStringList.Create;
+  try
+    List.LoadFromStream(AStream);
+    Text := List.Text;
+  finally
+    List.Free;
   end;
 end;
 

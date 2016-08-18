@@ -1762,6 +1762,7 @@ begin
       if BF.Execute then
       begin
         Text := BF.Folder;
+        Change;
         if foAddToList in FOptions then
           Items.Insert(0, Text);
         FDlgProperties.InitialDir := ExtractFilePath(Text);
@@ -1785,6 +1786,7 @@ begin
       if SD.Execute then
       begin
         Text := SD.FileName;
+        Change;
         if foAddToList in FOptions then
           Items.Insert(0, Text);
         FDlgProperties.InitialDir := ExtractFilePath(Text);
@@ -1808,6 +1810,7 @@ begin
       if OD.Execute then
       begin
         Text := OD.FileName;
+        Change;
         if foAddToList in FOptions then
           Items.Insert(0, Text);
         FDlgProperties.InitialDir := ExtractFilePath(Text);
