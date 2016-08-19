@@ -1303,9 +1303,12 @@ end;
 function ExtSelectClipRectEx(DC: HDC; ARect: TRect; Mode: Integer; CurRgn, PrevRgn: HRGN): Boolean;
 var
   RectRgn: HRGN;
+  //R1, R2: TRect;
 begin
   RectRgn := CreateRectRgnIndirect(ARect);
   try
+    //GetRgnBox(PrevRgn, R1); // debug line
+    //GetRgnBox(RectRgn, R2); // debug line
     Result := CombineRgn(CurRgn, PrevRgn, RectRgn, Mode) <> NULLREGION;
     if Result then
       SelectClipRgn(DC, CurRgn);
@@ -1579,13 +1582,15 @@ end;
 
 procedure TranslateRectToDevice(DC: HDC; var ARect: TRect);
 var
-  P: TPoint;
+  WindowOrg, ViewportOrg: TPoint;
 {$IFDEF USE_DC_MAPPING}
  {$IFNDEF LCLQT}
   WindowExt, ViewportExt: TSize;
  {$ENDIF}
 {$ENDIF}
 begin
+  if Boolean(GetWindowOrgEx(DC, {$IFDEF FPC}@{$ENDIF}WindowOrg)) then
+    KFunctions.OffsetRect(ARect, -WindowOrg.X, -WindowOrg.Y);
 {$IFDEF USE_DC_MAPPING}
   {$IFNDEF LCLQT}
   if not (GetMapMode(DC) in [0, MM_TEXT]) and
@@ -1597,12 +1602,10 @@ begin
     ARect.Top := MulDiv(ARect.Top, ViewportExt.cy, WindowExt.cy);
     ARect.Bottom := MulDiv(ARect.Bottom, ViewportExt.cy, WindowExt.cy);
   end;
-  if Boolean(GetViewPortOrgEx(DC, {$IFDEF FPC}@{$ENDIF}P)) then
-    KFunctions.OffsetRect(ARect, P);
+  if Boolean(GetViewPortOrgEx(DC, {$IFDEF FPC}@{$ENDIF}ViewportOrg)) then
+    KFunctions.OffsetRect(ARect, ViewportOrg);
   {$ENDIF}
 {$ENDIF}
-  if Boolean(GetWindowOrgEx(DC, {$IFDEF FPC}@{$ENDIF}P)) then
-    KFunctions.OffsetRect(ARect, -P.X, -P.Y);
 end;
 
 function VerticalShapePosition(AAlignment: TKVAlign; const ABoundary: TRect; const AShapeSize: TPoint): Integer;

@@ -4561,7 +4561,7 @@ begin
   Stream := TMemoryStream.Create;
   try
     SaveToRTFStream(Stream, True);
-    Stream.SaveToFile('copied.rtf'); //debug line
+    //Stream.SaveToFile('copied.rtf'); //debug line
     Result := ClipBoardSaveStreamAs(cRichText, Stream, S);
   finally
     Stream.Free;
@@ -8011,8 +8011,7 @@ var
   R, RClip: TRect;
   Word: TKMemoWord;
   Color, Bkgnd: TColor;
-  MainClipRgn: HRGN;
-  SaveIndex: Integer;
+  PrevRgn: HRGN;
 begin
   with ACanvas do
   begin
@@ -8068,21 +8067,14 @@ begin
       R := Rect(X, Y + Word.TopPadding, X + Word.Extent.X, Y + Word.Extent.Y - Word.BottomPadding);
       if FWords[AWordIndex].Clipped then
       begin
-        SaveIndex := SaveDC(ACanvas.Handle);
-        MainClipRgn := CreateEmptyRgn;
+        RClip := R;
+        TranslateRectToDevice(ACanvas.Handle, RClip);
+        PrevRgn := RgnCreateAndGet(ACanvas.Handle);
         try
-          RClip := R;
-          TranslateRectToDevice(ACanvas.Handle, RClip);
-          if GetClipRgn(ACanvas.Handle, MainClipRgn) <> 1 then
-          begin
-            DeleteObject(MainClipRgn);
-            MainClipRgn := CreateRectRgnIndirect(RClip);
-          end;
-          if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, MainClipRgn) then
+          if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, PrevRgn) then
             TextDraw(R, BaseLine, S);
         finally
-          RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
-          RestoreDC(ACanvas.Handle, SaveIndex);
+          RgnSelectAndDelete(ACanvas.Handle, PrevRgn);
         end;
         ACanvas.Refresh;
       end else
@@ -9416,9 +9408,8 @@ end;
 
 procedure TKMemoContainer.WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer);
 var
-  R, ClipRect: TRect;
-  MainClipRgn: HRGN;
-  SaveIndex: Integer;
+  R, RClip: TRect;
+  PrevRgn: HRGN;
 begin
   R := Rect(0, 0, Width, Height);
   KFunctions.OffsetRect(R, Left + ALeft + RealLeftOffset, Top + ATop + RealTopOffset + FWordTopPadding);
@@ -9431,24 +9422,17 @@ begin
   Inc(ATop, Top + FBlockStyle.AllPaddingsTop + RealTopOffset + FWordTopPadding);
   if FClip then
   begin
-    SaveIndex := SaveDC(ACanvas.Handle);
-    MainClipRgn := CreateEmptyRgn;
+    RClip := R;
+    TranslateRectToDevice(ACanvas.Handle, RClip);
+    PrevRgn := RgnCreateAndGet(ACanvas.Handle);
     try
-      ClipRect := R;
-      TranslateRectToDevice(ACanvas.Handle, ClipRect);
-      if GetClipRgn(ACanvas.Handle, MainClipRgn) <> 1 then
-      begin
-        DeleteObject(MainClipRgn);
-        MainClipRgn := CreateRectRgnIndirect(ClipRect);
-      end;
-      if ExtSelectClipRect(ACanvas.Handle, ClipRect, RGN_AND, MainClipRgn) then
+      if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, PrevRgn) then
       begin
         R := FBlockStyle.InteriorRect(R);
         FBlocks.PaintToCanvas(ACanvas, ALeft, ATop, R);
       end;
     finally
-      RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
-      RestoreDC(ACanvas.Handle, SaveIndex);
+      RgnSelectAndDelete(ACanvas.Handle, PrevRgn);
     end;
     ACanvas.Refresh;
   end else
@@ -13120,7 +13104,8 @@ var
   SaveIndex: Integer;
   R, RClip: TRect;
   PA: TKMemoParagraph;
-  MainClipRgn: HRGN;
+  PrevRgn: HRGN;
+  //Tmp: TRect;
 begin
   PA := GetNearestParagraphItem(FLines[ALineIndex].StartBlock);
   if (PA <> nil) and ((PA.ParaStyle.Brush.Style <> bsClear) or (PA.ParaStyle.BorderWidth > 0) or PA.ParaStyle.BorderWidths.NonZero) then
@@ -13132,20 +13117,15 @@ begin
     RClip.Bottom := Min(RClip.Bottom, LineBottom[ALineIndex]);
     KFunctions.OffsetRect(R, ALeft, ATop);
     KFunctions.OffsetRect(RClip, ALeft, ATop);
-    SaveIndex := SaveDC(ACanvas.Handle);
-    MainClipRgn := CreateEmptyRgn;
+    //GetCLipBox(ACanvas.Handle, Tmp); // debug line
+    //TranslateRectToDevice(ACanvas.Handle, Tmp); // debug line
+    TranslateRectToDevice(ACanvas.Handle, RClip);
+    PrevRgn := RgnCreateAndGet(ACanvas.Handle);
     try
-      TranslateRectToDevice(ACanvas.Handle, RClip);
-      if GetClipRgn(ACanvas.Handle, MainClipRgn) <> 1 then
-      begin
-        DeleteObject(MainClipRgn);
-        MainClipRgn := CreateRectRgnIndirect(RClip);
-      end;
-      if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, MainClipRgn) then
+      if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, PrevRgn) then
         PA.ParaStyle.PaintBox(ACanvas, R);
     finally
-      RgnSelectAndDelete(ACanvas.Handle, MainClipRgn);
-      RestoreDC(ACanvas.Handle, SaveIndex);
+      RgnSelectAndDelete(ACanvas.Handle, PrevRgn);
     end;
     ACanvas.Refresh;
   end;

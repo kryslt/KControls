@@ -3610,7 +3610,7 @@ end;
 procedure TKCustomHexEditor.PaintLines(const Data: TKHexEditorPaintData);
 var
   HalfPosWidth, I, J, K, M, MaxAddress, WHorz, WVert, WSep: Integer;
-  Index, L, Line, Addr: Int64;
+  Index, L, LineIndex, Addr: Int64;
   LeftIndent, VTextIndent: Integer;
   BC1, BC2, FC1, FC2, PC1: TColor;
   EditorFocused, DrawInactiveCaret, DrawNormal, DigitSep, SelCondition: Boolean;
@@ -3703,8 +3703,8 @@ begin
     else
       GetClipBox(Handle, {$IFDEF FPC}@{$ENDIF}RClip);
     // now paint text lines
-    Line := Data.TopLine;
-    while Line <= Min(L - 1, Data.BottomLine) do
+    LineIndex := Data.TopLine;
+    while LineIndex <= Min(L - 1, Data.BottomLine) do
     begin
       Brush.Style := bsSolid;
       K := LeftIndent;
@@ -3713,7 +3713,7 @@ begin
       begin
         if edAddress in FDrawStyles then
         begin
-          Index := Line * FLineSize;
+          Index := LineIndex * FLineSize;
           Brush.Color := clRed;
           if (DrawNormal or Data.PaintSelection) and ((ASelStart.Index <> ASelEnd.Index) or (ASelStart.Digit <> ASelEnd.Digit)) and
             (Index + FLineSize - 1 >= ASelStart.Index) and (Index < ASelEnd.Index) then
@@ -3739,7 +3739,7 @@ begin
           R.Left := K;
           Inc(K, AD.Address * Data.CharWidth);
           R.Right := K;
-          Addr := Line * FLineSize + FAddressOffset;
+          Addr := LineIndex * FLineSize + FAddressOffset;
           if MaxAddress <> 0 then Addr := Addr mod MaxAddress;
           FillRect(R);
           TextOut(R.Left, R.Top + VTextIndent, Format(Fmt, [Addr]));
@@ -3780,7 +3780,7 @@ begin
           Index := 0;
           for J := 0 to FLineSize - 1 do
           begin
-            Index := Line * FLineSize + J;
+            Index := LineIndex * FLineSize + J;
             DigitSep := (J < FLineSize - 1) and ((J + 1) mod FDigitGrouping = 0);
             R.Left := K;
             Inc(K, cDigitCount * Data.CharWidth);
@@ -3985,7 +3985,7 @@ begin
           end;
           for J := 0 to FLineSize - 1 do
           begin
-            Index := Line * FLineSize + J;
+            Index := LineIndex * FLineSize + J;
             R.Left := K;
             Inc(K, Data.CharWidth);
             R.Right := K;
@@ -4049,7 +4049,7 @@ begin
           end;
         end;
       end;
-      Inc(Line);
+      Inc(LineIndex);
       Inc(R.Top, Data.CharHeight);
     end;
     // now complete blank areas below text and optionally paint separators
