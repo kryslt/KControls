@@ -2029,6 +2029,7 @@ begin
     begin
       Text := CorrectPath(Value, FDlgProperties.InitialDir, FOptions, B, FLog);
       if not (csDesigning in ComponentState) then
+      begin
         if B then
         begin
           if foWarning in FOptions then Font.Color := FWarningColor
@@ -2039,7 +2040,10 @@ begin
             if (Items.IndexOf(Text) < 0) and (Text <> '') then
               Items.Insert(0, Text);
         end;
-    end else
+        Change;
+      end;
+    end
+    else
       Text := Value;        
   end;
 end;
