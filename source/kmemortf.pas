@@ -1825,8 +1825,9 @@ begin
   begin
     FActiveTable.FixupCellSpanFromRTF;
     FActiveTable.FixupBorders;
-    FActiveTable.UnlockUpdate;
     FActiveBlocks := FActiveTable.ParentBlocks;
+    FActiveTable.Parent := nil;
+    FActiveTable.UnlockUpdate;
     FAtIndex := FIndexStack.PopValue;
     if not FActiveBlocks.InsideOfTable then // no support for nested tables yet
     begin
@@ -2764,9 +2765,9 @@ begin
         if FActiveTable = nil then
         begin
           ActiveTable.LockUpdate;
+          ActiveTable.Parent := FActiveBlocks; // needs a parent to correctly update
           ActiveTable.RowCount := 1;
           ActiveTable.ColCount := 1;
-          ActiveTable.Parent := FActiveBlocks;
           FActiveTableColCount := 1;
           FActiveTableRow := ActiveTable.Rows[ActiveTable.RowCount - 1];
           FActiveBlocks := FActiveTableRow.Cells[FActiveTableColCount - 1].Blocks; // starting new cell

@@ -1675,6 +1675,7 @@ type
     function GetEmpty: Boolean;
     function GetInsertMode: Boolean;
     function GetModified: Boolean;
+    function GetRelativeSelected: Boolean;
     function GetRequiredContentWidth: Integer;
     function GetRTF: TKMemoRTFString;
     function GetSelAvail: Boolean;
@@ -1735,7 +1736,6 @@ type
     procedure WMPaste(var Msg: TLMessage); message LM_PASTE;
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
-    function GetRelativeSelected: Boolean;
   protected
     FCaretRect: TRect;
     FDragCurPos: TPoint;
@@ -4324,10 +4324,8 @@ begin
     FTextStyle.Defaults;
     FTextStyle.Font.Assign(Font);
     FParaStyle.Defaults;
-    {
     FColors.BkGnd := cBkGndDef;
     FBackground.Clear;
-    }
     FListTable.Clear;
   finally
     FBlocks.UnlockUpdate;

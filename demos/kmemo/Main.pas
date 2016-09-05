@@ -565,11 +565,13 @@ begin
   Preview := TKPrintPreview.Create(nil);
   BM := TBitmap.Create;
   try
-    Preview.Parent := Self;
+    Preview.Visible := False;
     Preview.Height := 297 * 3; // A4 scaled
     Preview.Width := 210 * 3;  // A4 scaled
     Preview.Control := KMemo1;
     Preview.Page := 2;
+    Preview.Parent := Self;
+    Preview.HandleNeeded; // handle needed to update the preview size
     BM.Width := Preview.PageRect.Right - Preview.PageRect.Left;
     BM.Height := Preview.PageRect.Bottom - Preview.PageRect.Top;
     Preview.PaintTo(BM.Canvas);
