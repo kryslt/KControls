@@ -13099,7 +13099,6 @@ end;
 
 procedure TKMemoBlocks.PaintLineBackground(ACanvas: TCanvas; ALineIndex, ALeft, ATop: Integer);
 var
-  SaveIndex: Integer;
   R, RClip: TRect;
   PA: TKMemoParagraph;
   PrevRgn: HRGN;

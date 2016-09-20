@@ -1038,7 +1038,10 @@ begin
           for J := 0 to Bitmap.Height - 1 do
           begin
             C.Value := APngImage.Pixels[I, J];
-            C.A := APngImage.AlphaScanline[J][I];
+            if APngImage.AlphaScanline[J] <> nil then
+              C.A := APngImage.AlphaScanline[J][I]
+            else
+              C.A := 0;
             Bitmap.Pixel[I, J] := C;
           end;
         LoadHandles(FIconCount - 1, MakeHandles(Bitmap.Handle, CreateMonochromeBitmap(Bitmap.Width, Bitmap.Height)), True);

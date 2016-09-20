@@ -452,7 +452,7 @@ implementation
 uses
   Math, SysUtils, KHexEditor, KRes
 {$IFDEF FPC}
-  , LCLIntf, LCLProc, LConvEncoding, LCLType
+  , LCLIntf, LCLProc, LConvEncoding, LCLType, LazUTF8
 {$ELSE}
   , JPeg, Windows
 {$ENDIF}
@@ -4094,15 +4094,12 @@ var
   WasAnsi: Boolean;
   S, Ansi: AnsiString;
   C: TKChar;
-{$IFDEF FPC}
-  CharLen: Integer;
-{$ENDIF}
 begin
   S := '';
   for I := 1 to StringLength(AText) do
   begin
   {$IFDEF FPC}
-    C := UTF8Copy(AText, I, 1);
+    C := LazUTF8.UTF8Copy(AText, I, 1);
     if Length(C) = 1 then
   {$ELSE}
     C := AText[I];

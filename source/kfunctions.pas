@@ -32,7 +32,7 @@ uses
   {$IFEND}
  {$ENDIF}
  // use the LCL interface support whenever possible
-  LCLType, LCLIntf, LMessages, LCLProc, LCLVersion, Interfaces, InterfaceBase,
+  LCLType, LCLIntf, LMessages, LCLProc, LCLVersion, Interfaces, InterfaceBase, LazUTF8,
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
@@ -2585,7 +2585,7 @@ end;
 function StrNextCharIndex(const AText: TKString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
-  Result := Index + UTF8CharacterLength(@AText[Index]);
+  Result := Index + LazUTF8.UTF8CharacterLength(@AText[Index]);
 {$ELSE}
   if (Word(AText[Index]) >= cUTF16FirstSurrogateBegin) and (Word(AText[Index]) <= cUTF16FirstSurrogateEnd) then
     Result := Index + 2
@@ -2597,7 +2597,7 @@ end;
 function StrPreviousCharIndex(const AText: TKString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
-  Result := Index - UTF8CharacterLength(@AText[StringCharBegin(AText, Index - 1)]);
+  Result := Index - LazUTF8.UTF8CharacterLength(@AText[StringCharBegin(AText, Index - 1)]);
 {$ELSE}
   if (Word(AText[Index - 1]) >= cUTF16SecondSurrogateBegin) and (Word(AText[Index - 1]) <= cUTF16SecondSurrogateEnd) then
     Result := Index - 2
@@ -2615,7 +2615,7 @@ begin
   while I < ByteIndex do
   begin
   {$IFDEF FPC}
-    Inc(I, UTF8CharacterLength(@AText[I]));
+    Inc(I, LazUTF8.UTF8CharacterLength(@AText[I]));
   {$ELSE}
     if (Word(AText[I]) >= cUTF16FirstSurrogateBegin) or (Word(AText[I]) > cUTF16FirstSurrogateEnd) then
       Inc(I, 2)
@@ -2634,7 +2634,7 @@ begin
   for I := 1 to CPIndex do
   begin
 {$IFDEF FPC}
-    Inc(Result, UTF8CharacterLength(@AText[Result]));
+    Inc(Result, LazUTF8.UTF8CharacterLength(@AText[Result]));
 {$ELSE}
     if (Word(AText[Result]) >= cUTF16FirstSurrogateBegin) and (Word(AText[Result]) <= cUTF16FirstSurrogateEnd) then
       Inc(Result, 2)
@@ -2649,7 +2649,7 @@ end;
 function StringCharBegin(const AText: TKString; Index: Integer): Integer;
 begin
 {$IFDEF FPC}
-  Result := UTF8CharToByteIndex(PChar(AText), Length(AText), Index)
+  Result := LazUTF8.UTF8CharToByteIndex(PChar(AText), Length(AText), Index)
 {$ELSE}
   if (Word(AText[Index - 1]) >= cUTF16SecondSurrogateBegin) and (Word(AText[Index - 1]) <= cUTF16SecondSurrogateEnd) then
     Result := Index - 1
@@ -2663,7 +2663,7 @@ var
   I: Integer;
 begin
 {$IFDEF FPC}
-  Result := UTF8Length(AText)
+  Result := LazUTF8.UTF8Length(AText)
 {$ELSE}
   Result := 0;
   for I := 1 to Length(AText) do
@@ -2694,7 +2694,7 @@ var
 {$ENDIF}
 begin
 {$IFDEF FPC}
-  UTF8Delete(ASource, At, Count);
+  LazUTF8.UTF8Delete(ASource, At, Count);
 {$ELSE}
   ByteFrom := StrCPIndexToByteIndex(ASource, At);
   ByteTo := StrCPIndexToByteIndex(ASource, At + Count);
@@ -2768,7 +2768,7 @@ end;
 function StringToChar(const AText: TKString; AIndex: Integer): TKChar;
 begin
 {$IFDEF FPC}
-  Result := UTF8Copy(AText, AIndex, 1);
+  Result := LazUTF8.UTF8Copy(AText, AIndex, 1);
 {$ELSE}
   Result := AText[AIndex];
 {$ENDIF}
@@ -2859,7 +2859,7 @@ var
 {$ENDIF}
 begin
 {$IFDEF FPC}
-  Result := WideChar(UTF8CharacterToUnicode(PChar(AText), CharLen));
+  Result := WideChar(LazUTF8.UTF8CharacterToUnicode(PChar(AText), CharLen));
 {$ELSE}
   Result := AText[1];
 {$ENDIF}
@@ -2868,7 +2868,7 @@ end;
 function UnicodeUpperCase(const AText: TKString): TKString;
 begin
 {$IFDEF FPC}
-  Result := LCLProc.UTF8UpperCase(AText);
+  Result := LazUTF8.UTF8UpperCase(AText);
 {$ELSE}
  {$IFDEF STRING_IS_UNICODE}
   Result := AnsiUpperCase(AText);
@@ -2881,7 +2881,7 @@ end;
 function UnicodeLowerCase(const AText: TKString): TKString;
 begin
 {$IFDEF FPC}
-  Result := LCLProc.UTF8LowerCase(AText);
+  Result := LazUTF8.UTF8LowerCase(AText);
 {$ELSE}
  {$IFDEF STRING_IS_UNICODE}
   Result := AnsiLowerCase(AText);
@@ -2894,7 +2894,7 @@ end;
 function UnicodeToNativeUTF(const AParam: WideChar): TKString;
 begin
 {$IFDEF FPC}
-  Result := UnicodeToUTF8(Cardinal(AParam));
+  Result := LazUTF8.UnicodeToUTF8(Cardinal(AParam));
 {$ELSE}
   Result := AParam;
 {$ENDIF}
