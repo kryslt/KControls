@@ -2551,7 +2551,7 @@ procedure TKPrintPageSetup.PrintOut;
   end;
 
 var
-  I, J: Integer;
+  I, J, PrinterCount: Integer;
   AbortPrint: Boolean;
 {  Orientation: TPrinterOrientation;
   PaperSize: TPaperSize;
@@ -2566,62 +2566,70 @@ begin
     begin
       if IsDefaultPrinter then
       begin
-        AbortPrint := False;
-        Printer.Title := FTitle;
-        Printer.Copies := 1;
-  {      PrinterType := Printer.PrinterType;
-        APageWidth := Printer.PageWidth;
-        APageHeight := Printer.PageHeight;
-        APaperRect := Printer.PaperSize.PaperRect;
-        Orientation := Printer.Orientation;}
-        Printer.BeginDoc;
-        FActive := True;
         try
-          FCanvas := Printer.Canvas;
-          FControl.PrintNotify(epsBegin, AbortPrint);
-  {        Printer.Canvas.Font.Name := 'Arial';
-          Printer.Canvas.Font.color := clBlack;
-          Printer.Canvas.Font.height := 100;
-          Printer.Canvas.TextOut(200, 200, 'hello!');}
-          if not AbortPrint then
-          begin
-            FControl.PrintPaintBegin;
-            try
-              if poCollate in FOptions then
-                for I := 1 to FCopies do
-                begin
-                  FCurrentCopy := I;
-                  for J := FStartPage to FEndPage do
-                  begin
-                    FCurrentPage := J;
-                    AbortPrint := DoPrint;
-                    if AbortPrint then Break;
-                  end;
-                  if AbortPrint then Break;
-                end
-              else
-                for J := FStartPage to FEndPage do
-                begin
-                  FCurrentPage := J;
+          AbortPrint := False;
+          PrinterCount := Printer.Printers.Count;
+          Printer.Title := FTitle;
+          Printer.Copies := 1;
+    {      PrinterType := Printer.PrinterType;
+          APageWidth := Printer.PageWidth;
+          APageHeight := Printer.PageHeight;
+          APaperRect := Printer.PaperSize.PaperRect;
+          Orientation := Printer.Orientation;}
+          Printer.BeginDoc;
+          FActive := True;
+          try
+            FCanvas := Printer.Canvas;
+            FControl.PrintNotify(epsBegin, AbortPrint);
+    {        Printer.Canvas.Font.Name := 'Arial';
+            Printer.Canvas.Font.color := clBlack;
+            Printer.Canvas.Font.height := 100;
+            Printer.Canvas.TextOut(200, 200, 'hello!');}
+            if not AbortPrint then
+            begin
+              FControl.PrintPaintBegin;
+              try
+                if poCollate in FOptions then
                   for I := 1 to FCopies do
                   begin
                     FCurrentCopy := I;
-                    AbortPrint := DoPrint;
+                    for J := FStartPage to FEndPage do
+                    begin
+                      FCurrentPage := J;
+                      AbortPrint := DoPrint;
+                      if AbortPrint then Break;
+                    end;
                     if AbortPrint then Break;
-                  end;
-                  if AbortPrint then Break;
-                end
-            finally
-              FControl.PrintPaintEnd;
+                  end
+                else
+                  for J := FStartPage to FEndPage do
+                  begin
+                    FCurrentPage := J;
+                    for I := 1 to FCopies do
+                    begin
+                      FCurrentCopy := I;
+                      AbortPrint := DoPrint;
+                      if AbortPrint then Break;
+                    end;
+                    if AbortPrint then Break;
+                  end
+              finally
+                FControl.PrintPaintEnd;
+              end;
             end;
+            FCurrentPage := 0;
+            FCurrentCopy := 0;
+            FControl.PrintNotify(epsEnd, AbortPrint);
+          finally
+            FActive := False;
+            Printer.EndDoc;
+            FCanvas := nil;
           end;
-          FCurrentPage := 0;
-          FCurrentCopy := 0;
-          FControl.PrintNotify(epsEnd, AbortPrint);
-        finally
-          FActive := False;
-          Printer.EndDoc;
-          FCanvas := nil;
+        except
+          if PrinterCount = 0 then
+            KMsgBox(sPSErrPrintSetup, sPSErrNoPrinterInstalled, [mbOk], miStop)
+          else
+            KMsgBox(sPSErrPrintSetup, sPSErrPrinterUnknown, [mbOk], miStop);
         end;
       end else
         KMsgBox(sPSErrPrintSetup, sPSErrNoDefaultPrinter, [mbOk], miStop);
@@ -2817,7 +2825,6 @@ end;
 procedure TKPrintPageSetup.UpdateSettings;
 var
   I, PixelsPerInchX, PixelsPerInchY: Integer;
-  DefaultPrinter: Boolean;
   D: Double;
   DC: HDC;
   Info: TKPrintMeasureInfo;
@@ -2828,21 +2835,6 @@ begin
     try
       if Assigned(FOnUpdateSettings) then
         FOnUpdateSettings(Self);
-//      Printer.Refresh;
-      DefaultPrinter := IsDefaultPrinter;
-      if DefaultPrinter then
-      begin
-        I := Printer.Printers.IndexOf(FPrinterName);
-        if I >= 0 then
-          Printer.PrinterIndex := I;
-      end;
-      // set orientation in case somebody assigned it programmatically
-      if DefaultPrinter then
-      try
-        Printer.Orientation := FOrientation;
-      except
-        FOrientation := Printer.Orientation;
-      end;
       // limit copies and Scale
       FCopies := MinMax(FCopies, cCopiesMin, cCopiesMax);
       FScale := MinMax(FScale, cScaleMin, cScaleMax);
@@ -2854,25 +2846,42 @@ begin
       finally
         ReleaseDC(0, DC);
       end;
-      // get metrics for the printer
-      if (Printer.Printers.Count > 0) and DefaultPrinter then
-      begin
-        FPrinterPageWidth := Printer.PageWidth;
-        FPrinterPageHeight := Printer.PageHeight;
-      {$IFDEF FPC}
-        FPrinterPixelsPerInchX := Printer.XDPI;
-        FPrinterPixelsPerInchY := Printer.YDPI;
-      {$ELSE}
-        FPrinterPixelsPerInchX := GetDeviceCaps(Printer.Handle, LOGPIXELSX);
-        FPrinterPixelsPerInchY := GetDeviceCaps(Printer.Handle, LOGPIXELSY);
-      {$ENDIF}
-      end else
-      begin
-        // fake printer metrics if no printer is installed
-        FPrinterPageWidth := 2360;
-        FPrinterPageHeight := 3400;
-        FPrinterPixelsPerInchX := 300;
-        FPrinterPixelsPerInchY := 300;
+//      Printer.Refresh;
+      // default printer metrics if no printer is installed
+      FOrientation := poPortrait;
+      FPrinterPageWidth := 2360;
+      FPrinterPageHeight := 3400;
+      FPrinterPixelsPerInchX := 300;
+      FPrinterPixelsPerInchY := 300;
+      // get printer data
+      try
+        if IsDefaultPrinter then
+        begin
+          I := Printer.Printers.IndexOf(FPrinterName);
+          if I >= 0 then
+            Printer.PrinterIndex := I;
+          // set orientation in case somebody assigned it programmatically
+          try
+            Printer.Orientation := FOrientation;
+          except
+            FOrientation := Printer.Orientation;
+          end;
+          // get metrics for the printer
+          if Printer.Printers.Count > 0 then
+          begin
+            FPrinterPageWidth := Printer.PageWidth;
+            FPrinterPageHeight := Printer.PageHeight;
+          {$IFDEF FPC}
+            FPrinterPixelsPerInchX := Printer.XDPI;
+            FPrinterPixelsPerInchY := Printer.YDPI;
+          {$ELSE}
+            FPrinterPixelsPerInchX := GetDeviceCaps(Printer.Handle, LOGPIXELSX);
+            FPrinterPixelsPerInchY := GetDeviceCaps(Printer.Handle, LOGPIXELSY);
+          {$ENDIF}
+          end
+        end;
+      except
+        // silent, keep default or successfully obtained data
       end;
       // decide how to outline extent
       if FPrintingMapped then

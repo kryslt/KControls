@@ -320,17 +320,20 @@ end;
 procedure TMainForm.Test11;
 var
   CO: TKMemoContainer;
+  IB: TKMemoImageBlock;
 begin
   // add container with relative position
   CO := KMemo1.Blocks.AddContainer;
   CO.Position := mbpRelative;
+  CO.BlockStyle.ContentPadding.All := 10;
   CO.LeftOffset := 50;
   CO.TopOffset := 20;
   CO.FixedWidth := True;
   CO.RequiredWidth := 300;
   CO.BlockStyle.Brush.Color := clLime;
   CO.Blocks.AddTextBlock('Text in a container!');
-  CO.Blocks.AddImageBlock('penguins.jpg');
+  IB := CO.Blocks.AddImageBlock('penguins.jpg');
+  IB.Resizable := False;
 end;
 
 procedure TMainForm.Test12;

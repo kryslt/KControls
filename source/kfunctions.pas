@@ -2830,7 +2830,7 @@ begin
       GetLastError, 0, @errMsg, 0, nil) <> 0 then
     begin
       try
-        raise Exception.Create ('CreateProcess failed with error "' + String (errMsg) + '".');
+        Error('CreateProcess failed with error "' + String (errMsg) + '".');
       finally
         LocalFree (HLOCAL(errMsg));
       end;

@@ -688,7 +688,6 @@ type
     function GetReadOnly: Boolean;
     function GetSelEnd: Integer;
     procedure SetPosition(const Value: TKMemoBlockPosition);
-    function GetParentRootBlocks: TKMemoBlocks;
   protected
     procedure CallAfterUpdate; override;
     procedure CallBeforeUpdate; override;
@@ -704,6 +703,8 @@ type
     function GetHeight: Integer; virtual;
     function GetLeft: Integer; virtual;
     function GetParaStyle: TKMemoParaStyle; virtual;
+    function GetParentRootBlocks: TKMemoBlocks; virtual;
+    function GetResizable: Boolean; virtual;
     procedure GetSelColors(out Foreground, Background: TColor); virtual;
     function GetSelLength: Integer; virtual;
     function GetSelStart: Integer; virtual;
@@ -728,6 +729,7 @@ type
     function GetWordTop(Index: Integer): Integer; virtual;
     function GetWordTopPadding(Index: Integer): Integer; virtual;
     function GetWordWidth(Index: Integer): Integer; virtual;
+    procedure SetResizable(const Value: Boolean); virtual;
     procedure SetLeftOffset(const Value: Integer); virtual;
     procedure SetTopOffset(Value: Integer); virtual;
     procedure SetWordBaseLine(Index: Integer; const Value: Integer); virtual;
@@ -793,6 +795,7 @@ type
     property Position: TKMemoBlockPosition read FPosition write SetPosition;
     property Printing: Boolean read GetPrinting;
     property ReadOnly: Boolean read GetReadOnly;
+    property Resizable: Boolean read GetResizable write SetResizable;
     property SelEnd: Integer read GetSelEnd;
     property SelLength: Integer read GetSelLength;
     property SelStart: Integer read GetSelStart;
@@ -940,17 +943,17 @@ type
     FExtent: TPoint;
     FOrigin: TPoint;
     FParaStyle: TKMemoParaStyle;
-    function GetNumbering: TKMemoParaNumbering;
-    function GetNumberingList: TKMemoList;
-    function GetNumberingListLevel: TKMemoListLevel;
-    procedure SetNumbering(const Value: TKMemoParaNumbering);
   protected
     FNumberBlock: TKMemoTextBlock;
     function GetCanAddText: Boolean; override;
     function GetNumberBlock: TKMemoTextBlock; virtual;
+    function GetNumbering: TKMemoParaNumbering; virtual;
+    function GetNumberingList: TKMemoList; virtual;
+    function GetNumberingListLevel: TKMemoListLevel; virtual;
     function GetParaStyle: TKMemoParaStyle; override;
     function GetWordBreakable(Index: Integer): Boolean; override;
     procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
+    procedure SetNumbering(const Value: TKMemoParaNumbering); virtual;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -978,6 +981,7 @@ type
     FExtent: TPoint; // extent given by word processor
     FOrigin: TPoint;
     FExplicitExtent: TPoint; // explicit extent
+    FResizable: Boolean;
     FScale: TPoint; // scaled extent
     FCroppedImage: TKAlphaBitmap;
     FWordBottomPadding: Integer;
@@ -989,10 +993,6 @@ type
     procedure SetScaleWidth(const Value: Integer);
     procedure SetExplicitHeight(const Value: Integer);
     procedure SetExplicitWidth(const Value: Integer);
-    function GetNativeOrExplicitHeight: Integer;
-    function GetNativeOrExplicitWidth: Integer;
-    function GetScaleHeight: Integer;
-    function GetScaleWidth: Integer;
     procedure SetScaleX(const Value: Integer);
     procedure SetScaleY(const Value: Integer);
   protected
@@ -1005,6 +1005,11 @@ type
     function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetImageHeight: Integer; virtual;
     function GetImageWidth: Integer; virtual;
+    function GetNativeOrExplicitHeight: Integer; virtual;
+    function GetNativeOrExplicitWidth: Integer; virtual;
+    function GetResizable: Boolean; override;
+    function GetScaleHeight: Integer; virtual;
+    function GetScaleWidth: Integer; virtual;
     function GetSizingRect: TRect; override;
     function GetWordBottomPadding(Index: Integer): Integer; override;
     function GetWordBoundsRect(Index: Integer): TRect; override;
@@ -1019,6 +1024,7 @@ type
     procedure ImageChanged(Sender: TObject);
     procedure ImageStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     function CroppedImage: TKAlphaBitmap; virtual;
+    procedure SetResizable(const Value: Boolean); override;
     procedure SetWordBaseLine(Index: Integer; const Value: Integer); override;
     procedure SetWordBottomPadding(Index: Integer; const Value: Integer); override;
     procedure SetWordHeight(Index: Integer; const Value: Integer); override;
@@ -1066,13 +1072,14 @@ type
     FOrigin: TPoint;
     FRequiredHeight: Integer;
     FRequiredWidth: Integer;
+    FResizable: Boolean;
     FWordBottomPadding: Integer;
     FWordTopPadding: Integer;
-    procedure SetFixedWidth(const Value: Boolean);
-    procedure SetRequiredWidth(const Value: Integer);
-    procedure SetRequiredHeight(const Value: Integer);
-    procedure SetClip(const Value: Boolean);
     procedure SetFixedHeight(const Value: Boolean);
+    procedure SetFixedWidth(const Value: Boolean);
+    procedure SetRequiredHeight(const Value: Integer);
+    procedure SetRequiredWidth(const Value: Integer);
+    procedure SetClip(const Value: Boolean);
   protected
     function AddRectOffset(const ARect: TRect): TRect; virtual;
     procedure AddSingleLine; virtual;
@@ -1084,6 +1091,7 @@ type
     function GetBottomPadding: Integer; override;
     function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetCanAddText: Boolean; override;
+    function GetResizable: Boolean; override;
     function GetSelLength: Integer; override;
     function GetSelStart: Integer; override;
     function GetSelText: TKString; override;
@@ -1104,6 +1112,7 @@ type
     procedure ParentChanged; override;
     procedure RequiredHeightChanged; virtual;
     procedure RequiredWidthChanged; virtual;
+    procedure SetResizable(const Value: Boolean); override;
     procedure SetWordBottomPadding(Index: Integer; const Value: Integer); override;
     procedure SetWordHeight(Index: Integer; const Value: Integer); override;
     procedure SetWordLeft(Index: Integer; const Value: Integer); override;
@@ -1157,15 +1166,15 @@ type
     FSpan: TKCellSpan;
     function GetParentRow: TKMemoTableRow;
     function GetParentTable: TKMemoTable;
-    procedure SetColSpan(Value: Integer);
-    procedure SetRowSpan(Value: Integer);
-    procedure SetSpan(const Value: TKCellSpan);
   protected
     function ContentLength: Integer; override;
     function GetParaStyle: TKMemoParaStyle; override;
     procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     procedure RequiredBorderWidthsChanged(Sender: TObject);
     procedure RequiredWidthChanged; override;
+    procedure SetColSpan(Value: Integer); virtual;
+    procedure SetRowSpan(Value: Integer); virtual;
+    procedure SetSpan(const Value: TKCellSpan); virtual;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1185,13 +1194,13 @@ type
   private
     function GetCells(Index: Integer): TKMemoTableCell;
     function GetCellCount: Integer;
-    procedure SetCellCount(const Value: Integer);
     function GetParentTable: TKMemoTable;
   protected
     function GetTotalLineCount: Integer; override;
     function GetTotalLineRect(Index: Integer): TRect; override;
     procedure RequiredHeightChanged; override;
     procedure RequiredWidthChanged; override;
+    procedure SetCellCount(const Value: Integer); virtual;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1213,15 +1222,15 @@ type
     function GetRows(Index: Integer): TKMemoTableRow;
     function GetRowCount: Integer;
     function GetRowHeights(Index: Integer): Integer;
-    procedure SetCellSpan(ACol, ARow: Integer; Value: TKCellSpan);
     procedure SetColCount(const Value: Integer);
-    procedure SetColWidths(Index: Integer; const Value: Integer);
     procedure SetRowCount(const Value: Integer);
-    procedure SetRowHeights(Index: Integer; const Value: Integer);
   protected
     procedure InternalSetCellSpan(ACol, ARow: Integer;
       const Value: TKCellSpan); virtual;
     procedure RequiredWidthChanged; override;
+    procedure SetCellSpan(ACol, ARow: Integer; Value: TKCellSpan); virtual;
+    procedure SetColWidths(Index: Integer; const Value: Integer); virtual;
+    procedure SetRowHeights(Index: Integer; const Value: Integer); virtual;
     procedure SetSize(AColCount, ARowCount: Integer); virtual;
   public
     constructor Create; override;
@@ -1290,9 +1299,12 @@ type
     FOnUpdate: TKMemoUpdateEvent;
     function GetBoundsRect: TRect;
     function GetEmpty: Boolean;
+    function GetFirstBlock: TKMemoBlock;
     function GetItem(Index: Integer): TKMemoBlock;
+    function GetLastBlock: TKMemoBlock;
     function GetLineCount: Integer;
     function GetParentBlocks: TKMemoBlocks;
+    function GetParentMemo: TKCustomMemo;
     function GetRealSelEnd: Integer;
     function GetRealSelLength: Integer;
     function GetRealSelStart: Integer;
@@ -1300,9 +1312,6 @@ type
     procedure SetIgnoreParaMark(const Value: Boolean);
     procedure SetItem(Index: Integer; const Value: TKMemoBlock);
     procedure SetMemoNotifier(const Value: IKMemoNotifier);
-    function GetFirstBlock: TKMemoBlock;
-    function GetLastBlock: TKMemoBlock;
-    function GetParentMemo: TKCustomMemo;
   protected
     FLines: TKMemoLines;
     FRelPos: TKMemoSparseList;
@@ -6755,6 +6764,11 @@ begin
     Result := False;
 end;
 
+function TKMemoBlock.GetResizable: Boolean;
+begin
+  Result := False;
+end;
+
 procedure TKMemoBlock.GetSelColors(out Foreground, Background: TColor);
 begin
   Foreground := cSelTextFocusedDef;
@@ -7082,6 +7096,11 @@ begin
   end;
 end;
 
+procedure TKMemoBlock.SetResizable(const Value: Boolean);
+begin
+  Error('Resizable property unsupported for this block.');
+end;
+
 procedure TKMemoBlock.SetTopOffset(Value: Integer);
 var
   Index: Integer;
@@ -7162,25 +7181,32 @@ function TKMemoBlock.SizingGripsCursor(const ARect: TRect; const APoint: TPoint)
 var
   Grips: TKSizingGrips;
 begin
-  Grips := TKSizingGrips.Create;
-  try
-    Grips.BoundsRect := ARect;
-    Result := Grips.CursorAt(APoint);
-  finally
-    Grips.Free;
-  end;
+  if Resizable then
+  begin
+    Grips := TKSizingGrips.Create;
+    try
+      Grips.BoundsRect := ARect;
+      Result := Grips.CursorAt(APoint);
+    finally
+      Grips.Free;
+    end;
+  end else
+    Result := crDefault;
 end;
 
 procedure TKMemoBlock.SizingGripsDraw(ACanvas: TCanvas; const ARect: TRect);
 var
   Grips: TKSizingGrips;
 begin
-  Grips := TKSizingGrips.Create;
-  try
-    Grips.BoundsRect := ARect;
-    Grips.DrawTo(ACanvas);
-  finally
-    Grips.Free;
+  if Resizable then
+  begin
+    Grips := TKSizingGrips.Create;
+    try
+      Grips.BoundsRect := ARect;
+      Grips.DrawTo(ACanvas);
+    finally
+      Grips.Free;
+    end;
   end;
 end;
 
@@ -7189,13 +7215,17 @@ function TKMemoBlock.SizingGripsPosition(const ARect: TRect;
 var
   Grips: TKSizingGrips;
 begin
-  Grips := TKSizingGrips.Create;
-  try
-    Grips.BoundsRect := ARect;
-    Result := Grips.HitTest(APoint);
-  finally
-    Grips.Free;
-  end;
+  if Resizable then
+  begin
+    Grips := TKSizingGrips.Create;
+    try
+      Grips.BoundsRect := ARect;
+      Result := Grips.HitTest(APoint);
+    finally
+      Grips.Free;
+    end;
+  end else
+    Result := sgpNone;
 end;
 
 function TKMemoBlock.Split(At: Integer; AllowEmpty: Boolean): TKMemoBlock;
@@ -8404,6 +8434,7 @@ begin
   FMouseCapture := False;
   FExplicitExtent := CreateEmptyPoint;
   FOrigin := CreateEmptyPoint;
+  FResizable := True;
   FScale := Point(100, 100);
   FCroppedImage := nil;
   FWordTopPadding := 0;
@@ -8434,6 +8465,7 @@ begin
     ImageStyle.Assign(TKMemoImageBlock(AItem).ImageStyle);
     ExplicitWidth := TKMemoImageBlock(AItem).ExplicitWidth;
     ExplicitHeight := TKMemoImageBlock(AItem).ExplicitHeight;
+    Resizable := TKMemoImageBlock(AItem).Resizable;
     ScaleX := TKMemoImageBlock(AItem).ScaleX;
     ScaleY := TKMemoImageBlock(AItem).ScaleY;
   end;
@@ -8515,6 +8547,11 @@ begin
     Result := FExplicitExtent.X
   else
     Result := FImage.Width;
+end;
+
+function TKMemoImageBlock.GetResizable: Boolean;
+begin
+  Result := FResizable;
 end;
 
 function TKMemoImageBlock.GetScaleHeight: Integer;
@@ -8700,18 +8737,33 @@ begin
   Update([muContent]);
 end;
 
+procedure TKMemoImageBlock.SetResizable(const Value: Boolean);
+begin
+  if Value <> FResizable then
+  begin
+    FResizable := Value;
+    Update([muExtent]);
+  end;
+end;
+
 procedure TKMemoImageBlock.SetExplicitHeight(const Value: Integer);
 begin
-  FExplicitExtent.Y := Value;
-  FreeAndNil(FCroppedImage);
-  Update([muContent]);
+  if Value <> FExplicitExtent.Y then
+  begin
+    FExplicitExtent.Y := Value;
+    FreeAndNil(FCroppedImage);
+    Update([muContent]);
+  end;
 end;
 
 procedure TKMemoImageBlock.SetExplicitWidth(const Value: Integer);
 begin
-  FExplicitExtent.X := Value;
-  FreeAndNil(FCroppedImage);
-  Update([muContent]);
+  if Value <> FExplicitExtent.X then
+  begin
+    FExplicitExtent.X := Value;
+    FreeAndNil(FCroppedImage);
+    Update([muContent]);
+  end;
 end;
 
 procedure TKMemoImageBlock.SetScaleHeight(const Value: Integer);
@@ -8937,6 +8989,7 @@ begin
   FOrigin := CreateEmptyPoint;
   FRequiredHeight := 0;
   FRequiredWidth := 0;
+  FResizable := True;
   FWordTopPadding := 0;
 end;
 
@@ -8998,6 +9051,7 @@ begin
       FixedHeight := TKMemoContainer(AItem).FixedHeight;
       RequiredWidth := TKMemoContainer(AItem).RequiredWidth;
       RequiredHeight := TKMemoContainer(AItem).RequiredHeight;
+      Resizable := TKMemoContainer(AItem).Resizable;
     finally
       UnlockUpdate;
     end;
@@ -9080,6 +9134,11 @@ end;
 function TKMemoContainer.GetCanAddText: Boolean;
 begin
   Result := True;
+end;
+
+function TKMemoContainer.GetResizable: Boolean;
+begin
+  Result := FResizable;
 end;
 
 function TKMemoContainer.GetWrapMode: TKMemoBlockWrapMode;
@@ -9286,6 +9345,15 @@ begin
   begin
     FRequiredWidth := Value;
     RequiredWidthChanged;
+    Update([muExtent]);
+  end;
+end;
+
+procedure TKMemoContainer.SetResizable(const Value: Boolean);
+begin
+  if Value <> FResizable then
+  begin
+    FResizable := Value;
     Update([muExtent]);
   end;
 end;
