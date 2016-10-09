@@ -190,7 +190,7 @@ type
     procedure UpdateUpDownPos; dynamic;
     procedure UpDownChange; dynamic;
     procedure UpDownChangingEx(Sender: TObject; var AllowChange: Boolean;
-      NewValue: {$IFDEF COMPILER17_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
+      NewValue: {$IFDEF COMPILER19_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -1573,7 +1573,7 @@ end;
 
 procedure TKCustomNumberEdit.UpDownChangingEx(Sender: TObject;
   var AllowChange: Boolean; NewValue:
-  {$IFDEF COMPILER18_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
+  {$IFDEF COMPILER19_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
 var
   V: Extended;
 begin

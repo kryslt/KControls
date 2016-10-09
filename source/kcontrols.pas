@@ -2566,6 +2566,7 @@ begin
     begin
       if IsDefaultPrinter then
       begin
+        PrinterCount := 0;
         try
           AbortPrint := False;
           PrinterCount := Printer.Printers.Count;

@@ -320,10 +320,10 @@ procedure TKPrintSetupForm.BUConfigureClick(Sender: TObject);
 var
   PrinterCount: Integer;
 begin
-  PrinterCount := 0;
   FormToPageSetup;
   if FPageSetup.IsDefaultPrinter then
   begin
+    PrinterCount := 0;
     try
       PrinterCount := Printer.Printers.Count;
       Printer.Orientation := FPageSetup.Orientation;

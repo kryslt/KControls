@@ -13,12 +13,12 @@ package KControls_RXE4;
 {$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION ON}
+{$OPTIMIZATION OFF}
 {$OVERFLOWCHECKS ON}
 {$RANGECHECKS ON}
 {$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES OFF}
+{$STACKFRAMES ON}
 {$TYPEDADDRESS ON}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST ON}
@@ -57,7 +57,7 @@ contains
   kmessagebox in '..\..\source\kmessagebox.pas',
   klog in '..\..\source\klog.pas',
   kprogress in '..\..\source\kprogress.pas',
-  kres in '..\..\source\kres.pas'
+  kres in '..\..\source\kres.pas',
   kmemodlghyperlink in '..\..\source\kmemodlghyperlink.pas',
   kmemodlgnumbering in '..\..\source\kmemodlgnumbering.pas',
   kmemodlgparastyle in '..\..\source\kmemodlgparastyle.pas',
@@ -72,4 +72,6 @@ contains
   , kdbgrids in '..\..\source\kdbgrids.pas'
 {$ENDIF}
   ;
+
 end.
+
