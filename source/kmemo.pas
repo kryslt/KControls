@@ -662,6 +662,8 @@ type
     function GetMemo: TKCustomMemo;
     function GetMaxWordLength: Integer;
     function GetPaintSelection: Boolean;
+    function GetPixelsPerInchX: Integer;
+    function GetPixelsPerInchY: Integer;
     function GetPrinting: Boolean;
     function GetReadOnly: Boolean;
     procedure GetSelColors(out Foreground, Background: TColor);
@@ -729,6 +731,8 @@ type
     function GetWordTop(Index: Integer): Integer; virtual;
     function GetWordTopPadding(Index: Integer): Integer; virtual;
     function GetWordWidth(Index: Integer): Integer; virtual;
+    function PixelsPerInchX: Integer; virtual;
+    function PixelsPerInchY: Integer; virtual;
     procedure SetResizable(const Value: Boolean); virtual;
     procedure SetLeftOffset(const Value: Integer); virtual;
     procedure SetTopOffset(Value: Integer); virtual;
@@ -977,18 +981,20 @@ type
     FBaseLine: Integer;
     FCrop: TKRect;
     FCroppedImage: TKAlphaBitmap;
-    FDPI: TPoint;
+    FImageDPI: TPoint;
     FExtent: TPoint; // extent given by word processor
     FExplicitExtent: TPoint; // explicit extent
-    FImage: TPicture;
+    FImage: TGraphic;
     FImageStyle: TKMemoBlockStyle;
     FOrigin: TPoint;
     FResizable: Boolean;
     FScale: TPoint; // scaled extent
     FWordBottomPadding: Integer;
     FWordTopPadding: Integer;
+    function GetLogScaleX: Integer;
+    function GetLogScaleY: Integer;
     procedure SetCrop(const Value: TKRect);
-    procedure SetImage(const Value: TPicture);
+    procedure SetImage(const Value: TGraphic);
     procedure SetImagePath(const Value: TKString);
     procedure SetScaleHeight(const Value: Integer);
     procedure SetScaleWidth(const Value: Integer);
@@ -996,6 +1002,8 @@ type
     procedure SetExplicitWidth(const Value: Integer);
     procedure SetScaleX(const Value: Integer);
     procedure SetScaleY(const Value: Integer);
+    procedure SetLogScaleX(const Value: Integer);
+    procedure SetLogScaleY(const Value: Integer);
   protected
     FCalcBaseLine: Integer;
     FCreatingCroppedImage: Boolean;
@@ -1037,6 +1045,7 @@ type
     destructor Destroy; override;
     procedure Assign(ASource: TKObject); override;
     procedure AssignAttributes(AItem: TKMemoBlock); override;
+    procedure AssignImage(ASource: TGraphic); virtual;
     function CalcAscent(ACanvas: TCanvas): Integer; override;
     function OuterRect(ACaret: Boolean): TRect; virtual;
     procedure Resize(ANewWidth, ANewHeight: Integer); override;
@@ -1046,9 +1055,9 @@ type
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property Crop: TKRect read FCrop write SetCrop;
-    property DPIX: Integer read FDPI.X;
-    property DPIY: Integer read FDPI.Y;
-    property Image: TPicture read FImage write SetImage;
+    property Image: TGraphic read FImage write SetImage;
+    property ImageDPIX: Integer read FImageDPI.X;
+    property ImageDPIY: Integer read FImageDPI.Y;
     property ImageStyle: TKMemoBlockStyle read FImageStyle;
     property ImageHeight: Integer read GetImageHeight;
     property ImageWidth: Integer read GetImageWidth;
@@ -1056,6 +1065,8 @@ type
     property ExplicitWidth: Integer read FExplicitExtent.X write SetExplicitWidth;
     property NativeOrExplicitHeight: Integer read GetNativeOrExplicitHeight;
     property NativeOrExplicitWidth: Integer read GetNativeOrExplicitWidth;
+    property LogScaleX: Integer read GetLogScaleX write SetLogScaleX;
+    property LogScaleY: Integer read GetLogScaleY write SetLogScaleY;
     property Path: TKString write SetImagePath;
     property ScaleHeight: Integer read GetScaleHeight write SetScaleHeight;
     property ScaleWidth: Integer read GetScaleWidth write SetScaleWidth;
@@ -1862,6 +1873,10 @@ type
     { Return block index of nearest paragraph. }
     function GetNearestParagraphIndex: Integer; virtual;
     { IKMemoNotifier implementation. }
+    function GetPixelsPerInchX: Integer;
+    { IKMemoNotifier implementation. }
+    function GetPixelsPerInchY: Integer;
+    { IKMemoNotifier implementation. }
     function GetPaintSelection: Boolean;
     { IKMemoNotifier implementation. }
     function GetPrinting: Boolean;
@@ -2086,6 +2101,14 @@ type
       the supplied coordinates are outside of the text space</LI>
       </UL> }
     function PointToIndex(APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): Integer; virtual;
+    { Converts horizontal pixels to points. }
+    function Px2PtX(AValue: Integer): Double; virtual;
+    { Converts vertical pixels to points. }
+    function Px2PtY(AValue: Integer): Double; virtual;
+    { Converts points to horizontal pixels. }
+    function Pt2PxX(AValue: Double): Integer; virtual;
+    { Converts points to vertical pixels. }
+    function Pt2PxY(AValue: Double): Integer; virtual;
     { Save contents to a file. Chooses format automatically by extension. Text file is default format. }
     procedure SaveToFile(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
     { Save contents to a RTF file. }
@@ -5089,6 +5112,22 @@ begin
     Result := True;
 end;
 
+function TKCustomMemo.GetPixelsPerInchX: Integer;
+begin
+  if HandleAllocated then
+    Result := PixelsPerInchX(Handle)
+  else
+    Result := PixelsPerInchX(0)
+end;
+
+function TKCustomMemo.GetPixelsPerInchY: Integer;
+begin
+  if HandleAllocated then
+    Result := PixelsPerInchY(Handle)
+  else
+    Result := PixelsPerInchY(0)
+end;
+
 function TKCustomMemo.GetPrinting: Boolean;
 begin
   Result := elPrinting in FStates;
@@ -5734,6 +5773,26 @@ end;
 
 procedure TKCustomMemo.PrintPaintEnd;
 begin
+end;
+
+function TKCustomMemo.Pt2PxX(AValue: Double): Integer;
+begin
+  Result := PointsToPixels(AValue, GetPixelsPerInchX);
+end;
+
+function TKCustomMemo.Pt2PxY(AValue: Double): Integer;
+begin
+  Result := PointsToPixels(AValue, GetPixelsPerInchY);
+end;
+
+function TKCustomMemo.Px2PtX(AValue: Integer): Double;
+begin
+  Result := PixelsToPoints(AValue, GetPixelsPerInchX);
+end;
+
+function TKCustomMemo.Px2PtY(AValue: Integer): Double;
+begin
+  Result := PixelsToPoints(AValue, GetPixelsPerInchY);
 end;
 
 procedure TKCustomMemo.SafeSetFocus;
@@ -7023,6 +7082,28 @@ var
 begin
   for I := 0 to WordCount - 1 do
     WordPaintToCanvas(ACanvas, I, ALeft, ATop);
+end;
+
+function TKMemoBlock.PixelsPerInchX: Integer;
+var
+  Notifier: IKMemoNotifier;
+begin
+  Notifier := MemoNotifier;
+  if Notifier <> nil then
+    Result := Notifier.GetPixelsPerInchX
+  else
+    Result := KEditCommon.PixelsPerInchX(0);
+end;
+
+function TKMemoBlock.PixelsPerInchY: Integer;
+var
+  Notifier: IKMemoNotifier;
+begin
+  Notifier := MemoNotifier;
+  if Notifier <> nil then
+    Result := Notifier.GetPixelsPerInchY
+  else
+    Result :=  KEditCommon.PixelsPerInchY(0);
 end;
 
 function TKMemoBlock.PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer;
@@ -8429,8 +8510,7 @@ begin
   FCrop.OnChanged := CropChanged;
   FCalcBaseLine := 0;
   FExtent := CreateEmptyPoint;
-  FImage := TPicture.Create;
-  FImage.OnChange := ImageChanged;
+  FImage := nil;
   FImageStyle := TKMemoBlockStyle.Create;
   FImageStyle.ContentMargin.All := 5;
   FImageStyle.OnChanged := ImageStyleChanged;
@@ -8456,7 +8536,7 @@ procedure TKMemoImageBlock.Assign(ASource: TKObject);
 begin
   inherited;
   if ASource is TKMemoImageBlock then
-    Image.Assign(TKMemoImageBlock(ASource).Image);
+    AssignImage(TKMemoImageBlock(ASource).Image);
 end;
 
 procedure TKMemoImageBlock.AssignAttributes(AItem: TKMemoBlock);
@@ -8471,6 +8551,26 @@ begin
     Resizable := TKMemoImageBlock(AItem).Resizable;
     ScaleX := TKMemoImageBlock(AItem).ScaleX;
     ScaleY := TKMemoImageBlock(AItem).ScaleY;
+  end;
+end;
+
+procedure TKMemoImageBlock.AssignImage(ASource: TGraphic);
+var
+  MS: TMemoryStream;
+begin
+  FreeAndNil(FImage);
+  if ASource <> nil then
+  begin
+    FImage := TGraphicClass(ASource.ClassType).Create;
+    FImage.OnChange := ImageChanged;
+    MS := TMemoryStream.Create;
+    try
+      ASource.SaveToStream(MS);
+      MS.Seek(0, soFromBeginning);
+      Image.LoadFromStream(MS);
+    finally
+      MS.Free;
+    end;
   end;
 end;
 
@@ -8522,8 +8622,10 @@ function TKMemoImageBlock.GetImageHeight: Integer;
 begin
   if FScale.Y <> 0 then
     Result := ScaleHeight
+  else if FImage <> nil then
+    Result := FImage.Height
   else
-    Result := FImage.Height;
+    Result := 0;
   Dec(Result, FCrop.Top + FCrop.Bottom);
 end;
 
@@ -8531,25 +8633,47 @@ function TKMemoImageBlock.GetImageWidth: Integer;
 begin
   if FScale.X <> 0 then
     Result := ScaleWidth
+  else if FImage <> nil then
+    Result := FImage.Width
   else
-    Result := FImage.Width;
+    Result := 0;
   Dec(Result, FCrop.Left + FCrop.Right);
+end;
+
+function TKMemoImageBlock.GetLogScaleX: Integer;
+begin
+  if ImageDPIX <> 0 then
+    Result := MulDiv(ScaleX, ImageDPIX, PixelsPerInchX)
+  else
+    Result := ScaleX;
+end;
+
+function TKMemoImageBlock.GetLogScaleY: Integer;
+begin
+  if ImageDPIY <> 0 then
+    Result := MulDiv(ScaleY, ImageDPIY, PixelsPerInchY)
+  else
+    Result := ScaleY;
 end;
 
 function TKMemoImageBlock.GetNativeOrExplicitHeight: Integer;
 begin
   if FExplicitExtent.Y <> 0 then
     Result := FExplicitExtent.Y
+  else if FImage <> nil then
+    Result := FImage.Height
   else
-    Result := FImage.Height;
+    Result := 0;
 end;
 
 function TKMemoImageBlock.GetNativeOrExplicitWidth: Integer;
 begin
   if FExplicitExtent.X <> 0 then
     Result := FExplicitExtent.X
+  else if FImage <> nil then
+    Result := FImage.Width
   else
-    Result := FImage.Width;
+    Result := 0;
 end;
 
 function TKMemoImageBlock.GetResizable: Boolean;
@@ -8634,7 +8758,7 @@ begin
   if not FCreatingCroppedImage then
   begin
     FreeAndNil(FCroppedImage);
-    FDPI := GetImageDPI(FImage.Graphic);
+    FImageDPI := GetImageDPI(FImage);
     Update([muContent]);
   end;
 end;
@@ -8675,7 +8799,7 @@ var
   RatioX, RatioY: Double;
   OrigCrop: TRect;
 begin
-  if (FCroppedImage = nil) and (FImage.Graphic <> nil) and not FCreatingCroppedImage then
+  if (FCroppedImage = nil) and (FImage <> nil) and not FCreatingCroppedImage then
   begin
     FCreatingCroppedImage := True;
     try
@@ -8709,11 +8833,9 @@ begin
       begin
         FCroppedImage := TKAlphaBitmap.Create;
         FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
-        FCroppedImage.DrawFrom(FImage.Graphic, -OrigCrop.Left, -OrigCrop.Top);
-      {$IFDEF USE_PNG_SUPPORT}
-        if not (FImage.Graphic is TKPngImage) then
-      {$ENDIF}
-          FCroppedImage.AlphaFill(255);
+        FCroppedImage.DrawFrom(FImage, -OrigCrop.Left, -OrigCrop.Top);
+        FCroppedImage.DirectCopy := not FCroppedImage.HasAlpha;
+        FCroppedImage.AlphaFill(255, True);
       end;
     finally
       FCreatingCroppedImage := False;
@@ -8727,18 +8849,42 @@ begin
   FCrop.Assign(Value);
 end;
 
-procedure TKMemoImageBlock.SetImage(const Value: TPicture);
+procedure TKMemoImageBlock.SetImage(const Value: TGraphic);
 begin
-  FImage.Assign(Value);
+  AssignImage(Value);
   FreeAndNil(FCroppedImage);
   Update([muContent]);
 end;
 
 procedure TKMemoImageBlock.SetImagePath(const Value: TKString);
+var
+  Picture: TPicture;
 begin
-  FImage.LoadFromFile(Value);
+  Picture := TPicture.Create;
+  try
+    Picture.LoadFromFile(Value);
+    AssignImage(Picture.Graphic);
+  finally
+    Picture.Free;
+  end;
   FreeAndNil(FCroppedImage);
   Update([muContent]);
+end;
+
+procedure TKMemoImageBlock.SetLogScaleX(const Value: Integer);
+begin
+  if ImageDPIX <> 0 then
+    ScaleX := MulDiv(Value, PixelsPerInchX, ImageDPIX)
+  else
+    ScaleX := Value;
+end;
+
+procedure TKMemoImageBlock.SetLogScaleY(const Value: Integer);
+begin
+  if ImageDPIY <> 0 then
+    ScaleY := MulDiv(Value, PixelsPerInchY, ImageDPIY)
+  else
+    ScaleY := Value;
 end;
 
 procedure TKMemoImageBlock.SetResizable(const Value: Boolean);
@@ -8962,6 +9108,7 @@ begin
     FImageStyle.PaintBox(ACanvas, ROuter);
     if FCroppedImage <> nil then
       ACanvas.StretchDraw(R, FCroppedImage);
+//    ACanvas.StretchDraw(R, FImage);
   end;
 end;
 
@@ -10827,14 +10974,16 @@ end;
 function TKMemoBlocks.AddImageBlock(AImage: TPicture; At: Integer): TKMemoImageBlock;
 begin
   Result := TKMemoImageBlock.Create;
-  Result.Image := AImage;
+  if AImage <> nil then
+    Result.Image := AImage.Graphic;
   AddAt(Result, At);
 end;
 
 function TKMemoBlocks.AddImageBlock(const APath: TKString; At: Integer): TKMemoImageBlock;
 begin
   Result := TKMemoImageBlock.Create;
-  Result.SetImagePath(APath);
+  if APath <> '' then
+    Result.SetImagePath(APath);
   AddAt(Result, At);
 end;
 

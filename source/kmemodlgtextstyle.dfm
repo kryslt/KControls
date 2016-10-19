@@ -96,8 +96,8 @@ object KMemoTextStyleForm: TKMemoTextStyleForm
       Max = 200.000000000000000000
       Min = 1.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 3
       Value = 1.000000000000000000
+      TabOrder = 3
       OnChange = EDFontSizeChange
     end
   end

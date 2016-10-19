@@ -222,6 +222,11 @@ type
     procedure ACInsertContainerExecute(Sender: TObject);
   private
     { Private declarations }
+    FDefaultIndent: Integer;
+    FDefaultTextBoxBorderWidth: Integer;
+    FDefaultTextBoxMargin: Integer;
+    FDefaultTextBoxPadding: Integer;
+    FDefaultTextBoxSize: TPoint;
     FNewFile: Boolean;
     FLastFileName: TKString;
     procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
@@ -251,6 +256,11 @@ type
     procedure OpenNewFile;
     procedure OpenFile(FileName: TKString);
     function SaveFile(SaveAs, NeedAnotherOp: Boolean): Boolean;
+    property DefaultIndent: Integer read FDefaultIndent write FDefaultIndent;
+    property DefaultTextBoxSize: TPoint read FDefaultTextBoxSize write FDefaultTextBoxSize;
+    property DefaultTextBoxBorderWidth: Integer read FDefaultTextBoxBorderWidth write FDefaultTextBoxBorderWidth;
+    property DefaultTextBoxMargin: Integer read FDefaultTextBoxMargin write FDefaultTextBoxMargin;
+    property DefaultTextBoxPadding: Integer read FDefaultTextBoxPadding write FDefaultTextBoxPadding;
     property NewFile: Boolean read FNewFile;
     property LastFileName: TKString read FLastFileName;
   end;
@@ -271,6 +281,11 @@ constructor TKMemoFrame.Create(AOwner: TComponent);
 begin
   inherited;
   FLastFileName := '';
+  FDefaultIndent := 20;
+  FDefaultTextBoxSize := Point(200, 150);
+  FDefaultTextBoxBorderWidth := 2;
+  FDefaultTextBoxMargin := 5;
+  FDefaultTextBoxPadding := 5;
   FNewFile := False;
   FContainerForm := TKMemoContainerForm.Create(Self);
   FFormatCopyParaStyle := TKMemoParaStyle.Create;
@@ -523,7 +538,7 @@ end;
 
 procedure TKMemoFrame.ACParaDecIndentExecute(Sender: TObject);
 begin
-  FParaStyle.LeftPadding := Max(FParaStyle.LeftPadding - 20, 0);
+  FParaStyle.LeftPadding := Max(FParaStyle.LeftPadding - Editor.Pt2PxX(FDefaultIndent), 0);
 end;
 
 procedure TKMemoFrame.ACParaDecIndentUpdate(Sender: TObject);
@@ -533,12 +548,12 @@ end;
 
 procedure TKMemoFrame.ACParaIncIndentExecute(Sender: TObject);
 begin
-  FParaStyle.LeftPadding := Min(FParaStyle.LeftPadding + 20, Editor.RequiredContentWidth - FParaStyle.RightPadding - 20);
+  FParaStyle.LeftPadding := Min(FParaStyle.LeftPadding + Editor.Pt2PxX(FDefaultIndent), Editor.RequiredContentWidth - FParaStyle.RightPadding - Editor.Pt2PxX(FDefaultIndent));
 end;
 
 procedure TKMemoFrame.ACParaIncIndentUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := FParaStyle.LeftPadding < Editor.RequiredContentWidth - FParaStyle.RightPadding - 20;
+  TAction(Sender).Enabled := FParaStyle.LeftPadding < Editor.RequiredContentWidth - FParaStyle.RightPadding - Editor.Pt2PxX(FDefaultIndent);
 end;
 
 procedure TKMemoFrame.ACParaLeftExecute(Sender: TObject);
@@ -553,7 +568,7 @@ end;
 
 procedure TKMemoFrame.ACParaNumberingExecute(Sender: TObject);
 begin
-  FNumberingForm.Load(Editor.ListTable, Editor.NearestParagraph);
+  FNumberingForm.Load(Editor, Editor.ListTable, Editor.NearestParagraph);
   if FNumberingForm.ShowModal = mrOk then
     FNumberingForm.Save;
 end;
@@ -575,7 +590,7 @@ end;
 
 procedure TKMemoFrame.ACParaStyleExecute(Sender: TObject);
 begin
-  FParaStyleForm.Load(FParaStyle);
+  FParaStyleForm.Load(Editor, FParaStyle);
   if FParaStyleForm.ShowModal = mrOk then
     FParaStyleForm.Save(FParaStyle);
 end;
@@ -637,18 +652,18 @@ begin
     else
     begin
       Cont := TKMemoContainer.Create;
-      Cont.BlockStyle.ContentPadding.All := 5;
-      Cont.BlockStyle.ContentMargin.All := 5;
+      Cont.BlockStyle.ContentPadding.All := Editor.Pt2PxX(FDefaultTextBoxPadding);
+      Cont.BlockStyle.ContentMargin.All := Editor.Pt2PxX(FDefaultTextBoxMargin);
       Cont.FixedWidth := True;
       Cont.FixedHeight := True;
-      Cont.RequiredWidth := 200;
-      Cont.RequiredHeight := 150;
-      Cont.BlockStyle.BorderWidth := 2;
+      Cont.RequiredWidth := Editor.Pt2PxX(FDefaultTextBoxSize.X);
+      Cont.RequiredHeight := Editor.Pt2PxY(FDefaultTextBoxSize.Y);
+      Cont.BlockStyle.BorderWidth := Editor.Pt2PxX(FDefaultTextBoxBorderWidth);
       Cont.InsertString(sMemoSampleTextBox + cEOL);
       Created := True;
     end;
   end;
-  FContainerForm.Load(Cont);
+  FContainerForm.Load(Editor, Cont);
   if FContainerForm.ShowModal = mrOk then
   begin
     FContainerForm.Save(Cont);
@@ -679,7 +694,7 @@ begin
     Image := TKMemoImageBlock.Create;
     Created := True;
   end;
-  FImageForm.Load(Image);
+  FImageForm.Load(Editor, Image);
   if FImageForm.ShowModal = mrOk then
   begin
     FImageForm.Save(Image);

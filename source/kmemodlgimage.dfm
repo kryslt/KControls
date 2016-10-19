@@ -50,7 +50,7 @@ object KMemoImageForm: TKMemoImageForm
     Top = 8
     Width = 217
     Height = 389
-    ActivePage = TSBasic
+    ActivePage = TSAdvanced
     TabOrder = 3
     object TSBasic: TTabSheet
       Caption = 'Basic'
@@ -93,11 +93,13 @@ object KMemoImageForm: TKMemoImageForm
           Top = 27
           Width = 43
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           Caption = 'Horz. offset:'
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 10000.000000000000000000
           Min = -10000.000000000000000000
+          Precision = 1
           TabOrder = 3
         end
         object EDOffsetY: TKNumberEdit
@@ -105,11 +107,13 @@ object KMemoImageForm: TKMemoImageForm
           Top = 67
           Width = 43
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           Caption = 'Vert. offset:'
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 10000.000000000000000000
           Min = -10000.000000000000000000
+          Precision = 1
           TabOrder = 5
         end
       end
@@ -166,10 +170,12 @@ object KMemoImageForm: TKMemoImageForm
           Top = 33
           Width = 51
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           Caption = 'Explicit width:'
-          CustomSuffix = 'px'
+          CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown]
+          Precision = 1
           Value = 100.000000000000000000
           OnUpDownChange = EDScaleXExit
           TabOrder = 5
@@ -181,10 +187,12 @@ object KMemoImageForm: TKMemoImageForm
           Top = 73
           Width = 51
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           Caption = 'Explicit height:'
-          CustomSuffix = 'px'
+          CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown]
+          Precision = 1
           Value = 100.000000000000000000
           OnUpDownChange = EDScaleXExit
           TabOrder = 7
@@ -282,10 +290,12 @@ object KMemoImageForm: TKMemoImageForm
           Top = 24
           Width = 55
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Max = 20.000000000000000000
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Precision = 1
           OnUpDownChange = EDScaleXExit
           TabOrder = 0
           OnExit = EDScaleXExit
@@ -361,9 +371,11 @@ object KMemoImageForm: TKMemoImageForm
           Top = 24
           Width = 55
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Precision = 1
           OnUpDownChange = EDScaleXExit
           TabOrder = 0
           OnExit = EDScaleXExit
@@ -373,9 +385,11 @@ object KMemoImageForm: TKMemoImageForm
           Top = 54
           Width = 55
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Precision = 1
           OnUpDownChange = EDScaleXExit
           TabOrder = 2
           OnExit = EDScaleXExit
@@ -385,9 +399,11 @@ object KMemoImageForm: TKMemoImageForm
           Top = 88
           Width = 55
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Precision = 1
           OnUpDownChange = EDScaleXExit
           TabOrder = 4
           OnExit = EDScaleXExit
@@ -397,9 +413,11 @@ object KMemoImageForm: TKMemoImageForm
           Top = 118
           Width = 55
           Height = 21
+          AcceptedFormats = [neafDec, neafFloat]
           CustomSuffix = 'pt'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+          Precision = 1
           OnUpDownChange = EDScaleXExit
           TabOrder = 6
           OnExit = EDScaleXExit

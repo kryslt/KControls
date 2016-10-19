@@ -1,7 +1,7 @@
 object KMemoContainerForm: TKMemoContainerForm
   Left = 0
   Height = 453
-  Top = 0
+  Top = 2
   Width = 524
   BorderStyle = bsDialog
   Caption = 'Insert/edit container (text box)'
@@ -90,11 +90,13 @@ object KMemoContainerForm: TKMemoContainerForm
       Height = 23
       Top = 11
       Width = 43
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Horz. offset:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10000
       Min = -10000
+      Precision = 1
       Font.Color = clWindowText
       ParentFont = False
       TabOrder = 2
@@ -104,11 +106,13 @@ object KMemoContainerForm: TKMemoContainerForm
       Height = 23
       Top = 55
       Width = 43
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Vert. offset:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10000
       Min = -10000
+      Precision = 1
       Font.Color = clWindowText
       ParentFont = False
       TabOrder = 4
@@ -128,10 +132,12 @@ object KMemoContainerForm: TKMemoContainerForm
       Height = 23
       Top = 19
       Width = 51
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Width:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Min = 1
+      Precision = 1
       Value = 100
       OnUpDownChange = EDWidthExit
       Font.Color = clWindowText
@@ -144,10 +150,12 @@ object KMemoContainerForm: TKMemoContainerForm
       Height = 23
       Top = 19
       Width = 52
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Height:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Min = 1
+      Precision = 1
       Value = 100
       OnUpDownChange = EDWidthExit
       Font.Color = clWindowText

@@ -228,6 +228,7 @@ type
     FWidth: Integer;
     function GetScanLine(Index: Integer): PKColorRecs;
     function GetHandle: HBITMAP;
+    function GetHasAlpha: Boolean;
     function GetPixel(X, Y: Integer): TKColorRec;
     procedure SetPixel(X, Y: Integer; Value: TKColorRec);
   protected
@@ -343,6 +344,8 @@ type
     property DirectCopy: Boolean read FDirectCopy write FDirectCopy;
     { Returns the bitmap handle. }
     property Handle: HBITMAP read GetHandle;
+    { Returns true if alpha channel is nonzero for at least one pixel. }
+    property HasAlpha: Boolean read GetHasAlpha;
     { Specifies the pixel color. Does range checking. }
     property Pixel[X, Y: Integer]: TKColorRec read GetPixel write SetPixel;
     { Returns the pointer to bitmap pixels. }
@@ -1365,11 +1368,13 @@ function GetImageDPI(AGraphic: Tgraphic): TPoint;
 
   procedure GetDPIFromJPeg(AJPeg: TJPegImage);
   const
+    cInchesPerCM = (1 / 2.54);
     cBufferSize = 50;
   var
     MS: TMemoryStream;
     Index: Integer;
     Buffer: AnsiString;
+    resUnits: Byte;
     xResolution: Word;
     yResolution: Word;
   begin
@@ -1381,13 +1386,29 @@ function GetImageDPI(AGraphic: Tgraphic): TPoint;
       SetLength(Buffer, cBufferSize);
       MS.Read(Buffer[1], cBufferSize);
       Index := Pos('JFIF'+#$00, Buffer);
-      if Index >= 0 then
+      if Index > 0 then
       begin
-        MS.Seek(Index + 7, soFromBeginning);
+        MS.Seek(Index + 6, soFromBeginning);
+        MS.Read(resUnits, 1);
         MS.Read(xResolution, 2);
         MS.Read(yResolution, 2);
-        Result.X := Swap(xResolution);
-        Result.Y := Swap(yResolution);
+        xResolution := Swap(xResolution);
+        yResolution := Swap(yResolution);
+        case resUnits of
+          1: // dots per inch
+          begin
+            Result.X := xResolution;
+            Result.Y := yResolution;
+          end;
+          2: // dots per cm
+          begin
+            Result.X := Round(xResolution / cInchesPerCM);
+            Result.Y := Round(yResolution / cInchesPerCM);
+          end;
+        else
+          Result.X := 96;
+          Result.Y := MulDiv(96, yResolution, xResolution);
+        end;
       end;
     finally
       MS.Free;
@@ -1660,6 +1681,9 @@ end;
 
 procedure StretchBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcRect: TRect);
 begin
+{$IFDEF USE_WINAPI}
+  SetStretchBltMode(DestDC, HALFTONE);
+{$ENDIF}
   {$IFDEF USE_WINAPI}Windows.{$ENDIF}StretchBlt(DestDC,
     DestRect.Left, DestRect.Top, DestRect.Right - DestRect.Left, DestRect.Bottom - DestRect.Top,
     SrcDC, SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top,
@@ -1800,17 +1824,12 @@ end;
 procedure TKAlphaBitmap.AlphaFill(Alpha: Byte; IfEmpty: Boolean);
 var
   I: Integer;
-  HasAlpha: Boolean;
+  LocHasAlpha: Boolean;
 begin
-  HasAlpha := False;
+  LocHasAlpha := False;
   if IfEmpty then
-    for I := 0 to FWidth * FHeight - 1 do
-      if FPixels[I].A <> 0 then
-      begin
-        HasAlpha := True;
-        Break;
-      end;
-  if not HasAlpha then
+    LocHasAlpha := HasAlpha;
+  if not LocHasAlpha then
   begin
     LockUpdate;
     try
@@ -2168,6 +2187,19 @@ end;
 function TKAlphaBitmap.GetHandle: HBITMAP;
 begin
   Result := FHandle;
+end;
+
+function TKAlphaBitmap.GetHasAlpha: Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to FWidth * FHeight - 1 do
+    if FPixels[I].A <> 0 then
+    begin
+      Result := True;
+      Break;
+    end;
 end;
 
 function TKAlphaBitmap.GetWidth: Integer;

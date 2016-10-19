@@ -14,7 +14,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
-  LCLVersion = '1.3'
+  LCLVersion = '1.6.0.4'
   object BUOk: TButton
     Left = 211
     Height = 25
@@ -49,7 +49,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 2
-    ClientHeight = 131
+    ClientHeight = 143
     ClientWidth = 355
     Columns = 2
     ItemIndex = 0
@@ -71,69 +71,73 @@ object KMemoNumberingForm: TKMemoNumberingForm
     Top = 175
     Width = 359
     Caption = 'Options'
-    ClientHeight = 68
+    ClientHeight = 80
     ClientWidth = 355
     TabOrder = 3
     object LBFirstIndent: TLabel
       Left = 10
-      Height = 14
+      Height = 13
       Top = 5
-      Width = 67
+      Width = 58
       Caption = 'First indent:'
       ParentColor = False
     end
     object LBLeftIndent: TLabel
       Left = 10
-      Height = 14
+      Height = 13
       Top = 35
-      Width = 64
+      Width = 56
       Caption = 'Left indent:'
       ParentColor = False
     end
     object LBListLevel: TLabel
       Left = 186
-      Height = 14
+      Height = 13
       Top = 35
-      Width = 33
+      Width = 29
       Caption = 'Level:'
       ParentColor = False
     end
     object EDFirstIndent: TKNumberEdit
       Left = 90
-      Height = 21
+      Height = 23
       Top = 2
       Width = 55
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
-      Font.Color = clWindowText
       Max = 250
       Min = -250
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Precision = 1
+      UpDownStep = 5
+      Font.Color = clWindowText
       ParentFont = False
       TabOrder = 0
-      UpDownStep = 5
     end
     object EDLeftIndent: TKNumberEdit
       Left = 90
-      Height = 21
+      Height = 23
       Top = 32
       Width = 55
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
-      Font.Color = clWindowText
       Max = 250
       Min = -250
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Precision = 1
+      UpDownStep = 5
+      Font.Color = clWindowText
       ParentFont = False
       TabOrder = 2
-      UpDownStep = 5
     end
     object CoBListLevel: TComboBox
       Left = 245
-      Height = 22
+      Height = 21
       Top = 32
       Width = 100
-      ItemHeight = 0
+      ItemHeight = 13
       Items.Strings = (
         'first'
         'second'
@@ -156,48 +160,49 @@ object KMemoNumberingForm: TKMemoNumberingForm
     Top = 279
     Width = 359
     Caption = 'Starting value'
-    ClientHeight = 50
+    ClientHeight = 62
     ClientWidth = 355
     TabOrder = 4
     object RBContinuous: TRadioButton
       Left = 10
-      Height = 26
+      Height = 19
       Top = 1
-      Width = 92
+      Width = 74
       Caption = 'Continuous'
       Checked = True
       OnClick = RBContinuousClick
       TabOrder = 0
+      TabStop = True
     end
     object RBStartFromOne: TRadioButton
       Left = 10
-      Height = 26
+      Height = 19
       Top = 24
-      Width = 132
+      Width = 107
       Caption = 'Again start from 1'
       OnClick = RBContinuousClick
       TabOrder = 1
     end
     object RBStartAt: TRadioButton
       Left = 185
-      Height = 26
+      Height = 19
       Top = 1
-      Width = 131
+      Width = 106
       Caption = 'Set custom value:'
       OnClick = RBContinuousClick
       TabOrder = 2
     end
     object EDStartAt: TKNumberEdit
       Left = 184
-      Height = 21
+      Height = 23
       Top = 24
       Width = 55
       DecimalSeparator = ','
-      Font.Color = clWindowText
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Value = 1
+      Font.Color = clWindowText
       ParentFont = False
       TabOrder = 3
-      Value = 1
     end
   end
-end
+end

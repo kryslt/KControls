@@ -120,38 +120,44 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Top = 40
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 1
+      Precision = 1
       UpDownStep = 5.000000000000000000
+      TabOrder = 1
     end
     object EDLeftIndent: TKNumberEdit
       Left = 98
       Top = 24
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
       Min = -250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 3
+      Precision = 1
       UpDownStep = 5.000000000000000000
+      TabOrder = 3
     end
     object EDRightIndent: TKNumberEdit
       Left = 98
       Top = 54
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
       Min = -250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 5
+      Precision = 1
       UpDownStep = 5.000000000000000000
+      TabOrder = 5
     end
   end
   object GBSpacing: TGroupBox
@@ -194,24 +200,28 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Top = 24
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 0
+      Precision = 1
       UpDownStep = 3.000000000000000000
+      TabOrder = 0
     end
     object EDSpaceBelow: TKNumberEdit
       Left = 98
       Top = 54
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 2
+      Precision = 1
       UpDownStep = 3.000000000000000000
+      TabOrder = 2
     end
     object CoBLineSpacing: TComboBox
       Left = 248
@@ -302,10 +312,12 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Top = 24
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Precision = 1
       TabOrder = 0
     end
     object EDBorderRight: TKNumberEdit
@@ -313,10 +325,12 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Top = 54
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Precision = 1
       TabOrder = 2
     end
     object EDBorderTop: TKNumberEdit
@@ -324,10 +338,12 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Top = 24
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Precision = 1
       TabOrder = 4
     end
     object EDBorderBottom: TKNumberEdit
@@ -335,10 +351,12 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Top = 54
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Precision = 1
       TabOrder = 6
     end
     object CLBBorder: TKColorButton
@@ -374,10 +392,12 @@ object KMemoParaStyleForm: TKMemoParaStyleForm
       Top = 113
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      Precision = 1
       TabOrder = 10
     end
   end

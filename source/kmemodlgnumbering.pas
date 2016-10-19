@@ -51,6 +51,7 @@ type
     procedure RBContinuousClick(Sender: TObject);
   private
     { Private declarations }
+    FMemo: TKMemo;
     FListID: Integer;
     FListLevel: Integer;
     FListTable: TKMemoListTable;
@@ -60,7 +61,7 @@ type
     procedure UpdateFields;
   public
     { Public declarations }
-    procedure Load(AListTable: TKMemoListTable; APara: TKMemoParagraph);
+    procedure Load(AMemo: TKMemo; AListTable: TKMemoListTable; APara: TKMemoParagraph);
     procedure Save;
   end;
 
@@ -98,10 +99,14 @@ begin
   FListTableCopy.Free;
 end;
 
-procedure TKMemoNumberingForm.Load(AListTable: TKMemoListTable; APara: TKMemoParagraph);
+procedure TKMemoNumberingForm.Load(AMemo: TKMemo; AListTable: TKMemoListTable; APara: TKMemoParagraph);
 begin
-  FPara := APara;
+  Assert(AMemo <> nil);
+  Assert(AListTable <> nil);
+  Assert(APara <> nil);
+  FMemo := AMemo;
   FListTable := AListTable;
+  FPara := APara;
   if FPara <> nil then
   begin
     FLoading := True;
@@ -132,22 +137,19 @@ procedure TKMemoNumberingForm.Save;
 var
   ListLevel: TKMemoListLevel;
 begin
-  if FPara <> nil then
+  FListTable.Assign(FListTableCopy);
+  FPara.ParaStyle.SetNumberingListAndLevel(FListID, FListLevel);
+  ListLevel := FPara.NumberingListLevel;
+  if ListLevel <> nil then
   begin
-    FListTable.Assign(FListTableCopy);
-    FPara.ParaStyle.SetNumberingListAndLevel(FListID, FListLevel);
-    ListLevel := FPara.NumberingListLevel;
-    if ListLevel <> nil then
-    begin
-      ListLevel.FirstIndent := EDFirstIndent.ValueAsInt;
-      ListLevel.LeftIndent := EDLeftIndent.ValueAsInt;
-      if RBContinuous.Checked then
-        FPara.ParaStyle.NumberStartAt := 0
-      else if RBStartFromOne.Checked then
-        FPara.ParaStyle.NumberStartAt := 1
-      else
-        FPara.ParaStyle.NumberStartAt := EDStartAt.ValueAsInt
-    end;
+    ListLevel.FirstIndent := FMemo.Pt2PxX(EDFirstIndent.Value);
+    ListLevel.LeftIndent := FMemo.Pt2PxX(EDLeftIndent.Value);
+    if RBContinuous.Checked then
+      FPara.ParaStyle.NumberStartAt := 0
+    else if RBStartFromOne.Checked then
+      FPara.ParaStyle.NumberStartAt := 1
+    else
+      FPara.ParaStyle.NumberStartAt := EDStartAt.ValueAsInt
   end;
 end;
 
@@ -167,8 +169,8 @@ begin
         FListID := List.ID;
         ListLevel := List.Levels[FListLevel];
         CoBListLevel.ItemIndex := FListLevel;
-        EDFirstIndent.ValueAsInt := ListLevel.FirstIndent;
-        EDLeftIndent.ValueAsInt := ListLevel.LeftIndent;
+        EDFirstIndent.Value := FMemo.Px2PtX(ListLevel.FirstIndent);
+        EDLeftIndent.Value := FMemo.Px2PtX(ListLevel.LeftIndent);
         case FPara.ParaStyle.NumberStartAt of
           0: RBContinuous.Checked := True;
           1: RBStartFromOne.Checked := True;
@@ -181,8 +183,8 @@ begin
         FListID := cInvalidListID;
         FListLevel := -1;
         CoBListLevel.ItemIndex := -1;
-        EDFirstIndent.ValueAsInt := 0;
-        EDLeftIndent.ValueAsInt := 0;
+        EDFirstIndent.Value := 0;
+        EDLeftIndent.Value := 0;
         RBContinuous.Checked := True;
         EDStartAt.ValueAsInt := 1;
       end;

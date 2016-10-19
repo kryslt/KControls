@@ -881,8 +881,12 @@ var
 begin
   S := '';
   if FDisplayedFormat = nedfAsInput then
-    Fmt := FLastInputFormat
-  else
+  begin
+    if Frac(AValue) <> 0 then
+      Fmt := nedfFloat
+    else
+      Fmt := FLastInputFormat;
+  end else
     Fmt := FDisplayedFormat;
   GetPrefixSuffix(Fmt, Prefix, Suffix);
   case Fmt of
@@ -1585,6 +1589,8 @@ begin
     V := MinMax(NewValue * FRealUpDownStep, FMin, FMax);
     if V <> Value then
     begin
+      if (DisplayedFormat = nedfAsInput) and (neafDec in AcceptedFormats) and (Frac(V) = 0) then
+        LastInputFormat := nedfDec;
       Value := V;
       UpDownChange;
       FUpdateUpDown := True;

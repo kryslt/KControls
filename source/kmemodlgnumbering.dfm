@@ -89,26 +89,28 @@ object KMemoNumberingForm: TKMemoNumberingForm
       Top = 24
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
       Min = -250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 0
       UpDownStep = 5.000000000000000000
+      TabOrder = 0
     end
     object EDLeftIndent: TKNumberEdit
       Left = 90
       Top = 54
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
       Min = -250.000000000000000000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 2
       UpDownStep = 5.000000000000000000
+      TabOrder = 2
     end
     object CoBListLevel: TComboBox
       Left = 245
@@ -171,8 +173,8 @@ object KMemoNumberingForm: TKMemoNumberingForm
       Height = 21
       DecimalSeparator = ','
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
-      TabOrder = 3
       Value = 1.000000000000000000
+      TabOrder = 3
     end
   end
 end

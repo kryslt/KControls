@@ -90,11 +90,13 @@ object KMemoContainerForm: TKMemoContainerForm
       Top = 27
       Width = 43
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Horz. offset:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10000.000000000000000000
       Min = -10000.000000000000000000
+      Precision = 1
       TabOrder = 2
     end
     object EDOffsetY: TKNumberEdit
@@ -102,11 +104,13 @@ object KMemoContainerForm: TKMemoContainerForm
       Top = 67
       Width = 43
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Vert. offset:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 10000.000000000000000000
       Min = -10000.000000000000000000
+      Precision = 1
       TabOrder = 4
     end
   end
@@ -122,10 +126,12 @@ object KMemoContainerForm: TKMemoContainerForm
       Top = 33
       Width = 51
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Width:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Min = 1.000000000000000000
+      Precision = 1
       Value = 100.000000000000000000
       OnUpDownChange = EDWidthExit
       TabOrder = 0
@@ -136,10 +142,12 @@ object KMemoContainerForm: TKMemoContainerForm
       Top = 33
       Width = 52
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Height:'
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Min = 1.000000000000000000
+      Precision = 1
       Value = 100.000000000000000000
       OnUpDownChange = EDWidthExit
       TabOrder = 2
@@ -245,6 +253,7 @@ object KMemoContainerForm: TKMemoContainerForm
       Top = 24
       Width = 55
       Height = 21
+      AcceptedFormats = [neafDec, neafFloat]
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 20.000000000000000000

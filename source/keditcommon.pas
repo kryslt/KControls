@@ -367,7 +367,73 @@ function DefaultCharMapping: TKEditCharMapping;
 { Returns default search data structure }
 function DefaultSearchData: TKEditSearchData;
 
+function PixelsPerInchX(AHandle: HWND): Integer;
+function PixelsPerInchY(AHandle: HWND): Integer;
+function TwipsPerPixelX(AHandle: HWND): Double;
+function TwipsPerPixelY(AHandle: HWND): Double;
+
+function PixelsToPoints(AValue: Integer; ADPI: Integer): Double;
+function PointsToPixels(AValue: Double; ADPI: Integer): Integer;
+
+function TwipsToPoints(AValue: Integer; ADPI: Integer): Double;
+function PointsToTwips(AValue: Double; ADPI: Integer): Integer;
+
+
 implementation
+
+function PixelsPerInchX(AHandle: HWND): Integer;
+var
+  DC: HDC;
+begin
+  DC := GetDC(AHandle);
+  try
+    Result := GetDeviceCaps(DC, LOGPIXELSX);
+  finally
+    ReleaseDC(AHandle, DC);
+  end;
+end;
+
+function PixelsPerInchY(AHandle: HWND): Integer;
+var
+  DC: HDC;
+begin
+  DC := GetDC(AHandle);
+  try
+    Result := GetDeviceCaps(DC, LOGPIXELSY);
+  finally
+    ReleaseDC(AHandle, DC);
+  end;
+end;
+
+function TwipsPerPixelX(AHandle: HWND): Double;
+begin
+  Result := 1440 / PixelsPerInchX(AHandle);
+end;
+
+function TwipsPerPixelY(AHandle: HWND): Double;
+begin
+  Result := 1440 / PixelsPerInchY(AHandle);
+end;
+
+function PixelsToPoints(AValue, ADPI: Integer): Double;
+begin
+  Result := AValue * 72 / ADPI;
+end;
+
+function PointsToPixels(AValue: Double; ADPI: Integer): Integer;
+begin
+  Result := Round(AValue * ADPI / 72);
+end;
+
+function TwipsToPoints(AValue: Integer; ADPI: Integer): Double;
+begin
+  Result := AValue * 1440 / ADPI;
+end;
+
+function PointsToTwips(AValue: Double; ADPI: Integer): Integer;
+begin
+  Result := Round(AValue * ADPI / 1440);
+end;
 
 function CreateDefaultKeyMapping: TKEditKeyMapping;
 begin

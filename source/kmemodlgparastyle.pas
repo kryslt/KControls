@@ -70,10 +70,12 @@ type
     procedure CoBLineSpacingClick(Sender: TObject);
   private
     { Private declarations }
+    FMemo: TKmemo;
+    FStyle: TKMemoParaStyle;
     procedure UpdateLineSpacingValue(AValue: Double);
   public
     { Public declarations }
-    procedure Load(AStyle: TKMemoParaStyle);
+    procedure Load(AMemo: TKMemo; AStyle: TKMemoParaStyle);
     procedure Save(AStyle: TKMemoParaStyle);
   end;
 
@@ -92,57 +94,62 @@ uses
 
 procedure TKMemoParaStyleForm.CoBLineSpacingClick(Sender: TObject);
 begin
-  UpdateLineSpacingValue(EDLineSpacingValue.Value);
+  case CoBLineSpacing.ItemIndex of
+    3,4: UpdateLineSpacingValue(Abs(FStyle.LineSpacingValue))
+  else
+    UpdateLineSpacingValue(FStyle.LineSpacingFactor);
+  end;
 end;
 
-procedure TKMemoParaStyleForm.Load(AStyle: TKMemoParaStyle);
+procedure TKMemoParaStyleForm.Load(AMemo: TKMemo; AStyle: TKMemoParaStyle);
 begin
-  if AStyle <> nil then
-  begin
-    CoBAlign.ItemIndex := Integer(AStyle.HAlign);
-    EDLeftIndent.ValueAsInt := AStyle.LeftPadding;
-    EDRightIndent.ValueAsInt := AStyle.RightPadding;
-    EDFirstIndent.ValueAsInt := Abs(AStyle.FirstIndent);
-    if AStyle.FirstIndent = 0 then
-      CoBFirstIndent.ItemIndex := 0
-    else if AStyle.FirstIndent > 0 then
-      CoBFirstIndent.ItemIndex := 1
-    else
-      CoBFirstIndent.ItemIndex := 2;
-    EDSpaceAbove.ValueAsInt := AStyle.TopPadding;
-    EDSpaceBelow.ValueAsInt := AStyle.BottomPadding;
-    EDBorderBottom.ValueAsInt := AStyle.BorderWidths.Bottom;
-    EDBorderLeft.ValueAsInt := AStyle.BorderWidths.Left;
-    EDBorderRight.ValueAsInt := AStyle.BorderWidths.Right;
-    EDBorderTop.ValueAsInt := AStyle.BorderWidths.Top;
-    EDBorderRadius.ValueAsInt := AStyle.BorderRadius;
-    CLBBorder.DlgColor := AStyle.BorderColor;
-    if AStyle.Brush.Style <> bsClear then
-      CLBShading.DlgColor := AStyle.Brush.Color
-    else
-      CLBShading.DlgColor := clNone;
-    CBWordWrap.Checked := AStyle.WordWrap;
-    case AStyle.LineSpacingMode of
-      lsmFactor:
-      begin
-        if SameValue(AStyle.LineSpacingFactor, 1) then
-          CoBLineSpacing.ItemIndex := 0
-        else if SameValue(AStyle.LineSpacingFactor, 1.5) then
-          CoBLineSpacing.ItemIndex := 1
-        else if SameValue(AStyle.LineSpacingFactor, 2) then
-          CoBLineSpacing.ItemIndex := 2
-        else
-          CoBLineSpacing.ItemIndex := 5;
-        UpdateLineSpacingValue(AStyle.LineSpacingFactor);
-      end;
-      lsmValue:
-      begin
-        if AStyle.LineSpacingValue >= 0 then
-          CoBLineSpacing.ItemIndex := 3
-        else
-          CoBLineSpacing.ItemIndex := 4;
-        UpdateLineSpacingValue(Abs(AStyle.LineSpacingValue));
-      end;
+  Assert(AMemo <> nil);
+  Assert(AStyle <> nil);
+  FMemo := AMemo;
+  FStyle := AStyle;
+  CoBAlign.ItemIndex := Integer(AStyle.HAlign);
+  EDLeftIndent.Value := FMemo.Px2PtX(AStyle.LeftPadding);
+  EDRightIndent.Value := FMemo.Px2PtX(AStyle.RightPadding);
+  EDFirstIndent.Value := FMemo.Px2PtX(Abs(AStyle.FirstIndent));
+  if AStyle.FirstIndent = 0 then
+    CoBFirstIndent.ItemIndex := 0
+  else if AStyle.FirstIndent > 0 then
+    CoBFirstIndent.ItemIndex := 1
+  else
+    CoBFirstIndent.ItemIndex := 2;
+  EDSpaceAbove.Value := FMemo.Px2PtY(AStyle.TopPadding);
+  EDSpaceBelow.Value := FMemo.Px2PtY(AStyle.BottomPadding);
+  EDBorderBottom.Value := FMemo.Px2PtY(AStyle.BorderWidths.Bottom);
+  EDBorderLeft.Value := FMemo.Px2PtX(AStyle.BorderWidths.Left);
+  EDBorderRight.Value := FMemo.Px2PtX(AStyle.BorderWidths.Right);
+  EDBorderTop.Value := FMemo.Px2PtY(AStyle.BorderWidths.Top);
+  EDBorderRadius.Value := FMemo.Px2PtX(AStyle.BorderRadius);
+  CLBBorder.DlgColor := AStyle.BorderColor;
+  if AStyle.Brush.Style <> bsClear then
+    CLBShading.DlgColor := AStyle.Brush.Color
+  else
+    CLBShading.DlgColor := clNone;
+  CBWordWrap.Checked := AStyle.WordWrap;
+  case AStyle.LineSpacingMode of
+    lsmFactor:
+    begin
+      if SameValue(AStyle.LineSpacingFactor, 1) then
+        CoBLineSpacing.ItemIndex := 0
+      else if SameValue(AStyle.LineSpacingFactor, 1.5) then
+        CoBLineSpacing.ItemIndex := 1
+      else if SameValue(AStyle.LineSpacingFactor, 2) then
+        CoBLineSpacing.ItemIndex := 2
+      else
+        CoBLineSpacing.ItemIndex := 5;
+      UpdateLineSpacingValue(AStyle.LineSpacingFactor);
+    end;
+    lsmValue:
+    begin
+      if AStyle.LineSpacingValue >= 0 then
+        CoBLineSpacing.ItemIndex := 3
+      else
+        CoBLineSpacing.ItemIndex := 4;
+      UpdateLineSpacingValue(Abs(AStyle.LineSpacingValue));
     end;
   end;
 end;
@@ -152,21 +159,21 @@ begin
   if AStyle <> nil then
   begin
     AStyle.HAlign := TKHAlign(CoBAlign.ItemIndex);
-    AStyle.LeftPadding := EDLeftIndent.ValueAsInt;
-    AStyle.RightPadding := EDRightIndent.ValueAsInt;
+    AStyle.LeftPadding := FMemo.Pt2PxX(EDLeftIndent.Value);
+    AStyle.RightPadding := FMemo.Pt2PxX(EDRightIndent.Value);
     case CoBFirstIndent.ItemIndex of
-      1: AStyle.FirstIndent := EDFirstIndent.ValueAsInt;
-      2: AStyle.FirstIndent := -EDFirstIndent.ValueAsInt;
+      1: AStyle.FirstIndent := FMemo.Pt2PxX(EDFirstIndent.Value);
+      2: AStyle.FirstIndent := FMemo.Pt2PxX(-EDFirstIndent.Value);
     else
       AStyle.FirstIndent := 0;
     end;
-    AStyle.TopPadding := EDSpaceAbove.ValueAsInt;
-    AStyle.BottomPadding := EDSpaceBelow.ValueAsInt;
-    AStyle.BorderWidths.Bottom := EDBorderBottom.ValueAsInt;
-    AStyle.BorderWidths.Left := EDBorderLeft.ValueAsInt;
-    AStyle.BorderWidths.Right := EDBorderRight.ValueAsInt;
-    AStyle.BorderWidths.Top := EDBorderTop.ValueAsInt;
-    AStyle.BorderRadius := EDBorderRadius.ValueAsInt;
+    AStyle.TopPadding := FMemo.Pt2PxY(EDSpaceAbove.Value);
+    AStyle.BottomPadding := FMemo.Pt2PxY(EDSpaceBelow.Value);
+    AStyle.BorderWidths.Bottom := FMemo.Pt2PxY(EDBorderBottom.Value);
+    AStyle.BorderWidths.Left := FMemo.Pt2PxX(EDBorderLeft.Value);
+    AStyle.BorderWidths.Right := FMemo.Pt2PxX(EDBorderRight.Value);
+    AStyle.BorderWidths.Top := FMemo.Pt2PxY(EDBorderTop.Value);
+    AStyle.BorderRadius := FMemo.Pt2PxX(EDBorderRadius.Value);
     AStyle.BorderColor := CLBBorder.DlgColor;
     if CLBShading.DlgColor <> clNone then
       AStyle.Brush.Color := CLBShading.DlgColor;
@@ -174,8 +181,8 @@ begin
     case CoBLineSpacing.ItemIndex of
       1: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 1.5; end;
       2: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 2; end;
-      3: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := -MinMax(EDLineSpacingValue.ValueAsInt, 5, 100); end;
-      4: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := MinMax(EDLineSpacingValue.ValueAsInt, 5, 100); end;
+      3: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := FMemo.Pt2PxY(-MinMax(EDLineSpacingValue.Value, 5, 100)); end;
+      4: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := FMemo.Pt2PxY(MinMax(EDLineSpacingValue.Value, 5, 100)); end;
       5: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := MinMax(EDLineSpacingValue.Value, 0.1, 10); end;
     else
       AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 1;
@@ -186,13 +193,13 @@ end;
 procedure TKMemoParaStyleForm.UpdateLineSpacingValue(AValue: Double);
 begin
   case CoBLineSpacing.ItemIndex of
-    1: begin EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1.5; end;
-    2: begin EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 2; end;
-    3: begin EDLineSpacingValue.LastInputFormat := nedfDec; EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
-    4: begin EDLineSpacingValue.LastInputFormat := nedfDec; EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
-    5: begin EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
+    1: begin EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1.5; end;
+    2: begin EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 2; end;
+    3: begin EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := FMemo.Px2PtY(Round(AValue)); end;
+    4: begin EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := FMemo.Px2PtY(Round(AValue)); end;
+    5: begin EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
   else
-    EDLineSpacingValue.LastInputFormat := nedfFloat; EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1;
+    EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1;
   end;
 end;
 
