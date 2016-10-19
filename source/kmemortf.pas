@@ -1761,12 +1761,18 @@ begin
         // image was inside shape
         if FActiveImage <> nil then
         begin
-          ActiveImage.Position := mbpRelative;
+          // position always relative
+          FActiveImage.Position := mbpRelative;
+          // shape positioning tags override the image size/scale tags (MS Word behavior)
+          if FActiveShape.ContentPosition.Width > 0 then
+            FActiveImage.ScaleX := MulDiv(FActiveShape.ContentPosition.Width, 100, FActiveImage.NativeOrExplicitWidth);
+          if FActiveShape.ContentPosition.Height > 0 then
+            FActiveImage.ScaleY := MulDiv(FActiveShape.ContentPosition.Height, 100, FActiveImage.NativeOrExplicitHeight);
           if FActiveShape.HorzPosCode = 2 then
-            ActiveImage.LeftOffset := FActiveShape.ContentPosition.Left;
+            FActiveImage.LeftOffset := FActiveShape.ContentPosition.Left;
           if FActiveShape.VertPosCode = 2 then
-            ActiveImage.TopOffset := FActiveShape.ContentPosition.Top;
-          ActiveImage.ImageStyle.Assign(FActiveShape.Style);
+            FActiveImage.TopOffset := FActiveShape.ContentPosition.Top;
+          FActiveImage.ImageStyle.Assign(FActiveShape.Style);
           FlushImage;
         end;
       end;
@@ -1781,7 +1787,7 @@ begin
             if FActiveImage <> nil then
             begin
               if FMemo <> nil then
-                FMemo.Background.Image.Assign(ActiveImage.Image);
+                FMemo.Background.Image.Assign(FActiveImage.Image);
               FreeAndNil(FActiveImage);
             end;
           end
@@ -2122,6 +2128,11 @@ begin
       // standalone image outside of shppict and shape group (e.g. results of embedded objects)
       FlushText;
       FlushImage;
+    end
+    else if (FActiveState.Group = rgTextBox) and (State.Group = rgShapeInst) then
+    begin
+      // text shape inside of shpinst group
+      FlushText;
     end
     else if FActiveState.Group = rgField then
     begin

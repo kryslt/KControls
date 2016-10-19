@@ -54,10 +54,6 @@ object KMemoImageForm: TKMemoImageForm
     TabOrder = 3
     object TSBasic: TTabSheet
       Caption = 'Basic'
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 500
-      ExplicitHeight = 357
       object GBPosition: TGroupBox
         Left = 8
         Top = 3
@@ -171,7 +167,7 @@ object KMemoImageForm: TKMemoImageForm
           Width = 51
           Height = 21
           Caption = 'Explicit width:'
-          CustomSuffix = 'pt'
+          CustomSuffix = 'px'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown]
           Value = 100.000000000000000000
@@ -186,7 +182,7 @@ object KMemoImageForm: TKMemoImageForm
           Width = 51
           Height = 21
           Caption = 'Explicit height:'
-          CustomSuffix = 'pt'
+          CustomSuffix = 'px'
           DecimalSeparator = ','
           Options = [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown]
           Value = 100.000000000000000000
@@ -253,10 +249,6 @@ object KMemoImageForm: TKMemoImageForm
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 28
-      ExplicitWidth = 500
-      ExplicitHeight = 357
       object GBShading: TGroupBox
         Left = 7
         Top = 9
@@ -439,7 +431,6 @@ object KMemoImageForm: TKMemoImageForm
       Font.Style = []
       ReadOnly = True
       TabOrder = 0
-      ExplicitHeight = 331
     end
   end
   object ODMain: TOpenPictureDialog

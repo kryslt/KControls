@@ -976,14 +976,15 @@ type
   private
     FBaseLine: Integer;
     FCrop: TKRect;
+    FCroppedImage: TKAlphaBitmap;
+    FDPI: TPoint;
+    FExtent: TPoint; // extent given by word processor
+    FExplicitExtent: TPoint; // explicit extent
     FImage: TPicture;
     FImageStyle: TKMemoBlockStyle;
-    FExtent: TPoint; // extent given by word processor
     FOrigin: TPoint;
-    FExplicitExtent: TPoint; // explicit extent
     FResizable: Boolean;
     FScale: TPoint; // scaled extent
-    FCroppedImage: TKAlphaBitmap;
     FWordBottomPadding: Integer;
     FWordTopPadding: Integer;
     procedure SetCrop(const Value: TKRect);
@@ -1045,6 +1046,8 @@ type
     function WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint; AWordIndex: Integer; AOutOfArea, ASelectionExpanding: Boolean; out APosition: TKMemoLinePosition): Integer; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AIndex, ALeft, ATop: Integer); override;
     property Crop: TKRect read FCrop write SetCrop;
+    property DPIX: Integer read FDPI.X;
+    property DPIY: Integer read FDPI.Y;
     property Image: TPicture read FImage write SetImage;
     property ImageStyle: TKMemoBlockStyle read FImageStyle;
     property ImageHeight: Integer read GetImageHeight;
@@ -8631,6 +8634,7 @@ begin
   if not FCreatingCroppedImage then
   begin
     FreeAndNil(FCroppedImage);
+    FDPI := GetImageDPI(FImage.Graphic);
     Update([muContent]);
   end;
 end;

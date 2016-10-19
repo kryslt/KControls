@@ -265,6 +265,8 @@ type
     procedure SetRight(const Value: Integer);
     procedure SetTop(const Value: Integer);
     procedure SetAll(const Value: Integer);
+    function GetHeight: Integer;
+    function GetWidth: Integer;
   protected
     procedure Changed;
   public
@@ -284,6 +286,8 @@ type
     property Top: Integer read FTop write SetTop default cRectTopDef;
     property Right: Integer read FRight write SetRight default cRectRightDef;
     property Bottom: Integer read FBottom write SetBottom default cRectBottomDef;
+    property Width: Integer read GetWidth;
+    property Height: Integer read GetHeight;
   end;
 
   TKObjectList = class;
@@ -1309,6 +1313,16 @@ begin
   Result := (ARect <> nil) and
     (FLeft = ARect.Left) and (FRight = ARect.Right) and
     (FTop = ARect.Top) and (FBottom = ARect.Bottom);
+end;
+
+function TKRect.GetHeight: Integer;
+begin
+  Result := FBottom - FTop;
+end;
+
+function TKRect.GetWidth: Integer;
+begin
+  Result := FRight - FLeft;
 end;
 
 function TKRect.NonZero: Boolean;

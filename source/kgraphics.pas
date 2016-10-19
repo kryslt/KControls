@@ -719,6 +719,9 @@ function GetFontAscent(DC: HDC): Integer;
 { Determine the descent of the font currently selected into given DC. }
 function GetFontDescent(DC: HDC): Integer;
 
+{ Try to determine image DPI. }
+function GetImageDPI(AGraphic: Tgraphic): TPoint;
+
 { Raises an exception if GDI resource has not been created. }
 function GDICheck(Value: Integer): Integer;
 
@@ -1356,6 +1359,108 @@ begin
   FillChar(TM, SizeOf(TTextMetric), 0);
   GetTextMetrics(DC, TM);
   Result := TM.tmDescent;
+end;
+
+function GetImageDPI(AGraphic: Tgraphic): TPoint;
+
+  procedure GetDPIFromJPeg(AJPeg: TJPegImage);
+  const
+    cBufferSize = 50;
+  var
+    MS: TMemoryStream;
+    Index: Integer;
+    Buffer: AnsiString;
+    xResolution: Word;
+    yResolution: Word;
+  begin
+    // seek for XDensity and YDensity fields in JPEG header
+    MS := TMemoryStream.Create;
+    try
+      AJPeg.SaveToStream(MS);
+      MS.Seek(0, soFromBeginning);
+      SetLength(Buffer, cBufferSize);
+      MS.Read(Buffer[1], cBufferSize);
+      Index := Pos('JFIF'+#$00, Buffer);
+      if Index >= 0 then
+      begin
+        MS.Seek(Index + 7, soFromBeginning);
+        MS.Read(xResolution, 2);
+        MS.Read(yResolution, 2);
+        Result.X := Swap(xResolution);
+        Result.Y := Swap(yResolution);
+      end;
+    finally
+      MS.Free;
+    end;
+  end;
+
+  procedure GetDPIFromPng(APng: TKPngImage);
+  const
+    cInchesPerMeter = (100 / 2.54);
+{$IFDEF FPC}
+  type
+    TPngChunkCode = array[0..3] of AnsiChar;
+    TPngChunkHdr = packed record
+      clength: LongWord;
+      ctype: TPngChunkCode;
+    end;
+  var
+    MS: TMemoryStream;
+    CLen, PPUnitX, PPUnitY: Cardinal;
+    CHdr: TPngChunkHdr;
+    CPHYsData: array[0..8] of Byte;
+{$ELSE}
+  var
+    Chunk: TChunk;
+{$ENDIF}
+  begin
+{$IFDEF FPC}
+    MS := TMemoryStream.Create;
+    try
+      APng.SaveToStream(MS);
+      MS.Seek(8, soFromBeginning); // skip PNG header
+      while MS.Position < MS.Size do
+      begin
+        // traverse the PNG chunks until pHYs chunk is found
+        MS.Read(CHdr, SizeOf(CHdr));
+        CLen := SwapEndian(CHdr.clength); // suppose little endian
+        if CHdr.ctype = 'pHYs' then
+        begin
+          MS.Read(CPHYsData, 9); // pHYs chunk is always 9 bytes long
+          if CPHYsData[8] = 1 then // dots per meter
+          begin
+            PPUnitX := SwapEndian(PCardinal(@CPHYsData[0])^); // suppose little endian
+            PPUnitY := SwapEndian(PCardinal(@CPHYsData[4])^); // suppose little endian
+            Result.X := Round(PPUnitX / cInchesPerMeter);
+            Result.Y := Round(PPUnitY / cInchesPerMeter);
+          end;
+          Exit;
+        end else
+          MS.Seek(CLen + SizeOf(LongWord), soFromCurrent);
+      end;
+    finally
+      MS.Free;
+    end;
+{$ELSE}
+    // in Delphi we have the pHYs chunk directly accessible
+    Chunk := APng.Chunks.FindChunk(TChunkpHYs);
+    if Assigned(Chunk) then
+    begin
+      if (TChunkPhys(Chunk).UnitType = utMeter) then
+      begin
+        Result.X := Round(TChunkPhys(Chunk).PPUnitX / cInchesPerMeter);
+        Result.Y := Round(TChunkPhys(Chunk).PPUnitY / cInchesPerMeter);
+      end;
+    end
+{$ENDIF}
+  end;
+
+begin
+  Result := Point(96, 96); // for unimplemented image types set screen dpi
+  if AGraphic is TJPegImage then
+    GetDPIFromJPeg(TJpegImage(AGraphic))
+  else if AGraphic is TKPngImage then
+    GetDPIFromPng(TKPngImage(AGraphic));
 end;
 
 function GDICheck(Value: Integer): Integer;
