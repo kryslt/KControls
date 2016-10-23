@@ -1385,7 +1385,7 @@ function GetImageDPI(AGraphic: Tgraphic): TPoint;
       MS.Seek(0, soFromBeginning);
       SetLength(Buffer, cBufferSize);
       MS.Read(Buffer[1], cBufferSize);
-      Index := Pos('JFIF'+#$00, Buffer);
+      Index := Pos(AnsiString('JFIF'+#$00), Buffer);
       if Index > 0 then
       begin
         MS.Seek(Index + 6, soFromBeginning);
