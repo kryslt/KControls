@@ -29,13 +29,13 @@ type
     btLongInt, // COM long
     btLongWord, // COM unsigned long
     btSmallInt, // COM short
-    btSmallWord, // COM unsigned short
+    btWord, // COM unsigned short
     btInt64, // COM int64
     btUInt64, // COM unsigned int64
     btSingle, // COM single precision float
     btDouble, // COM double precision float
-    btWideString, //COM BSTR
-    btUTF8String, // memory management not supported by COM!
+    btWideString, //COM BSTR, otherwise UTF8 encoded string
+    btRawByteString, // array of bytes, memory management not supported by COM!
     btCurrency, // COM currency
     btDateTime, //COM DATE
     btEnum, // custom enumerated type, TPWIGEnum
@@ -294,6 +294,7 @@ type
     function LoadFromFile(const AFileName: string): Boolean;
     function SaveToFile(const AFileName: string): Boolean;
     procedure Generate;
+    procedure GeneratePascalWrappers(const AFileName: string);
     procedure GenerateRIDL(const AFileName: string);
     procedure PrintHelp;
     property Aliases: TPWIGAliasList read FAliases;
@@ -310,7 +311,7 @@ implementation
 
 uses
   SysUtils, TypInfo,
-  PWIG_RIDL;
+  PWIG_RIDL, PWIG_Pascal;
 
 const
   nnPWIGConfig = 'pwig_configuration';
@@ -745,7 +746,7 @@ begin
   if ANode <> nil then
   begin
     ANode.Children.Add(nnPWIGMethodCallingConv).AsString := CallingConvToString(FCallingConv);
-    ANode.Children.Add(nnPWIGMethodId).AsInteger := FId;
+    ANode.Children.Add(nnPWIGMethodId).AsHexInt := FId;
     FParams.Save(ANode, nnPWIGMethodParam);
   end;
 end;
@@ -983,18 +984,6 @@ end;
 
 { TPWIG }
 
-procedure TPWIG.GenerateRIDL(const AFileName: string);
-var
-  Gen: TPWIGGenRIDL;
-begin
-  Gen := TPWIGGenRIDL.Create(Self);
-  try
-    Gen.SaveToFile(AFileName);
-  finally
-    Gen.Free;
-  end;
-end;
-
 constructor TPWIG.Create;
 begin
   inherited;
@@ -1016,6 +1005,30 @@ end;
 
 procedure TPWIG.Generate;
 begin
+end;
+
+procedure TPWIG.GenerateRIDL(const AFileName: string);
+var
+  Gen: TPWIGGenRIDL;
+begin
+  Gen := TPWIGGenRIDL.Create(Self);
+  try
+    Gen.SaveToFile(AFileName);
+  finally
+    Gen.Free;
+  end;
+end;
+
+procedure TPWIG.GeneratePascalWrappers(const AFileName: string);
+var
+  Gen: TPWIGGenPascal;
+begin
+  Gen := TPWIGGenPascal.Create(Self);
+  try
+    Gen.SaveToFile(AFileName);
+  finally
+    Gen.Free;
+  end;
 end;
 
 function TPWIG.LoadFromFile(const AFileName: string): Boolean;

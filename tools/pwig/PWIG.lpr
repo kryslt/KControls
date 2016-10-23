@@ -6,9 +6,7 @@ program PWIG;
 
 uses
   SysUtils,
-  pwiggen in 'pwiggen.pas',
-  kfunctions in '..\..\source\kfunctions.pas',
-  kxml in '..\..\source\thirdparty\kxml.pas';
+  pwiggen in 'pwiggen.pas';
 
 var
   PWIGMain: TPWIG;

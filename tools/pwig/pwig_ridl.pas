@@ -120,13 +120,13 @@ begin
     btLongInt: Result := 'long';
     btLongWord: Result := 'unsigned long';
     btSmallInt: Result := 'short';
-    btSmallWord: Result := 'unsigned short';
+    btWord: Result := 'unsigned short';
     btInt64: Result := '__int64';
     btUInt64: Result := 'unsigned __int64';
     btSingle: Result := 'single';
     btDouble: Result := 'double';
     btWideString: Result := 'BSTR';
-    btUTF8String: Result := 'LPSTR'; // memory management not supported by COM!
+    btRawByteString: Result := 'LPSTR'; // memory management not supported by COM!
     btCurrency: Result := 'CURRENCY';
     btDateTime: Result := 'DATE';
     btEnum: Result := 'enum ' + FPWIG.Enums.FindName(AType.CustomTypeGUID, AType.CustomTypeName);

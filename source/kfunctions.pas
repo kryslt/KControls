@@ -646,6 +646,9 @@ procedure Exchange(var Value1, Value2: Extended); overload;
 { Swaps values of two Char variables. }
 procedure Exchange(var Value1, Value2: Char); overload;
 
+{ Returns file name without path and extension. }
+function ExtractFileRawName(const APath: string): string;
+
 { Fills the message record. }
 function FillMessage(Msg: Cardinal; WParam: WPARAM; LParam: LPARAM): TLMessage;
 
@@ -1584,6 +1587,23 @@ begin
   Tmp := Value1;
   Value1 := Value2;
   Value2 := Tmp;
+end;
+
+function ExtractFileRawName(const APath: string): string;
+var
+  I: Integer;
+begin
+  Result := ExtractFileName(APath);
+  I := Length(Result);
+  while I > 1 do
+  begin
+    if Result[I] = '.' then
+    begin
+      SetLength(Result, I - 1);
+      Break;
+    end;
+    Dec(I);
+  end;
 end;
 
 procedure Error(const Msg: string);

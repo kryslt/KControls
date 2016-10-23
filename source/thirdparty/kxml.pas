@@ -22,6 +22,7 @@ uses Classes, Contnrs, SysUtils;
 resourcestring
   sParseNoOpenTag = 'XML parsing error: Open tag not found.';
   sParseValueOutSideTag = 'XML parsing error: Value outside tag.';
+  sParseNumericConvertError = 'XML parsing error: Cannot convert value %s to number.';
 
 const
   COMP_VERSION = 0.13;
@@ -60,6 +61,8 @@ type
 
   // *** TXmlNode ***
 
+  { TXmlNode }
+
   TXmlNode = class(TPersistent)
   private
     FChildren: TXmlNodeList;
@@ -69,6 +72,7 @@ type
     FValue: string;
     // events...
     function GetAsDisplayString: string;
+    function GetAsHexInt: integer;
     function GetIsLeafNode: Boolean;
     function GetAsBoolean: Boolean;
     function GetAsFloat: Extended;
@@ -80,6 +84,7 @@ type
     function OpenTag: string;
     procedure SetAsBoolean(const Value: Boolean);
     procedure SetAsFloat(const Value: Extended);
+    procedure SetAsHexInt(AValue: integer);
     procedure SetAsInteger(const Value: integer);
     procedure SetAsString(const Value: string);
     procedure SetName(Value: string); virtual;
@@ -103,6 +108,7 @@ type
     property AsBoolean: Boolean read GetAsBoolean write SetAsBoolean;
     property AsFloat: Extended read GetAsFloat write SetAsFloat;
     property AsInteger: integer read GetAsInteger write SetAsInteger;
+    property AsHexInt: integer read GetAsHexInt write SetAsHexInt;
     property Attribute: TXmlNodeAttribute read GetAttribute;
     property Attributes: TXmlNodeAttributes read FAttributes;
     property Children: TXmlNodeList read FChildren;
@@ -454,25 +460,46 @@ function TXmlNode.ChildAsInteger(const ChildNodeName: string;
   DefValue: Integer): Integer;
 var
   Child: TXmlNode;
+  Code: Integer;
+  S: string;
 begin
   Result := DefValue;
   Child := Children.NodeByName[ChildNodeName];
   if Child <> nil then
-    Result := StrToIntDef(Child.AsDisplayString, DefValue);
+  begin
+    S := Child.AsDisplayString;
+    if not TryStrToInt(S, Result) then
+    begin
+      Result := HexStrToInt(S, 8, True, Code);
+      if Code <> 0 then
+        Result := DefValue;
+    end;
+  end;
 end;
 
 function TXmlNode.ChildAsInteger(const ChildNodeName: string;
   DefValue: Int64): Int64;
 var
   Child: TXmlNode;
+  Code: Integer;
+  S: string;
 begin
   Result := DefValue;
   Child := Children.NodeByName[ChildNodeName];
   if Child <> nil then
-    Result := StrToInt64Def(Child.AsDisplayString, DefValue);
+  begin
+    S := Child.AsDisplayString;
+    if not TryStrToInt64(S, Result) then
+    begin
+      Result := HexStrToInt(S, 16, True, Code);
+      if Code <> 0 then
+        Result := DefValue;
+    end;
+  end;
 end;
 
-function TXmlNode.ChildAsString(const ChildNodeName, DefValue: string): string;
+function TXmlNode.ChildAsString(const ChildNodeName: string;
+  const DefValue: string): string;
 var
   Child: TXmlNode;
 begin
@@ -527,6 +554,15 @@ begin
   Result := StrToInt(FValue);
 end;
 
+function TXmlNode.GetAsHexInt: integer;
+var
+  Code: Integer;
+begin
+  Result := HexStrToInt(FValue, 8, True, Code);
+  if Code <> 0 then
+    Error(Format(sParseNumericConvertError, [FValue]));
+end;
+
 function TXmlNode.GetAsString: string;
 begin
   Result := FValue;
@@ -560,6 +596,11 @@ end;
 procedure TXmlNode.SetAsFloat(const Value: Extended);
 begin
   FValue := FloatToStr(Value);
+end;
+
+procedure TXmlNode.SetAsHexInt(AValue: integer);
+begin
+  FValue := IntToHexStr(AValue, 8, '0x', '', False);
 end;
 
 procedure TXmlNode.SetAsInteger(const Value: integer);

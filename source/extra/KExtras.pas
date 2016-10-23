@@ -133,8 +133,6 @@ function BuildFileList(const Path: string; const Attr: Integer; const List: TStr
 function DelTree(const Path: string): Boolean;
 function DelTreeEx(const Path: string; AbortOnFailure: Boolean): Boolean;
 
-function ExtractFileRawName(const Path: string): string;
-
 { color count reduction with Floyd Steinberg dithering }
 procedure MedianCutQuantize(Bitmap: TBitmap; NewBpp: TPixelFormat; Mode: TKColorConversionMode);
 
@@ -1193,22 +1191,6 @@ end;
 function DelTree(const Path: string): Boolean;
 begin
   Result := DelTreeEx(Path, False);
-end;
-
-function ExtractFileRawName(const Path: string): string; overload;
-var
-  I: Integer;
-begin
-  Result := ExtractFileName(Path);
-  I := Length(Result);
-  repeat
-    if Result[I] = '.' then
-    begin
-      SetLength(Result, I - 1);
-      Break;
-    end;
-    Dec(I);
-  until I = 1;
 end;
 
 procedure DataToString(Buffer: Pointer; Size: Integer; var S: string);
