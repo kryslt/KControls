@@ -279,7 +279,7 @@ end;
 procedure TPWIGGenRIDL.WriteMethod(AMethod: TPWIGMethod; AGetter, ACallingConv: Boolean);
 var
   I: Integer;
-  Elem: TPWIGParam;
+  Param: TPWIGParam;
   S: string;
 begin
   // always HRESULT and stdcall
@@ -294,26 +294,26 @@ begin
   begin
     for I := 0 to AMethod.Params.Count - 1 do
     begin
-      Elem := AMethod.Params[I];
+      Param := AMethod.Params[I];
       if AMethod is TPWIGProperty then
       begin
         // all params are [in] except last one which is [out, retval] for a getter
         if not AGetter or (I < AMethod.Params.Count - 1) then
-          Write(F, '[in] ', TypeToString(Elem.ParamType), ' ', Elem.Name)
+          Write(F, '[in] ', TypeToString(Param.ParamType), ' ', Param.Name)
         else
-          Write(F, '[out, retval] ', TypeToString(Elem.ParamType), '* ', Elem.Name);
+          Write(F, '[out, retval] ', TypeToString(Param.ParamType), '* ', Param.Name);
       end else
       begin
         // write param flags as specified
         ClearFlags;
-        AddFlag(Elem.FlagInput, 'in');
-        AddFlag(Elem.FlagOutput, 'out');
-        AddFlag(Elem.FlagRetVal, 'retval');
-        if Elem.FlagOutput then
+        AddFlag(Param.FlagInput, 'in');
+        AddFlag(Param.FlagOutput, 'out');
+        AddFlag(Param.FlagRetVal, 'retval');
+        if Param.FlagOutput then
           S := '*'
         else
           S := '';
-        Write(F, '[', Flags, '] ', TypeToString(Elem.ParamType), S, ' ', Elem.Name)
+        Write(F, '[', Flags, '] ', TypeToString(Param.ParamType), S, ' ', Param.Name)
       end;
       if I < AMethod.Params.Count - 1 then
         Write(F, ', ')

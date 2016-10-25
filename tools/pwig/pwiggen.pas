@@ -114,7 +114,11 @@ type
     property FlagRetVal: Boolean read FFlagRetVal write FFlagRetVal;
   end;
 
-  TPWIGParamList = TPWIGElementList<TPWIGParam>;
+  { TPWIGParamList }
+
+  TPWIGParamList = class(TPWIGElementList<TPWIGParam>)
+    function FindRetVal: TPWIGParam; virtual;
+  end;
 
   TPWIGCallingConv = (
     ccStdCall,
@@ -708,6 +712,18 @@ begin
     ANode.Children.Add(nnPWIGParamRetval).AsBoolean := FFlagRetVal;
     FParamType.Save(ANode);
   end;
+end;
+
+{ TPWIGParamList }
+
+function TPWIGParamList.FindRetVal: TPWIGParam;
+var
+  Param: TPWIGParam;
+begin
+  Result := nil;
+  for Param in Self do
+    if Param.FFlagRetVal then
+      Exit(Param);
 end;
 
 { TPWIGMethod }
