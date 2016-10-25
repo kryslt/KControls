@@ -27,38 +27,47 @@ type
 
   { TPWIGGenPascal }
 
+  TPWIGGenPascalMethodStyle = (
+    msIntfDeclaration,
+    msLibExport,
+    msClassDeclaration,
+    msClassCall
+  );
+
   TPWIGGenPascal = class(TPWIGGenerator)
   private
     FFlags: string;
     FIndent: string;
+    FFirstDashSep: Boolean;
     procedure IncIndent;
     procedure DecIndent;
     procedure ClearFlags;
     procedure AddFlag(AFlag: Boolean; const AFlagText: string);
+    procedure InitDashSep;
     procedure WriteBracketBegin;
     procedure WriteBracketEnd;
     procedure WriteCurlyBegin;
     procedure WriteCurlyEnd;
+    procedure WriteDashSep;
     procedure WriteSpace;
     property Flags: string read FFlags;
     property Indent: string read FIndent;
   protected
     F: TextFile;
     function CallingConvToString(AConv: TPWIGCallingConv): string; virtual;
-    function InterfaceToString(AIntf: TPWIGInterface): string; virtual;
     function TypeToString(AType: TPWIGType): string; virtual;
     function ReplaceNotAllowedParamName(AName: string): string; virtual;
     procedure WriteIntfElementProps(AElement: TPWIGElement); virtual;
     procedure WriteIntfAliasProps(AAlias: TPWIGAlias); virtual;
     procedure WriteIntfEnumProps(AEnum: TPWIGEnum); virtual;
     procedure WriteIntfInterfaceProps(AIntf: TPWIGInterface); virtual;
-    procedure WriteMethod(AIntf: TPWIGInterface; AMethod: TPWIGMethod;
-      ADeclaration, AGetter, ACallingConv, AHandleParam: Boolean; const APrefix: string); virtual;
+    procedure WriteMethod(AClass: TPWIGClass; AIntf: TPWIGInterface; AMethod: TPWIGMethod;
+      AStyle: TPWIGGenPascalMethodStyle; ADefaultInterface, AGetter: Boolean; const APrefix: string); virtual;
 
     procedure WriteCalleeConstructor(AClass: TPWIGClass; AIntf: TPWIGInterface); virtual;
     procedure WriteCalleeDestructor(AClass: TPWIGClass; AIntf: TPWIGInterface); virtual;
     procedure WriteCalleeMethodBody(AClass: TPWIGClass; AIntf: TPWIGInterface; AMethod: TPWIGMethod;
-      AGetter, ACallingConv: Boolean; const APrefix: string); virtual;
+      ADefaultInterface, AGetter: Boolean; const APrefix: string); virtual;
     procedure WriteCalleeDeclarations(AClass: TPWIGClass); virtual;
     procedure WriteCalleeExportedFuncs(AClass: TPWIGClass); virtual;
     procedure WriteCalleeExports(AClass: TPWIGClass); virtual;
@@ -66,7 +75,7 @@ type
     procedure WriteCallerConstructor(AClass: TPWIGClass; AIntf: TPWIGInterface); virtual;
     procedure WriteCallerDestructor(AClass: TPWIGClass; AIntf: TPWIGInterface); virtual;
     procedure WriteCallerMethodBody(AClass: TPWIGClass; AIntf: TPWIGInterface; AMethod: TPWIGMethod;
-      AGetter, ACallingConv: Boolean; const APrefix: string); virtual;
+      ADefaultInterface, AGetter: Boolean; const APrefix: string); virtual;
     procedure WriteCallerDeclarations(AClass: TPWIGClass); virtual;
     procedure WriteCallerImplementations(AClass: TPWIGClass); virtual;
   public
@@ -112,6 +121,11 @@ begin
   end;
 end;
 
+procedure TPWIGGenPascal.InitDashSep;
+begin
+  FFirstDashSep := True;
+end;
+
 function TPWIGGenPascal.CallingConvToString(AConv: TPWIGCallingConv): string;
 begin
   Result := '';
@@ -119,14 +133,6 @@ begin
     ccStdCall: Result := 'stdcall';
     ccCDecl: Result := 'cdecl';
   end;
-end;
-
-function TPWIGGenPascal.InterfaceToString(AIntf: TPWIGInterface): string;
-begin
-  if AIntf.FlagDispEvents then
-    Result := 'dispinterface'
-  else
-    Result := 'interface';
 end;
 
 function TPWIGGenPascal.TypeToString(AType: TPWIGType): string;
@@ -181,6 +187,13 @@ procedure TPWIGGenPascal.WriteCurlyEnd;
 begin
   DecIndent;
   Writeln(F, Indent, '};');
+end;
+
+procedure TPWIGGenPascal.WriteDashSep;
+begin
+  if not FFirstDashSep then
+    Writeln(F, ',');
+  FFirstDashSep := False;
 end;
 
 procedure TPWIGGenPascal.WriteSpace;
@@ -357,15 +370,10 @@ begin
       // write library exports
       Writeln(F, Indent, 'exports');
       IncIndent;
-      First := True;
+      InitDashSep;
       for LCls in FPWIG.Classes do
-      begin
-        if not First then
-          Writeln(F, ',');
         WriteCalleeExports(LCls);
-        First := False;
-      end;
-      Writeln(F, ';');
+      Writeln(F, Indent, ';');
       DecIndent;
 
       // finish
@@ -504,69 +512,119 @@ begin
   WriteSpace;
 end;
 
-procedure TPWIGGenPascal.WriteMethod(AIntf: TPWIGInterface; AMethod: TPWIGMethod;
-  ADeclaration, AGetter, ACallingConv, AHandleParam: Boolean; const APrefix: string);
+procedure TPWIGGenPascal.WriteMethod(AClass: TPWIGClass; AIntf: TPWIGInterface; AMethod: TPWIGMethod;
+  AStyle: TPWIGGenPascalMethodStyle; ADefaultInterface, AGetter: Boolean; const APrefix: string);
 var
-  I: Integer;
-  Param: TPWIGParam;
-  CallingConv, HandleParam, ParamName: string;
+  Param, RetVal, PropRetVal: TPWIGParam;
+  CallingConv, HandleParam, IntfName, ParamName, ParamSpecifier, FuncKeyword, RetValAssignment: string;
+  FirstParam: Boolean;
 begin
-  if ACallingConv then
-    CallingConv := ' ' + CallingConvToString(AMethod.CallingConv) + ';'
-  else
-    CallingConv := '';
-  if AHandleParam then
-    HandleParam :=  'const ItemHandle: ' + AIntf.Name
-  else
-    HandleParam := '';
-  if ADeclaration then
-    Write(F, Indent, 'T', APrefix, AIntf.Name, AMethod.Name, ' = function(', HandleParam)
-  else
-    Write(F, Indent, 'function ', APrefix, AIntf.Name, AMethod.Name, '(', HandleParam);
-  if AMethod.Params.Count = 0 then
-    Write(F, ')')
+  if AStyle in [msIntfDeclaration, msLibExport] then
+  begin
+    CallingConv := '; ' + CallingConvToString(AMethod.CallingConv);
+    HandleParam :=  'const ItemHandle: ' + AIntf.Name;
+    RetVal := nil;
+    FuncKeyword := '';
+    if AGetter then
+      PropRetVal := AMethod.Params.Last
+    else
+      PropRetVal := nil;
+    IntfName := AIntf.name;
+  end
   else
   begin
-    if AHandleParam then
-      Write(F, '; ');
-    for I := 0 to AMethod.Params.Count - 1 do
+    CallingConv := '';
+    HandleParam := '';
+    if AGetter then
+      RetVal := AMethod.Params.Last
+    else
+      RetVal := AMethod.Params.FindRetVal;
+    if RetVal <> nil then
     begin
-      Param := AMethod.Params[I];
-      ParamName := ReplaceNotAllowedParamName(Param.Name);
-      if AMethod is TPWIGProperty then
-      begin
-        // all params are [in] except last one which is [out, retval] for a getter
-        if not AGetter or (I < AMethod.Params.Count - 1) then
-          Write(F, 'const ', ParamName, ': ', TypeToString(Param.ParamType))
-        else
-          Write(F, 'out ', ParamName, ': ', TypeToString(Param.ParamType));
-      end else
-      begin
-        // write param flags as specified
-        if Param.FlagInput and Param.FlagOutput then
-          Write(F, 'var ', ParamName, ': ', TypeToString(Param.ParamType))
-        else if Param.FlagOutput then
-          Write(F, 'out ', ParamName, ': ', TypeToString(Param.ParamType))
-        else
-          Write(F, 'const ', ParamName, ': ', TypeToString(Param.ParamType))
-      end;
-      if I < AMethod.Params.Count - 1 then
-        Write(F, '; ')
-      else
-        Write(F, ')');
+      FuncKeyword := 'function';
+      RetValAssignment :=  ReplaceNotAllowedParamName(RetVal.Name) + ' := ';
+    end else
+    begin
+      FuncKeyword := 'procedure';
+      RetValAssignment :=  '';
     end;
+    PropRetVal := nil;
+    if ADefaultInterface then
+      IntfName := ''
+    else
+      IntfName := AIntf.Name;
   end;
-  Writeln(F, ':Boolean;', CallingConv);
+  case AStyle of
+    msIntfDeclaration:
+      Write(F, Indent, 'T', APrefix, IntfName, AMethod.Name, ' = function(', HandleParam);
+    msLibExport:
+      Write(F, Indent, 'function ', APrefix, IntfName, AMethod.Name, '(', HandleParam);
+    msClassDeclaration:
+      Write(F, Indent, FuncKeyword, ' ', APrefix, IntfName, AMethod.Name);
+    msClassCall:
+      Write(F, Indent, RetValAssignment, 'T', AClass.Name, '(ItemHandle).', APrefix, IntfName, AMethod.Name);
+  end;
+  if (AMethod.Params.Count = 0) or (AMethod.Params.Count = 1) and (RetVal <> nil) then
+  begin
+    if HandleParam <> '' then
+      Write(F, ')');
+  end
+  else
+  begin
+    if HandleParam <> '' then
+      Write(F, '; ')
+    else
+      Write(F, '(');
+    FirstParam := True;
+    for Param in AMethod.Params do
+    begin
+      if Param <> RetVal then
+      begin
+        if not FirstParam then
+        begin
+          if AStyle = msClassCall then
+            Write(F, ', ')
+          else
+            Write(F, '; ');
+        end;
+        FirstParam := False;
+        ParamName := ReplaceNotAllowedParamName(Param.Name);
+        if AMethod is TPWIGProperty then
+        begin
+          // all params are [in] except last one which is [out, retval] for a getter
+          if not AGetter or (Param <> PropRetVal) then
+            ParamSpecifier := 'const'
+          else
+            ParamSpecifier := 'out';
+        end else
+        begin
+          // write param flags as specified
+          if Param.FlagInput and Param.FlagOutput then
+            ParamSpecifier := 'var'
+          else if Param.FlagOutput then
+            ParamSpecifier := 'out'
+          else
+            ParamSpecifier := 'const';
+        end;
+        if AStyle = msClassCall then
+          Write(F, ParamName)
+        else
+          Write(F, ParamSpecifier, ' ', ParamName, ': ', TypeToString(Param.ParamType));
+      end;
+    end;
+    Write(F, ')');
+  end;
+  if AStyle in [msIntfDeclaration, msLibExport] then
+    Write(F, ': Boolean', CallingConv)
+  else if (AStyle = msClassDeclaration) and (RetVal <> nil) then
+    Write(F, ': ', TypeToString(RetVal.ParamType));
+  Writeln(F, ';');
 end;
 
 procedure TPWIGGenPascal.WriteCalleeMethodBody(AClass: TPWIGClass; AIntf: TPWIGInterface;
-  AMethod: TPWIGMethod; AGetter, ACallingConv: Boolean; const APrefix: string);
-var
-  Param, RetVal: TPWIGParam;
-  ParamName: string;
-  First: Boolean;
+ AMethod: TPWIGMethod;  ADefaultInterface, AGetter: Boolean; const APrefix: string);
 begin
-  WriteMethod(AIntf, AMethod, False, AGetter, ACallingConv, True, APrefix);
+  WriteMethod(AClass, AIntf, AMethod, msLibExport, False, AGetter, APrefix);
   Writeln(F, Indent, 'begin');
   IncIndent;
   Writeln(F, Indent, 'Result := False;');
@@ -575,26 +633,7 @@ begin
   Writeln(F, Indent, 'if TObject(ItemHandle) is T', AClass.Name, ' then');
   Writeln(F, Indent, 'begin');
   IncIndent;
-  if AGetter then
-    RetVal := AMethod.Params.Last
-  else
-    RetVal := AMethod.Params.FindRetVal;
-  if RetVal <> nil then
-    Write(F, Indent, ReplaceNotAllowedParamName(RetVal.Name), ' = ')
-  else
-    Write(F, Indent);
-  Write(F, 'T', AClass.Name, '(ItemHandle).', APrefix, AIntf.Name, AMethod.Name, '(');
-  First := True;
-  for Param in AMethod.Params do
-    if Param <> RetVal then
-    begin
-      if not First then
-        Write(F, ', ');
-      ParamName := ReplaceNotAllowedParamName(Param.Name);
-      Write(F, ParamName);
-      First := False;
-    end;
-  Writeln(F, ');');
+  WriteMethod(AClass, AIntf, AMethod, msClassCall, ADefaultInterface, AGetter, APrefix);
   Writeln(F, Indent, 'Result := True;');
   DecIndent;
   Writeln(F, Indent, 'end;');
@@ -658,7 +697,7 @@ begin
   Writeln(F, Indent, '// Methods:');
   for Method in AIntf.Methods do
   begin
-    WriteMethod(AIntf, Method, True, False, True, True, '');
+    WriteMethod(nil, AIntf, Method, msIntfDeclaration, False, False, '');
   end;
   Writeln(F, Indent, '// Properties:');
   for Prop in AIntf.Properties do
@@ -666,12 +705,12 @@ begin
     if Prop.PropertyType in [ptReadOnly, ptReadWrite] then
     begin
       // write getter
-      WriteMethod(AIntf, Prop, True, True, True, True, 'Get');
+      WriteMethod(nil, AIntf, Prop, msIntfDeclaration, False, True, 'Get');
     end;
     if Prop.PropertyType in [ptWriteOnly, ptReadWrite] then
     begin
       // write setter
-      WriteMethod(AIntf, Prop, True, False, True, True, 'Set');
+      WriteMethod(nil, AIntf, Prop, msIntfDeclaration, False, False, 'Set');
     end;
   end;
   WriteSpace;
@@ -688,18 +727,22 @@ begin
   Writeln(F, Indent, 'T', AClass.Name, ' = class(TObject)');
   Writeln(F, Indent, 'public');
   IncIndent;
-  Writeln(F, Indent, 'constructor Create;');
-  Writeln(F, Indent, 'destructor Destroy; override;');
 
   for Ref in AClass.InterfaceRefs do
   begin
     LIntf := FPWIG.Interfaces.Find(Ref.RefGUID, Ref.RefName);
-    if LIntf <> nil then
+    if (LIntf <> nil) and not LIntf.FlagDispEvents then
     begin
+      // use constructor and destructor only for default interface
+      if Ref.FlagDefault then
+      begin
+        Writeln(F, Indent, 'constructor Create;');
+        Writeln(F, Indent, 'destructor Destroy; override;');
+      end;
       Writeln(F, Indent, '// Methods:');
       for Method in LIntf.Methods do
       begin
-        WriteMethod(LIntf, Method, False, False, False, False, '');
+        WriteMethod(AClass, LIntf, Method, msClassDeclaration, Ref.FlagDefault, False, '');
       end;
       Writeln(F, Indent, '// Properties:');
       for Prop in LIntf.Properties do
@@ -707,12 +750,12 @@ begin
         if Prop.PropertyType in [ptReadOnly, ptReadWrite] then
         begin
           // write getter
-          WriteMethod(LIntf, Prop, False, True, False, False, 'Get');
+          WriteMethod(AClass, LIntf, Prop, msClassDeclaration, Ref.FlagDefault, True, 'Get');
         end;
         if Prop.PropertyType in [ptWriteOnly, ptReadWrite] then
         begin
           // write setter
-          WriteMethod(LIntf, Prop, False, False, False, False, 'Set');
+          WriteMethod(AClass, LIntf, Prop, msClassDeclaration, Ref.FlagDefault, False, 'Set');
         end;
       end;
     end;
@@ -735,14 +778,18 @@ begin
     LIntf := FPWIG.Interfaces.Find(Ref.RefGUID, Ref.RefName);
     if (LIntf <> nil) and not LIntf.FlagDispEvents then
     begin
-      Writeln(F, Indent, '// Constructor:');
-      WriteCalleeConstructor(AClass, LIntf);
-      Writeln(F, Indent, '// Destructor:');
-      WriteCalleeDestructor(AClass, LIntf);
+      // use constructor and destructor only for default interface
+      if Ref.FlagDefault then
+      begin
+        Writeln(F, Indent, '// Constructor:');
+        WriteCalleeConstructor(AClass, LIntf);
+        Writeln(F, Indent, '// Destructor:');
+        WriteCalleeDestructor(AClass, LIntf);
+      end;
       Writeln(F, Indent, '// Methods:');
       for Method in LIntf.Methods do
       begin
-        WriteCalleeMethodBody(AClass, LIntf, Method, False, True, '');
+        WriteCalleeMethodBody(AClass, LIntf, Method, Ref.FlagDefault, False, '');
       end;
       Writeln(F, Indent, '// Properties:');
       for Prop in LIntf.Properties do
@@ -750,12 +797,12 @@ begin
         if Prop.PropertyType in [ptReadOnly, ptReadWrite] then
         begin
           // write getter
-          WriteCalleeMethodBody(AClass, LIntf, Prop, True, True, 'Get');
+          WriteCalleeMethodBody(AClass, LIntf, Prop, Ref.FlagDefault, True, 'Get');
         end;
         if Prop.PropertyType in [ptWriteOnly, ptReadWrite] then
         begin
           // write setter
-          WriteCalleeMethodBody(AClass, LIntf, Prop, False, True, 'Set');
+          WriteCalleeMethodBody(AClass, LIntf, Prop, Ref.FlagDefault, False, 'Set');
         end;
       end;
     end;
@@ -776,12 +823,17 @@ begin
     LIntf := FPWIG.Interfaces.Find(Ref.RefGUID, Ref.RefName);
     if (LIntf <> nil) and not LIntf.FlagDispEvents then
     begin
-      Write(F, Indent, AClass.Name, 'Create');
-      Writeln(F, ',');
-      Write(F, Indent, AClass.Name, 'Destroy');
+      // use constructor and destructor only for default interface
+      if Ref.FlagDefault then
+      begin
+        WriteDashSep;
+        Write(F, Indent, AClass.Name, 'Create');
+        WriteDashSep;
+        Write(F, Indent, AClass.Name, 'Destroy');
+      end;
       for Method in LIntf.Methods do
       begin
-        Writeln(F, ',');
+        WriteDashSep;
         Write(F, Indent, LIntf.Name, Method.Name);
       end;
       for Prop in LIntf.Properties do
@@ -789,18 +841,19 @@ begin
         if Prop.PropertyType in [ptReadOnly, ptReadWrite] then
         begin
           // write getter
-          Writeln(F, ',');
+          WriteDashSep;
           Write(F, Indent, 'Get', LIntf.Name, Prop.Name);
         end;
         if Prop.PropertyType in [ptWriteOnly, ptReadWrite] then
         begin
           // write setter
-          Writeln(F, ',');
+          WriteDashSep;
           Write(F, Indent, 'Set', LIntf.Name, Prop.Name);
         end;
       end;
     end;
   end;
+  Writeln(F);
 end;
 
 procedure TPWIGGenPascal.WriteCallerConstructor(AClass: TPWIGClass;
@@ -816,8 +869,8 @@ begin
 end;
 
 procedure TPWIGGenPascal.WriteCallerMethodBody(AClass: TPWIGClass;
-  AIntf: TPWIGInterface; AMethod: TPWIGMethod; AGetter, ACallingConv: Boolean;
-  const APrefix: string);
+  AIntf: TPWIGInterface; AMethod: TPWIGMethod;
+  ADefaultInterface, AGetter: Boolean; const APrefix: string);
 begin
 
 end;
@@ -828,6 +881,7 @@ var
   LIntf: TPWIGInterface;
   Method: TPWIGMethod;
   Prop: TPWIGProperty;
+  IntfName: string;
 begin
   WriteIntfElementProps(AClass);
   Writeln(F, Indent, 'T', AClass.Name, ' = class(TObject)');
@@ -836,8 +890,25 @@ begin
   for Ref in AClass.InterfaceRefs do
   begin
     LIntf := FPWIG.Interfaces.Find(Ref.RefGUID, Ref.RefName);
-    if LIntf <> nil then
-      Writeln(F, Indent, 'FItemHandle: ', LIntf.Name, ';');
+    if (LIntf <> nil) and not LIntf.FlagDispEvents then
+    begin
+      if Ref.FlagDefault then
+        Writeln(F, Indent, 'FItemHandle: ', LIntf.Name, ';');
+      Writeln(F, Indent, '// Property getters and setters:');
+      for Prop in LIntf.Properties do
+      begin
+        if Prop.PropertyType in [ptReadOnly, ptReadWrite] then
+        begin
+          // write getter
+          WriteMethod(AClass, LIntf, Prop, msClassDeclaration, Ref.FlagDefault, True, 'Get');
+        end;
+        if Prop.PropertyType in [ptWriteOnly, ptReadWrite] then
+        begin
+          // write setter
+          WriteMethod(AClass, LIntf, Prop, msClassDeclaration, Ref.FlagDefault, False, 'Set');
+        end;
+      end;
+    end;
   end;
   DecIndent;
   Writeln(F, Indent, 'public');
@@ -848,26 +919,32 @@ begin
   for Ref in AClass.InterfaceRefs do
   begin
     LIntf := FPWIG.Interfaces.Find(Ref.RefGUID, Ref.RefName);
-    if LIntf <> nil then
+    if (LIntf <> nil) and not LIntf.FlagDispEvents then
     begin
       Writeln(F, Indent, '// Methods:');
       for Method in LIntf.Methods do
       begin
-        WriteMethod(LIntf, Method, False, False, False, False, '');
+        WriteMethod(AClass, LIntf, Method, msClassDeclaration, Ref.FlagDefault, False, '');
       end;
       Writeln(F, Indent, '// Properties:');
       for Prop in LIntf.Properties do
       begin
+        Write(F, Indent, 'property ', Prop.Name, ': ', TypeToString(Prop.Params.Last.ParamType));
+        if Ref.FlagDefault then
+          IntfName := ''
+        else
+          IntfName := LIntf.Name;
         if Prop.PropertyType in [ptReadOnly, ptReadWrite] then
         begin
           // write getter
-          WriteMethod(LIntf, Prop, False, True, False, False, 'Get');
+          Write(F, ' read Get', IntfName, Prop.Name);
         end;
         if Prop.PropertyType in [ptWriteOnly, ptReadWrite] then
         begin
           // write setter
-          WriteMethod(LIntf, Prop, False, False, False, False, 'Set');
+          Write(F, ' write Set', IntfName, Prop.Name);
         end;
+        Writeln(F, ';');
       end;
     end;
   end;
