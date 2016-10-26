@@ -278,6 +278,7 @@ type
   public
     constructor Create(AOwner: TPWIG); virtual;
     procedure SaveToFile(const AFileName: string); virtual; abstract;
+    procedure SaveToFiles(const ACalleeFileName, ACallerFileName: string); virtual; abstract;
   end;
 
   { TPWIG }
@@ -298,7 +299,7 @@ type
     function LoadFromFile(const AFileName: string): Boolean;
     function SaveToFile(const AFileName: string): Boolean;
     procedure Generate;
-    procedure GeneratePascalWrappers(const AFileName: string);
+    procedure GeneratePascalWrappers(const ACalleeFileName, ACallerFileName: string);
     procedure GenerateRIDL(const AFileName: string);
     procedure PrintHelp;
     property Aliases: TPWIGAliasList read FAliases;
@@ -1035,13 +1036,13 @@ begin
   end;
 end;
 
-procedure TPWIG.GeneratePascalWrappers(const AFileName: string);
+procedure TPWIG.GeneratePascalWrappers(const ACalleeFileName, ACallerFileName: string);
 var
   Gen: TPWIGGenPascal;
 begin
   Gen := TPWIGGenPascal.Create(Self);
   try
-    Gen.SaveToFile(AFileName);
+    Gen.SaveToFiles(ACalleeFileName, ACallerFileName);
   finally
     Gen.Free;
   end;

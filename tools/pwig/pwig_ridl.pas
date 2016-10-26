@@ -56,6 +56,7 @@ type
   public
     constructor Create(AOwner: TPWIG); override;
     procedure SaveToFile(const AFileName: string); override;
+    procedure SaveToFiles(const ACalleeFileName, ACallerFileName: string); override;
   end;
 
 implementation
@@ -230,6 +231,13 @@ begin
   finally
     CloseFile(F);
   end;
+end;
+
+procedure TPWIGGenRIDL.SaveToFiles(const ACalleeFileName,
+  ACallerFileName: string);
+begin
+  SaveToFile(ACalleeFileName);
+  // caller must import type library from registry
 end;
 
 procedure TPWIGGenRIDL.WriteElementProps(AElement: TPWIGElement);
