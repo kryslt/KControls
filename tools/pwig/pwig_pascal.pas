@@ -29,6 +29,7 @@ type
 
   TPWIGGenPascalMethodStyle = (
     msIntfDeclaration,
+    msLibCallGetLength,
     msLibCall,
     msLibExport,
     msClassDeclaration,
@@ -47,6 +48,8 @@ type
     procedure ClearFlags;
     procedure AddFlag(AFlag: Boolean; const AFlagText: string);
     procedure InitDashSep;
+    function ParamDirection(AMethod: TPWIGMethod; AParam: TPWIGParam; AGetter: Boolean): TPWIGParamDirection;
+    function ParamDirectionToString(ADirection: TPWIGParamDirection): string;
     procedure WriteDashSep;
     procedure WriteSpace;
     property Flags: string read FFlags;
@@ -133,6 +136,31 @@ begin
   FFirstDashSep := True;
 end;
 
+function TPWIGGenPascal.ParamDirection(AMethod: TPWIGMethod;
+  AParam: TPWIGParam; AGetter: Boolean): TPWIGParamDirection;
+begin
+  Result := AParam.ParamDirection;
+  if AMethod is TPWIGProperty then
+  begin
+    // all params are [in] except last one which is [out, retval] for a getter
+    if not AGetter or (AParam <> AMethod.Params.Last) then
+      Result := pdIn
+    else
+      Result := pdOut;
+  end;
+end;
+
+function TPWIGGenPascal.ParamDirectionToString(ADirection: TPWIGParamDirection
+  ): string;
+begin
+  Result := '';
+  case ADirection of
+    pdIn: Result := 'const';
+    pdOut: Result := 'out';
+    pdInOut: Result := 'var';
+  end;
+end;
+
 function TPWIGGenPascal.CallingConvToString(AConv: TPWIGCallingConv): string;
 begin
   Result := '';
@@ -154,7 +182,7 @@ begin
     btUInt64: Result := 'UInt64';
     btSingle: Result := 'Single';
     btDouble: Result := 'Double';
-    btWideString: Result := 'PAnsiChar'; // UTF8 encoded Unicode string (in Delphi PUTF8Char)
+    btUnicodeString: Result := 'AnsiString'; // UTF8 encoded Unicode string
     btRawByteString: Result := 'PByteArray';
     btCurrency: Result := 'Currency';
     btDateTime: Result := 'TDateTime';
@@ -299,8 +327,20 @@ end;
 
 procedure TPWIGGenPascal.WriteMethod(AClass: TPWIGClass; AIntf: TPWIGInterface; AMethod: TPWIGMethod;
   AStyle: TPWIGGenPascalMethodStyle; ADefaultInterface, AGetter: Boolean; const APrefix: string);
+
+  procedure WriteLibCallUnicodeStringParam(AParamDir: TPWIGParamDirection; const AParamName: string);
+  begin
+    if AParamDir = pdIn then
+      Write(F, 'PAnsiChar(', AParamName, ')')
+    else if AStyle = msLibCallGetLength then
+      Write(F, 'nil, Length__', AParamName)
+    else
+      Write(F, '@String__', AParamName, '[1], Length__', AParamName);
+  end;
+
 var
-  Param, RetVal, PropRetVal: TPWIGParam;
+  Param, RetVal: TPWIGParam;
+  ParamDir: TPWIGParamDirection;
   CallingConv, HandleParam, IntfName, ParamName, ParamSpecifier, FuncKeyword, RetValAssignment: string;
   FirstParam: Boolean;
 begin
@@ -310,13 +350,9 @@ begin
     HandleParam :=  'const ItemHandle: ' + AIntf.Name;
     RetVal := nil;
     FuncKeyword := '';
-    if AGetter then
-      PropRetVal := AMethod.Params.Last
-    else
-      PropRetVal := nil;
     IntfName := AIntf.name;
   end
-  else if AStyle = msLibCall then
+  else if AStyle in [msLibCall, msLibCallGetLength] then
   begin
     CallingConv := '';
     HandleParam := 'FItemHandle';
@@ -325,7 +361,6 @@ begin
     else
       RetVal := AMethod.Params.FindRetVal;
     FuncKeyword := '';
-    PropRetVal := nil;
     IntfName := AIntf.Name;
   end else
   begin
@@ -338,13 +373,15 @@ begin
     if RetVal <> nil then
     begin
       FuncKeyword := 'function';
-      RetValAssignment :=  ReplaceNotAllowedParamName(RetVal.Name) + ' := ';
+      ParamName := ReplaceNotAllowedParamName(RetVal.Name);
+      if RetVal.ParamType.BaseType = btUnicodeString then
+        ParamName := 'String__'+ ParamName;
+      RetValAssignment := ParamName + ' := ';
     end else
     begin
       FuncKeyword := 'procedure';
       RetValAssignment :=  '';
     end;
-    PropRetVal := nil;
     if ADefaultInterface then
       IntfName := ''
     else
@@ -353,7 +390,7 @@ begin
   case AStyle of
     msIntfDeclaration:
       Write(F, Indent, 'T', APrefix, IntfName, AMethod.Name, ' = function(', HandleParam);
-    msLibCall:
+    msLibCall, msLibCallGetLength:
       Write(F, Indent, 'Func', AClass.Name, APrefix, IntfName, AMethod.Name, '(', HandleParam);
     msLibExport:
       Write(F, Indent, 'function ', AClass.Name, APrefix, IntfName, AMethod.Name, '(', HandleParam);
@@ -368,8 +405,17 @@ begin
   end;
   if (AMethod.Params.Count = 0) or (AMethod.Params.Count = 1) and (RetVal <> nil) then
   begin
-    if (RetVal <> nil) and (AStyle = msLibCall) then
-      Write(F, ', Result');
+    if (RetVal <> nil) and (AStyle in [msLibCall, msLibCallGetLength]) then
+    begin
+      Write(F, ', ');
+      if RetVal.ParamType.BaseType = btUnicodeString then
+      begin
+        ParamDir := ParamDirection(AMethod, RetVal, AGetter);
+        ParamName := ReplaceNotAllowedParamName(RetVal.Name);
+        WriteLibCallUnicodeStringParam(ParamDir, ParamName);
+      end else
+        Write(F, 'Result');
+    end;
     if HandleParam <> '' then
       Write(F, ')');
   end
@@ -377,7 +423,7 @@ begin
   begin
     if HandleParam <> '' then
     begin
-      if AStyle in [msClassCall, msLibCall] then
+      if AStyle in [msClassCall, msLibCall, msLibCallGetLength] then
         Write(F, ', ')
       else
         Write(F, '; ');
@@ -389,43 +435,54 @@ begin
     FirstParam := True;
     for Param in AMethod.Params do
     begin
+      ParamName := ReplaceNotAllowedParamName(Param.Name);
+      ParamDir := ParamDirection(AMethod, Param, AGetter);
       if Param <> RetVal then
       begin
         if not FirstParam then
         begin
-          if AStyle in [msClassCall, msLibCall] then
+          if AStyle in [msClassCall, msLibCall, msLibCallGetLength] then
             Write(F, ', ')
           else
             Write(F, '; ');
         end;
         FirstParam := False;
-        ParamName := ReplaceNotAllowedParamName(Param.Name);
-        if AMethod is TPWIGProperty then
+        ParamSpecifier := ParamDirectionToString(ParamDir);
+        if (Param.ParamType.BaseType = btUnicodeString) and (AStyle in [msIntfDeclaration, msLibExport]) then
         begin
-          // all params are [in] except last one which is [out, retval] for a getter
-          if not AGetter or (Param <> PropRetVal) then
-            ParamSpecifier := 'const'
+          // automated string management for UnicodeString
+          if ParamDir = pdIn then
+            Write(F, ParamSpecifier, ' ', ParamName, ': PAnsiChar')
           else
-            ParamSpecifier := 'out';
-        end else
+            Write(F, 'const ', ParamName, ': PAnsiChar; var Length__', ParamName, ': LongInt');
+        end
+        else if (Param.ParamType.BaseType = btUnicodeString) and (AStyle in [msClassCall]) then
         begin
-          // write param flags as specified
-          if Param.FlagInput and Param.FlagOutput then
-            ParamSpecifier := 'var'
-          else if Param.FlagOutput then
-            ParamSpecifier := 'out'
+          if ParamDir = pdIn then
+            Write(F, ParamName)
           else
-            ParamSpecifier := 'const';
-        end;
-        if AStyle in [msClassCall, msLibCall] then
+            Write(F, 'String__' + ParamName);
+        end
+        else if (Param.ParamType.BaseType = btUnicodeString) and (AStyle in [msLibCall, msLibCallGetLength]) then
+        begin
+          WriteLibCallUnicodeStringParam(ParamDir, ParamName);
+        end
+        else if AStyle in [msClassCall, msLibCall, msLibCallGetLength] then
           Write(F, ParamName)
         else if AStyle = msPropertyDeclaration then
           Write(F, ParamName, ': ', TypeToString(Param.ParamType))
         else
           Write(F, ParamSpecifier, ' ', ParamName, ': ', TypeToString(Param.ParamType));
       end
-      else if AStyle = msLibCall then
-        Write(F, ', Result');
+      else if AStyle in [msLibCall, msLibCallGetLength] then
+      begin
+        Write(F, ', ');
+        if Param.ParamType.BaseType = btUnicodeString then
+        begin
+          WriteLibCallUnicodeStringParam(ParamDir, ParamName);
+        end else
+          Write(F, 'Result');
+      end;
     end;
     if AStyle = msPropertyDeclaration then
       Write(F, ']')
@@ -451,7 +508,7 @@ begin
       Write(F, ' write Set', IntfName, AMethod.Name);
     end;
   end;
-  if AStyle = msLibCall then
+  if AStyle in [msLibCall, msLibCallGetLength] then
     Writeln(F)
   else
     Writeln(F, ';');
@@ -459,9 +516,35 @@ end;
 
 procedure TPWIGGenPascal.WriteCalleeMethod(AClass: TPWIGClass; AIntf: TPWIGInterface;
  AMethod: TPWIGMethod; ABody, ADefaultInterface, AGetter: Boolean; const APrefix: string);
+var
+  Param: TPWIGParam;
+  ParamName: string;
+  FirstParam: Boolean;
 begin
   WriteMethod(AClass, AIntf, AMethod, msLibExport, False, AGetter, APrefix);
   if not ABody then Exit;
+  // automated string management for UnicodeString
+  FirstParam := True;
+  for Param in AMethod.Params do
+    if (Param.ParamType.BaseType = btUnicodeString) and (ParamDirection(AMethod, Param, AGetter) <> pdIn)  then
+    begin
+      ParamName := ReplaceNotAllowedParamName(Param.Name);
+      if FirstParam then
+      begin
+        Writeln(F, Indent, 'var ');
+        IncIndent;
+        Write(F, Indent);
+      end else
+        Write(F, ', ');
+      FirstParam := False;
+      Write(F, 'String__', ParamName);
+    end;
+  if not FirstParam then
+  begin
+    Writeln(F, ': AnsiString;');
+    DecIndent;
+  end;
+  // begin to write function body
   Writeln(F, Indent, 'begin');
   IncIndent;
   Writeln(F, Indent, 'Result := False;');
@@ -471,6 +554,21 @@ begin
   Writeln(F, Indent, 'begin');
   IncIndent;
   WriteMethod(AClass, AIntf, AMethod, msClassCall, ADefaultInterface, AGetter, APrefix);
+  // automated string management for UnicodeString
+  for Param in AMethod.Params do
+    if (Param.ParamType.BaseType = btUnicodeString) and (ParamDirection(AMethod, Param, AGetter) <> pdIn) then
+    begin
+      ParamName := ReplaceNotAllowedParamName(Param.Name);
+      Writeln(F, Indent, 'if ', ParamName, ' = nil then');
+      IncIndent;
+      Writeln(F, Indent, 'Length__', ParamName, ' := Length(String__', ParamName, ')');
+      DecIndent;
+      Writeln(F, Indent, 'else');
+      IncIndent;
+      Writeln(F, Indent, 'System.Move(String__', ParamName, '[1], ', ParamName, '^, Min(Length__', ParamName, ', Length(String__', ParamName, ')));');
+      DecIndent;
+    end;
+  // end of function body
   Writeln(F, Indent, 'Result := True;');
   DecIndent;
   Writeln(F, Indent, 'end;');
@@ -703,20 +801,83 @@ procedure TPWIGGenPascal.WriteCallerMethod(AClass: TPWIGClass;
   AIntf: TPWIGInterface; AMethod: TPWIGMethod;
   ADefaultInterface, AGetter: Boolean; const APrefix: string);
 var
-  FuncName: string;
+  FuncName, ParamName, S: string;
+  Param, RetVal: TPWIGParam;
+  FirstParam: Boolean;
 begin
   FuncName := AClass.Name + APrefix + AIntf.Name + AMethod.Name;
   WriteMethod(AClass, AIntf, AMethod, msClassImplementation, ADefaultInterface, AGetter, APrefix);
+  // automated string management for UnicodeString
+  FirstParam := True;
+  for Param in AMethod.Params do
+    if (Param.ParamType.BaseType = btUnicodeString) and (ParamDirection(AMethod, Param, AGetter) <> pdIn)  then
+    begin
+      ParamName := ReplaceNotAllowedParamName(Param.Name);
+      if FirstParam then
+      begin
+        Writeln(F, Indent, 'var ');
+        IncIndent;
+        Write(F, Indent);
+      end else
+        Write(F, '; ');
+      FirstParam := False;
+      Write(F, 'String__', ParamName, ': AnsiString; Length__', ParamName, ': LongInt');
+    end;
+  if not FirstParam then
+  begin
+    Writeln(F, ';');
+    DecIndent;
+  end;
+  // write method body
   Writeln(F, Indent, 'begin');
   IncIndent;
   Writeln(F, Indent, 'if Assigned(Func', FuncName, ') then');
+  Writeln(F, Indent, 'begin');
   IncIndent;
+  // automated string management for UnicodeString
+  for Param in AMethod.Params do
+    if (Param.ParamType.BaseType = btUnicodeString) and (ParamDirection(AMethod, Param, AGetter) <> pdIn)  then
+    begin
+      ParamName := ReplaceNotAllowedParamName(Param.Name);
+      Writeln(F, Indent, 'Length__', ParamName, ' := 0;');
+    end;
+  if not FirstParam then
+  begin
+    Writeln(F, Indent, 'if not (');
+    IncIndent;
+    WriteMethod(AClass, AIntf, AMethod, msLibCallGetLength, ADefaultInterface, AGetter, APrefix);
+    DecIndent;
+    Writeln(F, Indent, ') then LibCallError(''Func', FuncName, ''');');
+  end;
+  // automated string management for UnicodeString
+  for Param in AMethod.Params do
+    if (Param.ParamType.BaseType = btUnicodeString) and (ParamDirection(AMethod, Param, AGetter) <> pdIn)  then
+    begin
+      ParamName := ReplaceNotAllowedParamName(Param.Name);
+      Writeln(F, Indent, 'SetLength(String__', ParamName, ', Max(Length__', ParamName, ', 1));');
+    end;
   Writeln(F, Indent, 'if not (');
   IncIndent;
   WriteMethod(AClass, AIntf, AMethod, msLibCall, ADefaultInterface, AGetter, APrefix);
   DecIndent;
   Writeln(F, Indent, ') then LibCallError(''Func', FuncName, ''');');
   DecIndent;
+  Writeln(F, Indent, 'end;');
+  // automated string management for UnicodeString
+  if AGetter then
+    RetVal := AMethod.Params.Last
+  else
+    RetVal := AMethod.Params.FindRetVal;
+  for Param in AMethod.Params do
+    if (Param.ParamType.BaseType = btUnicodeString) and (ParamDirection(AMethod, Param, AGetter) <> pdIn)  then
+    begin
+      ParamName := ReplaceNotAllowedParamName(Param.Name);
+      if Param <> RetVal then
+        S := ParamName
+      else
+        S := 'Result';
+      Writeln(F, Indent, 'if Length__', ParamName, ' > 0 then ', S, ' := String__', ParamName, ' else ', S, ' := '''';')
+    end;
   DecIndent;
   Writeln(F, Indent, 'end;');
   WriteSpace;
@@ -1124,7 +1285,7 @@ begin
       // now hardcoded, later might be automated when needed
       Writeln(F, Indent, 'uses');
       IncIndent;
-      Writeln(F, Indent, 'SysUtils', ', ', ImplName, ';');
+      Writeln(F, Indent, 'Math, SysUtils', ', ', ImplName, ';');
       DecIndent;
       WriteSpace;
 
@@ -1134,7 +1295,7 @@ begin
 
       // write library exports
 //      Writeln(F, Indent, '// Copy these exports into your main library file.');
-//      Writeln(F, Indent, '(*');
+      Writeln(F, Indent, '(*');
       Writeln(F, Indent, 'exports');
       IncIndent;
       InitDashSep;
@@ -1142,7 +1303,7 @@ begin
         WriteCalleeExports(LCls);
       Writeln(F, Indent, ';');
       DecIndent;
-//      Writeln(F, Indent, '*)');
+      Writeln(F, Indent, '*)');
       WriteSpace;
 
       // finish
@@ -1208,7 +1369,7 @@ begin
       //Writeln(F, Indent, '{$ELSE}');
       //Writeln(F, Indent, 'Windows,');
       //Writeln(F, Indent, '{$ENDIF}');
-      Writeln(F, Indent, 'SysUtils, ', IntfName, ';');
+      Writeln(F, Indent, IntfName, ';');
       DecIndent;
       WriteSpace;
 
@@ -1237,6 +1398,14 @@ begin
 
       // implementation
       Writeln(F, Indent, 'implementation');
+      WriteSpace;
+
+      // write uses clause
+      // now hardcoded, later might be automated when needed
+      Writeln(F, Indent, 'uses');
+      IncIndent;
+      Writeln(F, Indent, 'Math, SysUtils;');
+      DecIndent;
       WriteSpace;
 
       // write library imports

@@ -34,7 +34,7 @@ type
     btUInt64, // COM unsigned int64
     btSingle, // COM single precision float
     btDouble, // COM double precision float
-    btWideString, //COM BSTR, otherwise UTF8 encoded string
+    btUnicodeString, //COM BSTR, otherwise UTF8 encoded string
     btRawByteString, // array of bytes, memory management not supported by COM!
     btCurrency, // COM currency
     btDateTime, //COM DATE
@@ -95,6 +95,12 @@ type
     procedure Save(ANode: TXmlNode; const ASubnodeName, AKeyNode, AValueNode: string); virtual;
   end;
 
+  TPWIGParamDirection = (
+    pdIn,
+    pdOut,
+    pdInOut
+  );
+
   { TPWIGParam }
 
   TPWIGParam = class(TPWIGElement)
@@ -103,6 +109,7 @@ type
     FFlagOutput: Boolean;
     FFlagInput: Boolean;
     FFlagRetVal: Boolean;
+    function GetParamDirection: TPWIGParamDirection;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -110,6 +117,7 @@ type
     procedure Save(ANode: TXmlNode); override;
     property FlagInput: Boolean read FFlagInput write FFlagInput;
     property FlagOutput: Boolean read FFlagOutput write FFlagOutput;
+    property ParamDirection: TPWIGParamDirection read GetParamDirection;
     property ParamType: TPWIGType read FParamType;
     property FlagRetVal: Boolean read FFlagRetVal write FFlagRetVal;
   end;
@@ -675,6 +683,16 @@ begin
 end;
 
 { TPWIGParam }
+
+function TPWIGParam.GetParamDirection: TPWIGParamDirection;
+begin
+  if FlagInput and FlagOutput then
+    Result := pdInOut
+  else if FlagOutput then
+    Result := pdOut
+  else
+    Result := pdIn;
+end;
 
 constructor TPWIGParam.Create;
 begin

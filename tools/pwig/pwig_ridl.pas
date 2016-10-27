@@ -126,7 +126,7 @@ begin
     btUInt64: Result := 'unsigned __int64';
     btSingle: Result := 'single';
     btDouble: Result := 'double';
-    btWideString: Result := 'BSTR';
+    btUnicodeString: Result := 'BSTR';
     btRawByteString: Result := 'LPSTR'; // memory management not supported by COM!
     btCurrency: Result := 'CURRENCY';
     btDateTime: Result := 'DATE';
