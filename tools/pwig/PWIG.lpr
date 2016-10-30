@@ -1,6 +1,6 @@
 program PWIG;
 
-{$MODE Delphi}
+{$mode delphi}
 
 {$APPTYPE CONSOLE}
 
@@ -10,10 +10,14 @@ uses
 
 var
   PWIGMain: TPWIG;
+
+{$R *.res}
+
 begin
   try
     PWIGMain := TPWIG.Create;
     try
+      PWIGMain.PrintCopyright;
       if PWIGMain.ReadParams then
         PWIGMain.Generate
       else

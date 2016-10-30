@@ -37,3 +37,4 @@ packages/kextra/KExtra_*.res
 packages/kextra/*_copy*
 demos/kmemo/*.rtf
 source/contrib/*
+*/backup/*

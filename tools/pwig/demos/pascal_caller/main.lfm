@@ -1,0 +1,48 @@
+object Form1: TForm1
+  Left = 304
+  Height = 240
+  Top = 133
+  Width = 320
+  Caption = 'PWIG Lazarus/FPC demo'
+  ClientHeight = 240
+  ClientWidth = 320
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '1.6.0.4'
+  object LabeledEdit1: TLabeledEdit
+    Left = 32
+    Height = 23
+    Top = 56
+    Width = 248
+    EditLabel.AnchorSideLeft.Control = LabeledEdit1
+    EditLabel.AnchorSideRight.Control = LabeledEdit1
+    EditLabel.AnchorSideRight.Side = asrBottom
+    EditLabel.AnchorSideBottom.Control = LabeledEdit1
+    EditLabel.Left = 32
+    EditLabel.Height = 15
+    EditLabel.Top = 38
+    EditLabel.Width = 248
+    EditLabel.Caption = 'Connection string:'
+    EditLabel.ParentColor = False
+    TabOrder = 0
+    Text = 'LabeledEdit1'
+  end
+  object Memo1: TMemo
+    Left = 32
+    Height = 112
+    Top = 112
+    Width = 248
+    Lines.Strings = (
+      ''
+    )
+    TabOrder = 1
+  end
+  object Label1: TLabel
+    Left = 32
+    Height = 15
+    Top = 95
+    Width = 87
+    Caption = 'Library error log:'
+    ParentColor = False
+  end
+end

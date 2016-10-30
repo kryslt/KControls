@@ -16,7 +16,7 @@
 
 unit pwiggen;
 
-{$MODE Delphi}
+{$mode delphi}
 
 interface
 
@@ -24,6 +24,9 @@ uses
   Generics.Collections, KXml;
 
 type
+  // forward declarations
+  TPWIG = class;
+
   // contains a subset of types supported by COM
   TPWIGBaseType = (
     btLongInt, // COM long
@@ -41,6 +44,17 @@ type
     btEnum, // custom enumerated type, TPWIGEnum
     btAlias, // custom alias type, TPWIGAlias
     btInterface // custom interface type TPWIGInterface
+  );
+
+  // available calling conventions for library calls
+  TPWIGCallingConv = (
+    ccNone,
+    ccCDecl,
+    ccSysCall,
+    ccPascal,
+    ccStdCall,
+    ccFastCall,
+    ccSafeCall
   );
 
   { TPWIGType }
@@ -127,11 +141,6 @@ type
   TPWIGParamList = class(TPWIGElementList<TPWIGParam>)
     function FindRetVal: TPWIGParam; virtual;
   end;
-
-  TPWIGCallingConv = (
-    ccStdCall,
-    ccCDecl
-  );
 
   { TPWIGMethod }
 
@@ -276,7 +285,12 @@ type
 
   TPWIGClassList = TPWIGElementList<TPWIGClass>;
 
-  TPWIG = class;
+
+  // supported generators
+  TPWIGGeneratorType = (
+    gtPascal, // Delphi or Lazarus
+    gtRIDL // Delphi RIDL
+  );
 
   { TPWIGGenerator }
 
@@ -285,9 +299,25 @@ type
     FPWIG: TPWIG;
   public
     constructor Create(AOwner: TPWIG); virtual;
-    procedure SaveToFile(const AFileName: string); virtual; abstract;
-    procedure SaveToFiles(const ACalleeFileName, ACallerFileName: string); virtual; abstract;
+    procedure SaveCallerFiles(const AFileName: string); virtual; abstract;
+    procedure SaveCalleeFiles(const AFileName: string); virtual; abstract;
   end;
+
+  { TPWIGGeneratorConfig }
+
+  TPWIGGeneratorConfig = class(TPWIGElement)
+  private
+    FGenType: TPWIGGeneratorType;
+    FGenPath: string;
+  public
+    constructor Create; override;
+    procedure Load(ANode: TXmlNode); override;
+    procedure Save(ANode: TXmlNode); override;
+    property GenType: TPWIGGeneratorType read FGenType write FGenType;
+    property GenPath: string read FGenPath write FGenPath;
+  end;
+
+  TPWIGGeneratorConfigList = TPWIGElementList<TPWIGGeneratorConfig>;
 
   { TPWIG }
 
@@ -296,24 +326,31 @@ type
     FAliases: TPWIGAliasList;
     FClasses: TPWIGClassList;
     FEnums: TPWIGEnumList;
+    FGlobalCallingConv: TPWIGCallingConv;
     FInputFile: string;
     FInterfaces: TPWIGInterfaceList;
+    FCalleeConfigs: TPWIGGeneratorConfigList;
+    FCallerConfigs: TPWIGGeneratorConfigList;
   protected
     property InputFile: string read FInputFile;
   public
     constructor Create; override;
     destructor Destroy; override;
+    function FindDefaultIntf(AClass: TPWIGClass; AEvents: Boolean): TPWIGInterface;
+    procedure FixReferences;
     function ReadParams: Boolean;
     function LoadFromFile(const AFileName: string): Boolean;
     function SaveToFile(const AFileName: string): Boolean;
     procedure Generate;
-    procedure GeneratePascalWrappers(const ACalleeFileName, ACallerFileName: string);
-    procedure GenerateRIDL(const AFileName: string);
     procedure PrintHelp;
+    procedure PrintCopyright;
     property Aliases: TPWIGAliasList read FAliases;
     property Classes: TPWIGClassList read FClasses;
     property Enums: TPWIGEnumList read FEnums;
     property Interfaces: TPWIGInterfaceList read FInterfaces;
+    property GlobalCallingConv: TPWIGCallingConv read FGlobalCallingConv write FGlobalCallingConv;
+    property CalleeConfigs: TPWIGGeneratorConfigList read FCalleeConfigs;
+    property CallerConfigs: TPWIGGeneratorConfigList read FCallerConfigs;
   end;
 
 function GUIDToXMLGUID(const AID: string): string;
@@ -323,11 +360,13 @@ function XMLGUIDToGUIDNoCurlyBraces(const AID: string): string;
 implementation
 
 uses
-  SysUtils, TypInfo,
+  Forms, Math, SysUtils, TypInfo,
+  KFunctions,
   PWIG_RIDL, PWIG_Pascal;
 
 const
   nnPWIGConfig = 'pwig_configuration';
+  nnPWIGGlobalCallingConv= 'pwig_global_calling_conv';
 
   nnPWIGType = 'pwig_datatype';
   nnPWIGTypeBaseType = 'pwig_datatype_basetype';
@@ -370,6 +409,11 @@ const
   nnPWIGInterfaceRefName = 'pwig_interfaceref_name';
 
   nnPWIGClass = 'pwig_class';
+
+  nnPWIGGenCalleeConfig = 'pwig_callee_configuration';
+  nnPWIGGenCallerConfig = 'pwig_caller_configuration';
+  nnPWIGGenConfigType = 'pwig_generator_type';
+  nnPWIGGenConfigPath = 'pwig_generator_path';
 
 function GUIDToXMLGUID(const AID: string): string;
 begin
@@ -460,7 +504,7 @@ begin
   if (Value >= Low(TPWIGCallingConv)) and (Value <= High(TPWIGCallingConv)) then
     Result := Value
   else
-    Result := ccStdCall;
+    Result := ccNone;
 end;
 
 function PropertyTypeToString(AType: TPWIGPropertyType): string;
@@ -483,11 +527,24 @@ begin
     Result := ptReadWrite;
 end;
 
-{ TPWIGGenerator }
-
-constructor TPWIGGenerator.Create(AOwner: TPWIG);
+function GenTypeToString(AType: TPWIGGeneratorType): string;
+var
+  S: string;
 begin
-  FPWIG := AOwner;
+  S := GetEnumName(TypeInfo(TPWIGGeneratorType), Ord(AType));
+  Delete(S, 1, 2); // delete 'gt' prefix
+  Result := S;
+end;
+
+function StringToGenType(const AText: string): TPWIGGeneratorType;
+var
+  Value: TPWIGGeneratorType;
+begin
+  Value := TPWIGGeneratorType(GetEnumValue(TypeInfo(TPWIGGeneratorType), 'gt' + AText));
+  if (Value >= Low(TPWIGGeneratorType)) and (Value <= High(TPWIGGeneratorType)) then
+    Result := Value
+  else
+    Result := gtPascal;
 end;
 
 { TPWIGType }
@@ -753,8 +810,8 @@ var
 begin
   inherited;
   GUID := StringToGUID(XMLGuidToGuid(Self.GUID));
-  FCallingConv := ccStdCall;
-  FId := GUID.D1; // start with some kind of randomization ;
+  FCallingConv := ccNone; // use global settings by default
+  FId := GUID.D1; // start with some kind of randomization
   FParams := TPWIGParamList.Create;
 end;
 
@@ -1017,6 +1074,43 @@ begin
   end;
 end;
 
+{ TPWIGGenerator }
+
+constructor TPWIGGenerator.Create(AOwner: TPWIG);
+begin
+  FPWIG := AOwner;
+end;
+
+
+{ TPWIGGeneratorConfig }
+
+constructor TPWIGGeneratorConfig.Create;
+begin
+  inherited;
+  FGenType := gtPascal;
+  FGenPath := '';
+end;
+
+procedure TPWIGGeneratorConfig.Load(ANode: TXmlNode);
+begin
+  inherited;
+  if ANode <> nil then
+  begin
+    FGenType := StringToGenType(ANode.ChildAsString(nnPWIGGenConfigType, ''));
+    FGenPath := ANode.ChildAsString(nnPWIGGenConfigPath, FGenPath);
+  end;
+end;
+
+procedure TPWIGGeneratorConfig.Save(ANode: TXmlNode);
+begin
+  inherited;
+  if ANode <> nil then
+  begin
+    ANode.Children.Add(nnPWIGGenConfigType).AsString := GenTypeToString(FGenType);
+    ANode.Children.Add(nnPWIGGenConfigPath).AsString := FGenPath;
+  end;
+end;
+
 { TPWIG }
 
 constructor TPWIG.Create;
@@ -1027,6 +1121,8 @@ begin
   FEnums := TPWIGEnumList.Create;
   FInputFile := '';
   FInterfaces := TPWIGInterfaceList.Create;
+  FCalleeConfigs := TPWIGGeneratorConfigList.Create;
+  FCallerConfigs := TPWIGGeneratorConfigList.Create;
 end;
 
 destructor TPWIG.Destroy;
@@ -1035,35 +1131,173 @@ begin
   FClasses.Free;
   FEnums.Free;
   FInterfaces.Free;
+  FCalleeConfigs.Free;
+  FCallerConfigs.Free;
   inherited;
 end;
 
+function TPWIG.FindDefaultIntf(AClass: TPWIGClass; AEvents: Boolean): TPWIGInterface;
+var
+  Ref: TPWIGInterfaceRef;
+  LIntf: TPWIGInterface;
+begin
+  Result := nil;
+  Assert(AClass <> nil);
+  for Ref in AClass.InterfaceRefs do
+  begin
+    LIntf := FInterfaces.Find(Ref.RefGUID, Ref.RefName);
+    if (LIntf <> nil) and Ref.FlagDefault and not (LIntf.FlagDispEvents xor AEvents) then
+      Exit(LIntf);
+  end;
+end;
+
+procedure TPWIG.FixReferences;
+
+  procedure FixInterfaceMethodIds;
+
+    function FindID(AIntf: TPWIGInterface; AMethod: TPWIGMethod): Boolean;
+    var
+      Method: TPWIGMethod;
+    begin
+      Result := False;
+      for Method in AIntf.Methods do
+      begin
+        if (Method <> AMethod) and (Method.Id = AMethod.Id) then
+          Exit(True);
+      end;
+      for Method in AIntf.Properties do
+      begin
+        if (Method <> AMethod) and (Method.Id = AMethod.Id) then
+          Exit(True);
+      end;
+    end;
+
+    function MaxId(AIntf: TPWIGInterface): LongInt;
+    var
+      Method: TPWIGMethod;
+    begin
+      Result := -MaxInt;
+      for Method in AIntf.Methods do
+      begin
+        Result := Max(Result, Method.Id);
+      end;
+      for Method in AIntf.Properties do
+      begin
+        Result := Max(Result, Method.Id);
+      end;
+      if Result = -MaxInt then
+        Result := 0;
+    end;
+
+    procedure WriteWarning(const AIntfName, AMethodName: string; AOld, ANew: LongInt);
+    begin
+      System.Writeln('Warning: Duplicate ID found for method ', AIntfName, '.', AMethodName, ', replacing old ID: ', AOld, ' with new ID: ', ANew);
+    end;
+
+  var
+    LIntf: TPWIGInterface;
+    Method: TPWIGMethod;
+    NewID: LongInt;
+  begin
+    // find duplicate Ids and replace them with new, unique Ids
+    for LIntf in FInterfaces do
+    begin
+      for Method in LIntf.Methods do
+      begin
+        if FindID(LIntf, Method) then
+        begin
+          NewID := MaxID(LIntf) + 1;
+          WriteWarning(LIntf.Name, Method.Name, Method.Id, NewID);
+          Method.Id := NewID;
+        end;
+      end;
+      for Method in LIntf.Properties do
+      begin
+        if FindID(LIntf, Method) then
+        begin
+          NewID := MaxID(LIntf) + 1;
+          WriteWarning(LIntf.Name, Method.Name, Method.Id, NewID);
+          Method.Id := NewID;
+        end;
+      end;
+    end;
+  end;
+
+  procedure FixDefaultInterfaces(AEvents: Boolean);
+  var
+    LCls: TPWIGClass;
+    LIntf: TPWIGInterface;
+    Ref: TPWIGInterfaceRef;
+  begin
+    // set first valid referenced interface as default if there is none
+    for LCls in FClasses do
+    begin
+      LIntf := FindDefaultIntf(LCls, AEvents);
+      if LIntf = nil then
+      begin
+        for Ref in LCLs.InterfaceRefs do
+        begin
+          LIntf := FInterfaces.Find(Ref.RefGUID, Ref.RefName);
+          if (LIntf <> nil) and (LIntf.FlagDispEvents = AEvents) then
+          begin
+            Writeln('Warning: No default interface found for class ', LCls.Name, ', using: ', LIntf.Name);
+            Ref.FlagDefault := True;
+            Break;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+begin
+  // fix interface method IDs
+  FixInterfaceMethodIds;
+
+  // fix class default interfaces
+  FixDefaultInterfaces(False); // for normal interfaces
+  FixDefaultInterfaces(True); // for event interfaces (dispinterfaces)
+end;
+
 procedure TPWIG.Generate;
-begin
-end;
 
-procedure TPWIG.GenerateRIDL(const AFileName: string);
-var
-  Gen: TPWIGGenRIDL;
-begin
-  Gen := TPWIGGenRIDL.Create(Self);
-  try
-    Gen.SaveToFile(AFileName);
-  finally
-    Gen.Free;
+  function CreateGenerator(AGenType: TPWIGGeneratorType): TPWIGGenerator;
+  begin
+    Result := nil;
+    case AGenType of
+      gtPascal: Result := TPWIGGenPascal.Create(Self);
+      gtRIDL: Result := TPWIGGenRIDL.Create(Self);
+    end;
   end;
-end;
 
-procedure TPWIG.GeneratePascalWrappers(const ACalleeFileName, ACallerFileName: string);
 var
-  Gen: TPWIGGenPascal;
+  Gen: TPWIGGenerator;
+  Config: TPWIGGeneratorConfig;
 begin
-  Gen := TPWIGGenPascal.Create(Self);
-  try
-    Gen.SaveToFiles(ACalleeFileName, ACallerFileName);
-  finally
-    Gen.Free;
+  Writeln('Processing callee configurations:');
+  Writeln('');
+  for Config in FCalleeConfigs do
+  begin
+    Gen := CreateGenerator(Config.GenType);
+    try
+      Gen.SaveCalleeFiles(Config.GenPath);
+    finally
+      Gen.Free;
+    end;
   end;
+  Writeln('');
+  Writeln('Processing caller configurations:');
+  Writeln('');
+  for Config in FCallerConfigs do
+  begin
+    Gen := CreateGenerator(Config.GenType);
+    try
+      Gen.SaveCallerFiles(Config.GenPath);
+    finally
+      Gen.Free;
+    end;
+  end;
+  Writeln('');
+  Writeln('Processing completed!');
 end;
 
 function TPWIG.LoadFromFile(const AFileName: string): Boolean;
@@ -1082,10 +1316,14 @@ begin
         if N <> nil then
         begin
           inherited Load(N);
+          FGlobalCallingConv := StringToCallingConv(N.ChildAsString(nnPWIGGlobalCallingConv, ''));
+          FCalleeConfigs.Load(N, nnPWIGGenCalleeConfig);
+          FCallerConfigs.Load(N, nnPWIGGenCallerConfig);
           FAliases.Load(N, nnPWIGAlias);
           FEnums.Load(N, nnPWIGEnum);
           FInterfaces.Load(N, nnPWIGInterface);
           FClasses.Load(N, nnPWIGClass);
+          FixReferences;
         end;
         Result := True;
       finally
@@ -1098,12 +1336,58 @@ end;
 
 procedure TPWIG.PrintHelp;
 begin
+  Writeln('PWIG is a software development tool that connects programs written in one programming language with a variety of another programming languages.');
+  Writeln('It reads the interface definitions from a single XML configuration file and generates wrapper code for the caller (main program) and the callee (shared library).');
+  Writeln('PWIG has been written in Free Pascal Compiler/Lazarus, hence its name (Pascal Wrapper and Interface Generator).');
+  Writeln('However, it can be used not only by Pascal programmers but for any other programming languages as well, as long as its wrapper generators exist.');
+  Writeln('');
+  Writeln('Syntax: PWIG [input file]');
+  Writeln('');
+  Writeln('Example: PWIG text.xml');
+  Writeln('');
+  Writeln('Entire configuration must be present in the input file.');
+  Writeln('You can create the input file with the PWIG GUI or write it by hand.');
+  Writeln('See additional documentation for the input file structure.');
+  Writeln('');
+  Writeln('Currently supported generators:');
+  Writeln('-Pascal (Delphi, FPC/Lazarus)');
+  Writeln('-RIDL (Delphi version of COM IDL)');
+  Writeln('');
+end;
 
+procedure TPWIG.PrintCopyright;
+var
+  VMajor, VMinor, VBuild, VRev: Word;
+  AppVersion: string;
+begin
+  if GetAppVersion(Application.ExeName, VMajor, VMinor, VBuild, VRev) then
+    AppVersion := Format('%d.%d.%d.%d', [VMajor, VMinor, VBuild, VRev])
+  else
+    AppVersion := '<unknown version>';
+  Writeln('');
+  Writeln('PWIG ', AppVersion, ', Copyright (C) 2016 Tomas Krysl (tk@tkweb.eu)');
+  Writeln('');
 end;
 
 function TPWIG.ReadParams: Boolean;
 begin
-  Result := True;
+  Result := False;
+  if ParamCount = 1 then
+  begin
+    FInputFile := ParamStr(1);
+    if FileExists(FInputFile) then
+    begin
+      Result := LoadFromFile(InputFile);
+      if Result then
+        Writeln('Input file has been read: ', FInputFile)
+      else
+        Writeln('Bad format of input file: ', FInputFile,  '!');
+    end
+    else
+      Writeln('Input file does not exist: ', FInputFile,  '!');
+  end else
+    Writeln('Missing input file!');
+  Writeln('');
 end;
 
 
@@ -1120,6 +1404,9 @@ begin
       if N <> nil then
       begin
         inherited Save(N);
+        N.Children.Add(nnPWIGGlobalCallingConv).AsString := CallingConvToString(FGlobalCallingConv);
+        FCalleeConfigs.Save(N, nnPWIGGenCalleeConfig);
+        FCallerConfigs.Save(N, nnPWIGGenCallerConfig);
         FAliases.Save(N, nnPWIGAlias);
         FEnums.Save(N, nnPWIGEnum);
         FInterfaces.Save(N, nnPWIGInterface);

@@ -1,8 +1,11 @@
-{ @abstract(This unit contains PWIG RIDL file generator (usable by Delphi COM tools))
+﻿{ @abstract(This unit contains PWIG RIDL file generator (usable by Delphi COM tools))
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(20 Oct 2016)
 
   Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+
+  Generated outputs tested in:
+  -Delphi XE, Win32 (callee)
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -44,7 +47,6 @@ type
     property Indent: string read FIndent;
   protected
     F: TextFile;
-    function CallingConvToString(AConv: TPWIGCallingConv): string; virtual;
     function InterfaceToString(AIntf: TPWIGInterface): string; virtual;
     function TypeToString(AType: TPWIGType): string; virtual;
     procedure WriteElementProps(AElement: TPWIGElement); virtual;
@@ -55,8 +57,8 @@ type
     procedure WriteClassProps(AClass: TPWIGClass); virtual;
   public
     constructor Create(AOwner: TPWIG); override;
-    procedure SaveToFile(const AFileName: string); override;
-    procedure SaveToFiles(const ACalleeFileName, ACallerFileName: string); override;
+    procedure SaveCalleeFiles(const AFileName: string); override;
+    procedure SaveCallerFiles(const AFileName: string); override;
   end;
 
 implementation
@@ -94,15 +96,6 @@ begin
     if FFlags <> '' then
       FFlags := FFlags + ', ';
     FFlags := FFlags + AFlagText;
-  end;
-end;
-
-function TPWIGGenRIDL.CallingConvToString(AConv: TPWIGCallingConv): string;
-begin
-  Result := '';
-  case AConv of
-    ccStdCall: Result := 'stdcall';
-    ccCDecl: Result := 'cdecl';
   end;
 end;
 
@@ -165,7 +158,7 @@ begin
   Writeln(F);
 end;
 
-procedure TPWIGGenRIDL.SaveToFile(const AFileName: string);
+procedure TPWIGGenRIDL.SaveCalleeFiles(const AFileName: string);
 var
   LIntf: TPWIGInterface;
   LCls: TPWIGClass;
@@ -224,20 +217,19 @@ begin
       // finish
       WriteCurlyEnd;
 
-      Writeln('RIDL file generated:', AFileName);
+      Writeln('RIDL file generated: ', AFileName);
     except
-      Writeln('Could not generate RIDL file :', AFileName);
+      Writeln('Could not generate RIDL file: ', AFileName);
     end;
   finally
     CloseFile(F);
   end;
 end;
 
-procedure TPWIGGenRIDL.SaveToFiles(const ACalleeFileName,
-  ACallerFileName: string);
+procedure TPWIGGenRIDL.SaveCallerFiles(const AFileName: string);
 begin
-  SaveToFile(ACalleeFileName);
-  // caller must import type library from registry
+  // nothing to do, caller must import type library from registry, write notice
+  Writeln('RIDL generator cannot output caller wrappers, register and import type library instead!');
 end;
 
 procedure TPWIGGenRIDL.WriteElementProps(AElement: TPWIGElement);
@@ -292,7 +284,7 @@ var
 begin
   // always HRESULT and stdcall
   if ACallingConv then
-    S := '_' + CallingConvToString(AMethod.CallingConv)
+    S := '_stdcall'
   else
     S := '';
   Write(F, Indent, 'HRESULT', ' ', S, ' ', AMethod.Name, '(');

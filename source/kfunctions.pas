@@ -661,8 +661,8 @@ function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKStr
 { Backups application context, e.g. when calling a shared library. }
 function GetAppContext(var Ctx: TKAppContext): Boolean;
 
-{ Returns the module version for given module. Works under WinX only. }
-function GetAppVersion(const ALibName: string; var MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
+{ Returns the module version for given module. Tested under WinX, Linux, OSX. }
+function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 
 { Returns number of a specific character in a string. }
 function GetCharCount(const AText: TKString; AChar: TKChar): Integer;
@@ -1681,7 +1681,7 @@ begin
   Result := True;
 end;
 
-function GetAppVersion(const ALibName: string; var MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
+function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 var
 {$IFDEF USE_WINAPI}
  dwHandle, dwLen: DWORD;
