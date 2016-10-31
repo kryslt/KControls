@@ -35,13 +35,20 @@ implementation
 
 {$R *.lfm}
 
+const
+{$ifdef Unix}
+  SharedPrefix = 'lib';
+{$else}
+  SharedPrefix = '';
+{$endif}
+
 { TForm1 }
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  if TestLibLibLoad('pascal_callee.' + SharedSuffix) then
+  if TestLibLibLoad(ExtractFilePath(Application.Exename) + SharedPrefix + 'pascal_callee.' + SharedSuffix) then
   begin
-    // create new project group and setup itc callbacks, this should be called only once
+    // create new project group
     FProjectGroup := TProjectGroup.Create;
 
     // set events
@@ -63,6 +70,7 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  // free used resources (both here and in the library)
   FProject.Free;
   FProjectGroup.Free;
 end;
@@ -74,4 +82,4 @@ begin
 end;
 
 end.
-
+

@@ -913,7 +913,7 @@ begin
   Result := False;
   ACursor := 1;
   // skip BOM if present
-  while (ACursor < Length(AText)) and (AText[ACursor] <> '<') and ((ACursor <= cMaxBOMSize) or CharInSet(AText[ACursor], cWordBreaks + cLineBreaks)) do
+  while (ACursor < Length(AText)) and (AText[ACursor] <> '<') and ((ACursor <= cMaxBOMSize) or CharInSetEx(AText[ACursor], cWordBreaks + cLineBreaks)) do
     Inc(ACursor);
   if (ACursor < Length(AText)) and (AText[ACursor] = '<') then
   begin
@@ -923,7 +923,7 @@ begin
     begin
       // check last non white space character, must be '>'
       ACursor := Length(AText);
-      while (ACursor > 1) and CharInSet(AText[ACursor], cWordBreaks + cLineBreaks) do
+      while (ACursor > 1) and CharInSetEx(AText[ACursor], cWordBreaks + cLineBreaks) do
         Dec(ACursor);
       Result := AText[ACursor] = '>';
     end;
@@ -938,7 +938,7 @@ procedure TXml.SetAsText(Value: string);
   begin
     Result := False;
     for I := 1 to Length(AValue) do
-      if not CharInSet(AValue[I], cLineBreaks + cWordBreaks) then
+      if not CharInSetEx(AValue[I], cLineBreaks + cWordBreaks) then
       begin
         Result := True;
         Exit;
@@ -1069,4 +1069,4 @@ begin
   Stream.Write(S[1], Length(S));
 end;
 
-end.
+end.
