@@ -22,6 +22,9 @@
     </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="Default" Default="True"/>
+      <SharedMatrixOptions Count="1">
+        <Item1 ID="213694749036" Modes="Default" Value="-fPIC"/>
+      </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
@@ -39,14 +42,17 @@
       <Unit1>
         <Filename Value="testlib_callee.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="testlib_callee"/>
       </Unit1>
       <Unit2>
         <Filename Value="testlib_intf.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="testlib_intf"/>
       </Unit2>
       <Unit3>
         <Filename Value="testlib_callee_impl.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="testlib_callee_impl"/>
       </Unit3>
     </Units>
   </ProjectOptions>
@@ -54,11 +60,11 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="../pascal_caller/lib/$(TargetCPU)-$(TargetOS)/pascal_callee"/>
+      <Filename Value="..\pascal_caller\lib\$(TargetCPU)-$(TargetOS)\pascal_callee"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>
       <RelocatableUnit Value="True"/>
@@ -82,4 +88,4 @@
       </Item3>
     </Exceptions>
   </Debugging>
-</CONFIG>
+</CONFIG>

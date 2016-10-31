@@ -44,10 +44,12 @@
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
+        <UnitName Value="main"/>
       </Unit1>
       <Unit2>
         <Filename Value="testlib_caller.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="testlib_caller"/>
       </Unit2>
       <Unit3>
         <Filename Value="testlib_intf.pas"/>
@@ -94,4 +96,4 @@
       </Item3>
     </Exceptions>
   </Debugging>
-</CONFIG>
+</CONFIG>
