@@ -1,9 +1,11 @@
 syntax: glob
 
+*.aqt
+*.bak
+*.drc
 *.dcu
 *.~*
 *.*~
-*.dcu
 *.dsk
 *.dof
 *.local
@@ -18,9 +20,11 @@ syntax: glob
 *.hhp
 *.hhk
 *.hhc
+*.pdf
 *.css
 *.zip
 *.psd
+*.hex
 *.lps
 *.doc*
 
@@ -29,6 +33,18 @@ syntax: glob
 
 *.cpp
 *.hpp
+
+*.stat
+*.map
+
+*.o
+*.or
+*.obj
+*.ppu
+*.compiled
+*.lrs
+*.so
+*.dylib
 
 */lib/*
 packages/kcontrols/KControls_*.res
