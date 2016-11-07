@@ -36,7 +36,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  Classes, ClipBrd, Controls, ComCtrls, Graphics, StdCtrls, SysUtils,
+  Classes, ClipBrd, Controls, Contnrs, ComCtrls, Graphics, StdCtrls, SysUtils,
   Forms;
 
 const
@@ -180,6 +180,10 @@ const
   cUTF16FirstSurrogateEnd = $DBFF;
   cUTF16SecondSurrogateBegin = $DC00;
   cUTF16SecondSurrogateEnd = $DFFF;
+
+  cHexFmtText = '%.2x';
+  cHexBase = 16;
+  cHexDigitCount = 2;
 
 type
 {$IFNDEF FPC}
@@ -468,6 +472,85 @@ type
 
   { Pointer }
   PKRect64 = ^TKRect64;
+
+  { @abstract(Declares the digit position in a hex string)
+    <UL>
+    <LH>Members:</LH>
+    <LI><I>Index</I> - byte index</LI>
+    <LI><I>Digit</I> - digit index</LI>
+    </UL>
+  }
+  TKHexDigitPosition = record
+    Index: Int64;
+    Digit: Integer;
+  end;
+
+  TKObjectList = class;
+
+  TKObject = class(TObject)
+  private
+    FParent: TKObjectList;
+    procedure SetParent(const Value: TKObjectList);
+  protected
+    FUpdateLock: Integer;
+    procedure CallBeforeUpdate; virtual;
+    procedure CallAfterUpdate; virtual;
+    procedure ParentChanged; virtual;
+  public
+    constructor Create; virtual;
+    procedure Assign(ASource: TKObject); virtual;
+    function EqualProperties(AValue: TKObject): Boolean; virtual;
+    procedure LockUpdate; virtual;
+    procedure UnLockUpdate; virtual;
+    function UpdateUnlocked: Boolean; virtual;
+    property Parent: TKObjectList read FParent write SetParent;
+  end;
+
+  TKObjectClass = class of TKObject;
+
+  TKObjectList = class(TObjectList)
+  protected
+    FUpdateLock: Integer;
+    procedure CallBeforeUpdate; virtual;
+    procedure CallAfterUpdate; virtual;
+  public
+    constructor Create; virtual;
+    function Add(AObject: TObject): Integer;
+    procedure Assign(ASource: TKObjectList); virtual;
+    function EqualProperties(AValue: TKObjectList): Boolean; virtual;
+    procedure Insert(Index: Integer; AObject: TObject);
+    procedure LockUpdate; virtual;
+    procedure UnLockUpdate; virtual;
+    function UpdateUnlocked: Boolean; virtual;
+  end;
+
+  TKPersistent = class(TPersistent)
+  private
+    FChanged: Boolean;
+    FUpdateLock: Integer;
+  protected
+    { Call in property setters to track changes to this class. }
+    procedure Changed;
+    { Override to perform requested actions when changing properties in this class.
+      Update will be called either immediately when you call Changed or on next
+      UnlockUpdate call if Changed has been called while updating was locked. }
+    procedure Update; virtual; abstract;
+  public
+    { Creates the instance. }
+    constructor Create; virtual;
+    { Locks updating. Use this if you assign many properties at the
+      same time. Every LockUpdate call must have a corresponding
+      @link(TKPersistent.UnlockUpdate) call, please use a try-finally section. }
+    procedure LockUpdate;
+    { Unlocks page setup updating and updates the page settings.
+      Each @link(TKPersistent.LockUpdate) call must be always followed
+      by the UnlockUpdate call. }
+    procedure UnlockUpdate(ACallUpdate: Boolean = True);
+    { Returns True if updating is not locked, i.e. there is no open
+      LockUpdate and UnlockUpdate pair. }
+    function UpdateUnlocked: Boolean;
+    property UpdateLock: Integer read FUpdateLock;
+  end;
 
 { Replaces possible decimal separators in S with DecimalSeparator variable.}
 function AdjustDecimalSeparator(const S: string): string;
@@ -903,12 +986,81 @@ function UnicodeStringReplace(const AText, AOldPattern, ANewPattern: TKString;
 
 function UTF8ToString(const AText: AnsiString): string;
 
+{ Creates a selection structure from given Index and Digit parameters }
+function MakeHexDigitPosition(Index: Int64; Digit: Integer): TKHexDigitPosition;
+
+{ Converts a hexadecimal digit character ('0'..'F') to binary value }
+function DigitToBin(Value: AnsiChar): Integer;
+
+{ Examines/converts hexadecimal digit string to binary value string. Returns
+  True if the digit string is valid.
+  <UL>
+  <LH>Parameters:</LH>
+  <LI><I>S</I> - hexadecimal digit string (e.g. 'AF01 DC05 3'). White spaces will
+  be ignored. When Convert is True, the converted binary value string will be returned
+  via this parameter (in this exammple '#A#F#0#1#D#C#0#5#3').</LI>
+  <LI><I>Convert</I> - the digit string will be converted if True, otherwise it will
+  be examined only.</LI>
+  </UL> }
+function DigitsToBinStr(var S: AnsiString; Convert: Boolean = True): Boolean;
+
+{ Converts a binary value string into binary data. If the binary value string
+  is not divisible by 2, it will be right padded with zero. Example:
+  '#A#F#0#1#D#C#0#5#3' is converted into '#AF#01#DC#05#30'. }
+function BinStrToBinary(const S: AnsiString): AnsiString;
+
+{ Converts binary value (0..15) to hexadecimal digit character ('0'..'F') }
+function BinToDigit(Value: Byte): AnsiChar;
+
+{ Converts binary data into hexadecimal digit string.
+  <UL>
+  <LH>Parameters:</LH>
+  <LI><I>Buffer</I> - binary data - intended for @link(TKCustomHexEditor.Buffer)</LI>
+  <LI><I>SelStart, SelEnd</I> - specifies which part of the buffer is about to be
+  converted. SelStart.Index must be lower or equal to SelEnd.Index - intended for
+  @link(TKCustomHexEditor.GetRealSelStart) and @link(TKCustomHexEditor.GetRealSelEnd).</LI>
+  </UL>
+  Example: '#AF#01#DC#05#30' is converted into 'AF01DC0530'.
+  If AInsertSpaces is True then resulting string is 'AF 01 DC 05 30'. }
+function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexDigitPosition;
+  AInsertSpaces: Boolean = False): AnsiString; overload;
+
+{ Convertes binary data into hexadecimal digit string. Entire data used. }
+function BinaryToDigits(Buffer: PBytes; ASize: Int64;
+  AInsertSpaces: Boolean = False): AnsiString; overload;
+
+{ Convertes binary data into hexadecimal digit string. Uses AnsiString as source data. }
+function BinaryToDigits(const Source: AnsiString;
+  AInsertSpaces: Boolean = False): AnsiString; overload;
+
+{ Converts a binary value string into hexadecimal digit string. If the binary value string
+  is not divisible by 2, it will be trimmed. Example:
+  '#A#F#0#1#D#C#0#5#3' is converted into 'AF01DC05'.
+  If AInsertSpaces is True then resulting string is 'AF 01 DC 05'. }
+function BinStrToDigits(const Source: AnsiString;
+  AInsertSpaces: Boolean = False): AnsiString;
+
+{ Insert spaces into hexadecimal digit string.
+  Example: 'AF01DC05' becomes 'AF 01 DC 05'. }
+function InsertSpacesToDigits(const Source: AnsiString): AnsiString;
+
+{ Replaces a hexadecimal digit in the given binary value. Returns the original
+  value with a replaced digit.
+  <UL>
+  <LH>Parameters:</LH>
+  <LI><I>Value</I> - original binary value</LI>
+  <LI><I>Digit</I> - digit value (0..15)</LI>
+  <LI><I>Pos</I> - digit position (order)</LI>
+  </UL>
+  Example: Value = $A18D, Digit = $C, Pos = 3: Result = $AC8D }
+function ReplaceDigit(Value, Digit, Pos: Integer): Integer;
+
 implementation
 
 uses
   Math, TypInfo
 {$IFDEF USE_WINAPI}
-  , ShlObj, ShellApi
+  , ShlObj, ShellApi, KMemo
 {$ELSE}
   , versionresource
 {$ENDIF}
@@ -918,7 +1070,199 @@ uses
 {$IFDEF FPC}
   , LConvEncoding
 {$ENDIF}
-  , KMemo;
+  ;
+
+{ TKObject }
+
+constructor TKObject.Create;
+begin
+  inherited;
+  FParent := nil;
+  FUpdateLock := 0;
+end;
+
+procedure TKObject.Assign(ASource: TKObject);
+begin
+end;
+
+procedure TKObject.CallAfterUpdate;
+begin
+end;
+
+procedure TKObject.CallBeforeUpdate;
+begin
+end;
+
+function TKObject.EqualProperties(AValue: TKObject): Boolean;
+begin
+  Result := True;
+end;
+
+procedure TKObject.LockUpdate;
+begin
+  if FUpdateLock <= 0 then
+    CallBeforeUpdate;
+  Inc(FUpdateLock);
+end;
+
+procedure TKObject.ParentChanged;
+begin
+end;
+
+procedure TKObject.SetParent(const Value: TKObjectList);
+begin
+  if Value <> FParent then
+  begin
+    FParent := Value;
+    ParentChanged;
+  end;
+end;
+
+procedure TKObject.UnLockUpdate;
+begin
+  if FUpdateLock > 0 then
+  begin
+    Dec(FUpdateLock);
+    if FUpdateLock = 0 then
+      CallAfterUpdate;
+  end;
+end;
+
+function TKObject.UpdateUnlocked: Boolean;
+begin
+  Result := FUpdateLock <= 0;
+end;
+
+{ TKObjectList }
+
+constructor TKObjectList.Create;
+begin
+  inherited;
+  FUpdateLock := 0;
+end;
+
+function TKObjectList.Add(AObject: TObject): Integer;
+begin
+  if AObject is TKObject then
+    TKObject(AObject).Parent := Self;
+  Result := inherited Add(AObject);
+end;
+
+procedure TKObjectList.Assign(ASource: TKObjectList);
+var
+  I: Integer;
+  Cls: TKObjectClass;
+  SrcItem, DstItem: TKObject;
+begin
+  if ASource <> nil then
+  begin
+    Clear;
+    for I := 0 to ASource.Count - 1 do
+    begin
+      SrcItem := ASource.Items[I] as TKObject;
+      Cls := TKObjectClass(SrcItem.ClassType);
+      DstItem := Cls.Create;
+      DstItem.Parent := Self;
+      DstItem.Assign(SrcItem);
+      Add(DstItem);
+    end;
+  end;
+end;
+
+procedure TKObjectList.CallBeforeUpdate;
+begin
+end;
+
+procedure TKObjectList.CallAfterUpdate;
+begin
+end;
+
+function TKObjectList.EqualProperties(AValue: TKObjectList): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if AValue <> nil then
+  begin
+    Result := AValue.Count = Count;
+    if Result then
+    begin
+      for I := 0 to Count - 1 do
+        if not TKObject(Items[I]).EqualProperties(TKObject(AValue[I])) then
+        begin
+          Result := False;
+          Break;
+        end;
+    end;
+  end;
+end;
+
+procedure TKObjectList.Insert(Index: Integer; AObject: TObject);
+begin
+  if AObject is TKObject then
+    TKObject(AObject).Parent := Self;
+  inherited Insert(Index, AObject);
+end;
+
+procedure TKObjectList.LockUpdate;
+begin
+  if FUpdateLock <= 0 then
+    CallBeforeUpdate;
+  Inc(FUpdateLock);
+end;
+
+procedure TKObjectList.UnLockUpdate;
+begin
+  if FUpdateLock > 0 then
+  begin
+    Dec(FUpdateLock);
+    if FUpdateLock = 0 then
+      CallAfterUpdate;
+  end;
+end;
+
+function TKObjectList.UpdateUnlocked: Boolean;
+begin
+  Result := FUpdateLock <= 0;
+end;
+
+{ TKPersistent }
+
+constructor TKPersistent.Create;
+begin
+  inherited;
+  FUpdateLock := 0;
+  FChanged := False;
+end;
+
+procedure TKPersistent.Changed;
+begin
+  if FUpdateLock = 0 then
+    Update
+  else
+    FChanged := True;
+end;
+
+procedure TKPersistent.LockUpdate;
+begin
+  Inc(FUpdateLock);
+  FChanged := False;
+end;
+
+procedure TKPersistent.UnlockUpdate(ACallUpdate: Boolean);
+begin
+  if FUpdateLock > 0 then
+  begin
+    Dec(FUpdateLock);
+    if (FUpdateLock = 0) and FChanged and ACallUpdate then
+      Update;
+  end;
+end;
+
+function TKPersistent.UpdateUnlocked: Boolean;
+begin
+  Result := FUpdateLock = 0;
+end;
 
 function AdjustDecimalSeparator(const S: string): string;
 var
@@ -1329,9 +1673,9 @@ begin
     (C is TCustomMemo) and (not AMustAllowWrite or not TMemo(C).ReadOnly) or
     (C is TComboBox) and (TComboBox(C).Style in [csSimple, csDropDown])
 {$IFnDEF FPC}
-     or (C is TRichEdit) and (not AMustAllowWrite or not TRichEdit(C).ReadOnly)
+    or (C is TRichEdit) and (not AMustAllowWrite or not TRichEdit(C).ReadOnly)
 {$ENDIF}
-   or (C is TKCustomMemo) and (not AMustAllowWrite or not TKCustomMemo(C).ReadOnly)
+    or (C is TKCustomMemo) and (not AMustAllowWrite or not TKCustomMemo(C).ReadOnly)
   then
     Result := Wnd
   else
@@ -2978,6 +3322,191 @@ begin
     Result := System.UTF8Decode(AText);
   {$ENDIF}
 {$ENDIF}
+end;
+
+function MakeHexDigitPosition(Index: Int64; Digit: Integer): TKHexDigitPosition;
+begin
+  Result.Index := Index;
+  Result.Digit := Digit;
+end;
+
+function DigitToBin(Value: AnsiChar): Integer;
+begin
+  if ((Value >= 'a') and (Value <= 'f')) then Result := Ord(Value) - Ord('a') + 10
+  else if ((Value >= 'A') and (Value <= 'F')) then Result := Ord(Value) - Ord('A') + 10
+  else if ((Value >= '0') and (Value <= '9')) then Result := Ord(Value) - Ord('0')
+  else Result := -1;
+end;
+
+function DigitsToBinStr(var S: AnsiString; Convert: Boolean = True): Boolean;
+var
+  I, J, K: Integer;
+  T: AnsiString;
+begin
+  // check and convert text characters to hex values 0..15
+  Result := True;
+  if Convert then
+    SetLength(T, Length(S));
+  J := 0;
+  for I := 1 to Length(S) do if not CharInSetEx(S[I], [cTAB, cSPACE]) then
+  begin
+    K := DigitToBin(S[I]);
+    if K >= 0 then
+    begin
+      if Convert then
+      begin
+        Inc(J);
+        T[J] := AnsiChar(K)
+      end;
+    end else
+    begin
+      Result := False;
+      Break;
+    end;
+  end;
+  if Result and Convert then
+  begin
+    SetLength(T, J);
+    S := T;
+  end;
+end;
+
+function BinStrToBinary(const S: AnsiString): AnsiString;
+var
+  I, J, L: Integer;
+  B1, B2: Byte;
+begin
+  L := Length(S);
+  Result := '';
+  if L > 0 then
+  begin
+    SetLength(Result, DivUp(L, 2));
+    if L = 1 then
+      Result := S
+    else
+    begin
+      J := 1;
+      for I := 1 to Length(Result) do
+      begin
+        B1 := Byte(S[J]); Inc(J);
+        if J <= L then
+        begin
+          B2 := Byte(S[J]); Inc(J);
+        end else
+          B2 := 0;
+        Result[I] := AnsiChar(B1 shl 4 + B2);
+      end;
+    end;
+  end;
+end;
+
+function BinToDigit(Value: Byte): AnsiChar;
+begin
+  if Value >= $10 then
+    Result := '0'
+  else if Value >= $A then
+    Result := AnsiChar(Ord('A') + Value - 10)
+  else
+    Result := AnsiChar(Ord('0') + Value)
+end;
+
+function BinaryToDigits(Buffer: PBytes; SelStart, SelEnd: TKHexDigitPosition;
+  AInsertSpaces: Boolean): AnsiString;
+var
+  I, J, SpaceCount: Integer;
+begin
+  if AInsertSpaces then
+    SpaceCount := SelEnd.Index - SelStart.Index
+  else
+    SpaceCount := 0;
+  SetLength(Result, (SelEnd.Index - SelStart.Index) * cHexDigitCount - SelStart.Digit + SelEnd.Digit + SpaceCount);
+  J := 1;
+  for I := SelStart.Index to SelEnd.Index do
+  begin
+    if ((I > SelStart.Index) or (SelStart.Digit < 1)) and ((I < SelEnd.Index) or (SelEnd.Digit > 0)) then
+    begin
+      Result[J] := BinToDigit((Buffer[I] shr 4) and $F);
+      Inc(J);
+    end;
+    if ((I > SelStart.Index) or (SelStart.Digit < 2)) and ((I < SelEnd.Index) or (SelEnd.Digit > 1)) then
+    begin
+      Result[J] := BinToDigit(Buffer[I] and $F);
+      Inc(J);
+    end;
+    if AInsertSpaces and (I < SelEnd.Index) then
+    begin
+      Result[J] := ' ';
+      Inc(J);
+    end;
+  end;
+end;
+
+function BinaryToDigits(Buffer: PBytes; ASize: Int64; AInsertSpaces: Boolean = False): AnsiString;
+begin
+  Result := BinaryToDigits(Buffer, MakeHexDigitPosition(0, 0), MakeHexDigitPosition(ASize - 1, cHexDigitCount), AInsertSpaces);
+end;
+
+function BinaryToDigits(const Source: AnsiString; AInsertSpaces: Boolean): AnsiString;
+begin
+  Result := BinaryToDigits(PBytes(@Source[1]), MakeHexDigitPosition(0, 0), MakeHexDigitPosition(Length(Source) - 1, cHexDigitCount), AInsertSpaces);
+end;
+
+function BinStrToDigits(const Source: AnsiString; AInsertSpaces: Boolean): AnsiString;
+var
+  I, J, CharLen, SpaceCount: Integer;
+begin
+  CharLen := Length(Source) div 2;
+  if AInsertSpaces then
+    SpaceCount := CharLen - 1
+  else
+    SpaceCount := 0;
+  SetLength(Result, CharLen * 2 + SpaceCount);
+  J := 1;
+  for I := 1 to CharLen do
+  begin
+    Result[J] := BinToDigit(Ord(Source[I * 2 - 1]));
+    Inc(J);
+    Result[J] := BinToDigit(Ord(Source[I * 2]));
+    Inc(J);
+    if AInsertSpaces and (I < CharLen) then
+    begin
+      Result[J] := ' ';
+      Inc(J);
+    end;
+  end;
+end;
+
+function InsertSpacesToDigits(const Source: AnsiString): AnsiString;
+var
+  I, J, CharLen, SpaceCount: Integer;
+begin
+  CharLen := Length(Source) div 2;
+  SpaceCount := CharLen - 1;
+  SetLength(Result, CharLen * 2 + SpaceCount);
+  J := 1;
+  for I := 1 to CharLen do
+  begin
+    Result[J] := Source[I * 2 - 1];
+    Inc(J);
+    Result[J] := Source[I * 2];
+    Inc(J);
+    if I < CharLen then
+    begin
+      Result[J] := ' ';
+      Inc(J);
+    end;
+  end;
+end;
+
+function ReplaceDigit(Value, Digit, Pos: Integer): Integer;
+var
+  I, Mask, O: Integer;
+begin
+  O := 1;
+  for I := Pos to cHexDigitCount - 2 do
+    O := O * cHexBase;
+  Mask := cHexBase - 1;
+  Result := (((Value div O) and not Mask) + (Digit and Mask)) * O + Value mod O;
 end;
 
 end.

@@ -30,7 +30,7 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms;
+  SysUtils, Classes, Graphics, Controls, Forms, KFunctions;
 
 const
   cCharMappingSize = 256;
@@ -378,6 +378,19 @@ function PointsToPixels(AValue: Double; ADPI: Integer): Integer;
 function TwipsToPoints(AValue: Integer; ADPI: Integer): Double;
 function PointsToTwips(AValue: Double; ADPI: Integer): Integer;
 
+{ Converts binary data into text using given character mapping.
+  <UL>
+  <LH>Parameters:</LH>
+  <LI><I>Buffer</I> - binary data - intended for @link(TKCustomHexEditor.Buffer)</LI>
+  <LI><I>SelStart, SelEnd</I> - specifies which part of the buffer is about to be
+  converted. SelStart must be lower or equal to SelEnd. These parameters are integers
+  since no digit selections are necessary.</LI>
+  <LI><I>CharMapping</I> - required character mapping scheme</LI>
+  </UL> }
+function BinaryToText(Buffer: PBytes; SelStart, SelEnd: Int64;
+  CharMapping: PKEditCharMapping): AnsiString;
+
+function ReplaceNonprintableCharacters(const AText: AnsiString; AMapping: TKEditCharMapping = nil): AnsiString;
 
 implementation
 
@@ -433,6 +446,33 @@ end;
 function PointsToTwips(AValue: Double; ADPI: Integer): Integer;
 begin
   Result := Round(AValue * ADPI / 1440);
+end;
+
+function BinaryToText(Buffer: PBytes; SelStart, SelEnd: Int64;
+  CharMapping: PKEditCharMapping): AnsiString;
+var
+  I: Integer;
+begin
+  if SelEnd > SelStart then
+  begin
+    SetLength(Result, SelEnd - SelStart);
+    System.Move(Buffer[SelStart], Result[1], SelEnd - SelStart);
+    if CharMapping <> nil then
+      for I := 1 to Length(Result) do
+        Result[I] := CharMapping^[Byte(Result[I])];
+  end else
+    Result := '';
+end;
+
+function ReplaceNonprintableCharacters(const AText: AnsiString; AMapping: TKEditCharMapping = nil): AnsiString;
+var
+  I: Integer;
+begin
+  if AMapping = nil then
+    AMapping := DefaultCharMapping;
+  SetLength(Result, Length(AText));
+  for I := 1 to Length(AText) do
+    Result[I] := AMapping[Ord(AText[I])];
 end;
 
 function CreateDefaultKeyMapping: TKEditKeyMapping;
