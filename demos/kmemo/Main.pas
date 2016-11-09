@@ -494,7 +494,7 @@ end;
 
 procedure TMainForm.Test22;
 var
-  StartPos, EndPos: Integer;
+  StartPos, EndPos: TKMemoSelectionIndex;
   TextStyle: TKMemoTextStyle;
 begin
   // set different text style to selection

@@ -481,7 +481,7 @@ end;
 
 procedure TKMemoFrame.ACInsertHyperlinkExecute(Sender: TObject);
 var
-  Item: TKMemoBlock;
+  Block: TKMemoBlock;
   Hyperlink: TKMemoHyperlink;
   Created: Boolean;
 begin
@@ -490,15 +490,15 @@ begin
   begin
     Hyperlink := TKMemoHyperlink.Create;
     Hyperlink.Text := Editor.SelText;
-    Item := Editor.ActiveInnerBlock;
-    if Item is TKMemoHyperlink then
-      Hyperlink.URL := TKMemoHyperlink(Item).URL;
+    Block := Editor.ActiveInnerBlock;
+    if Block is TKMemoHyperlink then
+      Hyperlink.URL := TKMemoHyperlink(Block).URL;
     Created := True;
   end else
   begin
-    Item := Editor.ActiveInnerBlock;
-    if Item is TKMemoHyperlink then
-      Hyperlink := TKMemoHyperlink(Item)
+    Block := Editor.ActiveInnerBlock;
+    if Block is TKMemoHyperlink then
+      Hyperlink := TKMemoHyperlink(Block)
     else
     begin
       Hyperlink := TKMemoHyperlink.Create;
@@ -637,7 +637,7 @@ end;
 function TKMemoFrame.EditContainer(AItem: TKMemoBlock): Boolean;
 var
   Cont: TKMemoContainer;
-  Items: TKMemoBlocks;
+  Blocks: TKMemoBlocks;
   Created: Boolean;
 begin
   Result := False;
@@ -646,9 +646,9 @@ begin
     Cont := TKMemoContainer(AItem)
   else
   begin
-    Items := AItem.ParentRootBlocks;
-    if (Items.Parent is TKMemoContainer) and (Items.Parent.Position <> mbpText) then
-      Cont := TKMemoContainer(Items.Parent)
+    Blocks := AItem.ParentRootBlocks;
+    if (Blocks.Parent is TKMemoContainer) and (Blocks.Parent.Position <> mbpText) then
+      Cont := TKMemoContainer(Blocks.Parent)
     else
     begin
       Cont := TKMemoContainer.Create;
@@ -855,31 +855,21 @@ end;
 
 procedure TKMemoFrame.TextStyleChanged(Sender: TObject);
 var
-  SelAvail, DoSelect: Boolean;
-  SelEnd, StartIndex, EndIndex: Integer;
+  SelAvail: Boolean;
+  SelEnd, StartIndex, EndIndex: TKMemoSelectionIndex;
 begin
   // if there is no selection then simulate one word selection or set style for new text
-  DoSelect := False;
   SelAvail := Editor.SelAvail;
   SelEnd := Editor.SelEnd;
-  try
-    if not SelAvail then
-    begin
-      // simulate MS Word behavior here, SelEnd is caret position
-      // do not select the word if we are at the beginning or end of the word
-      // and allow set another text style for newly added text
-      DoSelect := Editor.GetNearestWordIndexes(SelEnd, False, StartIndex, EndIndex) and (StartIndex < SelEnd) and (SelEnd < EndIndex);
-      if DoSelect then
-        Editor.Select(StartIndex, EndIndex - StartIndex, False);
-    end;
-    if Editor.SelAvail then
-      Editor.SelectionTextStyle := FTextStyle
-    else
-      Editor.NewTextStyle := FTextStyle;
-  finally
-    if DoSelect then
-      Editor.Select(SelEnd, 0, False);
-  end;
+  if Editor.SelAvail then
+    Editor.SelectionTextStyle := FTextStyle
+  else if Editor.GetNearestWordIndexes(SelEnd, False, StartIndex, EndIndex) and (StartIndex < SelEnd) and (SelEnd < EndIndex) then
+    // simulate MS Word behavior here, SelEnd is caret position
+    // do not select the word if we are at the beginning or end of the word
+    // and allow set another text style for newly added text
+    Editor.SetRangeTextStyle(StartIndex, EndIndex, FTextStyle)
+  else
+    Editor.NewTextStyle := FTextStyle;
 end;
 
 end.

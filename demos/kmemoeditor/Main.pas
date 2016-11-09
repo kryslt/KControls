@@ -9,7 +9,7 @@ uses
   Windows,
 {$ENDIF}
   Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, KMemoFrm, KMemo;
+  Dialogs, KMemoFrm;
 
 type
 

@@ -1,4 +1,4 @@
-﻿  { @abstract(This unit contains the TKGrid component and all supporting classes)
+{ @abstract(This unit contains the TKGrid component and all supporting classes)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(15 Oct 2006)
   @lastmod(6 Jul 2014)

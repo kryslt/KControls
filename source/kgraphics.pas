@@ -1309,15 +1309,15 @@ end;
 function ExtSelectClipRectEx(DC: HDC; ARect: TRect; Mode: Integer; CurRgn, PrevRgn: HRGN): Boolean;
 var
   RectRgn: HRGN;
-  //R1, R2: TRect;
+//  R1, R2: TRect;
 begin
   RectRgn := CreateRectRgnIndirect(ARect);
   try
-    //GetRgnBox(PrevRgn, R1); // debug line
-    //GetRgnBox(RectRgn, R2); // debug line
+//    GetRgnBox(PrevRgn, R1); // debug line
+//    GetRgnBox(RectRgn, R2); // debug line
     Result := CombineRgn(CurRgn, PrevRgn, RectRgn, Mode) <> NULLREGION;
     if Result then
-      SelectClipRgn(DC, CurRgn);
+      SelectClipRgn(DC, CurRgn)
   finally
     DeleteObject(RectRgn);
   end;
@@ -1415,6 +1415,7 @@ function GetImageDPI(AGraphic: Tgraphic): TPoint;
     end;
   end;
 
+{$IFDEF USE_PNG_SUPPORT}
   procedure GetDPIFromPng(APng: TKPngImage);
   const
     cInchesPerMeter = (100 / 2.54);
@@ -1475,13 +1476,16 @@ function GetImageDPI(AGraphic: Tgraphic): TPoint;
     end
 {$ENDIF}
   end;
+{$ENDIF}
 
 begin
   Result := Point(96, 96); // for unimplemented image types set screen dpi
   if AGraphic is TJPegImage then
     GetDPIFromJPeg(TJpegImage(AGraphic))
+{$IFDEF USE_PNG_SUPPORT}
   else if AGraphic is TKPngImage then
     GetDPIFromPng(TKPngImage(AGraphic));
+{$ENDIF}
 end;
 
 function GDICheck(Value: Integer): Integer;
@@ -1611,9 +1615,12 @@ begin
 end;
 
 function RgnCreateAndGet(DC: HDC): HRGN;
+//var
+//  R: TRect;
 begin
   Result := CreateEmptyRgn;
   GetClipRgn(DC, Result);
+//  GetRgnBox(Result, R); // debug line
 end;
 
 procedure RgnSelectAndDelete(DC: HDC; Rgn: HRGN);
