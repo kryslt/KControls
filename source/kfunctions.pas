@@ -650,42 +650,6 @@ function DivDown(Dividend, Divisor: Integer): Integer;
   the result will be decremented. }
 function DivDown64(Dividend, Divisor: Int64): Int64;
 
-{ Returns True if focused window is some text editing window, such as TEdit. }
-function EditIsFocused(AMustAllowWrite: Boolean): Boolean;
-
-{ Returns True if some text editing window is focused and contains a selectable text. }
-function EditFocusedTextCanCopy: Boolean;
-
-{ Returns True if some non-readonly text editing window is focused and contains a selectable text. }
-function EditFocusedTextCanCut: Boolean;
-
-{ Returns True if some non-readonly text editing window is focused. }
-function EditFocusedTextCanDelete: Boolean;
-
-{ Returns True if some non-readonly text editing window is focused and clipboard is not empty. }
-function EditFocusedTextCanPaste: Boolean;
-
-{ Returns True if the focused text editing window can perform an undo operation. }
-function EditFocusedTextCanUndo: Boolean;
-
-{ Performs an undo operation on the focused text editing window. }
-procedure EditUndoFocused;
-
-{ Performs a delete operation on the focused text editing window. }
-procedure EditDeleteFocused;
-
-{ Performs a clipboard cut operation on the focused text editing window. }
-procedure EditCutFocused;
-
-{ Performs a clipboard copy operation on the focused text editing window. }
-procedure EditCopyFocused;
-
-{ Performs a clipboard paste operation on the focused text editing window. }
-procedure EditPasteFocused;
-
-{ Performs a select all operation on the focused text editing window. }
-procedure EditSelectAllFocused;
-
 { Enables or disables all children of AParent depending on AEnabled.
   If ARecursive is True then the function applies to whole tree of controls
   owned by AParent. }
@@ -1060,7 +1024,7 @@ implementation
 uses
   Math, TypInfo
 {$IFDEF USE_WINAPI}
-  , ShlObj, ShellApi, KMemo
+  , ShlObj, ShellApi
 {$ELSE}
   , versionresource
 {$ENDIF}
@@ -1655,139 +1619,6 @@ begin
     Result := Dividend div Divisor - 1
   else
     Result := Dividend div Divisor;
-end;
-
-{$IFDEF USE_WINAPI}
-function EditFocusedHandle(AMustAllowWrite: Boolean): THandle;
-var
-  Len: Integer;
-  Wnd: HWND;
-  S: string;
-  C: TWinControl;
-begin
-  Result := 0;
-  Wnd := GetFocus;
-  C := FindControl(Wnd);
-  if (C <> nil) and
-    (C is TCustomEdit) and (not AMustAllowWrite or not TEdit(C).ReadOnly) or
-    (C is TCustomMemo) and (not AMustAllowWrite or not TMemo(C).ReadOnly) or
-    (C is TComboBox) and (TComboBox(C).Style in [csSimple, csDropDown])
-{$IFnDEF FPC}
-    or (C is TRichEdit) and (not AMustAllowWrite or not TRichEdit(C).ReadOnly)
-{$ENDIF}
-    or (C is TKCustomMemo) and (not AMustAllowWrite or not TKCustomMemo(C).ReadOnly)
-  then
-    Result := Wnd
-  else
-  begin
-    SetLength(S, 100);
-    Len := GetClassName(Wnd, PChar(S), 100);
-    if Len > 0 then
-    begin
-      SetLength(S, Len);
-      S := UpperCase(S);
-      if (S = 'EDIT') then
-        Result := Wnd;
-    end;
-  end;
-end;
-{$ENDIF}
-
-function EditIsFocused(AMustAllowWrite: Boolean): Boolean;
-{$IFDEF USE_WINAPI}
-begin
-  Result := EditFocusedHandle(AMustAllowWrite) <> 0;
-end;
-{$ELSE}
-begin
-  // can this be implemented somehow?
-  Result := False;
-end;
-{$ENDIF}
-
-function EditFocusedTextHasSelection(AMustAllowWrite: Boolean): Boolean;
-{$IFDEF USE_WINAPI}
-var
-  A, B: Integer;
-  Wnd: THandle;
-begin
-  Wnd := EditFocusedHandle(AMustAllowWrite);
-  if Wnd <> 0 then
-  begin
-    SendMessage(Wnd, EM_GETSEL, WParam(@A), LParam(@B));
-    Result := A <> B;
-  end else
-    Result := False;
-end;
-{$ELSE}
-begin
-  // can this be implemented somehow?
-  Result := False;
-end;
-{$ENDIF}
-
-function EditFocusedTextCanCopy: Boolean;
-begin
-  Result := EditFocusedTextHasSelection(False);
-end;
-
-function EditFocusedTextCanCut: Boolean;
-begin
-  Result := EditFocusedTextHasSelection(True);
-end;
-
-function EditFocusedTextCanDelete: Boolean;
-begin
-  Result := EditIsFocused(True);
-end;
-
-function EditFocusedTextCanPaste: Boolean;
-begin
-  Result := EditIsFocused(True) and ClipBoard.HasFormat(CF_TEXT);
-end;
-
-function EditFocusedTextCanUndo: Boolean;
-begin
-{$IFDEF USE_WINAPI}
-  Result := LongBool(SendMessage(GetFocus, EM_CANUNDO, 0, 0));
-{$ELSE}
-  // can this be implemented somehow?
-  Result := False;
-{$ENDIF}
-end;
-
-procedure EditUndoFocused;
-begin
-{$IFDEF USE_WINAPI}
-  SendMessage(GetFocus, WM_UNDO, 0, 0);
-{$ENDIF}
-end;
-
-procedure EditDeleteFocused;
-begin
-  SendMessage(GetFocus, LM_CLEAR, 0, 0);
-end;
-
-procedure EditCutFocused;
-begin
-  SendMessage(GetFocus, LM_CUT, 0, 0);
-end;
-
-procedure EditCopyFocused;
-begin
-  SendMessage(GetFocus, LM_COPY, 0, 0);
-end;
-
-procedure EditPasteFocused;
-begin
-  SendMessage(GetFocus, LM_PASTE, 0, 0);
-end;
-
-procedure EditSelectAllFocused;
-begin
-{$IFDEF USE_WINAPI}
-  SendMessage(GetFocus, EM_SETSEL, 0, -1);
-{$ENDIF}
 end;
 
 procedure EnableControls(AParent: TWinControl; AEnabled, ARecursive: Boolean);

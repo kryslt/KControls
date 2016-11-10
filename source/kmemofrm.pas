@@ -861,7 +861,7 @@ begin
   // if there is no selection then simulate one word selection or set style for new text
   SelAvail := Editor.SelAvail;
   SelEnd := Editor.SelEnd;
-  if Editor.SelAvail then
+  if SelAvail then
     Editor.SelectionTextStyle := FTextStyle
   else if Editor.GetNearestWordIndexes(SelEnd, False, StartIndex, EndIndex) and (StartIndex < SelEnd) and (SelEnd < EndIndex) then
     // simulate MS Word behavior here, SelEnd is caret position
