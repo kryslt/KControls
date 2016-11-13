@@ -41,7 +41,7 @@ unit kicon; // lowercase name because of Lazarus/Linux
 
 interface
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, KGraphics
@@ -563,7 +563,7 @@ procedure UnregisterKIcon;
 
 implementation
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 
 uses
   Math, Registry, KFunctions, KRes;
@@ -2695,5 +2695,5 @@ finalization
   UnregisterKIcon;
 {$ENDIF}
 
-{$ENDIF} // USE_WINAPI
+{$ENDIF} // MSWINDOWS
 end.

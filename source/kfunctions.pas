@@ -24,7 +24,7 @@ interface
 
 uses
 {$IFDEF FPC}
- {$IFDEF USE_WINAPI}
+ {$IFDEF MSWINDOWS}
   Windows,
  {$ELSE}
   {$IF DEFINED(UNIX) and (FPC_FULLVERSION>=20701)}
@@ -58,6 +58,11 @@ const
   cLetters = ['a'..'z', 'A'..'Z'];
   { Number. }
   cNumbers = ['0'..'9'];
+
+{$IFDEF MSWINDOWS}
+  { @exclude }
+  SHFolderDll = 'SHFolder.dll';
+{$ENDIF}
 
 {$IFDEF UNIX}
   cEOL = cLF;
@@ -729,7 +734,7 @@ function StringToUTF8(const AText: string): AnsiString;
 { Converts specified character of TKString into TKChar. }
 function StringToChar(const AText: TKString; AIndex: Integer): TKChar;
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 function GetWindowsFolder(CSIDL: Cardinal; var APath: string): Boolean;
 
 function RunExecutable(const AFileName: string; AWaitForIt: Boolean): DWORD;
@@ -829,12 +834,6 @@ uses
   , LConvEncoding
 {$ENDIF}
   ;
-
-const
-{$IFDEF USE_WINAPI}
-  { @exclude }
-  SHFolderDll = 'SHFolder.dll';
-{$ENDIF}
 
 { TKObject }
 
@@ -1445,7 +1444,7 @@ end;
 
 function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 var
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
  dwHandle, dwLen: DWORD;
  BufLen: Cardinal;
  lpData: LPTSTR;
@@ -1458,7 +1457,7 @@ var
 {$ENDIF}
 begin
   Result := False;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   dwLen := GetFileVersionInfoSize(PChar(ALibName), dwHandle);
   if dwLen <> 0 then
   begin
@@ -2464,7 +2463,7 @@ begin
 {$ENDIF}
 end;
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 function GetWindowsFolder(CSIDL: Cardinal; var APath: string): Boolean;
 type
   TSHGetFolderPathProc = function(hWnd: HWND; CSIDL: Integer; hToken: THandle;
@@ -2531,7 +2530,7 @@ end;
 
 function SystemCodePage: Integer;
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   Result := getACP;
 {$ELSE}
  {$IF DEFINED(UNIX) and (FPC_FULLVERSION>=20701)}

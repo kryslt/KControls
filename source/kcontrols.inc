@@ -272,19 +272,14 @@
   {$DEFINE STRING_IS_UNICODE}
 {$IFEND}
 
-{ Prefers usage of TCanvas methods instead of WinAPI mainly to avoid Lazarus bugs. }
+{ Prefers usage of TCanvas methods instead of WinAPI mainly to avoid problems in Lazarus. }
 {$DEFINE USE_CANVAS_METHODS}
 
 { Register new image formats into TPicture. }
 {.$DEFINE REGISTER_PICTURE_FORMATS}
 
-{ Allows to use WinAPI functions in Lazarus and Delphi }
-{$IF NOT DEFINED(FPC) OR DEFINED(LCLWin32) OR DEFINED(LCLWin64)}
-  {$DEFINE USE_WINAPI}
-{$IFEND}
-
 { Allows to use WideWinProcs unit }
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   {.$DEFINE USE_WIDEWINPROCS}
 {$ENDIF}
 

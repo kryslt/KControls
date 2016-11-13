@@ -1,4 +1,4 @@
-{ @abstract(This unit contains the TKGrid component and all supporting classes)
+﻿{ @abstract(This unit contains the TKGrid component and all supporting classes)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(15 Oct 2006)
   @lastmod(6 Jul 2014)
@@ -1066,7 +1066,7 @@ const
   { Default value for the @link(TKGridColors.FixedCellText) color property. }
   cFixedCellTextDef = clBtnText;
   { Default value for the @link(TKGridColors.FixedThemedCellLines) color property. }
-  cFixedThemedCellLinesDef = {$IFDEF USE_WINAPI}clBtnShadow{$ELSE}clWindowText{$ENDIF};
+  cFixedThemedCellLinesDef = {$IFDEF MSWINDOWS}clBtnShadow{$ELSE}clWindowText{$ENDIF};
   { Default value for the @link(TKGridColors.FixedThemedCellHighlight) color property. }
   cFixedThemedCellHighlightDef = clBtnHighlight;
   { Default value for the @link(TKGridColors.FixedThemedCellShadow) color property. }
@@ -5692,8 +5692,8 @@ var
 {$ENDIF}
 begin
   // a LOT of tweaking here...
-{$IF DEFINED(USE_WINAPI) OR DEFINED(LCLQT) } // GTK2 cannot strech and paint on bitmap canvas, grrr..
-  if CanvasScaled(FCanvas) {$IFDEF USE_WINAPI}and FGrid.ThemedCells{$ENDIF} then
+{$IF DEFINED(MSWINDOWS) OR DEFINED(LCLQT) } // GTK2 cannot strech and paint on bitmap canvas, grrr..
+  if CanvasScaled(FCanvas) {$IFDEF MSWINDOWS}and FGrid.ThemedCells{$ENDIF} then
   begin
     BM := TBitmap.Create;
     BM.Width := ARect.Right - ARect.Left;
@@ -5866,7 +5866,7 @@ begin
 end;
 
 procedure TKGridCellPainter.DrawFixedCellNonThemedBackground(const ARect: TRect);
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 var
   R: TRect;
 {$ENDIF}
@@ -5874,7 +5874,7 @@ begin
   DrawFilledRectangle(FCanvas, ARect, FBackColor);
   if {$IFDEF FPC}not FGrid.Flat{$ELSE}FGrid.Ctl3D{$ENDIF} and not (gdMouseDown in FState) then
   begin
-    {$IFDEF USE_WINAPI}
+    {$IFDEF MSWINDOWS}
       // looks somewhat better though
       R := ARect;
       DrawEdge(FCanvas.Handle, R, BDR_RAISEDINNER, DefaultEdges);
@@ -5907,7 +5907,7 @@ end;
 procedure TKGridCellPainter.DrawSelectedCellBackground(const ARect: TRect; RClip: PRect);
 var
 {$IFDEF USE_THEMES}
- {$IF (DEFINED(COMPILER11_UP) OR DEFINED(FPC)) AND DEFINED(USE_WINAPI)}
+ {$IF (DEFINED(COMPILER11_UP) OR DEFINED(FPC)) AND DEFINED(MSWINDOWS)}
   {$IFDEF FPC}
   Details: TThemedElementDetails;
   {$ELSE}
@@ -5919,7 +5919,7 @@ var
   R: TRect;
 begin
 {$IFDEF USE_THEMES}
- {$IF (DEFINED(COMPILER11_UP) OR DEFINED(FPC)) AND DEFINED(USE_WINAPI)}
+ {$IF (DEFINED(COMPILER11_UP) OR DEFINED(FPC)) AND DEFINED(MSWINDOWS)}
   if FGrid.ThemedCells and (Win32MajorVersion >= 6) then // Windows Vista and later
   begin
     // make the background brigther
@@ -10711,7 +10711,7 @@ begin
     Dec(ARect.Bottom);
     ACanvas.FillRect(ARect);
     if {$IFDEF FPC}not Flat{$ELSE}Ctl3D{$ENDIF} then
-    {$IFDEF USE_WINAPI}
+    {$IFDEF MSWINDOWS}
       // looks somewhat better though
       DrawEdge(ACanvas.Handle, ARect, BDR_RAISEDINNER, BF_LEFT or BF_TOP or BF_BOTTOM or BF_SOFT);
     {$ELSE}

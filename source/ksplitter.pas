@@ -151,7 +151,7 @@ begin
 {$IFDEF MSWINDOWS}
       FBrush.Bitmap := AllocPatternBitmap(clBlack, clWhite);
 {$ENDIF}
-{$IFDEF LINUX}
+{$IFDEF UNIX}
       FBrush.Color := clGray;
 {$ENDIF}
     end;

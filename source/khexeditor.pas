@@ -1253,7 +1253,7 @@ uses
   Themes,
 {$ENDIF}
   Math,
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   ShellApi,
 {$ENDIF}
   ClipBrd, Printers,
@@ -1857,7 +1857,7 @@ end;
 procedure TKCustomHexEditor.CreateWnd;
 begin
   inherited;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   if (eoDropFiles in FOptions) and not (csDesigning in ComponentState) then
     DragAcceptFiles(Handle, TRUE);
 {$ENDIF}
@@ -1865,7 +1865,7 @@ end;
 
 procedure TKCustomHexEditor.DestroyWnd;
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   if (eoDropFiles in FOptions) and not (csDesigning in ComponentState) then
     DragAcceptFiles(Handle, FALSE);
 {$ENDIF}
@@ -4423,14 +4423,14 @@ begin
 end;
 
 procedure TKCustomHexEditor.SetOptions(const Value: TKEditOptions);
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 var
   UpdateDropFiles: Boolean;
 {$ENDIF}
 begin
   if Value <> FOptions then
   begin
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     UpdateDropFiles := (eoDropFiles in Value) <> (eoDropFiles in FOptions);
     FOptions := Value;
     // (un)register HWND as drop target

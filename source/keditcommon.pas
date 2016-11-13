@@ -26,7 +26,7 @@ interface
 
 uses
 {$IFDEF FPC}
-  LCLType, LCLIntf, LCLProc, LMessages, LResources, {$IFDEF USE_WINAPI}Windows,{$ENDIF}
+  LCLType, LCLIntf, LCLProc, LMessages, LResources, {$IFDEF MSWINDOWS}Windows,{$ENDIF}
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
@@ -544,7 +544,7 @@ begin
   end;
 end;
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 function EditFocusedHandle(AMustAllowWrite: Boolean): THandle;
 var
   Len: Integer;
@@ -581,7 +581,7 @@ end;
 {$ENDIF}
 
 function EditIsFocused(AMustAllowWrite: Boolean): Boolean;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 begin
   Result := EditFocusedHandle(AMustAllowWrite) <> 0;
 end;
@@ -593,7 +593,7 @@ end;
 {$ENDIF}
 
 function EditFocusedTextHasSelection(AMustAllowWrite: Boolean): Boolean;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 var
   A, B: Integer;
   Wnd: THandle;
@@ -635,7 +635,7 @@ end;
 
 function EditFocusedTextCanUndo: Boolean;
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   Result := LongBool(SendMessage(GetFocus, EM_CANUNDO, 0, 0));
 {$ELSE}
   // can this be implemented somehow?
@@ -645,7 +645,7 @@ end;
 
 procedure EditUndoFocused;
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   SendMessage(GetFocus, WM_UNDO, 0, 0);
 {$ENDIF}
 end;
@@ -672,7 +672,7 @@ end;
 
 procedure EditSelectAllFocused;
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   SendMessage(GetFocus, EM_SETSEL, 0, -1);
 {$ENDIF}
 end;

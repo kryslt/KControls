@@ -27,7 +27,7 @@ interface
 uses
 {$IFDEF FPC}
  // use the LCL interface support whenever possible
- {$IFDEF USE_WINAPI}
+ {$IFDEF MSWINDOWS}
   Windows,
  {$ENDIF}
   GraphType, IntfGraphics, LCLType, LCLIntf, LMessages, LResources,
@@ -217,7 +217,7 @@ type
     FDirectCopy: Boolean;
     FHandle: HBITMAP;
     FHeight: Integer;
-  {$IFNDEF USE_WINAPI}
+  {$IFNDEF MSWINDOWS}
     FImage: TLazIntfImage; // Lazarus only
     FMaskHandle: HBITMAP;
   {$ENDIF}
@@ -356,7 +356,7 @@ type
     property ScanLine[Index: Integer]: PKColorRecs read GetScanLine;
   end;
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   { A simple encapsulation for a Windows or Enhanced metafile. It runs only under Windows and does not use shared images.
     However, it is possible to release metafile handles on assigning to another TKMetafile. }
   TKMetafile = class(TGraphic)
@@ -458,7 +458,7 @@ type
     property VPadding: Integer read FVPadding write FVPadding;
   end;
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   TUpdateLayeredWindowProc = function(Handle: THandle; hdcDest: HDC; pptDst: PPoint;
     _psize: PSize; hdcSrc: HDC; pptSrc: PPoint; crKey: COLORREF; pblend: PBLENDFUNCTION;
     dwFlags: DWORD): Boolean; stdcall;
@@ -479,7 +479,7 @@ type
     FLayered: Boolean;
     FMasterAlpha: Byte;
     FRect: TRect;
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     FBlend: TBlendFunction;
     FUpdateLayeredWindow: TUpdateLayeredWindowProc;
     FWindow: HWND;
@@ -994,7 +994,7 @@ end;
 
 procedure CopyBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcX, SrcY: Integer);
 begin
-  {$IFDEF USE_WINAPI}Windows.{$ENDIF}BitBlt(DestDC,
+  {$IFDEF MSWINDOWS}Windows.{$ENDIF}BitBlt(DestDC,
     DestRect.Left, DestRect.Top, DestRect.Right - DestRect.Left, DestRect.Bottom - DestRect.Top,
     SrcDC, 0, 0, SRCCOPY);
 end;
@@ -1065,8 +1065,8 @@ var
 {$ENDIF}
 begin
   // a LOT of tweaking here...
-{$IF DEFINED(USE_WINAPI) OR DEFINED(LCLQT) } // GTK2 cannot strech and paint on bitmap canvas, grrr..
-  if CanvasScaled(ACanvas) {$IFDEF USE_WINAPI}and (bsUseThemes in AStates){$ENDIF} then
+{$IF DEFINED(MSWINDOWS) OR DEFINED(LCLQT) } // GTK2 cannot strech and paint on bitmap canvas, grrr..
+  if CanvasScaled(ACanvas) {$IFDEF MSWINDOWS}and (bsUseThemes in AStates){$ENDIF} then
   begin
     BM := TBitmap.Create;
     BM.Width := ARect.Right - ARect.Left;
@@ -1639,14 +1639,14 @@ begin
 end;
 
 procedure SafeStretchDraw(ACanvas: TCanvas; ARect: TRect; AGraphic: TGraphic; ABackColor: TColor);
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 {var
   BM: TBitmap;
   W, H, MulX, MulY, DivX, DivY: Integer;
   R: TRect;}
 {$ENDIF}
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   // tk: I cannot see problem with StretchBlt anymore, perhaps it was in old Windows XP?
   // Even if so, following implementation is buggy:
 
@@ -1688,10 +1688,10 @@ end;
 
 procedure StretchBitmap(DestDC: HDC; DestRect: TRect; SrcDC: HDC; SrcRect: TRect);
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   SetStretchBltMode(DestDC, HALFTONE);
 {$ENDIF}
-  {$IFDEF USE_WINAPI}Windows.{$ENDIF}StretchBlt(DestDC,
+  {$IFDEF MSWINDOWS}Windows.{$ENDIF}StretchBlt(DestDC,
     DestRect.Left, DestRect.Top, DestRect.Right - DestRect.Left, DestRect.Bottom - DestRect.Top,
     SrcDC, SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top,
     SRCCOPY);
@@ -1776,7 +1776,7 @@ begin
   FDirectCopy := False;
   FFileFilter := '*.bma;*.bmp;*.png;*.jpg';
   FHandle := 0;
-{$IFNDEF USE_WINAPI}
+{$IFNDEF MSWINDOWS}
   FImage := TLazIntfImage.Create(0, 0);
 {$ENDIF}
   FHeight := 0;
@@ -1813,7 +1813,7 @@ var
 begin
   LockUpdate;
   SetSize(0, 0);
-{$IFNDEF USE_WINAPI}
+{$IFNDEF MSWINDOWS}
   FImage.Free;
 {$ENDIF}
   DC := FCanvas.Handle;
@@ -1898,7 +1898,7 @@ begin
       VSum := Alpha;
     end;
     CS := ColorToColorRec(BlendColor);
-  {$IFNDEF USE_WINAPI}
+  {$IFNDEF MSWINDOWS}
     for I := 0 to FHeight - 1 do
   {$ELSE}
     for I := FHeight - 1 downto 0 do
@@ -2023,7 +2023,7 @@ begin
     LockUpdate;
     try
       SwapBR(Color);
-    {$IFDEF USE_WINAPI}
+    {$IFDEF MSWINDOWS}
       Index := (FHeight - Y - 1) * FWidth + X;
     {$ELSE}
       Index := Y * FWidth + X;
@@ -2118,7 +2118,7 @@ begin
     begin
       FCanvas.Brush := ACanvas.Brush;
       DrawFilledRectangle(FCanvas, Rect(0, 0, FWidth, FHeight),
-        {$IFDEF USE_WINAPI}GetBkColor(ACanvas.Handle){$ELSE}clWindow{$ENDIF});
+        {$IFDEF MSWINDOWS}GetBkColor(ACanvas.Handle){$ELSE}clWindow{$ENDIF});
     end;
     UpdatePixels;
   end;
@@ -2170,7 +2170,7 @@ function TKAlphaBitmap.GetPixel(X, Y: Integer): TKColorRec;
 begin
   if (X >= 0) and (X < FWidth) and (Y >= 0) and (Y < FHeight) then
   begin
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     Result := FPixels[(FHeight - Y - 1) * FWidth + X];
   {$ELSE}
     Result := FPixels[Y * FWidth + X];
@@ -2278,7 +2278,7 @@ begin
   LockUpdate;
   try
     SetSize(Image.Width, Image.Height);
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     Canvas.Draw(0, 0, Image);
   {$ELSE}
     if Image is TRasterImage then
@@ -2308,7 +2308,7 @@ begin
         Stream.Read(FPixels^, BI.biSizeImage);
         // if bitmap has no alpha channel, create full opacity
         AlphaFill($FF, True);
-      {$IFnDEF USE_WINAPI}
+      {$IFnDEF MSWINDOWS}
         if FAutoMirror then
           MirrorVert;
       {$ENDIF}
@@ -2392,7 +2392,7 @@ var
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
 begin
-{$IFnDEF USE_WINAPI}
+{$IFnDEF MSWINDOWS}
   if FAutoMirror then
     MirrorVert;
 {$ENDIF}
@@ -2412,7 +2412,7 @@ begin
   BI.biSizeImage := Size;
   Stream.Write(BI, SizeOf(TBitmapInfoHeader));
   Stream.Write(FPixels^, Size);
-{$IFnDEF USE_WINAPI}
+{$IFnDEF MSWINDOWS}
   if FAutoMirror then
     MirrorVert;
 {$ENDIF}
@@ -2430,7 +2430,7 @@ begin
     LockUpdate;
     try
       SwapBR(Value);
-    {$IFDEF USE_WINAPI}
+    {$IFDEF MSWINDOWS}
       FPixels[(FHeight - Y - 1) * FWidth + X] := Value;
     {$ELSE}
       FPixels[Y * FWidth + X] := Value;
@@ -2443,7 +2443,7 @@ end;
 
 procedure TKAlphaBitmap.SetSize(AWidth, AHeight: Integer);
 var
-{$IFNDEF USE_WINAPI}
+{$IFNDEF MSWINDOWS}
   ImgFormatDescription: TRawImageDescription;
 {$ELSE}
   BI: TBitmapInfoHeader;
@@ -2462,18 +2462,18 @@ begin
         SelectObject(FCanvas.Handle, FOldBitmap);
         DeleteObject(FHandle);
         FHandle := 0;
-      {$IFNDEF USE_WINAPI}
+      {$IFNDEF MSWINDOWS}
         DeleteObject(FMaskHandle);
         FMaskHandle := 0;
       {$ENDIF}
       end;
-    {$IFNDEF USE_WINAPI}
+    {$IFNDEF MSWINDOWS}
       FImage.SetSize(0, 0);
     {$ENDIF}
       FPixels := nil;
       if (FWidth <> 0) and (FHeight <> 0) then
       begin
-      {$IFNDEF USE_WINAPI}
+      {$IFNDEF MSWINDOWS}
         ImgFormatDescription.Init_BPP32_B8G8R8A8_BIO_TTB(FWidth,FHeight);
         FImage.DataDescription := ImgFormatDescription;
         FPixelsChanged := True;
@@ -2518,7 +2518,7 @@ end;
 
 procedure TKAlphaBitmap.UpdateHandle;
 begin
-{$IFNDEF USE_WINAPI}
+{$IFNDEF MSWINDOWS}
   if FPixelsChanged then
   begin
     PixelsChanged := False;
@@ -2536,7 +2536,7 @@ end;
 
 procedure TKAlphaBitmap.UpdatePixels;
 begin
-{$IFNDEF USE_WINAPI}
+{$IFNDEF MSWINDOWS}
   FImage.LoadFromDevice(FCanvas.Handle);
   FPixelsChanged := True;
   UpdateHandle;
@@ -2545,7 +2545,7 @@ end;
 
 { TKMetafile }
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 
 constructor TKMetafile.Create;
 begin
@@ -3322,7 +3322,7 @@ end;
 
 { TKDragWindow }
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 const
   cLayeredWndClass = 'KControls drag window';
 
@@ -3395,7 +3395,7 @@ end;
 {$ENDIF}
 
 constructor TKDragWindow.Create;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 var
   Cls: Windows.TWndClass;
   ExStyle: Cardinal;
@@ -3405,7 +3405,7 @@ begin
   FActive := False;
   FBitmap := TKAlphaBitmap.Create;
   FInitialPos := CreateEmptyPoint;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   FUpdateLayeredWindow := GetProcAddress(GetModuleHandle('user32.dll'), 'UpdateLayeredWindow');
   FLayered := Assigned(FUpdateLayeredWindow);
   Cls.style := CS_SAVEBITS;
@@ -3436,7 +3436,7 @@ destructor TKDragWindow.Destroy;
 begin
   inherited;
   Hide;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   DestroyWindow(FWindow);
   Windows.UnregisterClass(cLayeredWndClass, HInstance);
 {$ELSE}
@@ -3449,7 +3449,7 @@ procedure TKDragWindow.Hide;
 begin
   if FActive then
   begin
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     ShowWindow(FWindow, SW_HIDE);
   {$ELSE}
     FDragForm.Hide;
@@ -3494,7 +3494,7 @@ begin
       TKCustomControl(FControl).Repaint;
     end else
       Org := ARect.TopLeft;
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     if FLayered then with FBlend do
     begin
       BlendOp := AC_SRC_OVER;
@@ -3518,7 +3518,7 @@ var
   DX, DY: Integer;
   BlendColor: TColor;
   ChangedPos: Boolean;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   ScreenDC: HDC;
   CanvasOrigin: TPoint;
 {$ENDIF}
@@ -3553,7 +3553,7 @@ begin
     end;
     if ChangedPos or AShowAlways then
     begin
-    {$IFDEF USE_WINAPI}
+    {$IFDEF MSWINDOWS}
       if ARect <> nil then
         R := ARect^
       else

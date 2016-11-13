@@ -2439,7 +2439,7 @@ function TabChar: TKString;
 implementation
 
 uses
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   ShellApi,
 {$ENDIF}
   ClipBrd, Printers,
@@ -2448,7 +2448,7 @@ uses
 {$ENDIF}
   Math, KMemoRTF;
 
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 // this is better declaration of GetKerningPairs than in Windows.pas
 type
   TKerningPair = packed record
@@ -4519,7 +4519,7 @@ end;
 procedure TKCustomMemo.CreateWnd;
 begin
   inherited;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   if (eoDropFiles in FOptions) and not (csDesigning in ComponentState) then
     DragAcceptFiles(Handle, TRUE);
 {$ENDIF}
@@ -4578,7 +4578,7 @@ end;
 
 procedure TKCustomMemo.DestroyWnd;
 begin
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   if (eoDropFiles in FOptions) and not (csDesigning in ComponentState) then
     DragAcceptFiles(Handle, FALSE);
 {$ENDIF}
@@ -6218,14 +6218,14 @@ end;
 procedure TKCustomMemo.SetOptions(const Value: TKEditOptions);
 var
   UpdateShowFormatting, UpdateSingleChars: Boolean;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   UpdateDropFiles: Boolean;
 {$ENDIF}
 begin
   if Value <> FOptions then
   begin
     UpdateShowFormatting := (eoShowFormatting in Value) <> (eoShowFormatting in FOptions);
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     UpdateDropFiles := (eoDropFiles in Value) <> (eoDropFiles in FOptions);
   {$ENDIF}
     UpdateSingleChars := (eoDrawSingleChars in Value) <> (eoDrawSingleChars in FOptions);
@@ -6233,7 +6233,7 @@ begin
     FBlocks.NotifyOptionsChange;
     if UpdateShowFormatting or UpdateSingleChars then
       BlocksChanged([muExtent]);
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     // (un)register HWND as drop target
     if UpdateDropFiles and not (csDesigning in ComponentState) and HandleAllocated then
       DragAcceptFiles(Handle, (eoDropFiles in fOptions));
@@ -7571,14 +7571,16 @@ begin
 end;
 
 function TKMemoTextBlock.GetKerningDistance(ACanvas: TCanvas; const AChar1, AChar2: TKChar): Integer;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 var
   Cnt: Integer;
   Pairs: array of TKerningPair;
   C1, C2: WideChar;
   I: Integer;
+{$ENDIF}
 begin
   Result := 0;
+{$IFDEF MSWINDOWS}
   Cnt := GetKerningPairs(ACanvas.Handle, 0, nil);
   if Cnt > 0 then
   begin
@@ -7596,12 +7598,8 @@ begin
         Exit;
       end;
   end;
-end;
-{$ELSE}
-begin
-  Result := 0;
-end;
 {$ENDIF}
+end;
 
 function TKMemoTextBlock.GetSelText: TKString;
 begin

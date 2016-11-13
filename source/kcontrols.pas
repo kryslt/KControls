@@ -1332,7 +1332,7 @@ implementation
 
 uses
 {$IFDEF FPC}
-  {$IFDEF USE_WINAPI}Windows,{$ENDIF}
+  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
 {$ELSE}
   ShlObj, ShellApi,
 {$ENDIF}
@@ -1344,7 +1344,7 @@ const
   cPreviewShadowSize = 3;
 
 procedure CallTrackMouseEvent(Control: TWinControl; var Status: Boolean);
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
 var
   TE: TTrackMouseEvent;
 begin
@@ -1596,7 +1596,7 @@ procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
 begin
   if AControl.HandleAllocated then
   begin
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     SetWindowRgn(AControl.Handle, CreateRectRgn(0, 0, ARect.Right - ARect.Left, ARect.Bottom - ARect.Top), True);
   {$ELSE}
     //how to do that?
@@ -2041,7 +2041,7 @@ begin
   PaintToCanvas(Canvas);
   if Assigned(FMemoryCanvas) then
   begin
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     // this is the best method but does not work both on QT and GTK!
     MoveWindowOrg(FMemoryCanvas.Handle, -FMemoryCanvasRect.Left, -FMemoryCanvasRect.Top);
     try
@@ -3633,7 +3633,7 @@ procedure TKPrintPreview.PaintToCanvas(ACanvas: TCanvas);
 var
   SaveIndex: Integer;
   RClient: TRect;
-{$IFDEF USE_WINAPI}
+{$IFDEF MSWINDOWS}
   Org: TPoint;
   MemBitmap, OldBitmap: HBITMAP;
   DC: HDC;
@@ -3644,7 +3644,7 @@ begin
   begin
     SaveIndex := SaveDC(ACanvas.Handle);
     try
-    {$IFDEF USE_WINAPI}
+    {$IFDEF MSWINDOWS}
       if DoubleBuffered then
       begin
         // we must paint always the entire client because of canvas scaling

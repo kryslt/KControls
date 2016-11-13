@@ -2522,7 +2522,7 @@ begin
     {$IFDEF USE_PNG_SUPPORT}
       rpiPng: FActiveImageClass := TKPngImage;
     {$ENDIF}
-    {$IFDEF USE_WINAPI}
+    {$IFDEF MSWINDOWS}
       rpiEmf:
       begin
         FActiveImageClass := TKMetafile;
@@ -2578,7 +2578,7 @@ begin
               MS.Seek(0, soFromBeginning);
               Image := FActiveImageClass.Create;
               try
-              {$IFDEF USE_WINAPI}
+              {$IFDEF MSWINDOWS}
                 if Image is TKMetafile then
                 begin
                   //if not FActiveImageIsEMF then MS.SaveToFile('test.wmf');
@@ -3713,7 +3713,7 @@ begin
     else if AImage is TKPngImage then
       WriteCtrl('pngblip')
   {$ENDIF}
-  {$IFDEF USE_WINAPI}
+  {$IFDEF MSWINDOWS}
     else if AImage is TKMetafile then
     begin
       if TKMetafile(AImage).Enhanced then
