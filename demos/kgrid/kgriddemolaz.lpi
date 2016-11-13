@@ -30,16 +30,13 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="3">
+    <RequiredPackages Count="2">
       <Item1>
         <PackageName Value="KControlsLaz"/>
       </Item1>
       <Item2>
-        <PackageName Value="Printer4Lazarus"/>
-      </Item2>
-      <Item3>
         <PackageName Value="LCL"/>
-      </Item3>
+      </Item2>
     </RequiredPackages>
     <Units Count="35">
       <Unit0>
@@ -91,24 +88,28 @@
       </Unit3>
       <Unit4>
         <Filename Value="../../../../../usr/lib/lazarus/lcl/interfaces/gtk/gtkproc.inc"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="3637"/>
         <CursorPos X="45" Y="3647"/>
         <UsageCount Value="9"/>
       </Unit4>
       <Unit5>
         <Filename Value="../../source/kmessagebox.pas"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="252"/>
         <CursorPos X="20" Y="267"/>
         <UsageCount Value="9"/>
       </Unit5>
       <Unit6>
         <Filename Value="../../source/kfunctions.pas"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="296"/>
         <CursorPos X="3" Y="316"/>
         <UsageCount Value="10"/>
       </Unit6>
       <Unit7>
-        <Filename Value="../../source/kgraphics.pas"/>
+        <Filename Value="../../source/KGraphics.pas"/>
+        <UnitName Value="kgraphics"/>
         <WindowIndex Value="1"/>
         <TopLine Value="2244"/>
         <CursorPos X="23" Y="2248"/>
@@ -117,6 +118,7 @@
       </Unit7>
       <Unit8>
         <Filename Value="../../packages/kcontrols/kcontrolsdesign.pas"/>
+        <IsVisibleTab Value="True"/>
         <CursorPos X="20" Y="3"/>
         <UsageCount Value="9"/>
       </Unit8>
@@ -129,28 +131,33 @@
       </Unit9>
       <Unit10>
         <Filename Value="C:/lazarus/lcl/lresources.pp"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="5248"/>
         <CursorPos Y="5269"/>
         <UsageCount Value="9"/>
       </Unit10>
       <Unit11>
         <Filename Value="C:/lazarus/fpc/2.6.2/source/packages/fcl-base/src/contnrs.pp"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="61"/>
         <UsageCount Value="9"/>
       </Unit11>
       <Unit12>
         <Filename Value="C:/lazarus/fpc/2.6.2/source/rtl/objpas/classes/classesh.inc"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="359"/>
         <CursorPos X="3" Y="317"/>
         <UsageCount Value="9"/>
       </Unit12>
       <Unit13>
         <Filename Value="../../packages/kcontrols/kcontrolslaz.pas"/>
+        <IsVisibleTab Value="True"/>
         <CursorPos X="128" Y="15"/>
         <UsageCount Value="9"/>
       </Unit13>
       <Unit14>
         <Filename Value="/usr/share/lazarus/1.2.2/lcl/lclproc.pas"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="841"/>
         <CursorPos Y="861"/>
         <UsageCount Value="9"/>
@@ -171,12 +178,14 @@
       </Unit15>
       <Unit16>
         <Filename Value="C:/lazarus/lcl/include/canvas.inc"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="28"/>
         <CursorPos Y="48"/>
         <UsageCount Value="9"/>
       </Unit16>
       <Unit17>
         <Filename Value="/home/tk/lazarus/lcl/forms.pp"/>
+        <IsVisibleTab Value="True"/>
         <CursorPos X="24" Y="17"/>
         <UsageCount Value="9"/>
       </Unit17>

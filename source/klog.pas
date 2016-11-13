@@ -30,18 +30,6 @@ type
     ldAddBottom
   );
 
-  TKLogType = (
-    lgNone,
-    lgError,
-    lgWarning,
-    lgNote,
-    lgHint,
-    lgInfo,
-    lgInputError,
-    lgIOError,
-    lgAll
-  );
-
 const
   cHoverTimeDef = 1000;
   cLogDirectionDef = ldAddTop;

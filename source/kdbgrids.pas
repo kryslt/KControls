@@ -627,7 +627,7 @@ type
 implementation
 
 uses
-  Math, Types, ComCtrls, StdCtrls, KRes
+  Math, Types, ComCtrls, StdCtrls, KControls, KRes
 {$IFDEF FPC}
   , EditBtn
 {$ENDIF}

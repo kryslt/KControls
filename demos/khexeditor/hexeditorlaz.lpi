@@ -32,7 +32,7 @@
     </RunParams>
     <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="Printer4Lazarus"/>
+        <PackageName Value="KControlsLaz"/>
       </Item1>
       <Item2>
         <PackageName Value="LCL"/>
@@ -361,7 +361,8 @@
         <UsageCount Value="22"/>
       </Unit37>
       <Unit38>
-        <Filename Value="..\..\source\kfunctions.pas"/>
+        <Filename Value="..\..\source\KFunctions.pas"/>
+        <UnitName Value="kfunctions"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="1"/>
         <TopLine Value="2281"/>

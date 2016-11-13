@@ -31,116 +31,13 @@ uses
     UnixCP,
   {$IFEND}
  {$ENDIF}
- // use the LCL interface support whenever possible
-  LCLType, LCLIntf, LMessages, LCLProc, LCLVersion, Interfaces, InterfaceBase, LazUTF8,
+  LazUTF8,
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  Classes, ClipBrd, Controls, Contnrs, ComCtrls, Graphics, StdCtrls, SysUtils,
-  Forms;
+  Classes, Contnrs, SysUtils;
 
 const
-{$IFNDEF FPC}
-  { @exclude }
-  KM_MOUSELEAVE = WM_MOUSELEAVE;
-  { @exclude }
-  LM_USER = WM_USER;
-  { @exclude }
-  LM_CANCELMODE = WM_CANCELMODE;
-  { @exclude }
-  LM_CHAR = WM_CHAR;
-  { @exclude }
-  LM_CLEAR = WM_CLEAR;
-  { @exclude }
-  LM_CLOSEQUERY = WM_CLOSE;
-  { @exclude }
-  LM_COPY = WM_COPY;
-  { @exclude }
-  LM_CUT = WM_CUT;
-  { @exclude }
-  LM_DROPFILES = WM_DROPFILES;
-  { @exclude }
-  LM_ERASEBKGND = WM_ERASEBKGND;
-  { @exclude }
-  LM_GETDLGCODE = WM_GETDLGCODE;
-  { @exclude }
-  LM_HSCROLL = WM_HSCROLL;
-  { @exclude }
-  LM_KEYDOWN = WM_KEYDOWN;
-  { @exclude }
-  LM_KILLFOCUS = WM_KILLFOCUS;
-  { @exclude }
-  LM_LBUTTONDOWN = WM_LBUTTONDOWN;
-  { @exclude }
-  LM_LBUTTONUP = WM_LBUTTONUP;
-  { @exclude }
-  LM_MOUSEMOVE = WM_MOUSEMOVE;
-  { @exclude }
-  LM_MOVE = WM_MOVE;
-  { @exclude }
-  LM_PASTE = WM_PASTE;
-  { @exclude }
-  LM_PAINT = WM_PAINT;
-  { @exclude }
-  LM_SETFOCUS = WM_SETFOCUS;
-  { @exclude }
-  LM_SIZE = WM_SIZE;
-  { @exclude }
-  LM_VSCROLL = WM_VSCROLL;
-  { @exclude }
-  LCL_MAJOR = 0;
-  { @exclude }
-  LCL_MINOR = 0;
-  { @exclude }
-  LCL_RELEASE = 0;
-{$ELSE}
-  // hope this is correct about WM_MOUSELEAVE otherwise adapt it as you wish
- {$IFDEF LCLWin32}
-  {$IF ((LCL_MAJOR=0) AND (LCL_MINOR=9) AND (LCL_RELEASE<27))}
-  { @exclude }
-  KM_MOUSELEAVE = LM_LEAVE; // LCL 0.9.26.2-
-  {$ELSE}
-  { @exclude }
-  KM_MOUSELEAVE = LM_MOUSELEAVE; // LCL 0.9.27+
-  {$IFEND}
- {$ELSE}
-  {$IFDEF LCLWinCE}
-  { @exclude }
-  KM_MOUSELEAVE = LM_LEAVE;
-  {$ELSE}
-  { @exclude }
-  KM_MOUSELEAVE = LM_MOUSELEAVE;
-  {$ENDIF}
- {$ENDIF}
- { @exclude }
- //WM_CTLCOLORBTN = Messages.WM_CTLCOLORBTN;
- { @exclude }
- //WM_CTLCOLORSTATIC = Messages.WM_CTLCOLORSTATIC;
-{$ENDIF}
-
-{$IFDEF USE_WINAPI}
-  { @exclude }
-  SHFolderDll = 'SHFolder.dll';
-{$ENDIF}
-
-  { Base for custom messages used by KControls suite. }
-  KM_BASE = LM_USER + 1024;
-
-  { Custom message. }
-  KM_LATEUPDATE = KM_BASE + 1;
-
-  { Constant for horizontal resize cursor. }
-  crHResize = TCursor(101);
-  { Constant for vertical resize cursor. }
-  crVResize = TCursor(102);
-  { Constant for uncaptured dragging cursor. }
-  crDragHandFree = TCursor(103);
-  { Constant for captured dragging cursor. }
-  crDragHandGrip = TCursor(104);
-
-  { Checkbox frame size in logical screen units. }
-  cCheckBoxFrameSize = 13;
-
   { Carriage return character. }
   cCR = #13;
   { Line feed character. }
@@ -186,44 +83,6 @@ const
   cHexDigitCount = 2;
 
 type
-{$IFNDEF FPC}
-  { @exclude }
-  TLMessage = TMessage;
-  { @exclude }
-  TLMCopy = TWMCopy;
-  { @exclude }
-  TLMMouse = TWMMouse;
-  { @exclude }
-  TLMNoParams = TWMNoParams;
-  { @exclude }
-  TLMKey = TWMKey;
-  { @exclude }
-  TLMChar = TWMChar;
-  { @exclude }
-  TLMEraseBkGnd = TWMEraseBkGnd;
-  { @exclude }
-  TLMHScroll = TWMHScroll;
-  { @exclude }
-  TLMKillFocus = TWMKillFocus;
-  { @exclude }
-  TLMMove = TWMMove;
-  { @exclude }
-  TLMPaint = TWMPaint;
-  { @exclude }
-  TLMPaste = TWMPaste;
-  { @exclude }
-  TLMSetFocus = TWMSetFocus;
-  { @exclude }
-  TLMSize = TWMSize;
-  { @exclude }
-  TLMVScroll = TWMVScroll;
-
- {$IFNDEF COMPILER17_UP}
-  { Support for Win64 messaging. }
-  LONG_PTR = Longint;
- {$ENDIF}
-{$ENDIF}
-
   //PInteger = ^Integer; defined by System.pas
   { Static array for Integer. }
   TIntegers = array[0..MaxInt div SizeOf(Integer) - 1] of Integer;
@@ -364,9 +223,9 @@ type
   { TKString is UTF8 string in Lazarus. }
   TKString = string;
   { TKChar is UTF8 character in Lazarus. }
-  TKChar = TUTF8Char;
+  TKChar = string[7]; // UTF-8 character is at most 6 bytes plus a #0
   { PKChar is pointer to UTF8 character in Lazarus. }
-  PKChar = ^TUTF8Char;
+  PKChar = ^TKChar;
   { PKText is PChar (null terminated UTF8 string) in Lazarus. }
   PKText = PChar;
 {$ELSE}
@@ -411,28 +270,6 @@ type
     ThousandSep: Char;
     UseThousandSep: Boolean;
   end;
-
-  { Record for LCL context switching (e.g. between app and shared library). }
-  TKAppContext = record
-    Application: TApplication;
-    Screen: TScreen;
-    GlobalNameSpace: IReadWriteSync;
-    MainThreadID: LongWord;
-    IntConstList: TThreadList;
-  {$IFDEF FPC}
-    WidgetSet: TWidgetSet;
-    DragManager: TDragManager;
-  {$ENDIF}
-  end;
-
-  { Pointer to TKAppContext }
-  PKAppContext = ^TKAppContext;
-
-{$IFDEF FPC}
-  TKClipboardFormat = TClipboardFormat;
-{$ELSE}
-  TKClipboardFormat = Word;
-{$ENDIF}
 
   { @abstract(Declares a structure that holds both column and row span of a cell)
     <UL>
@@ -484,6 +321,18 @@ type
     Index: Int64;
     Digit: Integer;
   end;
+
+  TKLogType = (
+    lgNone,
+    lgError,
+    lgWarning,
+    lgNote,
+    lgHint,
+    lgInfo,
+    lgInputError,
+    lgIOError,
+    lgAll
+  );
 
   TKObjectList = class;
 
@@ -574,29 +423,11 @@ type
 function BinarySearch(AData: Pointer; ACount: Integer; KeyPtr: Pointer;
   ACompareProc: TBSCompareProc; ASortedDown: Boolean): Integer;
 
-{ Under Windows this function calls the WinAPI TrackMouseEvent. Under other OSes
-  the implementation is still missing. }
-procedure CallTrackMouseEvent(Control: TWinControl; var Status: Boolean);
-
-{ Center window identified by CenteredWnd with regard to another window BoundWnd. }
-procedure CenterWindowInWindow(CenteredWnd, BoundWnd: HWnd);
-
-{ Center window identified by CenteredWnd with regard to main screen. }
-procedure CenterWindowOnScreen(CenteredWnd: HWnd);
-
 { Compiler independent Delphi2009-like CharInSet function for ANSI characters. }
 function CharInSetEx(AChar: AnsiChar; const ASet: TKSysCharSet): Boolean; overload;
 
 { Compiler independent Delphi2009-like CharInSet function for Unicode characters. }
 function CharInSetEx(AChar: WideChar; const ASet: TKSysCharSet): Boolean; overload;
-
-{ Load clipboard data to AStream in a format specified by AFormat (if any).
-  Loads also AText if clipboard has some data in text format. }
-function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean;
-
-{ Save data from AStream to clipboard in a format specified by AFormat.
-  Optional AText can be saved in text format. }
-function ClipboardSaveStreamAs(const AFormat: string; AStream: TStream; const AText: TKString): Boolean;
 
 { Compares two Integers. Returns 1 if I1 > I2, -1 if I1 < I2 and 0 if I1 = I2. }
 function CompareIntegers(I1, I2: Integer): Integer;
@@ -650,11 +481,6 @@ function DivDown(Dividend, Divisor: Integer): Integer;
   the result will be decremented. }
 function DivDown64(Dividend, Divisor: Int64): Int64;
 
-{ Enables or disables all children of AParent depending on AEnabled.
-  If ARecursive is True then the function applies to whole tree of controls
-  owned by AParent. }
-procedure EnableControls(AParent: TWinControl; AEnabled: Boolean; ARecursive: Boolean = True);
-
 { Ensures the path given by APath has slash at the end. }
 procedure EnsureLastPathSlash(var APath: string);
 
@@ -696,17 +522,8 @@ procedure Exchange(var Value1, Value2: Char); overload;
 { Returns file name without path and extension. }
 function ExtractFileRawName(const APath: string): string;
 
-{ Fills the message record. }
-function FillMessage(Msg: Cardinal; WParam: WPARAM; LParam: LPARAM): TLMessage;
-
-{ Searches for a child control. Can search recursively. }
-function FindChildControl(AParent: TWinControl; const AName: string; ARecursive: Boolean = True): TControl;
-
 { Formats the given currency value with to specified parameters. Not thread safe. }
 function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKString;
-
-{ Backups application context, e.g. when calling a shared library. }
-function GetAppContext(var Ctx: TKAppContext): Boolean;
 
 { Returns the module version for given module. Tested under WinX, Linux, OSX. }
 function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
@@ -714,15 +531,8 @@ function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, B
 { Returns number of a specific character in a string. }
 function GetCharCount(const AText: TKString; AChar: TKChar): Integer;
 
-{ Returns the Text property of any TWinControl instance as WideString (up to Delphi 2007)
-  or string (Delphi 2009, Lazarus). }
-function GetControlText(Value: TWinControl): TKString;
-
 { Returns the standard locale dependent format settings. }
 function GetFormatSettings: TFormatSettings;
-
-{ Returns current status of Shift, Alt and Ctrl keys. }
-function GetShiftState: TShiftState;
 
 { Converts an integer into binary string with custom alignment
   (given by Digits). }
@@ -806,9 +616,6 @@ function MakeDataSize(AData: Pointer; ASize: Integer): TDataSize;
 { Converts nibble to hexadecimal digit. }
 function NibbleToDigit(Nibble: Byte; UpperCase: Boolean): AnsiChar;
 
-{ Open URL in external browser. }
-procedure OpenURLWithShell(const AText: TKString);
-
 type
   { Callback for quicksort data item comparison. }
   TQsCompareProc = function(Data: Pointer; Index1, Index2: Integer): Integer;
@@ -862,17 +669,6 @@ procedure OffsetRect(var ARect: TRect; AX, AY: Integer); overload;
 
 { Add AOffset to ARect. }
 procedure OffsetRect(var ARect: TRect; const AOffset: TPoint); overload;
-
-{ Restores application context, e.g. when calling a shared library. }
-function SetAppContext(const Ctx: TKAppContext): Boolean;
-
-{ Under Windows this function calls the WinAPI SetWindowRgn. Under other OSes
-  the implementation is still missing. }
-procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
-
-{ Modifies the Text property of any TWinControl instance. The value is given as
-  WideString (up to Delphi 2007) or string (Delphi 2009, Lazarus). }
-procedure SetControlText(Value: TWinControl; const Text: TKString);
 
 { Ensures the path given by APath has no slash at the end. }
 procedure StripLastPathSlash(var APath: string);
@@ -1023,9 +819,7 @@ implementation
 
 uses
   Math, TypInfo
-{$IFDEF USE_WINAPI}
-  , ShlObj, ShellApi
-{$ELSE}
+{$IFDEF FPC}
   , versionresource
 {$ENDIF}
 {$IFDEF USE_WIDEWINPROCS}
@@ -1035,6 +829,12 @@ uses
   , LConvEncoding
 {$ENDIF}
   ;
+
+const
+{$IFDEF USE_WINAPI}
+  { @exclude }
+  SHFolderDll = 'SHFolder.dll';
+{$ENDIF}
 
 { TKObject }
 
@@ -1290,49 +1090,6 @@ begin
     Result := Index;
 end;
 
-
-procedure CallTrackMouseEvent(Control: TWinControl; var Status: Boolean);
-{$IFDEF USE_WINAPI}
-var
-  TE: TTrackMouseEvent;
-begin
-  if not Status then
-  begin
-    TE.cbSize := SizeOf(TE);
-    TE.dwFlags := TME_LEAVE;
-    TE.hwndTrack := Control.Handle;
-    TE.dwHoverTime := HOVER_DEFAULT;
-    TrackMouseEvent(TE);
-    Status := True;
-  end;
-end;
-{$ELSE}
-begin
-  // This is a TODO for Lazarus team.
-end;
-{$ENDIF}
-
-procedure CenterWindowInWindow(CenteredWnd, BoundWnd: HWnd);
-var
-  R1, R2: TRect;
-begin
-  GetWindowRect(CenteredWnd, R1);
-  GetWindowRect(BoundWnd, R2);
-  R1.Left := Max((R2.Right - R2.Left - R1.Right + R1.Left) div 2, 0);
-  R1.Top := Max((R2.Bottom - R2.Top - R1.Bottom + R1.Top) div 2, 0);
-  SetWindowPos(CenteredWnd, 0, R1.Left, R1.Top, 0, 0, SWP_NOSIZE or SWP_NOZORDER);
-end;
-
-procedure CenterWindowOnScreen(CenteredWnd: HWnd);
-var
-  R: TRect;
-begin
-  GetWindowRect(CenteredWnd, R);
-  R.Left := Max((Screen.Width - R.Right + R.Left) div 2, 0);
-  R.Top := Max((Screen.Height - R.Bottom + R.Top) div 2, 0);
-  SetWindowPos(CenteredWnd, 0, R.Left, R.Top, 0, 0, SWP_NOSIZE or SWP_NOZORDER);
-end;
-
 function CharInSetEx(AChar: AnsiChar; const ASet: TKSysCharSet): Boolean;
 begin
   Result := AChar in ASet;
@@ -1346,108 +1103,6 @@ begin
   {$ELSE}
     (AnsiChar(AChar) in ASet);
   {$ENDIF}
-end;
-
-function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean;
-var
-  Fmt: TKClipboardFormat;
-  Data: Cardinal;
-begin
-  Result := False;
-{$IFDEF FPC}
-  with Clipboard do
-  begin
-    Fmt := RegisterClipboardFormat(AFormat);
-    if (Fmt <> 0) and HasFormat(Fmt) then
-    begin
-      Clipboard.GetFormat(Fmt, AStream);
-      Result := True;
-    end else
-    begin
-      AText := AsText;
-      Result := AText <> '';
-    end;
-  end;
-{$ELSE}
-  Fmt := RegisterClipboardFormat(PChar(AFormat));
-  if Fmt <> 0 then
-  begin
-    Data := 0;
-    try
-      with Clipboard do
-      begin
-        Open;
-        try
-          Data := GetAsHandle(Fmt);
-          if Data <> 0 then
-          begin
-            AStream.Write(GlobalLock(Data)^, GlobalSize(Data));
-            GlobalUnlock(Data);
-            Result := True;
-          end else
-          begin
-            AText := AsText;
-            Result := AText <> '';
-          end;
-        finally
-          Close;
-        end;
-      end;
-    except
-      GlobalFree(Data);
-    end;
-  end else
-    Clipboard.AsText := AText;
-{$ENDIF}
-end;
-
-function ClipboardSaveStreamAs(const AFormat: string; AStream: TStream; const AText: TKString): Boolean;
-var
-  Fmt: TKClipboardFormat;
-  Data: Cardinal;
-begin
-  Result := False;
-{$IFDEF FPC}
-  with Clipboard do
-  begin
-    Clear;
-    AsText := AText;
-    Fmt := RegisterClipboardFormat(AFormat);
-    if Fmt <> 0 then
-    begin
-      AStream.Seek(0, soFromBeginning);
-      AddFormat(Fmt, AStream);
-      Result := True;
-    end;
-  end;
-{$ELSE}
-  Clipboard.Clear;
-  Fmt := RegisterClipboardFormat(PChar(AFormat));
-  if Fmt <> 0 then
-  begin
-    Data := GlobalAlloc(GHND or GMEM_SHARE, AStream.Size);
-    if Data <> 0 then
-    try
-      AStream.Seek(0, soFromBeginning);
-      AStream.Read(GlobalLock(Data)^, AStream.Size);
-      GlobalUnlock(Data);
-      with Clipboard do
-      begin
-        Open;
-        try
-          Clipboard.AsText := AText;
-          SetAsHandle(Fmt, Data);
-        finally
-          Close;
-        end;
-      end;
-      Result := True;
-    except
-      GlobalFree(Data);
-    end;
-  end else
-    Clipboard.AsText := AText;
-{$ENDIF}
 end;
 
 function CompareIntegers(I1, I2: Integer): Integer;
@@ -1621,25 +1276,6 @@ begin
     Result := Dividend div Divisor;
 end;
 
-procedure EnableControls(AParent: TWinControl; AEnabled, ARecursive: Boolean);
-
-  procedure DoEnable(AParent: TWinControl);
-  var
-    I: Integer;
-  begin
-    if AParent <> nil then
-      for I := 0 to AParent.ControlCount - 1 do
-      begin
-        AParent.Controls[I].Enabled := AEnabled;
-        if ARecursive and (AParent.Controls[I] is TWinControl) then
-          DoEnable(TWinControl(AParent.Controls[I]));
-      end;
-  end;
-
-begin
-  DoEnable(AParent);
-end;
-
 procedure EnsureLastPathSlash(var APath: string);
 begin
   if APath <> '' then
@@ -1786,39 +1422,6 @@ begin
   raise Exception.Create(Msg);
 end;
 
-function FillMessage(Msg: Cardinal; WParam: WPARAM; LParam: LPARAM): TLMessage;
-begin
-  Result.Msg := Msg;
-  Result.LParam := LParam;
-  Result.WParam := WParam;
-  Result.Result := 0;
-end;
-
-function FindChildControl(AParent: TWinControl; const AName: string; ARecursive: Boolean): TControl;
-
-  function DoSearch(AParent: TWinControl): TControl;
-  var
-    I: Integer;
-    Ctrl: TControl;
-  begin
-    Result := nil;
-    if AParent <> nil then
-      for I := 0 to AParent.ControlCount - 1 do
-      begin
-        Ctrl := AParent.Controls[I];
-        if Ctrl.Name = AName then
-          Result := Ctrl
-        else if ARecursive and (Ctrl is TWinControl) then
-          Result := DoSearch(TWinControl(Ctrl));
-        if Result <> nil then
-          Break;
-      end;
-  end;
-
-begin
-  Result := DoSearch(AParent);
-end;
-
 function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKString;
 var
   Fmt: string;
@@ -1838,22 +1441,6 @@ begin
   else
     Result := KFormat(Fmt + ' %s', [AFormat.CurrencyDecimals, Value, AFormat.CurrencyString], FS);
   end;
-end;
-
-function GetAppContext(var Ctx: TKAppContext): Boolean;
-begin
-  Ctx.Application := Forms.Application;
-  Ctx.Screen := Forms.Screen;
-  Ctx.GlobalNameSpace := Classes.GlobalNameSpace;
-//  Ctx.IntConstList := Classes.IntConstList;
-{$IFDEF FPC}
- {$IFnDEF DARWIN}
-  Ctx.MainThreadID := Classes.MainThreadID;
- {$ENDIF}
-  Ctx.DragManager := Controls.DragManager;
-  Ctx.WidgetSet := InterfaceBase.WidgetSet;
-{$ENDIF}
-  Result := True;
 end;
 
 function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
@@ -1929,31 +1516,6 @@ begin
       Inc(Result);
 end;
 
-function GetControlText(Value: TWinControl): TKString;
-
-  function GetTextBuffer(Value: TWinControl): string;
-  begin
-    SetLength(Result, Value.GetTextLen);
-    Value.GetTextBuf(PChar(Result), Length(Result) + 1);
-  end;
-
-begin
-{$IFDEF FPC}
-  Result := GetTextBuffer(Value); // conversion from UTF8 forced anyway
-{$ELSE}
- {$IFDEF STRING_IS_UNICODE}
-  Result := GetTextBuffer(Value);
- {$ELSE}
-  if Value.HandleAllocated and (Win32Platform = VER_PLATFORM_WIN32_NT) then // unicode fully supported
-  begin
-    SetLength(Result, GetWindowTextLengthW(Value.Handle));
-    GetWindowTextW(Value.Handle, PWideChar(Result), Length(Result) + 1);
-  end else
-    Result := GetTextBuffer(Value);
- {$ENDIF}
-{$ENDIF}
-end;
-
 function GetFormatSettings: TFormatSettings;
 begin
 {$IFDEF FPC}
@@ -1965,14 +1527,6 @@ begin
   GetLocaleFormatSettings(GetThreadLocale, Result);
  {$ENDIF}
 {$ENDIF}
-end;
-
-function GetShiftState: TShiftState;
-begin
-  Result := [];
-  if GetKeyState(VK_SHIFT) < 0 then Include(Result, ssShift);
-  if GetKeyState(VK_CONTROL) < 0 then Include(Result, ssCtrl);
-  if GetKeyState(VK_MENU) < 0 then Include(Result, ssAlt);
 end;
 
 function IntToAscii(Value: Int64; Digits: Integer): string;
@@ -2505,15 +2059,6 @@ begin
     Result := AnsiChar(Ord('a') + Nibble - 10);
 end;
 
-procedure OpenURLWithShell(const AText: TKString);
-begin
-{$IFDEF FPC}
-  OpenURL(AText);
-{$ELSE}
-  ShellExecuteW(Application.MainForm.Handle, 'open', PWideChar(AText), nil, nil, SW_SHOWNORMAL);
-{$ENDIF}
-end;
-
 procedure QuickSortNR(AData: Pointer; ACount: Integer; ACompareProc: TQsCompareProc;
   AExchangeProc: TQsExchangeProc; ASortedDown: Boolean);
 type
@@ -2713,56 +2258,6 @@ begin
   Inc(ARect.Top, AOffset.Y);
   Inc(ARect.Right, AOffset.X);
   Inc(ARect.Bottom, AOffset.Y);
-end;
-
-function SetAppContext(const Ctx: TKAppContext): Boolean;
-begin
-  Forms.Application := Ctx.Application;
-  Forms.Screen := Ctx.Screen;
-  Classes.GlobalNameSpace := Ctx.GlobalNameSpace;
-{$IFDEF FPC}
-//  Classes.IntConstList := Ctx.IntConstList;
-{$IFnDEF DARWIN}
-  Classes.MainThreadID := Ctx.MainThreadID;
-{$ENDIF}
-  Controls.DragManager := Ctx.DragManager;
-  InterfaceBase.WidgetSet := Ctx.WidgetSet;
-{$ENDIF}
-  Result := True;
-end;
-
-procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
-begin
-  if AControl.HandleAllocated then
-  begin
-  {$IFDEF USE_WINAPI}
-    SetWindowRgn(AControl.Handle, CreateRectRgn(0, 0, ARect.Right - ARect.Left, ARect.Bottom - ARect.Top), True);
-  {$ELSE}
-    //how to do that?
-  {$ENDIF}
-  end;
-end;
-
-procedure SetControlText(Value: TWinControl; const Text: TKString);
-
-  procedure SetTextBuffer(Value: TWinControl; const Text: string);
-  begin
-    Value.SetTextBuf(PChar(Text));
-  end;
-
-begin
-{$IFDEF FPC}
-  SetTextBuffer(Value, Text); // conversion to UTF8 forced anyway
-{$ELSE}
- {$IFDEF STRING_IS_UNICODE}
-  SetTextBuffer(Value, Text);
- {$ELSE}
-  if Value.HandleAllocated and (Win32Platform = VER_PLATFORM_WIN32_NT) then // unicode fully supported
-    SetWindowTextW(Value.Handle, PWideChar(Text))
-  else
-    SetTextBuffer(Value, Text);
- {$ENDIF}
-{$ENDIF}
 end;
 
 procedure StripLastPathSlash(var APath: string);

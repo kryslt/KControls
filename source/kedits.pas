@@ -28,7 +28,7 @@ uses
     Windows, Messages,
   {$ENDIF}
     SysUtils, Classes, Controls, Forms, Graphics, StdCtrls, ComCtrls, Dialogs,
-    KFunctions, KDialogs, KLog
+    KFunctions, KControls, KDialogs, KLog
   {$IFDEF USE_THEMES}
     , Themes
    {$IFNDEF FPC}

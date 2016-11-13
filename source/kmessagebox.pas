@@ -70,7 +70,7 @@ function AppMsgBox(const Caption, Text: string; Flags: integer): integer;
 implementation
 
 uses
-  Math, StdCtrls, ExtCtrls, SysUtils, KGraphics, KRes;
+  Math, StdCtrls, ExtCtrls, SysUtils, KGraphics, KControls, KRes;
 
 type
   TMsgBoxForm = class(TCustomForm)

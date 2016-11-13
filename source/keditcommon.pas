@@ -431,7 +431,7 @@ function ReplaceNonprintableCharacters(const AText: AnsiString; AMapping: TKEdit
 implementation
 
 uses
-  KMemo;
+  KControls, KMemo;
 
 function PixelsPerInchX(AHandle: HWND): Integer;
 var

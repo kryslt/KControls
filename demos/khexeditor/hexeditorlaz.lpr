@@ -2,7 +2,7 @@ program hexeditorlaz;
 
 uses
   Interfaces,
-  Forms, Printer4Lazarus,
+  Forms,
   Res in 'Res.pas',
   Basic in 'Basic.pas',
   About in 'About.pas' {AboutForm},

@@ -6113,12 +6113,14 @@ procedure TKCustomMemo.SetRangeParaStyle(AFrom, ATo: TKMemoSelectionIndex;
   AStyle: TKMemoParaStyle);
 begin
   ActiveBlocks.SetRangeParaStyle(AFrom, ATo, AStyle);
+  Modified := True;
 end;
 
 procedure TKCustomMemo.SetRangeTextStyle(AFrom, ATo: TKMemoSelectionIndex;
   AStyle: TKMemoTextStyle);
 begin
   ActiveBlocks.SetRangeTextStyle(AFrom, ATo, AStyle);
+  Modified := True;
 end;
 
 procedure TKCustomMemo.SetBackground(const Value: TKMemoBackground);

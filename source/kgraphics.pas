@@ -37,7 +37,7 @@ uses
   PngImage,
  {$ENDIF}
 {$ENDIF}
-  Classes, Forms, Graphics, Controls, Types, KFunctions
+  Classes, Forms, Graphics, Controls, Types, KFunctions, KControls
 {$IFDEF USE_THEMES}
   , Themes
  {$IFNDEF FPC}
@@ -790,7 +790,7 @@ function VerticalShapePosition(AAlignment: TKVAlign; const ABoundary: TRect; con
 implementation
 
 uses
-  Math, SysUtils, KControls, KRes
+  Math, SysUtils, KRes
 {$IFDEF FPC}
   , FPImage
 {$ELSE}
