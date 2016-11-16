@@ -24,7 +24,10 @@
         </Verbosity>
       </Other>
     </CompilerOptions>
-    <Description Value="KControls is a freeware distribution. It contains all of my published components for Delphi and Lazarus. All controls have been written with the aim to become both cross-IDE compatible (Delphi/C++Builder VCL and Lazarus LCL) and cross-platform compatible in Lazarus. There are some exceptions to this scheme, see tkweb.eu."/>
+    <Description Value="KControls is a freeware distribution. It contains all of my published components for Delphi and Lazarus. All controls have been written with the aim to become both cross-IDE compatible (Delphi/C++Builder VCL and Lazarus LCL) and cross-platform compatible in Lazarus. There are some exceptions to this scheme, see tkweb.eu.
+
+Package KControlsLaz: contains dependencies on LCL.
+"/>
     <License Value="This code is distributed as a freeware. You are free to use it as part
 of your application for any purpose including freeware, commercial and
 shareware applications. The origin of this source code must not be
