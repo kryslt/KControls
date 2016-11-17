@@ -1,9 +1,26 @@
+{ @abstract(This unit contains simple XML parser and writer.)
+  @author(Graham Murt, portions Tomas Krysl)
+
+  Copyright (c) 2003 Graham Murt  - www.murtsoft.co.uk
+  Portions Copyright © 2015 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+
+  <B>License:</B><BR>
+  This code is distributed as a freeware. You are free to use it as part
+  of your application for any purpose including freeware, commercial and
+  shareware applications. The origin of this source code must not be
+  misrepresented; you must not claim your authorship. You may modify this code
+  solely for your own purpose. Please feel free to contact the author if you
+  think your changes might be useful for other users. You may distribute only
+  the original package. The author accepts no liability for any damage
+  that may result from using this code. }
+
+// Original copyright notice: 
+
 {******************************************************************************}
 {                                                                              }
 {   Lightweight native pascal XML implementation (originally GmXml.pas)        }
 {                                                                              }
 {           Copyright (c) 2003 Graham Murt  - www.murtsoft.co.uk               }
-{           Portions copyright (c) 2015 Tomas Krysl - www.tkweb.eu             }
 {                                                                              }
 {   Feel free to e-mail me with any comments, suggestions, bugs or help at:    }
 {                                                                              }
@@ -13,7 +30,7 @@
 
 unit kxml;
 
-{$include ../kcontrols.inc}
+{$include kcontrols.inc}
 
 interface
 
@@ -1069,4 +1086,4 @@ begin
   Stream.Write(S[1], Length(S));
 end;
 
-end.
+end.

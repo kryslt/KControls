@@ -26,7 +26,7 @@ of the original or modified source code must retain the original copyright
 notice. The Author accepts no liability for any damage that may result
 from using this code."/>
     <Version Major="1" Minor="7"/>
-    <Files Count="2">
+    <Files Count="3">
       <Item1>
         <Filename Value="..\..\source\kfunctions.pas"/>
         <UnitName Value="kfunctions"/>
@@ -35,6 +35,10 @@ from using this code."/>
         <Filename Value="..\..\source\kcontrols.inc"/>
         <Type Value="Include"/>
       </Item2>
+      <Item3>
+        <Filename Value="..\..\source\kxml.pas"/>
+        <UnitName Value="kxml"/>
+      </Item3>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="10"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
@@ -20,7 +20,6 @@
       <MinorVersionNr Value="9"/>
       <RevisionNr Value="1"/>
       <BuildNr Value="1"/>
-      <StringTable ProductVersion=""/>
     </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="Default" Default="True"/>
@@ -34,13 +33,10 @@
         <CommandLineParams Value="../../demos/test.xml"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="2">
+    <RequiredPackages Count="1">
       <Item1>
-        <PackageName Value="KControlsLaz"/>
+        <PackageName Value="KControlsBase"/>
       </Item1>
-      <Item2>
-        <PackageName Value="LCL"/>
-      </Item2>
     </RequiredPackages>
     <Units Count="4">
       <Unit0>

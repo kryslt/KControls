@@ -360,7 +360,7 @@ function XMLGUIDToGUIDNoCurlyBraces(const AID: string): string;
 implementation
 
 uses
-  Forms, Math, SysUtils, TypInfo,
+  Math, SysUtils, TypInfo,
   KFunctions,
   PWIG_RIDL, PWIG_Pascal;
 
@@ -670,7 +670,7 @@ function TPWIGElementList<T>.Find(const AGUID: string; const AName: string = '')
 var
   Elem: T;
 begin
-  Result := nil;
+  Result := T(nil);
   for Elem in Self do
     if ((AGUID = '') or (Elem.GUID = AGUID)) and ((AName = '') or (Elem.Name = AName)) then
       Exit(Elem);
@@ -681,7 +681,7 @@ var
   Elem: T;
 begin
   Elem := Find(AGUID, AName);
-  if Elem <> nil then
+  if Elem <> T(nil) then
     Result := Elem.Name
   else
     Result := '/*unknown_type*/';
@@ -1360,7 +1360,7 @@ var
   VMajor, VMinor, VBuild, VRev: Word;
   AppVersion: string;
 begin
-  if GetAppVersion(Application.ExeName, VMajor, VMinor, VBuild, VRev) then
+  if GetAppVersion(ParamStr(0), VMajor, VMinor, VBuild, VRev) then
     AppVersion := Format('%d.%d.%d.%d', [VMajor, VMinor, VBuild, VRev])
   else
     AppVersion := '<unknown version>';

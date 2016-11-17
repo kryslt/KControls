@@ -10,7 +10,7 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\..\source"/>
-        <OtherUnitFiles Value="..\..\source;..\..\source\thirdparty"/>
+        <OtherUnitFiles Value="..\..\source"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Parsing>
@@ -36,7 +36,7 @@ of the original or modified source code must retain the original copyright
 notice. The Author accepts no liability for any damage that may result
 from using this code."/>
     <Version Major="1" Minor="7"/>
-    <Files Count="41">
+    <Files Count="40">
       <Item1>
         <Filename Value="..\..\source\kgraphics.pas"/>
         <UnitName Value="kgraphics"/>
@@ -198,10 +198,6 @@ from using this code."/>
         <Filename Value="..\..\source\kmemodlgimage.lfm"/>
         <Type Value="LFM"/>
       </Item40>
-      <Item41>
-        <Filename Value="..\..\source\thirdparty\kxml.pas"/>
-        <UnitName Value="kxml"/>
-      </Item41>
     </Files>
     <RequiredPkgs Count="4">
       <Item1>
