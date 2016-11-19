@@ -1,11 +1,11 @@
 object KMemoContainerForm: TKMemoContainerForm
-  Left = 0
-  Height = 453
-  Top = 2
+  Left = 809
+  Height = 477
+  Top = 442
   Width = 524
   BorderStyle = bsDialog
   Caption = 'Insert/edit container (text box)'
-  ClientHeight = 453
+  ClientHeight = 477
   ClientWidth = 524
   Color = clBtnFace
   Font.Color = clWindowText
@@ -13,11 +13,11 @@ object KMemoContainerForm: TKMemoContainerForm
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.5'
   object BUOk: TButton
     Left = 352
     Height = 25
-    Top = 420
+    Top = 440
     Width = 75
     Caption = 'OK'
     Default = True
@@ -27,7 +27,7 @@ object KMemoContainerForm: TKMemoContainerForm
   object BUCancel: TButton
     Left = 433
     Height = 25
-    Top = 420
+    Top = 440
     Width = 75
     Cancel = True
     Caption = 'Cancel'
@@ -36,16 +36,16 @@ object KMemoContainerForm: TKMemoContainerForm
   end
   object GBPreview: TGroupBox
     Left = 210
-    Height = 411
+    Height = 429
     Top = 3
     Width = 298
     Caption = 'Preview'
-    ClientHeight = 393
+    ClientHeight = 411
     ClientWidth = 294
     TabOrder = 2
     object MEPreview: TKMemo
       Left = 0
-      Height = 393
+      Height = 411
       Top = 0
       Width = 294
       Align = alClient
@@ -62,11 +62,11 @@ object KMemoContainerForm: TKMemoContainerForm
   end
   object GBPosition: TGroupBox
     Left = 8
-    Height = 100
+    Height = 120
     Top = 3
     Width = 196
     Caption = 'Position'
-    ClientHeight = 82
+    ClientHeight = 102
     ClientWidth = 192
     TabOrder = 3
     object RBPositionRelative: TRadioButton
@@ -88,7 +88,7 @@ object KMemoContainerForm: TKMemoContainerForm
     object EDOffsetX: TKNumberEdit
       Left = 126
       Height = 23
-      Top = 11
+      Top = 19
       Width = 43
       AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Horz. offset:'
@@ -104,7 +104,7 @@ object KMemoContainerForm: TKMemoContainerForm
     object EDOffsetY: TKNumberEdit
       Left = 126
       Height = 23
-      Top = 55
+      Top = 68
       Width = 43
       AcceptedFormats = [neafDec, neafFloat]
       Caption = 'Vert. offset:'
@@ -120,11 +120,11 @@ object KMemoContainerForm: TKMemoContainerForm
   end
   object GBSize: TGroupBox
     Left = 8
-    Height = 92
-    Top = 107
+    Height = 95
+    Top = 127
     Width = 196
     Caption = 'Size'
-    ClientHeight = 74
+    ClientHeight = 77
     ClientWidth = 192
     TabOrder = 4
     object EDWidth: TKNumberEdit
@@ -189,7 +189,7 @@ object KMemoContainerForm: TKMemoContainerForm
   object GBWrap: TGroupBox
     Left = 8
     Height = 114
-    Top = 205
+    Top = 227
     Width = 196
     Caption = 'Content floating'
     ClientHeight = 96
@@ -235,7 +235,7 @@ object KMemoContainerForm: TKMemoContainerForm
   object GBShading: TGroupBox
     Left = 8
     Height = 120
-    Top = 325
+    Top = 345
     Width = 196
     Caption = 'Borders and shading'
     ClientHeight = 102

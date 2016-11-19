@@ -660,6 +660,8 @@ type
   TKMemoBlocks = class;
 
   IKMemoNotifier = interface(IInterface)
+    function BlockClick(ABlock: TKMemoBlock): Boolean;
+    function BlockDblClick(ABlock: TKMemoBlock): Boolean;
     procedure BlockFreeNotification(ABlock: TKMemoBlock);
     procedure BlocksFreeNotification(ABlocks: TKMemoBlocks);
     function EditBlock(ABlock: TKMemoBlock): Boolean;
@@ -686,12 +688,16 @@ type
 
   TKMemoMouseAction = (maMove, maLeftDown, maLeftUp, maRightDown, maRightUp, maMidDown, maMidUp);
 
+  TKMemoDoubleClickState = (mdblNone, mdblClicked, mdblClickedAndHandled);
+
   TKMemoBlockClass = class of TKMemoBlock;
 
   TKMemoBlock = class(TKObject)
   private
     FOffset: TPoint;
     FPosition: TKMemoBlockPosition;
+    FOnClick: TNotifyEvent;
+    FOnDblClick: TNotifyEvent;
     function GetBoundsRect: TRect;
     function GetMemoNotifier: IKMemoNotifier;
     function GetPaintSelection: Boolean;
@@ -700,6 +706,10 @@ type
     function GetReadOnly: Boolean;
     procedure SetPosition(const Value: TKMemoBlockPosition);
   protected
+    FDoubleClickState: TKMemoDoubleClickState;
+    FMouseCaptureWord: TKMemoWordIndex;
+    function Click: Boolean; virtual;
+    function DblClick: Boolean; virtual;
     procedure CallAfterUpdate; override;
     procedure CallBeforeUpdate; override;
     procedure SizingGripsDraw(ACanvas: TCanvas; const ARect: TRect); virtual;
@@ -737,6 +747,7 @@ type
     function GetWordLeft(Index: TKMemoWordIndex): Integer; virtual;
     function GetWordLength(Index: TKMemoWordIndex): TKMemoSelectionIndex; virtual;
     function GetWordLengthWOWS(Index: TKMemoWordIndex): TKMemoSelectionIndex; virtual;
+    function GetWordRect(Index: TKMemoWordIndex): TRect; virtual;
     function GetWords(Index: TKMemoWordIndex): TKString; virtual;
     function GetWordTop(Index: TKMemoWordIndex): Integer; virtual;
     function GetWordTopPadding(Index: TKMemoWordIndex): Integer; virtual;
@@ -831,11 +842,14 @@ type
     property WordLeft[Index: TKMemoWordIndex]: Integer read GetWordLeft write SetWordLeft;
     property WordLength[Index: TKMemoWordIndex]: TKMemoSelectionIndex read GetWordLength;
     property WordLengthWOWS[Index: TKMemoWordIndex]: TKMemoSelectionIndex read GetWordLengthWOWS;
+    property WordRect[Index: TKMemoWordIndex]: TRect read GetWordRect;
     property Words[Index: TKMemoWordIndex]: TKString read GetWords;
     property WordTop[Index: TKMemoWordIndex]: Integer read GetWordTop write SetWordTop;
     property WordTopPadding[Index: TKMemoWordIndex]: Integer read GetWordTopPadding write SetWordTopPadding;
     property WordWidth[Index: TKMemoWordIndex]: Integer read GetWordWidth write SetWordWidth;
     property WrapMode: TKMemoBlockWrapMode read GetWrapMode;
+    property OnClick: TNotifyEvent read FOnClick write FOnClick;
+    property OnDblClick: TNotifyEvent read FOnDblClick write FOnDblClick;
   end;
 
   TKMemoSingleton = class(TKMemoBlock)
@@ -933,23 +947,19 @@ type
     property WordBreakStyle: TKMemoWordBreakStyle read FWordBreakStyle write SetWordBreakStyle;
   end;
 
+  { TKMemoHyperlink }
+
   TKMemoHyperlink = class(TKMemoTextBlock)
   private
     FURL: TKString;
-    FOnClick: TNotifyEvent;
-    FOnDblClick: TNotifyEvent;
   protected
-    FMouseCaptureWord: TKMemoWordIndex;
-    procedure Click; virtual;
-    procedure DblClick; virtual;
+    function Click: Boolean; override;
   public
     constructor Create; override;
     procedure Assign(ASource: TKObject); override;
     procedure DefaultStyle; virtual;
     function WordMouseAction(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
     property URL: TKString read FURL write FURL;
-    property OnClick: TNotifyEvent read FOnClick write FOnClick;
-    property OnDblClick: TNotifyEvent read FOnDblClick write FOnDblClick;
   end;
 
   TKMemoParagraph = class(TKMemoTextBlock)
@@ -1661,7 +1671,7 @@ type
 
   TKMemoRTFString = type string;
 
-  TKMemoEditBlockEvent = procedure(ABlock: TKMemoBlock; var Result: Boolean) of object;
+  TKMemoBlockNotifyEvent = procedure(Sender: TObject; ABlock: TKMemoBlock; var Result: Boolean) of object;
 
   { @abstract(Multi line text editor base component). }
 
@@ -1695,9 +1705,11 @@ type
     FUndoList: TKMemoChangeList;
     FUpdateLock: Integer;
     FWordBreaks: TKSysCharSet;
+    FOnBlockClick: TKMemoBlockNotifyEvent;
+    FOnBlockDblClick: TKMemoBlockNotifyEvent;
+    FOnBlockEdit: TKMemoBlockNotifyEvent;
     FOnChange: TNotifyEvent;
     FOnDropFiles: TKEditDropFilesEvent;
-    FOnEditBlock: TKMemoEditBlockEvent;
     FOnReplaceText: TKEditReplaceTextEvent;
     function GetActiveBlock: TKMemoBlock;
     function GetActiveInnerBlock: TKMemoBlock;
@@ -1821,6 +1833,10 @@ type
     procedure BeginUndoGroup(AGroupKind: TKMemoChangeKind);
     { Converts a rectangle relative to active blocks to a rectangle relative to TKMemo. }
     function BlockRectToRect(const ARect: TRect): TRect; virtual;
+    { IKMemoNotifier implementation. }
+    function BlockClick(ABlock: TKMemoBlock): Boolean;
+    { IKMemoNotifier implementation. }
+    function BlockDblClick(ABlock: TKMemoBlock): Boolean;
     { IKMemoNotifier implementation. }
     procedure BlockFreeNotification(ABlock: TKMemoBlock);
     { IKMemoNotifier implementation. }
@@ -2265,9 +2281,15 @@ type
     { When assigned, this event will be invoked when the user drops any files onto
       the window. }
     property OnDropFiles: TKEditDropFilesEvent read FOnDropFiles write FOnDropFiles;
+    { When assigned, this event will be invoked if a block has been clicked with left mouse button in KMemo.
+      Click is called upon releasing the left mouse button for first time. }
+    property OnBlockClick: TKMemoBlockNotifyEvent read FOnBlockClick write FOnBlockClick;
+    { When assigned, this event will be invoked if a block has been double clicked with left mouse button in KMemo.
+      Double click is called upon pressing the left mouse button for second time. }
+    property OnBlockDblClick: TKMemoBlockNotifyEvent read FOnBlockDblClick write FOnBlockDblClick;
     { When assigned, this event will be invoked if some internal event in KMemo needs to edit
       a block externally. }
-    property OnEditBlock: TKMemoEditBlockEvent read FOnEditBlock write FOnEditBlock;
+    property OnBlockEdit: TKMemoBlockNotifyEvent read FOnBlockEdit write FOnBlockEdit;
     { When assigned, this event will be invoked at each prompt-forced search match. }
     property OnReplaceText: TKEditReplaceTextEvent read FOnReplaceText write FOnReplaceText;
   end;
@@ -2338,6 +2360,12 @@ type
     property Width default cWidth;
     { See TKCustomMemo.@link(TKCustomMemo.OnChange) for details. }
     property OnChange;
+    { See TKCustomMemo.@link(TKCustomMemo.OnBlockClick) for details. }
+    property OnBlockClick;
+    { See TKCustomMemo.@link(TKCustomMemo.OnBlockDblClick) for details. }
+    property OnBlockDblClick;
+    { See TKCustomMemo.@link(TKCustomMemo.OnBlockEdit) for details. }
+    property OnBlockEdit;
     { Inherited property - see Delphi help. }
     property OnClick;
     { Inherited property - see Delphi help. }
@@ -2354,8 +2382,6 @@ type
     property OnDragOver;
     { See TKCustomMemo.@link(TKCustomMemo.OnDropFiles) for details. }
     property OnDropFiles;
-    { See TKCustomMemo.@link(TKCustomMemo.OnEditBlock) for details. }
-    property OnEditBlock;
     { Inherited property - see Delphi help. }
     property OnEndDock;
     { Inherited property - see Delphi help. }
@@ -4156,7 +4182,9 @@ begin
   FWordBreaks := cDefaultWordBreaks;
   FOnChange := nil;
   FOnDropFiles := nil;
-  FOnEditBlock := nil;
+  FOnBlockClick := nil;
+  FOnBlockDblClick := nil;
+  FOnBlockEdit := nil;
   FOnReplaceText := nil;
   if csDesigning in ComponentState then
     Text := 'This is beta state control.'+cEOL+'You may already use it in your programs'+cEOL+'but some important functions may still be missing.'+cEOL
@@ -4273,6 +4301,20 @@ begin
   begin
     KFunctions.OffsetRect(Result, ActiveBlocks.TotalLeftOffset, ActiveBlocks.TotalTopOffset);
   end;
+end;
+
+function TKCustomMemo.BlockClick(ABlock: TKMemoBlock): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnBlockClick) then
+    FOnBlockClick(Self, Ablock, Result);
+end;
+
+function TKCustomMemo.BlockDblClick(ABlock: TKMemoBlock): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnBlockDblClick) then
+    FOnBlockDblClick(Self, Ablock, Result);
 end;
 
 procedure TKCustomMemo.BlockFreeNotification(ABlock: TKMemoBlock);
@@ -4714,8 +4756,8 @@ end;
 function TKCustomMemo.EditBlock(ABlock: TKMemoBlock): Boolean;
 begin
   Result := False;
-  if Assigned(FOnEditBlock) and not ReadOnly then
-    FOnEditBlock(ABlock, Result);
+  if Assigned(FOnBlockEdit) and not ReadOnly then
+    FOnBlockEdit(Self, ABlock, Result);
 end;
 
 {$IFNDEF FPC}
@@ -6666,6 +6708,10 @@ constructor TKMemoBlock.Create;
 begin
   inherited;
   FOffset := CreateEmptyPoint;
+  FDoubleClickState := mdblNone;
+  FMouseCaptureWord := -1;
+  FOnClick := nil;
+  FOnDblClick := nil;
 end;
 
 destructor TKMemoBlock.Destroy;
@@ -6696,6 +6742,8 @@ begin
   if ASource is TKMemoBlock then
   begin
     Select(TKMemoBlock(ASource).SelStart, TKMemoBlock(ASource).SelLength, False);
+    OnClick := TKMemoBlock(ASource).OnClick;
+    OnDblClick := TKMemoBlock(ASource).OnDblClick;
     AssignAttributes(TKMemoBlock(ASource));
   end;
 end;
@@ -6858,6 +6906,14 @@ begin
     Result := Notifier.GetReadOnly
   else
     Result := False;
+end;
+
+function TKMemoBlock.GetWordRect(Index: TKMemoWordIndex): TRect;
+begin
+  Result.Left := WordLeft[Index];
+  Result.Top := WordTop[Index];
+  Result.Right := Result.Left + WordWidth[Index];
+  Result.Bottom := Result.Top + WordHeight[Index];
 end;
 
 function TKMemoBlock.GetResizable: Boolean;
@@ -7215,6 +7271,42 @@ begin
   end;
 end;
 
+function TKMemoBlock.Click: Boolean;
+var
+  Notifier: IKMemoNotifier;
+begin
+  if Assigned(FOnClick) then
+  begin
+    FOnClick(Self);
+    Result := True;
+  end else
+  begin
+    Notifier := MemoNotifier;
+    if Notifier <> nil then
+      Result := Notifier.BlockClick(Self)
+    else
+      Result := False;
+  end;
+end;
+
+function TKMemoBlock.DblClick: Boolean;
+var
+  Notifier: IKMemoNotifier;
+begin
+  if Assigned(FOnDblClick) then
+  begin
+    FOnDblClick(Self);
+    Result := True;
+  end else
+  begin
+    Notifier := MemoNotifier;
+    if Notifier <> nil then
+      Result := Notifier.BlockDblClick(Self)
+    else
+      Result := False;
+  end;
+end;
+
 procedure TKMemoBlock.SetResizable(const Value: Boolean);
 begin
   Error('Resizable property unsupported for this block.');
@@ -7371,8 +7463,47 @@ begin
 end;
 
 function TKMemoBlock.WordMouseAction(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
+var
+  R: TRect;
 begin
-  Result := False;
+  R := WordRect[AWordIndex];
+  if PtInRect(R, APoint) then
+  begin
+    case AAction of
+      maLeftDown:
+      begin
+        if FMouseCaptureWord < 0 then
+        begin
+          FMouseCaptureWord := AWordIndex;
+          FDoubleClickState := mdblNone;
+          if ssDouble in AShift then
+          begin
+            Result := DblClick;
+            if Result then
+              FDoubleClickState := mdblClickedAndHandled
+            else
+              FDoubleClickState := mdblClicked;
+          end;
+        end;
+      end;
+      maLeftUp:
+      begin
+        if FMouseCaptureWord >= 0 then
+        begin
+          FMouseCaptureWord := -1;
+          if FDoubleClickState = mdblNone then
+            Result := Click
+        end;
+      end;
+    end;
+  end else
+  begin
+    case AAction of
+      maLeftUp:
+        if FMouseCaptureWord = AWordIndex then
+          FMouseCaptureWord := -1;
+    end;
+  end;
 end;
 
 procedure TKMemoBlock.WordPaintToCanvas(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; ALeft, ATop: Integer);
@@ -8085,23 +8216,26 @@ var
   Word: TKMemoWord;
   Notifier: IKMemoNotifier;
 begin
-  Result := False;
-  Word := FWords[AWordIndex];
-  if (SelLength > 0) and (SelStart <= Word.EndIndex) and (SelEnd > Word.StartIndex) then
+  Result := inherited WordMouseAction(ACanvas, AWordIndex, AAction, APoint, AShift);
+  if not Result then
   begin
-    Notifier := MemoNotifier;
-    if Notifier <> nil then
+    Word := FWords[AWordIndex];
+    if (SelLength > 0) and (SelStart <= Word.EndIndex) and (SelEnd > Word.StartIndex) then
     begin
-      case AAction of
-        maMove:
-        begin
-          R1 := WordIndexToRect(ACanvas, AWordIndex, Max(SelStart, Word.StartIndex) - Word.StartIndex, False);
-          R2 := WordIndexToRect(ACanvas, AWordIndex, Min(SelEnd - 1, Word.EndIndex) - Word.StartIndex, False);
-          UnionRect(R, R1, R2);
-          if PtInRect(R, APoint) then
+      Notifier := MemoNotifier;
+      if Notifier <> nil then
+      begin
+        case AAction of
+          maMove:
           begin
-            Notifier.SetReqMouseCursor(crDefault);
-            Result := True;
+            R1 := WordIndexToRect(ACanvas, AWordIndex, Max(SelStart, Word.StartIndex) - Word.StartIndex, False);
+            R2 := WordIndexToRect(ACanvas, AWordIndex, Min(SelEnd - 1, Word.EndIndex) - Word.StartIndex, False);
+            UnionRect(R, R1, R2);
+            if PtInRect(R, APoint) then
+            begin
+              Notifier.SetReqMouseCursor(crDefault);
+              Result := True;
+            end;
           end;
         end;
       end;
@@ -8283,10 +8417,7 @@ end;
 constructor TKMemoHyperlink.Create;
 begin
   inherited;
-  FMouseCaptureWord := -1;
   FURL := '';
-  FOnClick := nil;
-  FOnDblClick := nil;
   DefaultStyle;
 end;
 
@@ -8296,21 +8427,20 @@ begin
   if ASource is TKMemoHyperlink then
   begin
     FURL := TKMemoHyperlink(ASource).URL;
-    FOnClick := TKMemoHyperlink(ASource).OnClick;
-    FOnDblClick := TKMemoHyperlink(ASource).OnDblClick;
   end;
 end;
 
-procedure TKMemoHyperlink.Click;
+function TKMemoHyperlink.Click: Boolean;
 begin
-  if Assigned(FOnClick) then
-    FOnClick(Self);
-end;
-
-procedure TKMemoHyperlink.DblClick;
-begin
-  if Assigned(FOnDblClick) then
-    FOnDblClick(Self);
+  Result:=inherited Click;
+  if not Result and (FURL <> '') then
+  begin
+    if (ssCtrl in GetShiftState) or ReadOnly then
+    begin
+      OpenURLWithShell(FURL);
+      Result := True;
+    end;
+  end;
 end;
 
 procedure TKMemoHyperlink.DefaultStyle;
@@ -8322,65 +8452,25 @@ end;
 function TKMemoHyperlink.WordMouseAction(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean;
 var
   R: TRect;
-  Word: TKMemoWord;
   Notifier: IKMemoNotifier;
 begin
   Result := inherited WordMouseAction(ACanvas, AWordIndex, AAction, APoint, AShift);
   if not Result then
   begin
-    Word := FWords[AWordIndex];
-    R := Rect(Word.Position.X, Word.Position.Y, Word.Position.X + Word.Extent.X, Word.Position.Y + Word.Extent.Y);
+    R := WordRect[AWordIndex];
     if PtInRect(R, APoint) then
     begin
-      Notifier := MemoNotifier;
-      if Notifier <> nil then
-      begin
-        case AAction of
-          maMove:
+      case AAction of
+        maMove:
+        begin
+          Notifier := MemoNotifier;
+          if Notifier <> nil then
           begin
             if (ssCtrl in AShift) or ReadOnly then
               Notifier.SetReqMouseCursor(crHandPoint);
             Result := True;
           end;
-          maLeftDown:
-          begin
-            FMouseCaptureWord := -1;
-            if (ssCtrl in AShift) or ReadOnly then
-            begin
-              FMouseCaptureWord := AWordIndex;
-              Result := True;
-            end;
-          end;
-          maLeftUp:
-          begin
-            if FMouseCaptureWord >= 0 then
-            begin
-              FMouseCaptureWord := -1;
-              if Assigned(FOnDblClick) and (ssDouble in AShift) then
-              begin
-                DblClick;
-                Result := True;
-              end
-              else if Assigned(FOnClick) then
-              begin
-                Click;
-                Result := True;
-              end
-              else if FURL <> '' then
-              begin
-                OpenURLWithShell(FURL);
-                Result := True;
-              end;
-            end;
-          end;
         end;
-      end;
-    end else
-    begin
-      case AAction of
-        maLeftUp:
-          if FMouseCaptureWord = AWordIndex then
-            FMouseCaptureWord := -1;
       end;
     end;
   end;

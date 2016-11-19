@@ -1,11 +1,11 @@
 object KMemoImageForm: TKMemoImageForm
-  Left = 0
-  Height = 438
-  Top = 0
+  Left = 405
+  Height = 457
+  Top = 205
   Width = 524
   BorderStyle = bsDialog
   Caption = 'Insert/edit image'
-  ClientHeight = 438
+  ClientHeight = 457
   ClientWidth = 524
   Color = clBtnFace
   Font.Color = clWindowText
@@ -13,11 +13,11 @@ object KMemoImageForm: TKMemoImageForm
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.5'
   object BUOk: TButton
     Left = 360
     Height = 25
-    Top = 404
+    Top = 419
     Width = 75
     Caption = 'OK'
     Default = True
@@ -27,7 +27,7 @@ object KMemoImageForm: TKMemoImageForm
   object BUCancel: TButton
     Left = 441
     Height = 25
-    Top = 404
+    Top = 419
     Width = 75
     Cancel = True
     Caption = 'Cancel'
@@ -37,7 +37,7 @@ object KMemoImageForm: TKMemoImageForm
   object BUBrowse: TButton
     Left = 8
     Height = 25
-    Top = 404
+    Top = 419
     Width = 116
     Caption = 'Browse...'
     OnClick = BUBrowseClick
@@ -45,7 +45,7 @@ object KMemoImageForm: TKMemoImageForm
   end
   object PCMain: TPageControl
     Left = 8
-    Height = 389
+    Height = 404
     Top = 8
     Width = 217
     ActivePage = TSBasic
@@ -53,15 +53,15 @@ object KMemoImageForm: TKMemoImageForm
     TabOrder = 3
     object TSBasic: TTabSheet
       Caption = 'Basic'
-      ClientHeight = 363
+      ClientHeight = 378
       ClientWidth = 209
       object GBPosition: TGroupBox
         Left = 8
-        Height = 98
+        Height = 112
         Top = 3
         Width = 196
         Caption = 'Position'
-        ClientHeight = 80
+        ClientHeight = 94
         ClientWidth = 192
         TabOrder = 0
         object RBPositionText: TRadioButton
@@ -94,7 +94,7 @@ object KMemoImageForm: TKMemoImageForm
         object EDOffsetX: TKNumberEdit
           Left = 126
           Height = 23
-          Top = 10
+          Top = 11
           Width = 43
           AcceptedFormats = [neafDec, neafFloat]
           Caption = 'Horz. offset:'
@@ -110,7 +110,7 @@ object KMemoImageForm: TKMemoImageForm
         object EDOffsetY: TKNumberEdit
           Left = 126
           Height = 23
-          Top = 50
+          Top = 60
           Width = 43
           AcceptedFormats = [neafDec, neafFloat]
           Caption = 'Vert. offset:'
@@ -127,7 +127,7 @@ object KMemoImageForm: TKMemoImageForm
       object GBSize: TGroupBox
         Left = 8
         Height = 133
-        Top = 106
+        Top = 119
         Width = 196
         Caption = 'Size'
         ClientHeight = 115
@@ -229,7 +229,7 @@ object KMemoImageForm: TKMemoImageForm
       object GBWrap: TGroupBox
         Left = 8
         Height = 114
-        Top = 244
+        Top = 257
         Width = 196
         Caption = 'Content floating'
         ClientHeight = 96
@@ -275,7 +275,7 @@ object KMemoImageForm: TKMemoImageForm
     end
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
-      ClientHeight = 363
+      ClientHeight = 378
       ClientWidth = 209
       ImageIndex = 1
       object GBShading: TGroupBox
@@ -358,7 +358,7 @@ object KMemoImageForm: TKMemoImageForm
       object GBCrop: TGroupBox
         Left = 8
         Height = 162
-        Top = 152
+        Top = 150
         Width = 193
         Caption = 'Crop'
         ClientHeight = 144
@@ -465,16 +465,16 @@ object KMemoImageForm: TKMemoImageForm
   end
   object GBPreview: TGroupBox
     Left = 231
-    Height = 389
+    Height = 404
     Top = 8
     Width = 285
     Caption = 'Image preview'
-    ClientHeight = 371
+    ClientHeight = 386
     ClientWidth = 281
     TabOrder = 4
     object MEPreview: TKMemo
       Left = 0
-      Height = 371
+      Height = 386
       Top = 0
       Width = 281
       Align = alClient

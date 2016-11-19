@@ -200,6 +200,8 @@ type
     procedure ACParaStyleUpdate(Sender: TObject);
     procedure ACParaStyleExecute(Sender: TObject);
     procedure ACFormatCopyExecute(Sender: TObject);
+    procedure EditorBlockEdit(Sender: TObject; ABlock: TKMemoBlock;
+      var Result: Boolean);
     procedure EditorMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure EditorDropFiles(Sender: TObject; X, Y: Integer; Files: TStrings);
@@ -247,7 +249,6 @@ type
     procedure DeleteFromMRUFs(const AFileName: TKString); virtual;
     function EditContainer(AItem: TKMemoBlock): Boolean; virtual;
     function EditImage(AItem: TKMemoBlock): Boolean; virtual;
-    procedure EventEditBlock(AItem: TKMemoBlock; var Result: Boolean);
   public
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
@@ -299,7 +300,6 @@ begin
   FTextStyle := TKMemoTextStyle.Create;
   FTextStyle.OnChanged := TextStyleChanged;
   FTextStyleForm := TKMemoTextStyleForm.Create(Self);
-  Editor.OnEditBlock := EventEditBlock;
   OpenNewFile;
 end;
 
@@ -472,6 +472,15 @@ begin
   FFormatCopyParaStyle.Assign(FParaStyle);
   FFormatCopyTextStyle.Assign(FTextStyle);
   TAction(Sender).Checked := True;
+end;
+
+procedure TKMemoFrame.EditorBlockEdit(Sender: TObject; ABlock: TKMemoBlock;
+  var Result: Boolean);
+begin
+  if ABlock is TKMemoImageBlock then
+    Result := EditImage(ABlock)
+  else if ABlock is TKMemoContainer then
+    Result := EditContainer(ABlock);
 end;
 
 procedure TKMemoFrame.ACInsertContainerExecute(Sender: TObject);
@@ -740,14 +749,6 @@ begin
     end;
     ACFormatCopy.Checked := False;
   end;
-end;
-
-procedure TKMemoFrame.EventEditBlock(AItem: TKMemoBlock; var Result: Boolean);
-begin
-  if AItem is TKMemoImageBlock then
-    Result := EditImage(AItem)
-  else if AItem is TKMemoContainer then
-    Result := EditContainer(AItem);
 end;
 
 procedure TKMemoFrame.MIFileExitClick(Sender: TObject);
