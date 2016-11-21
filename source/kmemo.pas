@@ -7466,6 +7466,7 @@ function TKMemoBlock.WordMouseAction(ACanvas: TCanvas; AWordIndex: TKMemoWordInd
 var
   R: TRect;
 begin
+  Result := False;
   R := WordRect[AWordIndex];
   if PtInRect(R, APoint) then
   begin
@@ -9827,6 +9828,7 @@ begin
   FRequiredBorderWidths := TKRect.Create;
   FRequiredBorderWidths.OnChanged := RequiredBorderWidthsChanged;
   FSpan := MakeCellSpan(1, 1);
+  //FBlocks.FixEmptyBlocks; only for testing
 end;
 
 destructor TKMemoTableCell.Destroy;
@@ -10102,23 +10104,28 @@ var
   Row: TKMemoTableRow;
   I, J, W: Integer;
 begin
-  for I := 0 to RowCount - 1 do
-  begin
-    Row := Rows[I];
-    for J := 0 to Row.CellCount - 1 do
+  LockUpdate;
+  try
+    for I := 0 to RowCount - 1 do
     begin
-      Cell := Row.Cells[J];
-      if (Cell.ColSpan > 0) and (Cell.RowSpan > 0) then
+      Row := Rows[I];
+      for J := 0 to Row.CellCount - 1 do
       begin
-        W := FCellStyle.BorderWidth;
-        Cell.BlockStyle.AssignNC(FCellStyle);
-        Cell.BlockStyle.BorderWidth := 0;
-        Cell.BlockStyle.BorderWidths.All := 0;
-        Cell.RequiredBorderWidths.All := W;
+        Cell := Row.Cells[J];
+        if (Cell.ColSpan > 0) and (Cell.RowSpan > 0) then
+        begin
+          W := FCellStyle.BorderWidth;
+          Cell.BlockStyle.AssignNC(FCellStyle);
+          Cell.BlockStyle.BorderWidth := 0;
+          Cell.BlockStyle.BorderWidths.All := 0;
+          Cell.RequiredBorderWidths.All := W;
+        end;
       end;
     end;
+    FixupBorders;
+  finally
+    UnlockUpdate;
   end;
-  FixupBorders;
 end;
 
 function TKMemoTable.CalcTotalCellWidth(ACol, ARow: Integer): Integer;
@@ -10209,55 +10216,60 @@ var
   PrevRowCell: TKMemoTableCell;
   BaseCol, BaseRow, I, J, Width, Part, CurBaseCol, CurBaseRow: Integer;
 begin
-  for I := 0 to RowCount - 1 do
-  begin
-    Row := Rows[I];
-    for J := 0 to Row.CellCount - 1 do
+  LockUpdate;
+  try
+    for I := 0 to RowCount - 1 do
     begin
-      Cell := Row.Cells[J];
-      // find cells in previous row and column (or base cells corresponding to these positions)
-      // these cells cannot be a part of merged area of cells to which the current cell also belongs
-      FindBaseCell(J, I, CurBaseCol, CurBaseRow);
-      PrevRowCell := nil;
-      if I > 0 then
+      Row := Rows[I];
+      for J := 0 to Row.CellCount - 1 do
       begin
-        FindBaseCell(J, I - 1, BaseCol, BaseRow);
-        if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
-          PrevRowCell := Rows[BaseRow].Cells[BaseCol];
-      end;
-      PrevColCell := nil;
-      if J > 0 then
-      begin
-        FindBaseCell(J - 1, I, BaseCol, BaseRow);
-        if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
-          PrevColCell := Rows[BaseRow].Cells[BaseCol];
-      end;
-      // assign default cell borders
-      Cell.BlockStyle.BorderWidth := 0;
-      Cell.BlockStyle.BorderWidths.Assign(Cell.RequiredBorderWidths);
-      if PrevColCell <> nil then
-      begin
-        // we split the border width among two neighbor cells in horizontal direction
-        Width := Max(Cell.RequiredBorderWidths.Left, PrevColCell.RequiredBorderWidths.Right);
-        if Width > 0 then
+        Cell := Row.Cells[J];
+        // find cells in previous row and column (or base cells corresponding to these positions)
+        // these cells cannot be a part of merged area of cells to which the current cell also belongs
+        FindBaseCell(J, I, CurBaseCol, CurBaseRow);
+        PrevRowCell := nil;
+        if I > 0 then
         begin
-          Part := DivUp(Width, 2);
-          Cell.BlockStyle.BorderWidths.Left := Part;
-          PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
+          FindBaseCell(J, I - 1, BaseCol, BaseRow);
+          if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
+            PrevRowCell := Rows[BaseRow].Cells[BaseCol];
         end;
-      end;
-      if PrevRowCell <> nil then
-      begin
-        // we split the border width among two neighbor cells in vertical direction
-        Width := Max(Cell.RequiredBorderWidths.Top, PrevRowCell.RequiredBorderWidths.Bottom);
-        if Width > 0 then
+        PrevColCell := nil;
+        if J > 0 then
         begin
-          Part := DivUp(Width, 2);
-          Cell.BlockStyle.BorderWidths.Top := Part;
-          PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part
+          FindBaseCell(J - 1, I, BaseCol, BaseRow);
+          if (CurBaseCol <> BaseCol) or (CurBaseRow <> BaseRow) then
+            PrevColCell := Rows[BaseRow].Cells[BaseCol];
+        end;
+        // assign default cell borders
+        Cell.BlockStyle.BorderWidth := 0;
+        Cell.BlockStyle.BorderWidths.Assign(Cell.RequiredBorderWidths);
+        if PrevColCell <> nil then
+        begin
+          // we split the border width among two neighbor cells in horizontal direction
+          Width := Max(Cell.RequiredBorderWidths.Left, PrevColCell.RequiredBorderWidths.Right);
+          if Width > 0 then
+          begin
+            Part := DivUp(Width, 2);
+            Cell.BlockStyle.BorderWidths.Left := Part;
+            PrevColCell.BlockStyle.BorderWidths.Right := Width - Part;
+          end;
+        end;
+        if PrevRowCell <> nil then
+        begin
+          // we split the border width among two neighbor cells in vertical direction
+          Width := Max(Cell.RequiredBorderWidths.Top, PrevRowCell.RequiredBorderWidths.Bottom);
+          if Width > 0 then
+          begin
+            Part := DivUp(Width, 2);
+            Cell.BlockStyle.BorderWidths.Top := Part;
+            PrevRowCell.BlockStyle.BorderWidths.Bottom := Width - Part
+          end;
         end;
       end;
     end;
+  finally
+    UnlockUpdate;
   end;
 end;
 
@@ -10624,8 +10636,13 @@ procedure TKMemoTable.RequiredWidthChanged;
 var
   I: Integer;
 begin
-  for I := 0 to RowCount - 1 do
-    Rows[I].RequiredWidth := RequiredWidth;
+  LockUpdate;
+  try
+    for I := 0 to RowCount - 1 do
+      Rows[I].RequiredWidth := RequiredWidth;
+  finally
+    UnlockUpdate;
+  end;
 end;
 
 function TKMemoTable.RowValid(ARow: Integer): Boolean;
@@ -10659,8 +10676,13 @@ begin
   if Value <> ColWidths[Index] then
   begin
     FColWidths[Index].Index := Value;
-    for I := 0 to RowCount - 1 do
-      Rows[I].Cells[Index].RequiredWidth := Value;
+    LockUpdate;
+    try
+      for I := 0 to RowCount - 1 do
+        Rows[I].Cells[Index].RequiredWidth := Value;
+    finally
+      UnlockUpdate;
+    end;
   end;
 end;
 
@@ -10680,32 +10702,37 @@ var
   I, J: Integer;
   Row: TKMemoTableRow;
 begin
-  if AColCount <> FColCount then
-  begin
-    FColCount := AColCount;
-    for I := 0 to RowCount - 1 do
-      Rows[I].CellCount := FColCount;
-    FColWidths.SetSize(FColCount);
-  end;
-  if ARowCount <> RowCount then
-  begin
-    if ARowCount > RowCount then
+  LockUpdate;
+  try
+    if AColCount <> FColCount then
     begin
-      for I := RowCount to ARowCount - 1 do
-      begin
-        Row := TKMemoTableRow.Create;
-        Row.CellCount := FColCount;
-        Row.RequiredWidth := RequiredWidth;
-        for J := 0 to FColCount - 1 do
-          if ColWidths[J] <> 0 then
-            Row.Cells[J].RequiredWidth := ColWidths[J];
-        Blocks.Add(Row);
-      end;
-    end else
-    begin
-      for I := ARowCount to RowCount - 1 do
-        Blocks.Delete(RowCount - 1);
+      FColCount := AColCount;
+      for I := 0 to RowCount - 1 do
+        Rows[I].CellCount := FColCount;
+      FColWidths.SetSize(FColCount);
     end;
+    if ARowCount <> RowCount then
+    begin
+      if ARowCount > RowCount then
+      begin
+        for I := RowCount to ARowCount - 1 do
+        begin
+          Row := TKMemoTableRow.Create;
+          Row.CellCount := FColCount;
+          Row.RequiredWidth := RequiredWidth;
+          for J := 0 to FColCount - 1 do
+            if ColWidths[J] <> 0 then
+              Row.Cells[J].RequiredWidth := ColWidths[J];
+          Blocks.Add(Row);
+        end;
+      end else
+      begin
+        for I := ARowCount to RowCount - 1 do
+          Blocks.Delete(RowCount - 1);
+      end;
+    end;
+  finally
+    UnlockUpdate;
   end;
 end;
 

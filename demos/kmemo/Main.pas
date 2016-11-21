@@ -339,15 +339,23 @@ end;
 procedure TMainForm.Test12;
 var
   TBL: TKMemoTable;
+  I, J: Integer;
 begin
   // add simple table
   TBL := KMemo1.Blocks.AddTable;
-  TBL.ColCount := 2;
-  TBL.RowCount := 2;
-  TBL.Cells[0, 0].Blocks.AddTextBlock('Table text 1');
-  TBL.Cells[0, 1].Blocks.AddTextBlock('Table text 2');
-  TBL.Cells[1, 0].Blocks.AddTextBlock('Table text 3');
-  TBL.Cells[1, 1].Blocks.AddTextBlock('Table text 4');
+  TBL.ColCount := 3;
+  TBL.RowCount := 3;
+  TBL.LockUpdate;
+  try
+    for I := 0 to TBL.ColCount - 1 do
+      for J := 0 to TBL.RowCount - 1 do
+      begin
+        TBL.Cells[I, J].Blocks.AddTextBlock(Format('Table text column:%d row:%d', [I + 1, J + 1]));
+        TBL.Cells[I, J].Blocks.AddParagraph;
+      end;
+  finally
+    TBL.UnLockUpdate;
+  end;
   TBL.CellStyle.BorderWidth := 1;
   TBL.ApplyDefaultCellStyle;
 end;
