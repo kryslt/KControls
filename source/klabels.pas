@@ -74,6 +74,8 @@ type
     property RightColor: TColor read FRightColor write SetRightColor default clBlue;
   end;
 
+  { TKLinkLabel }
+
   TKLinkLabel = class(TLabel)
   private
     FHotColor: TColor;
@@ -88,6 +90,7 @@ type
   protected
     FActiveColor: TColor;
     FMouseInControl: Boolean;
+    procedure Loaded; override;
     procedure Paint; override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -260,7 +263,10 @@ end;
 
 procedure TKLinkLabel.Paint;
 begin
-  Font.Color := FActiveColor;
+  if csDesigning in ComponentState then
+    Font.Color := FLinkColor
+  else
+    Font.Color := FActiveColor;
   inherited;
 end;
 
@@ -288,6 +294,12 @@ begin
     if not FMouseInControl then
       Invalidate;
   end;
+end;
+
+procedure TKLinkLabel.Loaded;
+begin
+  inherited Loaded;
+  FActiveColor := FLinkColor;
 end;
 
 procedure TKLinkLabel.CMMouseEnter(var Message: TLMessage);
