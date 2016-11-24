@@ -2017,7 +2017,7 @@ begin
       if AtIndex < 0 then
       begin
         FActiveBlocks := Blocks;
-        FAtIndex := 0; // just append new blocks
+        FAtIndex := FActiveBlocks.Count; // just append new blocks
       end else
       begin
         FActiveBlocks := Blocks.IndexToBlocks(AtIndex, ContLocalIndex); // get active inner blocks
@@ -2035,11 +2035,11 @@ begin
               FActiveBlocks.AddAt(NewBlock, FAtIndex);
             end;
           end else
-            FAtIndex := 0; // just append new blocks to active blocks
+            FAtIndex := FActiveBlocks.Count; // just append new blocks to active blocks
         end else
         begin
           FActiveBlocks := Blocks;
-          FAtIndex := 0; // just append new blocks to active blocks
+          FAtIndex := FActiveBlocks.Count; // just append new blocks to active blocks
         end;
       end;
       FActiveBlocks.LockUpdate;

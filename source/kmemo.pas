@@ -6311,6 +6311,7 @@ begin
   try
     Stream.WriteString(Value);
     Stream.Seek(0, soFromBeginning);
+    Clear(False);
     LoadFromRTFStream(Stream, -1);
   finally
     Stream.Free;
