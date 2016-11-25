@@ -1662,6 +1662,13 @@ begin
       DecIndent;
       WriteSpace;
 
+      // write library ID
+      Writeln(F, Indent, 'const');
+      IncIndent;
+      Writeln(F, Indent, 'cLibGUID = ''', FPWIG.GUID, ''';');
+      DecIndent;
+      WriteSpace;
+
       Writeln(F, Indent, 'type');
       WriteSpace;
       IncIndent;
@@ -1790,6 +1797,11 @@ begin
         if LIntf.FlagDispEvents then
           WriteCalleeEventSinkDeclarations(LIntf);
 
+      // write library identification code - interface part
+      Writeln(F, Indent, '// Library identification code');
+      Writeln(F, Indent, 'function GetLibGUID: PAnsiChar; ', CallingConvToString(nil),';');
+      WriteSpace;
+
       // write exported function declarations
       for LCls in FPWIG.Classes do
         WriteCalleeExportedFuncs(LCls, False);
@@ -1808,6 +1820,16 @@ begin
       DecIndent;
       WriteSpace;
 
+      // write library identification code - implementation part
+      Writeln(F, Indent, '// Library identification code');
+      Writeln(F, Indent, 'function GetLibGUID: PAnsiChar; ', CallingConvToString(nil),';');
+      Writeln(F, Indent, 'begin');
+      IncIndent;
+      Writeln(F, Indent, 'Result := cLibGUID;');
+      DecIndent;
+      Writeln(F, Indent, 'end;');
+      WriteSpace;
+
       // write exported function bodies
       for LCls in FPWIG.Classes do
         WriteCalleeExportedFuncs(LCls, True);
@@ -1824,6 +1846,8 @@ begin
       Writeln(F, Indent, 'exports');
       IncIndent;
       InitDashSep;
+      WriteDashSep;
+      Writeln(F, Indent, 'GetLibGUID');
       for LCls in FPWIG.Classes do
         WriteCalleeExports(LCls);
       Writeln(F, Indent, ';');
@@ -1919,6 +1943,8 @@ begin
       Writeln(F, Indent, 'function ', FPWIG.Name, 'LibLoad(const FileName: string): Boolean;');
       // library unloader
       Writeln(F, Indent, 'procedure ', FPWIG.Name, 'LibUnload;');
+      // library load error string (FPC only)
+      Writeln(F, Indent, 'var LibLoadErrorMsg: string;');
 
       // end of interface
       DecIndent;
@@ -1963,20 +1989,40 @@ begin
 
       // write library loader implementation
       Writeln(F, Indent, 'function ', FPWIG.Name, 'LibLoad(const FileName: string): Boolean;');
+      Writeln(F, Indent, 'type');
+      IncIndent;
+      Writeln(F, Indent, 'T_FuncLibID = function: PAnsichar; ' + CallingConvToString(nil) + ';');
+      DecIndent;
+      Writeln(F, Indent, 'var');
+      IncIndent;
+      Writeln(F, Indent, '_FuncLibID: T_FuncLibID;');
+      DecIndent;
       Writeln(F, Indent, 'begin');
       IncIndent;
+      Writeln(F, Indent, 'Result := False;');
       Writeln(F, Indent, 'if LibModule = 0 then');
+      Writeln(F, Indent, 'begin');
       IncIndent;
       Writeln(F, Indent, 'LibModule := LoadLibrary({$IFnDEF FPC}PChar{$ENDIF}(FileName));');
-      DecIndent;
-      Writeln(F, Indent, 'if LibModule <> 0 then');
-      Writeln(F, Indent, 'begin');
-      IncIndent;
-      for LCls in FPWIG.Classes do
-        WriteCallerLibLoads(LCls);
+      Writeln(F, Indent, '{$IFDEF FPC}');
+      Writeln(F, Indent, 'LibLoadErrorMsg := GetLoadErrorStr;');
+      Writeln(F, Indent, '{$ENDIF}');
       DecIndent;
       Writeln(F, Indent, 'end;');
-      Writeln(F, Indent, 'Result := LibModule <> 0;');
+      Writeln(F, Indent, 'if LibModule <> 0 then');
+      Writeln(F, Indent, 'try');
+      IncIndent;
+      Writeln(F, Indent, '// Call library identification code first');
+      Writeln(F, Indent, '_FuncLibID := GetProcAddress(LibModule, ''GetLibGUID'');');
+      Writeln(F, Indent, 'if not Assigned(_FuncLibID) then LibLoadError(''GetLibGUID'');');
+      Writeln(F, Indent, 'if _FuncLibID <> cLibGUID then LibCallError(''Incompatible library interface!'');');
+      WriteSpace;
+      for LCls in FPWIG.Classes do
+        WriteCallerLibLoads(LCls);
+      Writeln(F, Indent, 'Result := True;');
+      DecIndent;
+      Writeln(F, Indent, 'except;');
+      Writeln(F, Indent, 'end;');
       DecIndent;
       Writeln(F, Indent, 'end;');
       WriteSpace;
