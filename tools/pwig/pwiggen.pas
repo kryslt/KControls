@@ -288,6 +288,7 @@ type
 
   // supported generators
   TPWIGGeneratorType = (
+    gtCSharp, // CSharp (Visual Studio etc.)
     gtPascal, // Delphi or Lazarus
     gtRIDL // Delphi RIDL
   );
@@ -362,7 +363,7 @@ implementation
 uses
   Math, SysUtils, TypInfo,
   KFunctions,
-  PWIG_RIDL, PWIG_Pascal;
+  PWIG_CSharp, PWIG_Pascal, PWIG_RIDL;
 
 const
   nnPWIGConfig = 'pwig_configuration';
@@ -1264,6 +1265,7 @@ procedure TPWIG.Generate;
   begin
     Result := nil;
     case AGenType of
+      gtCSharp: Result := TPWIGGenCSharp.Create(Self);
       gtPascal: Result := TPWIGGenPascal.Create(Self);
       gtRIDL: Result := TPWIGGenRIDL.Create(Self);
     end;
