@@ -332,6 +332,7 @@ type
     FInterfaces: TPWIGInterfaceList;
     FCalleeConfigs: TPWIGGeneratorConfigList;
     FCallerConfigs: TPWIGGeneratorConfigList;
+    FStaticLibraryName: string;
   protected
     property InputFile: string read FInputFile;
   public
@@ -352,6 +353,7 @@ type
     property GlobalCallingConv: TPWIGCallingConv read FGlobalCallingConv write FGlobalCallingConv;
     property CalleeConfigs: TPWIGGeneratorConfigList read FCalleeConfigs;
     property CallerConfigs: TPWIGGeneratorConfigList read FCallerConfigs;
+    property StaticLibraryName: string read FStaticLibraryName;
   end;
 
 function GUIDToXMLGUID(const AID: string): string;
@@ -367,7 +369,8 @@ uses
 
 const
   nnPWIGConfig = 'pwig_configuration';
-  nnPWIGGlobalCallingConv= 'pwig_global_calling_conv';
+  nnPWIGGlobalCallingConv = 'pwig_global_calling_conv';
+  nnPWIGStaticLibName = 'pwig_static_library_name';
 
   nnPWIGType = 'pwig_datatype';
   nnPWIGTypeBaseType = 'pwig_datatype_basetype';
@@ -1319,6 +1322,7 @@ begin
         begin
           inherited Load(N);
           FGlobalCallingConv := StringToCallingConv(N.ChildAsString(nnPWIGGlobalCallingConv, ''));
+          FStaticLibraryName := N.ChildAsString(nnPWIGStaticLibName, '');
           FCalleeConfigs.Load(N, nnPWIGGenCalleeConfig);
           FCallerConfigs.Load(N, nnPWIGGenCallerConfig);
           FAliases.Load(N, nnPWIGAlias);
@@ -1407,6 +1411,7 @@ begin
       begin
         inherited Save(N);
         N.Children.Add(nnPWIGGlobalCallingConv).AsString := CallingConvToString(FGlobalCallingConv);
+        N.Children.Add(nnPWIGStaticLibName).AsString := FStaticLibraryName;
         FCalleeConfigs.Save(N, nnPWIGGenCalleeConfig);
         FCallerConfigs.Save(N, nnPWIGGenCallerConfig);
         FAliases.Save(N, nnPWIGAlias);

@@ -5,8 +5,8 @@
   Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   Generated outputs tested in:
-  -Lazarus 1.6 + FPC 3.0.0, Win32 (callee + caller)
-  -Delphi XE, Win32 (callee + caller)
+  -Visual Studio Community 2015 + C# 6.0 (caller)
+  -Xamarin for Visual Studio 4.2, Android + iOS targets (caller)
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -1217,7 +1217,7 @@ var
   LIntf: TPWIGInterface;
   LAlias: TPWIGAlias;
   LCls: TPWIGClass;
-  Name, Path, Ext, GeneratedFile, IntfName, ImplName: string;
+  Name, Path, Ext, GeneratedFile, IntfName, ImplName, LibName: string;
 begin
   Path := ExtractFilePath(AFileName);
   Name := ExtractFileRawName(AFileName);
@@ -1277,7 +1277,11 @@ begin
       WriteSpace;
 
       // write library name
-      Writeln(F, Indent, 'private const string cLibName = "p05_rtl";'); //oi_runtime
+      if FPWIG.StaticLibraryName <> '' then
+        LibName := FPWIG.StaticLibraryName
+      else
+        LibName := LowerCase(Name);
+      Writeln(F, Indent, 'private const string cLibName = "', LibName, '";'); //oi_runtime
       WriteSpace;
 
       // write helpers
@@ -1305,7 +1309,7 @@ begin
       DecIndent;
       Writeln(F, Indent, 'byte[] buffer = new byte[len];');
       Writeln(F, Indent, 'System.Runtime.InteropServices.Marshal.Copy(nativeUtf8, buffer, 0, buffer.Length);');
-      Writeln(F, Indent, 'return System.Text.Encoding.UTF8.GetString(buffer);');
+      Writeln(F, Indent, 'return System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);');
       WriteCurlyEnd;
       WriteSpace;
 

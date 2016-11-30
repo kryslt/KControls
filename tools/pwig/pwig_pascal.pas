@@ -1068,7 +1068,12 @@ begin
     begin
       ParamName := ReplaceNotAllowedParamName(Param.Name);
       if Param.ParamType.BaseType = btUnicodeString then
-        Writeln(F, Indent, 'System.Move(AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '[1], ', ParamName, '^, Min(Length__', ParamName, ', Length(AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ')));')
+      begin
+        Writeln(F, Indent, 'if Length(AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ') > 0 then');
+        IncIndent;
+        Writeln(F, Indent, 'System.Move(AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '[1], ', ParamName, '^, Min(Length__', ParamName, ', Length(AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ')));');
+        DecIndent;
+      end
       else
         Writeln(F, Indent, ParamName, ' := Tmp__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ';');
     end;
