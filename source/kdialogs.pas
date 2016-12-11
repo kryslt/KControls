@@ -1,4 +1,4 @@
-﻿{ @abstract(This unit contains all dialogs supplied with KControls.)
+{ @abstract(This unit contains all dialogs supplied with KControls.)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(18 Sep 2009)
   @lastmod(6 Jul 2014)

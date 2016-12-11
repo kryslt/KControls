@@ -682,6 +682,7 @@ type
     function GetSelectedBlock: TKMemoBlock;
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
+    function HasFocus: Boolean;
     function SelectBlock(ABlock: TKMemoBlock; APosition: TKSizingGripPosition): Boolean;
     procedure SetReqMouseCursor(ACursor: TCursor);
   end;
@@ -1927,6 +1928,8 @@ type
     function GetVertScrollPadding: Integer; virtual;
     { IKMemoNotifier implementation. }
     function GetWordBreaks: TKSysCharSet;
+    { IKMemoNotifier implementation. }
+    function HasFocus: Boolean;
     { Hides the caret. }
     procedure HideEditorCaret; virtual;
     { Overriden method - processes virtual key strokes according to current @link(TKCustomMemo.KeyMapping). }
@@ -5355,6 +5358,11 @@ begin
   Result := FWordBreaks;
 end;
 
+function TKCustomMemo.HasFocus: Boolean;
+begin
+  Result := Focused;
+end;
+
 procedure TKCustomMemo.HideEditorCaret;
 begin
   if HandleAllocated then
@@ -5584,7 +5592,6 @@ begin
   inherited;
   if Enabled then
   begin
-    SafeSetFocus;
     P := Point(X, Y);
     case Button of
       mbRight: Action := maRightDown;
@@ -5609,6 +5616,7 @@ begin
         ClampInView(@P, eoScrollWindow in FOptions);
       end;
     end;
+    SafeSetFocus;
   end;
 end;
 

@@ -198,7 +198,11 @@ begin
     OK := VirtualProtect(Res, Sizeof(TResStringRec), PAGE_EXECUTE_READWRITE, @oldProtect);
     if OK then
     begin
-      Res.Identifier := LONG_PTR(NewValue);
+    {$IFDEF COMPILER16_UP} // new code for Delphi XE2 and later
+      Res.Identifier := NativeUInt(NewValue);
+    {$ELSE}
+      Res.Identifier := LongInt(NewValue);
+    {$ENDIF}
       VirtualProtect(Res, SizeOf(TResStringRec), oldProtect, @oldProtect);
     end;
   end;
