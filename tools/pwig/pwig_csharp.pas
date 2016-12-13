@@ -781,6 +781,9 @@ begin
   else
     IntfName := AIntf.Name;
   UnicodeStringsExist := WriteCalleeUnicodeStringDeclarations(AClass, AIntf, AMethod, False);
+  Writeln(F, Indent, '#if __IOS__');
+  Writeln(F, Indent, '[MonoPInvokeCallback(typeof(LibInvoke.', AClass.Name, AIntf.Name, AMethod.name, '))]');
+  Writeln(F, Indent, '#endif');
   WriteMethod(AClass.Name, AIntf, AMethod, msEventHandler, ADefaultInterface, False, '', 'private static');
   // write method body
   WriteCurlyBegin;
@@ -1244,12 +1247,25 @@ begin
       Writeln(F, Indent, '// File generated on ', DateTimeToStr(Now));
       WriteSpace;
 
+      // write conditional defines
+      Writeln(F, Indent, '// Note: You cannot use platform specific things in a Xamarin PCL!');
+      Writeln(F, Indent, '// Following should be defined in Xamarin iOS project, but kept here for testing purposes');
+      Writeln(F, Indent, '// #define __IOS__');
+      WriteSpace;
+      WriteSpace;
+
       // begin to write library
       Writeln(F, Indent, 'namespace ', FPWIG.Name);
       WriteCurlyBegin;
       WriteSpace;
       Writeln(F, Indent, '// Library properties:');
       WriteIntfElementProps(FPWIG);
+
+      Writeln(F, Indent, '// Add platform specific namespaces');
+      Writeln(F, Indent, '#if __IOS__');
+      Writeln(F, Indent, 'using ObjCRuntime;');
+      Writeln(F, Indent, '#endif');
+      WriteSpace;
 
       // write interface aliases
       Writeln(F, Indent, '// Interface aliases:');
@@ -1281,7 +1297,11 @@ begin
         LibName := FPWIG.StaticLibraryName
       else
         LibName := LowerCase(Name);
-      Writeln(F, Indent, 'private const string cLibName = "', LibName, '";'); //oi_runtime
+      Writeln(F, Indent, '#if __IOS__');
+      Writeln(F, Indent, 'private const string cLibName = "@rpath/', LibName, '.framework/', LibName, '"; // needed to access library from local embedded framework');
+      Writeln(F, Indent, '#else');
+      Writeln(F, Indent, 'private const string cLibName = "', LibName, '";');
+      Writeln(F, Indent, '#endif');
       WriteSpace;
 
       // write helpers
