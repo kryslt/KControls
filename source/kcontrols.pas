@@ -163,6 +163,9 @@ const
   { Custom message. }
   KM_LATEUPDATE = KM_BASE + 1;
 
+  { Recalculate scroll box size and scrollbars. }
+  KM_SCROLL = KM_BASE + 2;
+
   { Constant for horizontal resize cursor. }
   crHResize = TCursor(101);
   { Constant for vertical resize cursor. }
@@ -469,6 +472,7 @@ type
     FMessages: array of TLMessage;
     { Gains access to the list of associated previews. }
     FPreviewList: TList;
+    FResizeCalled: Boolean;
     { Adds a preview control to the internal list of associated previews. }
     procedure AddPreview(APreview: TKPrintPreview);
     { Gives the descendant the possibility to adjust the associated TKPrintPageSetup
@@ -2108,6 +2112,7 @@ end;
 procedure TKCustomControl.Resize;
 begin
   inherited;
+  FResizeCalled := True;
   UpdateSize;
 end;
 
@@ -2229,8 +2234,10 @@ end;
 
 procedure TKCustomControl.WMSize(var Msg: TLMSize);
 begin
+  FResizeCalled := False;
   inherited;
-  PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
+  if not FResizeCalled then
+    PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
 end;
 
 {$IFNDEF FPC}

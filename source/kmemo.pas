@@ -150,8 +150,11 @@ type
   );
 
   TKMemoBlockPosition = (
+    { Block is placed in the text. }
     mbpText,
+    { Block has a position relative to an anchor. }
     mbpRelative,
+    { Block has absolute position in the document. }
     mbpAbsolute
   );
 
@@ -1095,6 +1098,8 @@ type
     property ScaleY: Integer read FScale.Y write SetScaleY;
   end;
 
+  { TKMemoContainer }
+
   TKMemoContainer = class(TKMemoBlock)
   private
     FBlocks: TKMemoBlocks;
@@ -1123,6 +1128,8 @@ type
     procedure BlockStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     procedure ClearLines; virtual;
     function ContentLength: TKMemoSelectionIndex; override;
+    procedure FixedHeightChanged; virtual;
+    procedure FixedWidthChanged; virtual;
     function GetBottomPadding: Integer; override;
     function GetWrapMode: TKMemoBlockWrapMode; override;
     function GetCanAddText: Boolean; override;
@@ -1225,12 +1232,15 @@ type
     property RowSpan: Integer read FSpan.RowSpan write SetRowSpan;
   end;
 
+  { TKMemoTableRow }
+
   TKMemoTableRow = class(TKMemoContainer)
   private
     function GetCells(Index: Integer): TKMemoTableCell;
     function GetCellCount: Integer;
     function GetParentTable: TKMemoTable;
   protected
+    procedure FixedHeightChanged; override;
     function GetTotalLineCount: Integer; override;
     function GetTotalLineRect(Index: TKMemoTotalLineIndex): TRect; override;
     procedure RequiredHeightChanged; override;
@@ -1794,6 +1804,7 @@ type
     FHorzExtent: Integer;
     FHorzScrollExtent: Integer;
     FHorzScrollStep: Integer;
+    FInUpdateScrollRange: Boolean;
     FLinePosition: TKMemoLinePosition;
     FNewTextStyleValid: Boolean;
     FOldCaretRect: TRect;
@@ -1943,6 +1954,8 @@ type
  {$ENDIF}
     { Overriden method - processes virtual key strokes. }
     procedure KeyUp(var Key: Word; Shift: TShiftState); override;
+    { Responds to PostLateUpdate. }
+    procedure LateUpdate(var Msg: TLMessage); override;
     { Update the editor after list table changes. }
     procedure ListChanged(AList: TKMemoList; ALevel: TKMemoListLevel); virtual;
     { Updates information about printed shape. }
@@ -4174,7 +4187,9 @@ begin
   FStates := [];
   FTextStyle := TKMemoTextStyle.Create;
   FTextStyle.Changeable := False;
-  FTextStyle.Font.Assign(Font);
+  // Lazarus: Why is Font.Size = 0 here? In Delphi it is already valid!
+  if Font.Size <> 0 then
+    FTextStyle.Font.Assign(Font);
   FTextStyle.UnlockUpdate;
   FTextStyle.OnChanged := TextStyleChanged;
   FTopPos := 0;
@@ -4419,7 +4434,8 @@ begin
     if AKeepOnePara then
       FBlocks.FixEmptyBlocks;
     FTextStyle.Defaults;
-    FTextStyle.Font.Assign(Font);
+    if Font.Size <> 0 then
+      FTextStyle.Font.Assign(Font);
     FParaStyle.Defaults;
     FColors.BkGnd := cBkGndDef;
     FBackground.Clear;
@@ -5025,7 +5041,8 @@ end;
 
 procedure TKCustomMemo.FontChange(Sender: TObject);
 begin
-  FTextStyle.Font.Assign(Font);
+  if Font.Size <> 0 then
+    FTextStyle.Font.Assign(Font);
 end;
 
 function TKCustomMemo.GetActiveBlock: TKMemoBlock;
@@ -5480,6 +5497,14 @@ begin
     case Key of
       VK_SHIFT, VK_CONTROL, VK_MENU: UpdateMouseCursor;
     end;
+  end;
+end;
+
+procedure TKCustomMemo.LateUpdate(var Msg: TLMessage);
+begin
+  inherited;
+  case Msg.Msg of
+    KM_SCROLL: UpdateScrollRange(True);
   end;
 end;
 
@@ -6560,61 +6585,72 @@ var
 begin
   if HandleAllocated then
   begin
-    FBlocks.MeasureExtent(Canvas, RequiredContentWidth);
-    if FRequiredContentWidth > 0 then
-      FHorzExtent := DivUp(FBlocks.Width + FContentPadding.Left + FContentPadding.Right, FHorzScrollStep)
-    else
-      FHorzExtent := DivDown(FBlocks.Width + FContentPadding.Left + FContentPadding.Right, FHorzScrollStep);
-    FVertExtent := DivUp(FBlocks.Height + FContentPadding.Top + FContentPadding.Bottom, FVertScrollStep);
-    ClientHorz := DivDown(ClientWidth, FHorzScrollStep);
-    ClientVert := DivDown(ClientHeight, FVertScrollStep);
-    DeltaHorz := Max(FLeftPos + ClientHorz - FHorzExtent - 1, 0);
-    DeltaVert := Max(FTopPos + ClientVert - FVertExtent - 1, 0);
-    FHorzScrollExtent := 0;
-    FVertScrollExtent := 0;
-    if FScrollBars in [ssBoth, ssHorizontal, ssVertical] then
+    if not UpdateUnlocked then Exit;
+    if FInUpdateScrollRange then
     begin
-      SI.cbSize := SizeOf(TScrollInfo);
-      SI.fMask := SIF_RANGE or SIF_PAGE or SIF_POS {$IFDEF UNIX}or SIF_UPDATEPOLICY{$ENDIF};
-      SI.nMin := 0;
-    {$IFDEF UNIX}
-      SI.nTrackPos := SB_POLICY_CONTINUOUS;
-    {$ELSE}
-      SI.nTrackPos := 0;
-    {$ENDIF}
-      if FScrollBars in [ssBoth, ssHorizontal] then
-      begin
-        SI.nMax := FHorzExtent{$IFnDEF FPC}- 1{$ENDIF};
-        SI.nPage := ClientHorz;
-        SI.nPos := FLeftPos;
-        SetScrollInfo(Handle, SB_HORZ, SI, True);
-        Show := Integer(SI.nPage) < FHorzExtent;
-        FHorzScrollExtent := Max(FHorzExtent - Integer(SI.nPage), 0);
-      end else
-        Show := False;
-      ShowScrollBar(Handle, SB_HORZ, Show);
-      if FScrollBars in [ssBoth, ssVertical] then
-      begin
-        SI.nMax := FVertExtent{$IFnDEF FPC}- 1{$ENDIF};
-        SI.nPage := ClientVert;
-        SI.nPos := FTopPos;
-        SetScrollInfo(Handle, SB_VERT, SI, True);
-        Show := Integer(SI.nPage) < FVertExtent;
-        FVertScrollExtent := Max(FVertExtent - Integer(SI.nPage), 0);
-      end else
-        Show := False;
-      ShowScrollBar(Handle, SB_VERT, Show);
+      PostLateUpdate(FillMessage(KM_SCROLL, 0, 0), True);
+      Exit;
     end;
-    if CallInvalidate then
-    begin
-      if not ScrollBy(-DeltaHorz, -DeltaVert, False) then
+    FInUpdateScrollRange := True;
+    try
+      FBlocks.MeasureExtent(Canvas, RequiredContentWidth);
+      if FRequiredContentWidth > 0 then
+        FHorzExtent := DivUp(FBlocks.Width + FContentPadding.Left + FContentPadding.Right, FHorzScrollStep)
+      else
+        FHorzExtent := DivDown(FBlocks.Width + FContentPadding.Left + FContentPadding.Right, FHorzScrollStep);
+      FVertExtent := DivUp(FBlocks.Height + FContentPadding.Top + FContentPadding.Bottom, FVertScrollStep);
+      ClientHorz := DivDown(ClientWidth, FHorzScrollStep);
+      ClientVert := DivDown(ClientHeight, FVertScrollStep);
+      DeltaHorz := Max(FLeftPos + ClientHorz - FHorzExtent - 1, 0);
+      DeltaVert := Max(FTopPos + ClientVert - FVertExtent - 1, 0);
+      FHorzScrollExtent := 0;
+      FVertScrollExtent := 0;
+      if FScrollBars in [ssBoth, ssHorizontal, ssVertical] then
       begin
-        UpdateEditorCaret;
-        Invalidate;
+        SI.cbSize := SizeOf(TScrollInfo);
+        SI.fMask := SIF_RANGE or SIF_PAGE or SIF_POS {$IFDEF UNIX}or SIF_UPDATEPOLICY{$ENDIF};
+        SI.nMin := 0;
+      {$IFDEF UNIX}
+        SI.nTrackPos := SB_POLICY_CONTINUOUS;
+      {$ELSE}
+        SI.nTrackPos := 0;
+      {$ENDIF}
+        if FScrollBars in [ssBoth, ssHorizontal] then
+        begin
+          SI.nMax := FHorzExtent{$IFnDEF FPC}- 1{$ENDIF};
+          SI.nPage := ClientHorz;
+          SI.nPos := FLeftPos;
+          SetScrollInfo(Handle, SB_HORZ, SI, True);
+          Show := Integer(SI.nPage) < FHorzExtent;
+          FHorzScrollExtent := Max(FHorzExtent - Integer(SI.nPage), 0);
+        end else
+          Show := False;
+        ShowScrollBar(Handle, SB_HORZ, Show);
+        if FScrollBars in [ssBoth, ssVertical] then
+        begin
+          SI.nMax := FVertExtent{$IFnDEF FPC}- 1{$ENDIF};
+          SI.nPage := ClientVert;
+          SI.nPos := FTopPos;
+          SetScrollInfo(Handle, SB_VERT, SI, True);
+          Show := Integer(SI.nPage) < FVertExtent;
+          FVertScrollExtent := Max(FVertExtent - Integer(SI.nPage), 0);
+        end else
+          Show := False;
+        ShowScrollBar(Handle, SB_VERT, Show);
       end;
+      if CallInvalidate then
+      begin
+        if not ScrollBy(-DeltaHorz, -DeltaVert, False) then
+        begin
+          UpdateEditorCaret;
+          Invalidate;
+        end;
+      end;
+      InvalidatePageSetup;
+      PrepareToPaint(Canvas);
+    finally
+      FInUpdateScrollRange := False;
     end;
-    InvalidatePageSetup;
-    PrepareToPaint(Canvas);
   end;
 end;
 
@@ -6889,8 +6925,12 @@ begin
     Block := Result.Parent;
     while (Block <> nil) and (Block.Position = mbpText) do
     begin
-      Result := Block.ParentBlocks;
-      Block := Result.Parent;
+      if Block.ParentBlocks <> nil then
+      begin
+        Result := Block.ParentBlocks;
+        Block := Result.Parent
+      end else
+        Block := nil;
     end;
   end;
 end;
@@ -7695,10 +7735,28 @@ begin
 end;
 
 function TKMemoTextBlock.Concat(ABlock: TKMemoBlock): Boolean;
+var
+  TmpLen: Integer;
 begin
   Result := ABlock is TKMemoTextBlock;
   if Result then
+  begin
+    TmpLen := SelectableLength;
     InsertString(TKMemoTextBlock(ABlock).Text, -1);
+    // concat selection when necessary
+    if (ABlock.SelLength > 0) and (ABlock.SelStart = 0) then
+    begin
+      if (SelLength > 0) and (SelEnd >= TmpLen) then
+      begin
+        // concat with previous selection
+        Select(SelStart, TmpLen + ABlock.SelLength, False);
+      end else
+      begin
+        // create new selection
+        Select(TmpLen, TmpLen + ABlock.SelLength, False);
+      end;
+    end;
+  end;
 end;
 
 function TKMemoTextBlock.ContentLength: TKMemoSelectionIndex;
@@ -8168,6 +8226,17 @@ begin
     end;
     if not SingleChars and (Index > PrevIndex) then
       AddWord(PrevIndex, Index - 1);
+  end;
+  if SelLength <> 0 then
+  begin
+    FSelStart := MinMax(FSelStart, 0, SelectableLength);
+    FSelEnd := MinMax(FSelEnd, 0, SelectableLength);
+    if FSelStart = FSelEnd then
+    begin
+      // unselect...
+      FSelStart := -1;
+      FSelEnd := -1;
+    end;
   end;
 end;
 
@@ -9427,6 +9496,14 @@ begin
   Result := FBlocks.SelectableLength;
 end;
 
+procedure TKMemoContainer.FixedHeightChanged;
+begin
+end;
+
+procedure TKMemoContainer.FixedWidthChanged;
+begin
+end;
+
 function TKMemoContainer.GetBottomPadding: Integer;
 begin
   Result := FBlockStyle.BottomPadding;
@@ -9617,6 +9694,7 @@ begin
   if Value <> FFixedHeight then
   begin
     FFixedHeight := Value;
+    FixedHeightChanged;
     Update([muExtent]);
   end;
 end;
@@ -9626,6 +9704,7 @@ begin
   if Value <> FFixedWidth then
   begin
     FFixedWidth := Value;
+    FixedWidthChanged;
     Update([muExtent]);
   end;
 end;
@@ -10009,6 +10088,14 @@ begin
     Result := nil;
 end;
 
+procedure TKMemoTableRow.FixedHeightChanged;
+var
+  I: Integer;
+begin
+  for I := 0 to CellCount - 1 do
+    Cells[I].FixedHeight := FixedHeight;
+end;
+
 function TKMemoTableRow.GetTotalLineCount: Integer;
 begin
   Result := 1; // do not add lines in cells
@@ -10064,7 +10151,10 @@ var
   I: Integer;
 begin
   for I := 0 to CellCount - 1 do
+  begin
+    Cells[I].FixedHeight := True;
     Cells[I].RequiredHeight := RequiredHeight;
+  end;
 end;
 
 procedure TKMemoTableRow.RequiredWidthChanged;
@@ -10079,13 +10169,19 @@ begin
     begin
       CellWidth := RequiredWidth div CellCount;
       for I := 0 to CellCount - 1 do
+      begin
+        Cells[I].FixedWidth := True;
         Cells[I].RequiredWidth := CellWidth;
+      end;
     end;
   end else
   begin
     Ratio := RequiredWidth / OldWidth;
     for I := 0 to CellCount - 1 do
+    begin
+      Cells[I].FixedWidth := True;
       Cells[I].RequiredWidth := Round(Cells[I].RequiredWidth * Ratio);
+    end;
   end;
 end;
 
@@ -11264,12 +11360,14 @@ procedure TKMemoBlocks.ClearSelection(ATextOnly: Boolean);
 var
   I, First, Last: Integer;
   Block: TKMemoBlock;
+  Changed: Boolean;
 begin
   LockUpdate;
   try
     I := 0;
     First := -1;
     Last := -1;
+    Changed := False;
     while I < Count do
     begin
       Block := Items[I];
@@ -11281,12 +11379,15 @@ begin
         end else
         begin
           if Block.ContentLength = 0 then
-            Delete(I)
-          else
+          begin
+            Delete(I);
+            Changed := True;
+          end else
           begin
             if Block.SelLength = Block.SelectableLength(True) then
             begin
               Delete(I);
+              Changed := True;
               Dec(I);
             end else
             begin
@@ -11303,10 +11404,12 @@ begin
     if Last >= 0 then
     begin
       Items[Last].ClearSelection(ATextOnly);
+      Changed := True;
     end;
     if First >= 0 then
     begin
       Items[First].ClearSelection(ATextOnly);
+      Changed := True;
     end;
     if FSelStart < FSelEnd then
       FSelEnd := FSelStart
@@ -11314,7 +11417,8 @@ begin
       FSelStart := FSelEnd;
     FSelStart := MinMax(FSelStart, 0, FSelectableLength);
     FSelEnd := MinMax(FSelEnd, 0, FSelectableLength);
-    FixEmptyBlocks;
+    if Changed then
+      FixEmptyBlocks;
   finally
     UnlockUpdate;
   end;
@@ -11445,8 +11549,6 @@ begin
   if SelectableCnt = 0 then
   begin
     AddParagraph;
-    FSelEnd := 0;
-    FSelStart := 0;
   end;
 end;
 
@@ -13240,7 +13342,7 @@ begin
     // here we don't start from beginning and measure just
     // the newly added blocks;
     // it can be used only for blocks added at the end and
-    // with position "in text"
+    // placed in text
     if not FState.IsParagraph then
       DeleteLine; // continue on previous line when no paragraph was added
   end;
@@ -13485,9 +13587,9 @@ begin
     lnAdded:
     begin
       // allow much faster incremental measurement of blocks
-      // it can be used only for blocks added at the end and
-      // with position "in text"
-      if TKmemoBlock(Ptr).Position = mbpText then
+      // it can be used only for top level blocks added at the end
+      // with position in text
+      if (TKMemoBlock(Ptr).Position = mbpText) and (TKMemoBlock(Ptr).ParentRootBlocks = TKMemoBlock(Ptr).ParentBlocks) then
       begin
         BlockIndex := IndexOf(Ptr);
         if BlockIndex = Count - 1 then
@@ -13654,6 +13756,7 @@ end;
 function TKMemoBlocks.PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex;
 var
   LineIndex: TKMemoLineIndex;
+  BeforeFirst, AfterLast, InBetween: Boolean;
 begin
   Result := -1;
   if LineCount > 0 then
@@ -13661,11 +13764,11 @@ begin
     LineIndex := 0;
     while (Result < 0) and (LineIndex < LineCount) do
     begin
-      if (APoint.Y >= LineTop[LineIndex]) and (APoint.Y < LineBottom[LineIndex]) or AOutOfArea and (
-         (LineIndex = 0) and (APoint.Y < LineTop[LineIndex]) or // point below first LineIndex
-         (LineIndex = LineCount - 1) and (APoint.Y >= LineBottom[LineIndex]) or // point after last LineIndex
-         (LineIndex > 0) and (APoint.Y < LineTop[LineIndex]) and (Apoint.Y >= LineBottom[LineIndex - 1]) // point between two lines
-        ) then
+      BeforeFirst := (LineIndex = 0) and (APoint.Y < LineTop[LineIndex]); // point below first LineIndex
+      AfterLast := (LineIndex = LineCount - 1) and (APoint.Y >= LineBottom[LineIndex]); // point after last LineIndex
+      InBetween := (LineIndex > 0) and (APoint.Y < LineTop[LineIndex]) and (Apoint.Y >= LineBottom[LineIndex - 1]); // point between two lines
+
+      if (APoint.Y >= LineTop[LineIndex]) and (APoint.Y < LineBottom[LineIndex]) or AOutOfArea and (BeforeFirst or AfterLast or InBetween) then
       begin
         Result := PointToIndexOnLine(ACanvas, LineIndex, APoint, AOutOfArea, ASelectionExpanding, ALinePos)
       end;

@@ -408,7 +408,7 @@ type
     procedure FillColorTable(ABlocks: TKMemoBlocks); virtual;
     procedure FillFontTable(ABlocks: TKMemoBlocks); virtual;
     procedure WriteBackground; virtual;
-    procedure WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean); virtual;
+    procedure WriteBody(ABlocks: TKMemoBlocks; AInsideOfTable: Boolean); virtual;
     procedure WriteColorTable; virtual;
     procedure WriteContainer(ABlock: TKMemoContainer; AInsideTable: Boolean); virtual;
     procedure WriteCtrl(const ACtrl: AnsiString);
@@ -3161,6 +3161,11 @@ begin
               Blocks1 := SavedBlocks1;
           end;
         end;
+        // If the parent blocks are maintained by a container (eg. a table) which
+        // is placed in the text then take the outermost non-container blocks placed in the text
+        // or a container with relative or absolute position.
+        while (Blocks1.Parent is TKMemoContainer) and (Blocks1.Parent.Position = mbpText) do
+          Blocks1 := Blocks1.ParentBlocks;
         ActiveBlocks := Blocks1;
       end;
       ActiveBlocks.ConcatEqualBlocks;
@@ -3212,7 +3217,7 @@ begin
   end;
 end;
 
-procedure TKMemoRTFWriter.WriteBody(ABlocks: TKMemoBlocks; AInsideTable: Boolean);
+procedure TKMemoRTFWriter.WriteBody(ABlocks: TKMemoBlocks; AInsideOfTable: Boolean);
 var
   I: Integer;
   Block: TKMemoBlock;
@@ -3255,22 +3260,22 @@ begin
           end;
           if Block is TKMemoParagraph then
           begin
-            if not AInsideTable or (I < ABlocks.Count - 1) then
-              WriteParagraph(TKMemoParagraph(Block), AInsideTable);
+            if not AInsideOfTable or (I < ABlocks.Count - 1) then
+              WriteParagraph(TKMemoParagraph(Block), AInsideOfTable);
             IsParagraph := True;
           end
           else if Block is TKMemoTextBlock then
             WriteTextBlock(TKMemoTextBlock(Block), FSelectedOnly)
           else if Block is TKMemoImageBlock then
-            WriteImageBlock(TKMemoImageBlock(Block), AInsideTable)
+            WriteImageBlock(TKMemoImageBlock(Block), AInsideOfTable)
           else if Block is TKMemoContainer then
           begin
             if Block is TKMemoTable then
               WriteTable(TKMemoTable(Block))
             else if Block.Position <> mbpText then
-              WriteContainer(TKMemoContainer(Block), AInsideTable)
+              WriteContainer(TKMemoContainer(Block), AInsideOfTable)
             else
-              WriteBody(TKMemoContainer(Block).Blocks, AInsideTable) // just save the contents
+              WriteBody(TKMemoContainer(Block).Blocks, AInsideOfTable) // just save the contents
           end;
         end;
       end;
