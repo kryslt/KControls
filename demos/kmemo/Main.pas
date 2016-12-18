@@ -10,9 +10,9 @@ uses
   {$ELSE}
     Windows, Messages,
   {$ENDIF}
-    SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs, KGrids,
-    KMemo, KGraphics, KFunctions, ExtCtrls, Grids, StdCtrls, KEditCommon,
-    KSplitter, KControls, KLabels, KDialogs;
+    SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs,
+    KMemo, KGraphics, KFunctions, StdCtrls, ExtCtrls, KEditCommon,
+    KControls, KDialogs;
 
 type
 

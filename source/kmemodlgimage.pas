@@ -113,7 +113,7 @@ uses
 procedure TKMemoImageForm.BUBrowseClick(Sender: TObject);
 begin
   if ODMain.Execute then
-    FPreviewImage.Image.LoadFromFile(ODMain.FileName);
+    FPreviewImage.LoadFromFile(ODMain.FileName);
 end;
 
 procedure TKMemoImageForm.BUResetOriginalSizeClick(Sender: TObject);

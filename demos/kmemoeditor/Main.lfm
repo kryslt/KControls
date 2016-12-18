@@ -4,10 +4,6 @@ object MainForm: TMainForm
   Top = 277
   Width = 684
   Caption = 'KMemo editor'
-  Color = clBtnFace
-  Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'Tahoma'
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   Position = poScreenCenter

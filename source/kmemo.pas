@@ -595,6 +595,7 @@ type
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
   end;
 
+  { This class represents one line in the memo. }
   TKMemoLine = class(TObject)
   private
     FEndBlock: TKMemoBlockIndex;
@@ -627,6 +628,7 @@ type
     property Items[Index: TKMemoLineIndex]: TKMemoLine read GetItem write SetItem; default;
   end;
 
+  { This class represents one single word or part of a word (sometimes even a single letter). }
   TKMemoWord = class(TObject)
   private
     FBaseLine: Integer;
@@ -1019,7 +1021,6 @@ type
     function GetLogScaleY: Integer;
     procedure SetCrop(const Value: TKRect);
     procedure SetImage(const Value: TGraphic);
-    procedure SetImagePath(const Value: TKString);
     procedure SetScaleHeight(const Value: Integer);
     procedure SetScaleWidth(const Value: Integer);
     procedure SetExplicitHeight(const Value: Integer);
@@ -1072,6 +1073,7 @@ type
     procedure AssignImage(ASource: TGraphic); virtual;
     function CalcAscent(ACanvas: TCanvas): Integer; override;
     function OuterRect(ACaret: Boolean): TRect; virtual;
+    procedure LoadFromFile(const APath: string); virtual;
     procedure Resize(ANewWidth, ANewHeight: Integer); override;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AIndex: TKMemoSelectionIndex; ACaret: Boolean): TRect; override;
     function WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; ARequiredWidth: Integer): TPoint; override;
@@ -1091,7 +1093,6 @@ type
     property NativeOrExplicitWidth: Integer read GetNativeOrExplicitWidth;
     property LogScaleX: Integer read GetLogScaleX write SetLogScaleX;
     property LogScaleY: Integer read GetLogScaleY write SetLogScaleY;
-    property Path: TKString write SetImagePath;
     property ScaleHeight: Integer read GetScaleHeight write SetScaleHeight;
     property ScaleWidth: Integer read GetScaleWidth write SetScaleWidth;
     property ScaleX: Integer read FScale.X write SetScaleX;
@@ -8244,15 +8245,16 @@ function TKMemoTextBlock.WordIndexToRect(ACanvas: TCanvas; AWordIndex: TKMemoWor
   AIndex: TKMemoSelectionIndex; ACaret: Boolean): TRect;
 var
   BaseLine, Y, DY: Integer;
-  S, T: TKString;
+  AppliedText, S, T: TKString;
   Ofs, Size: TPoint;
   Word: TKMemoWord;
 begin
   Word := FWords[AWordIndex];
   if (AIndex >= 0) and (AIndex <= WordLength[AWordIndex]) then
   begin
-    S := StringCopy(FText, Word.StartIndex + 1, AIndex);
-    T := StringCopy(FText, Word.StartIndex + AIndex + 1, 1);
+    AppliedText := ApplyFormatting(FText);
+    S := StringCopy(AppliedText, Word.StartIndex + 1, AIndex);
+    T := StringCopy(AppliedText, Word.StartIndex + AIndex + 1, 1);
     ApplyTextStyle(ACanvas);
     with ACanvas do
     begin
@@ -8276,13 +8278,13 @@ end;
 
 function TKMemoTextBlock.WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; ARequiredWidth: Integer): TPoint;
 var
-  S: TKString;
+  AppliedText: TKString;
 begin
-  S := Words[AWordIndex];
+  AppliedText := ApplyFormatting(Words[AWordIndex]);
   with ACanvas do
   begin
     ApplyTextStyle(ACanvas);
-    FWords[AWordIndex].Extent := ModifiedTextExtent(ACanvas, S);
+    FWords[AWordIndex].Extent := ModifiedTextExtent(ACanvas, AppliedText);
     Result := FWords[AWordIndex].Extent;
   end;
 end;
@@ -8380,7 +8382,7 @@ procedure TKMemoTextBlock.WordPaintToCanvas(ACanvas: TCanvas;
 
 var
   W, X, Y, BaseLine: Integer;
-  S, T, Part1, Part2, Part3: TKString;
+  AppliedText, S, Part1, Part2, Part3: TKString;
   R, RClip: TRect;
   Word: TKMemoWord;
   Color, Bkgnd: TColor;
@@ -8389,7 +8391,7 @@ begin
   with ACanvas do
   begin
     ApplyTextStyle(ACanvas);
-    S := ApplyFormatting(Words[AWordIndex]);
+    AppliedText := ApplyFormatting(Words[AWordIndex]);
     Word := FWords[AWordIndex];
     X := Word.Position.X + ALeft + RealLeftOffset;
     Y := Word.Position.Y + ATop + RealTopOffset;
@@ -8404,13 +8406,13 @@ begin
       if FSelStart > Word.StartIndex then
       begin
         W := FSelStart - Word.StartIndex;
-        SplitText(S, W + 1, Part1, T);
+        SplitText(AppliedText, W + 1, Part1, S);
       end else
       begin
         W := 0;
-        T := S;
+        S := AppliedText;
       end;
-      SplitText(T, FSelEnd - Word.StartIndex - W + 1, Part2, Part3);
+      SplitText(S, FSelEnd - Word.StartIndex - W + 1, Part2, Part3);
       if Part1 <> '' then
       begin
         W := ModifiedTextExtent(ACanvas, Part1).X;
@@ -8445,13 +8447,13 @@ begin
         PrevRgn := RgnCreateAndGet(ACanvas.Handle);
         try
           if ExtSelectClipRect(ACanvas.Handle, RClip, RGN_AND, PrevRgn) then
-            TextDraw(R, BaseLine, S);
+            TextDraw(R, BaseLine, AppliedText);
         finally
           RgnSelectAndDelete(ACanvas.Handle, PrevRgn);
         end;
         ACanvas.Refresh;
       end else
-        TextDraw(R, BaseLine, S);
+        TextDraw(R, BaseLine, AppliedText);
     end;
   end;
 end;
@@ -8461,7 +8463,7 @@ function TKMemoTextBlock.WordPointToIndex(ACanvas: TCanvas; const APoint: TPoint
 var
   I: TKMemoSelectionIndex;
   WPos: Integer;
-  S: TKString;
+  AppliedText, S: TKString;
   Size: TPoint;
   R: TRect;
   Word: TKMemoWord;
@@ -8474,10 +8476,11 @@ begin
     if PtInRect(R, APoint) or (AOutOfArea and (APoint.X >= R.Left) and (APoint.X < R.Right)) then
     begin
       ApplyTextStyle(ACanvas);
+      AppliedText := ApplyFormatting(FText);
       WPos := Word.Position.X;
       for I := Word.StartIndex to Word.EndIndex do
       begin
-        S := ApplyFormatting(StringCopy(FText, I + 1, 1));
+        S := StringCopy(AppliedText, I + 1, 1);
         Size := ModifiedTextExtent(ACanvas, S);
         R := Rect(WPos, Word.Position.Y, WPos + Size.X, Word.Position.Y + Word.Extent.Y);
         if PtInRect(R, APoint) or (AOutOfArea and (APoint.X >= R.Left) and (APoint.X < R.Right)) then
@@ -8987,6 +8990,21 @@ begin
   Update(AReasons);
 end;
 
+procedure TKMemoImageBlock.LoadFromFile(const APath: string);
+var
+  Picture: TPicture;
+begin
+  Picture := TPicture.Create;
+  try
+    Picture.LoadFromFile(APath);
+    AssignImage(Picture.Graphic);
+  finally
+    Picture.Free;
+  end;
+  FreeAndNil(FCroppedImage);
+  Update([muContent]);
+end;
+
 function TKMemoImageBlock.OuterRect(ACaret: Boolean): TRect;
 begin
   Result.TopLeft := FOrigin;
@@ -9071,21 +9089,6 @@ end;
 procedure TKMemoImageBlock.SetImage(const Value: TGraphic);
 begin
   AssignImage(Value);
-  FreeAndNil(FCroppedImage);
-  Update([muContent]);
-end;
-
-procedure TKMemoImageBlock.SetImagePath(const Value: TKString);
-var
-  Picture: TPicture;
-begin
-  Picture := TPicture.Create;
-  try
-    Picture.LoadFromFile(Value);
-    AssignImage(Picture.Graphic);
-  finally
-    Picture.Free;
-  end;
   FreeAndNil(FCroppedImage);
   Update([muContent]);
 end;
@@ -11283,7 +11286,7 @@ function TKMemoBlocks.AddImageBlock(const APath: TKString; At: TKMemoBlockIndex)
 begin
   Result := TKMemoImageBlock.Create;
   if APath <> '' then
-    Result.SetImagePath(APath);
+    Result.LoadFromFile(APath);
   AddAt(Result, At);
 end;
 

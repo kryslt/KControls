@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="10"/>
     <PathDelim Value="\"/>
     <General>
       <MainUnit Value="0"/>
       <UseXPManifest Value="True"/>
     </General>
-    <VersionInfo>
-      <StringTable ProductVersion=""/>
-    </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="default" Default="True"/>
     </BuildModes>
@@ -37,6 +34,7 @@
       <Unit0>
         <Filename Value="DemoLaz.lpr"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
         <CursorPos X="27" Y="14"/>
         <UsageCount Value="113"/>
         <Loaded Value="True"/>
@@ -115,9 +113,8 @@
         <UsageCount Value="5"/>
       </Unit10>
       <Unit11>
-        <Filename Value="..\..\source\KGraphics.pas"/>
-        <UnitName Value="kgraphics"/>
-        <EditorIndex Value="4"/>
+        <Filename Value="..\..\source\kgraphics.pas"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="1695"/>
         <CursorPos X="72" Y="1729"/>
         <UsageCount Value="39"/>
@@ -126,7 +123,7 @@
       </Unit11>
       <Unit12>
         <Filename Value="..\..\source\kicon.pas"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="1680"/>
         <CursorPos X="24" Y="1694"/>
         <UsageCount Value="39"/>
@@ -160,7 +157,7 @@
       </Unit16>
       <Unit17>
         <Filename Value="..\..\source\kcontrols.inc"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="159"/>
         <CursorPos Y="208"/>
         <UsageCount Value="38"/>
@@ -168,9 +165,8 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit17>
       <Unit18>
-        <Filename Value="..\..\source\KFunctions.pas"/>
-        <UnitName Value="kfunctions"/>
-        <EditorIndex Value="7"/>
+        <Filename Value="..\..\source\kfunctions.pas"/>
+        <EditorIndex Value="6"/>
         <UsageCount Value="38"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -241,12 +237,10 @@
       </Unit28>
       <Unit29>
         <Filename Value="C:\lazarus\lcl\include\winapi.inc"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="593"/>
         <CursorPos X="38" Y="609"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit29>
     </Units>
     <JumpHistory Count="26" HistoryIndex="25">

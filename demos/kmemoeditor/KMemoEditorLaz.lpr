@@ -9,6 +9,7 @@ uses
 {$R *.res}
 
 begin
+  Application.Title:='KMemoEditor';
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainForm, MainForm);
