@@ -9818,6 +9818,8 @@ begin
   begin
     OffsetPoint(P, -FBlockStyle.AllPaddingsLeft, -FBlockStyle.AllPaddingsTop);
     Result := FBlocks.MouseAction(AAction, ACanvas, P, AShift);
+    if not Result then
+      Result := inherited WordMouseAction(ACanvas, AWordIndex, AAction, APoint, AShift);
   end
   else if (Position <> mbpText) and PtInRect(R, P) and (ActiveBlocks = FBlocks) then
   begin
