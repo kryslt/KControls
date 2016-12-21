@@ -1202,13 +1202,17 @@ type
 
   TKMemoTableRow = class;
 
+  { TKMemoTableCell }
+
   TKMemoTableCell = class(TKMemoContainer)
   private
     FParaStyle: TKMemoParaStyle;
     FRequiredBorderWidths: TKRect;
     FSpan: TKCellSpan;
+    function GetColIndex: Integer;
     function GetParentRow: TKMemoTableRow;
     function GetParentTable: TKMemoTable;
+    function GetRowIndex: Integer;
   protected
     function ContentLength: TKMemoSelectionIndex; override;
     function GetParaStyle: TKMemoParaStyle; override;
@@ -1229,7 +1233,9 @@ type
     property ParentTable: TKMemoTable read GetParentTable;
     property RequiredBorderWidths: TKRect read FRequiredBorderWidths;
     property Span: TKCellSpan read FSpan write SetSpan;
+    property ColIndex: Integer read GetColIndex;
     property ColSpan: Integer read FSpan.ColSpan write SetColSpan;
+    property RowIndex: Integer read GetRowIndex;
     property RowSpan: Integer read FSpan.RowSpan write SetRowSpan;
   end;
 
@@ -9952,6 +9958,17 @@ begin
     Result := nil;
 end;
 
+function TKMemoTableCell.GetColIndex: Integer;
+var
+  Row: TKMemoTableRow;
+begin
+  Row := ParentRow;
+  if Row <> nil then
+    Result := Row.Blocks.IndexOf(Self)
+  else
+    Result := -1;
+end;
+
 function TKMemoTableCell.GetParentTable: TKMemoTable;
 var
   Row: TKMemoTableRow;
@@ -9961,6 +9978,17 @@ begin
     Result := Row.ParentTable
   else
     Result := nil;
+end;
+
+function TKMemoTableCell.GetRowIndex: Integer;
+var
+  Table: TKMemoTable;
+begin
+  Table := ParentTable;
+  if Table <> nil then
+    Result := Table.Blocks.IndexOf(ParentRow)
+  else
+    Result := -1;
 end;
 
 function TKMemoTableCell.PointToIndex(ACanvas: TCanvas; const APoint: TPoint;
