@@ -4427,7 +4427,7 @@ begin
   Result := ScrollNeeded(AMousePos, DeltaHorz, DeltaVert);
   if Result then
   begin
-    Result := Scroll(cScrollNoAction, cScrollNoAction, DeltaHorz, DeltaVert, ACallScrollWindow);
+    Result := Scroll(cScrollDelta, cScrollDelta, DeltaHorz, DeltaVert, ACallScrollWindow);
     if Result then
       FScrollTimer.Enabled := True;
   end;
@@ -5971,15 +5971,16 @@ function TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; 
     Result := False;
     if HasScrollBar then
     begin
+      FillChar(SI, SizeOf(TScrollInfo), 0);
       SI.cbSize := SizeOf(TScrollInfo);
       SI.fMask := SIF_PAGE or SIF_RANGE or SIF_TRACKPOS;
       GetScrollInfo(Handle, Code, SI);
+    {$IFDEF UNIX}
+      SI.nTrackPos := Delta;
+    {$ENDIF}
     end;
     Pos := ScrollPos;
     OldPos := Pos;
-    if Delta <> 0 then
-      Inc(Pos, Delta)
-    else if HasScrollBar then
     case ScrollCode of
       SB_TOP: Pos := 0;
       SB_BOTTOM: Pos := SI.nMax;
@@ -5987,13 +5988,16 @@ function TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; 
       SB_LINEDOWN: Inc(Pos);
       SB_PAGEUP: Dec(Pos, SI.nPage);
       SB_PAGEDOWN: Inc(Pos, SI.nPage);
-      SB_THUMBTRACK: Pos := SI.nTrackPos;
+      SB_THUMBTRACK, SB_THUMBPOSITION: Pos := SI.nTrackPos;
+      Cardinal(cScrollDelta): Inc(Pos, Delta);
     end;
     Pos := MinMax(Pos, 0, MaxScrollPos);
     if Pos <> OldPos then
     begin
       if HasScrollBar then
       begin
+        FillChar(SI, SizeOf(TScrollInfo), 0);
+        SI.cbSize := SizeOf(TScrollInfo);
         SI.nPos := Pos;
         SI.fMask := SIF_POS;
         SetScrollInfo(Handle, Code, SI, True);
@@ -6026,7 +6030,7 @@ end;
 
 function TKCustomMemo.ScrollBy(DeltaHorz, DeltaVert: Integer; ACallScrollWindow: Boolean): Boolean;
 begin
-  Result := Scroll(cScrollNoAction, cScrollNoAction, DeltaHorz, DeltaVert, ACallScrollWindow);
+  Result := Scroll(cScrollDelta, cScrollDelta, DeltaHorz, DeltaVert, ACallScrollWindow);
 end;
 
 procedure TKCustomMemo.ScrollToClientAreaCenter;
@@ -6080,7 +6084,7 @@ begin
     MousePos := ScreenToClient(Mouse.CursorPos);
     SelectionExpand(MousePos, False);
     if ScrollNeeded(@MousePos, DeltaHorz, DeltaVert) then
-      Scroll(cScrollNoAction, cScrollNoAction, DeltaHorz, DeltaVert, False)
+      Scroll(cScrollDelta, cScrollDelta, DeltaHorz, DeltaVert, False)
     else
       FScrollTimer.Enabled := False;
   end else
@@ -6728,7 +6732,7 @@ end;
 procedure TKCustomMemo.WMHScroll(var Msg: TLMHScroll);
 begin
   SafeSetFocus;
-  Scroll(Msg.ScrollCode, cScrollNoAction, 0, 0, eoScrollWindow in FOptions);
+  Scroll(Msg.ScrollCode, cScrollNoAction, Msg.Pos, 0, eoScrollWindow in FOptions);
 end;
 
 procedure TKCustomMemo.WMKillFocus(var Msg: TLMKillFocus);
@@ -6751,7 +6755,7 @@ end;
 procedure TKCustomMemo.WMVScroll(var Msg: TLMVScroll);
 begin
   SafeSetFocus;
-  Scroll(cScrollNoAction, Msg.ScrollCode, 0, 0, eoScrollWindow in FOptions);
+  Scroll(cScrollNoAction, Msg.ScrollCode, 0, Msg.Pos, eoScrollWindow in FOptions);
 end;
 
 { TKMemoBlock }

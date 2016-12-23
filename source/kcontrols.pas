@@ -3310,7 +3310,7 @@ begin
     WheelClicks := FMouseWheelAccumulator div cWheelDivisor;
     FMouseWheelAccumulator := FMouseWheelAccumulator mod cWheelDivisor;
     BeginScrollWindow;
-    ModifyScrollBar(SB_VERT, -1, -WheelClicks * Delta);
+    ModifyScrollBar(SB_VERT, cScrollDelta, -WheelClicks * Delta);
     EndScrollWindow;
     Result := True;
   end;
@@ -3449,9 +3449,9 @@ begin
   begin
     BeginScrollWindow;
     if DeltaX <> 0 then
-      ModifyScrollBar(SB_HORZ, -1, DeltaX);
+      ModifyScrollBar(SB_HORZ, cScrollDelta, DeltaX);
     if DeltaY <> 0 then
-      ModifyScrollBar(SB_VERT, -1, DeltaY);
+      ModifyScrollBar(SB_VERT, cScrollDelta, DeltaY);
     EndScrollWindow;
   end;
 end;
@@ -3492,10 +3492,9 @@ begin
     SI.cbSize := SizeOf(TScrollInfo);
     SI.fMask := SIF_RANGE or SIF_PAGE or SIF_TRACKPOS;
     GetScrollInfo(Handle, ScrollBar, SI);
-  {$IF DEFINED(LCLGTK2)}
-    {.$WARNING "scrollbar arrows still not working properly on GTK2 in some cases!"}
+  {$IFDEF UNIX}
     SI.nTrackPos := Delta;
-  {$IFEND}
+  {$ENDIF}
     I := PPos^;
     case ScrollCode of
       SB_TOP: I := SI.nMin;
@@ -3505,8 +3504,7 @@ begin
       SB_PAGEUP: Dec(I, SI.nPage);
       SB_PAGEDOWN: Inc(I, SI.nPage);
       SB_THUMBTRACK, SB_THUMBPOSITION: I := SI.nTrackPos;
-    else
-      Inc(I, Delta)
+      cScrollDelta: Inc(I, Delta);
     end;
     if FScaleMode = smWholePage then
       I := MinMax(I, 1, PExtent^)
@@ -3543,12 +3541,12 @@ begin
     BeginScrollWindow;
     if (X > FX) and (FScrollPos.X > 0) or (X < FX) and (FScrollPos.X < FScrollExtent.X) then
     begin
-      ModifyScrollBar(SB_HORZ, -1, FX - X);
+      ModifyScrollBar(SB_HORZ, cScrollDelta, FX - X);
       FX := X;
     end;
     if (Y > FY) and (FScrollPos.Y > 0) or (Y < FY) and (FScrollPos.Y < FScrollExtent.Y) then
     begin
-      ModifyScrollBar(SB_VERT, -1, FY - Y);
+      ModifyScrollBar(SB_VERT, cScrollDelta, FY - Y);
       FY := Y;
     end;
     EndScrollWindow;
@@ -3763,7 +3761,7 @@ begin
   begin
     BeginScrollWindow;
     if FScaleMode = smWholePage then
-      ModifyScrollBar(SB_VERT, -1, Value - FPage)
+      ModifyScrollBar(SB_VERT, cScrollDelta, Value - FPage)
     else
       FPage := Value;
     EndScrollWindow;

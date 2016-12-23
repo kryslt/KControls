@@ -11480,35 +11480,32 @@ procedure TKCustomGrid.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer;
       SI.cbSize := SizeOf(TScrollInfo);
       SI.fMask := SIF_PAGE or SIF_RANGE or SIF_TRACKPOS;
       GetScrollInfo(Handle, Code, SI);
-    {$IF DEFINED(LCLGTK2)}
-      {.$WARNING "scrollbar arrows still not working properly on GTK2 in some cases!"}
+    {$IFDEF UNIX}
       SI.nTrackPos := Delta;
-    {$IFEND}
+    {$ENDIF}
     end;
     OldScrollPos := ScrollPos;
     OldScrollOffset := ScrollOffset;
-    if ScrollCode = Cardinal(cScrollDelta) then
-      DoScroll(Delta) // in Pixels!
-    else if HasScrollBar then
-      case ScrollCode of
-        SB_TOP:
-        begin
-          FirstGridCell := Info.FixedCellCount;
-          ScrollPos := SI.nMin;
-          ScrollOffset := 0;
-        end;
-        SB_BOTTOM:
-        begin
-          FirstGridCell := Info.FirstGridCellExtent;
-          ScrollPos := SI.nMax - Max(SI.nPage - 1, 0);
-          ScrollOffset := 0;
-        end;
-        SB_LINEUP: DoScroll(ScrollDeltaFromDelta(Info, -1));
-        SB_LINEDOWN: DoScroll(ScrollDeltaFromDelta(Info, 1));
-        SB_PAGEUP: DoScroll(-SI.nPage);
-        SB_PAGEDOWN: DoScroll(SI.nPage);
-        SB_THUMBTRACK, SB_THUMBPOSITION: DoScroll(SI.nTrackPos - ScrollPos, True);
+    case ScrollCode of
+      SB_TOP:
+      begin
+        FirstGridCell := Info.FixedCellCount;
+        ScrollPos := SI.nMin;
+        ScrollOffset := 0;
       end;
+      SB_BOTTOM:
+      begin
+        FirstGridCell := Info.FirstGridCellExtent;
+        ScrollPos := SI.nMax - Max(SI.nPage - 1, 0);
+        ScrollOffset := 0;
+      end;
+      SB_LINEUP: DoScroll(ScrollDeltaFromDelta(Info, -1));
+      SB_LINEDOWN: DoScroll(ScrollDeltaFromDelta(Info, 1));
+      SB_PAGEUP: DoScroll(-SI.nPage);
+      SB_PAGEDOWN: DoScroll(SI.nPage);
+      SB_THUMBTRACK, SB_THUMBPOSITION: DoScroll(SI.nTrackPos - ScrollPos, True);
+      Cardinal(cScrollDelta): DoScroll(Delta) // in Pixels!
+    end;
     FirstGridCell := MinMax(FirstGridCell, Info.FixedCellCount, Info.FirstGridCellExtent);
     if (ScrollPos <> OldScrollPos) or (ScrollOffset <> OldScrollOffset) then
     begin

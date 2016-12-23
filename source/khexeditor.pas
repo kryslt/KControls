@@ -3213,10 +3213,9 @@ begin
     SI.cbSize := SizeOf(TScrollInfo);
     SI.fMask := SIF_PAGE or SIF_TRACKPOS;
     GetScrollInfo(Handle, ScrollBar, SI);
-  {$IF DEFINED(LCLGTK2)}
-    {.$WARNING "scrollbar arrows still not working properly on GTK2 in some cases!"}
+  {$IFDEF UNIX}
     SI.nTrackPos := Delta;
-  {$IFEND}
+  {$ENDIF}
   end;
   if ScrollBar = SB_HORZ then
   begin
@@ -3228,15 +3227,13 @@ begin
     J := GetMaxTopLine;
   end;
   K := I;
-  if ScrollCode = cScrollDelta then
-    Inc(I, Delta)
-  else if HasScrollBar then
   case ScrollCode of
     SB_LINEUP: Dec(I);
     SB_LINEDOWN: Inc(I);
     SB_PAGEUP: Dec(I, SI.nPage);
     SB_PAGEDOWN: Inc(I, SI.nPage);
     SB_THUMBTRACK, SB_THUMBPOSITION: I := SI.nTrackPos;
+    cScrollDelta: Inc(I, Delta);
   end;
   I := MinMax(I, 0, J);
   if K <> I then
