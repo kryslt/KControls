@@ -1,7 +1,7 @@
 {
   "UpdatePackageData" : {
     "DisableInOPM" : false,
-    "DownloadZipURL" : "https://bitbucket.org/tkweb/kcontrols/get/d35ac14451b2.zip",
+    "DownloadZipURL" : "https://bitbucket.org/tkweb/kcontrols/get/83176d9da685.zip",
     "Name" : "kcontrols_1.7"
   },
   "UpdatePackageFiles" : [
