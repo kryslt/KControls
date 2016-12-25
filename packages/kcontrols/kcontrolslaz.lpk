@@ -35,7 +35,7 @@ misrepresented; you must not claim your authorship. All redistributions
 of the original or modified source code must retain the original copyright
 notice. The Author accepts no liability for any damage that may result
 from using this code."/>
-    <Version Major="1" Minor="7"/>
+    <Version Major="1" Minor="7" Release="1"/>
     <Files Count="40">
       <Item1>
         <Filename Value="..\..\source\kgraphics.pas"/>
