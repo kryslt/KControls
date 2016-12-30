@@ -257,6 +257,8 @@ object KMemoImageForm: TKMemoImageForm
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
       ImageIndex = 1
+      ExplicitLeft = 8
+      ExplicitTop = 29
       object GBShading: TGroupBox
         Left = 7
         Top = 9
@@ -353,14 +355,14 @@ object KMemoImageForm: TKMemoImageForm
           Caption = 'Right crop:'
         end
         object LBCropTop: TLabel
-          Left = 10
+          Left = 18
           Top = 91
           Width = 46
           Height = 13
           Caption = 'Top crop:'
         end
         object LBCropBottom: TLabel
-          Left = 10
+          Left = 18
           Top = 121
           Width = 62
           Height = 13

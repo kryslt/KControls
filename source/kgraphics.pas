@@ -30,9 +30,9 @@ uses
  {$IFDEF MSWINDOWS}
   Windows,
  {$ENDIF}
-  GraphType, IntfGraphics, LCLType, LCLIntf, LMessages, LResources,
+  GraphType, IntfGraphics, FPImage, LCLType, LCLIntf, LMessages, LResources,
 {$ELSE}
-  Windows, Messages,
+  Windows, Messages, JPeg,
  {$IFDEF USE_PNG_SUPPORT}
   PngImage,
  {$ENDIF}
@@ -210,6 +210,9 @@ type
 
   { A simple platform independent encapsulation for a 32bpp bitmap with
     alpha channel with the ability to modify it's pixels directly. }
+
+  { TKAlphaBitmap }
+
   TKAlphaBitmap = class(TKGraphic)
   private
     FAutoMirror: Boolean;
@@ -288,12 +291,30 @@ type
     procedure Clear; {$IFDEF FPC}override;{$ENDIF}
     { Combines the pixel at given location with the given color. }
     procedure CombinePixel(X, Y: Integer; Color: TKColorRec);
+    { Takes dimensions and pixels from AGraphic. }
+    procedure CopyFrom(AGraphic: TGraphic);
     { Takes dimensions and pixels from ABitmap. }
-    procedure CopyFrom(ABitmap: TKAlphaBitmap);
+    procedure CopyFromAlphaBitmap(ABitmap: TKAlphaBitmap);
+    { Takes diemnsions and pixels from APngImage. }
+    procedure CopyFromJpeg(AJpegImage: TJPEGImage);
+  {$IFDEF USE_PNG_SUPPORT}
+    { Takes diemnsions and pixels from APngImage. }
+    procedure CopyFromPng(APngImage: TKPngImage);
+  {$ENDIF}
     { Takes 90°-rotated dimensions and pixels from ABitmap. }
     procedure CopyFromRotated(ABitmap: TKAlphaBitmap);
+    { Takes portion from AGraphic at position X and Y. }
+    procedure CopyFromXY(X, Y: Integer; AGraphic: TGraphic);
     { Takes portion from ABitmap at position X and Y. }
-    procedure CopyFromXY(X, Y: Integer; ABitmap: TKAlphaBitmap);
+    procedure CopyFromXYAlphaBitmap(X, Y: Integer; ABitmap: TKAlphaBitmap);
+    { Takes portion from AJpegImage at position X and Y. }
+    procedure CopyFromXYJpeg(X, Y: Integer; AJpegImage: TJPEGImage);
+  {$IFDEF USE_PNG_SUPPORT}
+    { Takes portion from APngImage at position X and Y. }
+    procedure CopyFromXYPng(X, Y: Integer; APngImage: TKPngImage);
+    { Takes diemnsions and pixels from APngImage. }
+    procedure CopyToPng(APngImage: TKPngImage);
+  {$ENDIF}
     { Copies a location specified by ARect from ACanvas to bitmap. }
     procedure DrawFrom(ACanvas: TCanvas; const ARect: TRect); overload;
     { Copies a portion of AGraphic to bitmap at position X and Y. }
@@ -311,6 +332,8 @@ type
   {$ENDIF}
     { Loads the bitmap from a file. Overriden to support PNG as well. }
     procedure LoadFromFile(const Filename: string); override;
+    { Loads the bitmap from bitmap and mask handles. }
+    procedure LoadFromHandles(ABitmap, AMask: HBITMAP);
     { Loads the bitmap from another TGraphic instance. }
     procedure LoadFromGraphic(Image: TGraphic); virtual;
     { Loads the bitmap from a stream. }
@@ -629,6 +652,14 @@ function ColorRecToColor(Color: TKColorRec): TColor;
 { Converts TColor to TKColorRec. }
 function ColorToColorRec(Color: TColor): TKColorRec;
 
+{$IFDEF FPC}
+{ Converts TKColorRec to TFPColor. }
+function ColorRecToFPColor(Color: TKColorRec): TFPColor;
+
+{ Converts TFPColor to TKColorRec. }
+function FPColorToColorRec(Color: TFPColor): TKColorRec;
+{$ENDIF}
+
 { Makes a grayscale representation of the given color. }
 function ColorToGrayScale(Color: TColor): TColor;
 
@@ -790,13 +821,7 @@ function VerticalShapePosition(AAlignment: TKVAlign; const ABoundary: TRect; con
 implementation
 
 uses
-  Math, SysUtils, KRes
-{$IFDEF FPC}
-  , FPImage
-{$ELSE}
-  , JPeg
-{$ENDIF}
-  ;
+  Math, SysUtils, KRes;
 
 procedure BlendLine(Src, Dest: PKColorRecs; Count: Integer);
 var
@@ -973,6 +998,28 @@ function ColorToColorRec(Color: TColor): TKColorRec;
 begin
   Result.Value := ColorToRGB(Color);
 end;
+
+{$IFDEF FPC}
+function ColorRecToFPColor(Color: TKColorRec): TFPColor;
+begin
+  Result.Red := Color.R;
+  Result.Red := Result.Red + (Result.Red shl 8);
+  Result.Green := Color.G;
+  Result.Green := Result.Green + (Result.Green shl 8);
+  Result.Blue := Color.B;
+  Result.Blue := Result.Blue + (Result.Blue shl 8);
+  Result.Alpha := Color.A;
+  Result.Alpha := Result.Alpha + (Result.Alpha shl 8);
+end;
+
+function FPColorToColorRec(Color: TFPColor): TKColorRec;
+begin
+  Result.R := Color.Red shr 8;
+  Result.G := Color.Green shr 8;
+  Result.B := Color.Blue shr 8;
+  Result.A := Color.Alpha shr 8;
+end;
+{$ENDIF}
 
 function CompareBrushes(ABrush1, ABrush2: TBrush): Boolean;
 begin
@@ -1944,21 +1991,19 @@ end;
 
 procedure TKAlphaBitmap.AlphaStretchDrawTo(ACanvas: TCanvas;
   const ARect: TRect);
-{$IFnDEF LCLQT}
+{$IF DEFINED(MSWINDOWS) OR DEFINED(LCLGTK) OR DEFINED(LCLGTK2)}
 var
   I: Integer;
   Tmp: TKAlphaBitmap;
   Ps, Pd: PKColorRecs;
-{$ENDIF}
+{$IFEND}
 begin
-{$IFDEF LCLQT}
-  DrawTo(ACanvas, ARect);
-{$ELSE}
+{$IF DEFINED(MSWINDOWS) OR DEFINED(LCLGTK) OR DEFINED(LCLGTK2)}
   Tmp := TKAlphaBitmap.Create;
   try
     Tmp.SetSize(FWidth, FHeight);
     Tmp.Fill(MakeColorRec(255, 255, 255, 0));
-    Tmp.DrawFrom(ACanvas, ARect); // QT does not support
+    Tmp.DrawFrom(ACanvas, ARect);
     for I := 0 to FHeight - 1 do
     begin
       Ps := ScanLine[I];
@@ -1970,7 +2015,9 @@ begin
   finally
     Tmp.Free;
   end;
-{$ENDIF}
+{$ELSE}
+  DrawTo(ACanvas, ARect);
+{$IFEND}
 end;
 
 procedure TKAlphaBitmap.Assign(Source: TPersistent);
@@ -2048,7 +2095,21 @@ begin
   end;
 end;
 
-procedure TKAlphaBitmap.CopyFrom(ABitmap: TKAlphaBitmap);
+procedure TKAlphaBitmap.CopyFrom(AGraphic: TGraphic);
+begin
+  if AGraphic is TKAlphaBitmap then
+    CopyFromAlphaBitmap(AGraphic as TKAlphaBitmap)
+{$IFDEF USE_PNG_SUPPORT}
+  else if AGraphic is TKPngImage then
+    CopyFromPng(AGraphic as TKPngImage)
+{$ENDIF}
+  else if AGraphic is TJpegImage then
+    CopyFromJpeg(AGraphic as TJpegImage)
+  else
+    DrawFrom(AGraphic, 0, 0);
+end;
+
+procedure TKAlphaBitmap.CopyFromAlphaBitmap(ABitmap: TKAlphaBitmap);
 var
   I, Size: Integer;
 begin
@@ -2062,6 +2123,89 @@ begin
     UnlockUpdate;
   end;
 end;
+
+procedure TKAlphaBitmap.CopyFromJpeg(AJpegImage: TJPEGImage);
+{$IFDEF FPC}
+var
+  I, J: Integer;
+  C: TKColorRec;
+  IM: TLazIntfImage;
+  FC: TFPColor;
+{$ENDIF}
+begin
+  LockUpdate;
+  try
+    SetSize(AJpegImage.Width, AJpegImage.Height);
+  {$IFDEF FPC}
+    IM := AJpegImage.CreateIntfImage;
+    try
+      for I := 0 to AJpegImage.Width - 1 do
+      begin
+        for J := 0 to AJpegImage.Height - 1 do
+        begin
+          FC := IM.Colors[I, J];
+          C := FPColorToColorRec(FC);
+          Pixel[I, J] := C;
+        end;
+      end;
+    finally
+      IM.Free;
+    end;
+  {$ELSE}
+    // no access to JPEG pixels under Delphi
+    DrawFrom(AJpegImage, 0, 0);
+    DirectCopy := not HasAlpha;
+    AlphaFill(255, True);
+  {$ENDIF}
+  finally
+    UnlockUpdate;
+  end;
+end;
+
+{$IFDEF USE_PNG_SUPPORT}
+procedure TKAlphaBitmap.CopyFromPng(APngImage: TKPngImage);
+var
+  I, J: Integer;
+  C: TKColorRec;
+{$IFDEF FPC}
+  IM: TLazIntfImage;
+  FC: TFPColor;
+{$ENDIF}
+begin
+  LockUpdate;
+  try
+    SetSize(APngImage.Width, APngImage.Height);
+  {$IFDEF FPC}
+    IM := APngImage.CreateIntfImage;
+    try
+  {$ENDIF}
+      for I := 0 to APngImage.Width - 1 do
+      begin
+        for J := 0 to APngImage.Height - 1 do
+        begin
+        {$IFDEF FPC}
+          FC := IM.Colors[I, J];
+          C := FPColorToColorRec(FC);
+        {$ELSE}
+          C.Value := APngImage.Pixels[I, J];
+          if APngImage.AlphaScanline[J] <> nil then
+            C.A := APngImage.AlphaScanline[J][I]
+          else
+            C.A := 0;
+        {$ENDIF}
+          Pixel[I, J] := C;
+        end;
+      end;
+  {$IFDEF FPC}
+    finally
+      IM.Free;
+    end;
+  {$ENDIF}
+  finally
+    UnlockUpdate;
+  end;
+end;
+{$ENDIF}
 
 procedure TKAlphaBitmap.CopyFromRotated(ABitmap: TKAlphaBitmap);
 var
@@ -2085,7 +2229,21 @@ begin
   end;
 end;
 
-procedure TKAlphaBitmap.CopyFromXY(X, Y: Integer; ABitmap: TKAlphaBitmap);
+procedure TKAlphaBitmap.CopyFromXY(X, Y: Integer; AGraphic: TGraphic);
+begin
+  if AGraphic is TKAlphaBitmap then
+    CopyFromXYAlphaBitmap(X, Y, AGraphic as TKAlphaBitmap)
+{$IFDEF USE_PNG_SUPPORT}
+  else if AGraphic is TKPngImage then
+    CopyFromXYPng(X, Y, AGraphic as TKPngImage)
+{$ENDIF}
+  else if AGraphic is TJpegImage then
+    CopyFromXYJpeg(X, Y, AGraphic as TJpegImage)
+  else
+    DrawFrom(AGraphic, X, Y);
+end;
+
+procedure TKAlphaBitmap.CopyFromXYAlphaBitmap(X, Y: Integer; ABitmap: TKAlphaBitmap);
 var
   I, J: Integer;
 begin
@@ -2099,6 +2257,135 @@ begin
     UnlockUpdate;
   end;
 end;
+
+procedure TKAlphaBitmap.CopyFromXYJpeg(X, Y: Integer; AJpegImage: TJPEGImage);
+{$IFDEF FPC}
+var
+  I, J: Integer;
+  C: TKColorRec;
+  IM: TLazIntfImage;
+  FC: TFPColor;
+{$ENDIF}
+begin
+  LockUpdate;
+  try
+    {$IFDEF FPC}
+      IM := AJpegImage.CreateIntfImage;
+      try
+        for I := X to X + AJpegImage.Width - 1 do
+        begin
+          for J := Y to Y + AJpegImage.Height - 1 do
+          begin
+            if (I >= 0) and (I < FWidth) and (J >= 0) and (J < FHeight) then
+            begin
+              FC := IM.Colors[I - X, J - Y];
+              C := FPColorToColorRec(FC);
+              Pixel[I, J] := C;
+            end;
+          end;
+        end;
+      finally
+        IM.Free;
+      end;
+    {$ELSE}
+      // no access to JPEG pixels under Delphi
+      DrawFrom(AJpegImage, X, Y);
+      DirectCopy := not HasAlpha;
+      AlphaFill(255, True);
+    {$ENDIF}
+  finally
+    UnlockUpdate;
+  end;
+end;
+
+{$IFDEF USE_PNG_SUPPORT}
+procedure TKAlphaBitmap.CopyFromXYPng(X, Y: Integer; APngImage: TKPngImage);
+var
+  I, J: Integer;
+  C: TKColorRec;
+{$IFDEF FPC}
+  IM: TLazIntfImage;
+  FC: TFPColor;
+{$ENDIF}
+begin
+  LockUpdate;
+  try
+    {$IFDEF FPC}
+      IM := APngImage.CreateIntfImage;
+      try
+    {$ENDIF}
+        for I := X to X + APngImage.Width - 1 do
+        begin
+          for J := Y to Y + APngImage.Height - 1 do
+          begin
+            if (I >= 0) and (I < FWidth) and (J >= 0) and (J < FHeight) then
+            begin
+            {$IFDEF FPC}
+              FC := IM.Colors[I - X, J - Y];
+              C := FPColorToColorRec(FC);
+            {$ELSE}
+              C.Value := APngImage.Pixels[I - X, J - Y];
+              C.A := APngImage.AlphaScanline[J - Y][I - X];
+            {$ENDIF}
+              Pixel[I, J] := C;
+            end;
+          end;
+        end;
+    {$IFDEF FPC}
+      finally
+        IM.Free;
+      end;
+    {$ENDIF}
+  finally
+    UnlockUpdate;
+  end;
+end;
+
+procedure TKAlphaBitmap.CopyToPng(APngImage: TKPngImage);
+var
+  I, J: Integer;
+  C: TKColorRec;
+{$IFDEF FPC}
+  IM: TLazIntfImage;
+  FC: TFPColor;
+{$ENDIF}
+begin
+  UpdatePixels;
+{$IFDEF FPC}
+  APngImage.SetSize(FWidth, FHeight);
+  IM := TLazIntfImage.Create(0, 0, [riqfRGB, riqfAlpha]);
+{$ELSE}
+  APngImage.CreateBlank(COLOR_RGBALPHA, 8, FWidth, FHeight);
+{$ENDIF}
+  try
+  {$IFDEF FPC}
+    IM.SetSize(FWidth, FHeight);
+  {$ENDIF}
+    for I := 0 to FWidth - 1 do
+    begin
+      for J := 0 to FHeight - 1 do
+      begin
+        C := Pixel[I, J];
+      {$IFDEF FPC}
+        FC := ColorRecToFPColor(C);
+        IM.Colors[I, J] := FC;
+      {$ELSE}
+        APngImage.Pixels[I, J] := C.Value;
+        if APngImage.AlphaScanline[J] <> nil then
+          APngImage.AlphaScanline[J][I] := C.A;
+      {$ENDIF}
+      end;
+    end;
+  {$IFDEF FPC}
+    APngImage.LoadFromIntfImage(IM);
+  {$ENDIF}
+  finally
+  {$IFDEF FPC}
+    IM.Free;
+  {$ENDIF}
+  end;
+end;
+{$ENDIF}
 
 procedure TKAlphaBitmap.Draw(ACanvas: TCanvas; const ARect: TRect);
 begin
@@ -2271,6 +2558,11 @@ begin
   finally
     IM.Free;
   end;
+end;
+
+procedure TKAlphaBitmap.LoadFromHandles(ABitmap, AMask: HBITMAP);
+begin
+  // todo
 end;
 
 procedure TKAlphaBitmap.LoadFromGraphic(Image: TGraphic);

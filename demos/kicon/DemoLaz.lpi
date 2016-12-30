@@ -4,6 +4,7 @@
     <Version Value="10"/>
     <PathDelim Value="\"/>
     <General>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <UseXPManifest Value="True"/>
     </General>
@@ -30,330 +31,26 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="30">
+    <Units Count="2">
       <Unit0>
         <Filename Value="DemoLaz.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
-        <CursorPos X="27" Y="14"/>
-        <UsageCount Value="113"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
-        <Filename Value="C:\Lazarus\lcl\include\application.inc"/>
-        <TopLine Value="340"/>
-        <CursorPos X="33" Y="345"/>
-        <UsageCount Value="1"/>
-      </Unit1>
-      <Unit2>
         <Filename Value="Main.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="MainForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="192"/>
-        <CursorPos X="11" Y="212"/>
-        <UsageCount Value="113"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="Main.lrs"/>
-        <CursorPos X="17" Y="3"/>
-        <SyntaxHighlighter Value="Delphi"/>
-        <UsageCount Value="1"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="KIcon.pas"/>
-        <TopLine Value="1920"/>
-        <CursorPos X="13" Y="1947"/>
-        <SyntaxHighlighter Value="Delphi"/>
-        <UsageCount Value="23"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="KGraphics.pas"/>
-        <TopLine Value="429"/>
-        <CursorPos Y="458"/>
-        <SyntaxHighlighter Value="Delphi"/>
-        <UsageCount Value="23"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="C:\Lazarus\lcl\include\rasterimage.inc"/>
-        <TopLine Value="481"/>
-        <CursorPos Y="508"/>
-        <UsageCount Value="6"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="C:\Lazarus\lcl\include\custombitmap.inc"/>
-        <TopLine Value="434"/>
-        <CursorPos Y="474"/>
-        <UsageCount Value="6"/>
-      </Unit7>
-      <Unit8>
-        <Filename Value="C:\Lazarus\lcl\intfgraphics.pas"/>
-        <UnitName Value="IntfGraphics"/>
-        <TopLine Value="2996"/>
-        <CursorPos Y="3023"/>
-        <UsageCount Value="5"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="C:\Lazarus\lcl\include\listitem.inc"/>
-        <TopLine Value="290"/>
-        <CursorPos Y="317"/>
-        <UsageCount Value="20"/>
-      </Unit9>
-      <Unit10>
-        <Filename Value="KFunctions.pas"/>
-        <CursorPos X="18" Y="23"/>
-        <SyntaxHighlighter Value="Delphi"/>
-        <UsageCount Value="5"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="..\..\source\kgraphics.pas"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="1695"/>
-        <CursorPos X="72" Y="1729"/>
-        <UsageCount Value="39"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit11>
-      <Unit12>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="1680"/>
-        <CursorPos X="24" Y="1694"/>
-        <UsageCount Value="39"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit12>
-      <Unit13>
-        <Filename Value="C:\Lazarus\lcl\include\listitems.inc"/>
-        <TopLine Value="195"/>
-        <CursorPos Y="222"/>
-        <UsageCount Value="6"/>
-      </Unit13>
-      <Unit14>
-        <Filename Value="C:\Lazarus\lcl\include\customlistview.inc"/>
-        <TopLine Value="616"/>
-        <CursorPos Y="643"/>
-        <UsageCount Value="6"/>
-      </Unit14>
-      <Unit15>
-        <Filename Value="C:\Lazarus\lcl\include\wincontrol.inc"/>
-        <TopLine Value="6420"/>
-        <CursorPos Y="6447"/>
-        <UsageCount Value="6"/>
-      </Unit15>
-      <Unit16>
-        <Filename Value="C:\Lazarus\lcl\graphics.pp"/>
-        <UnitName Value="Graphics"/>
-        <TopLine Value="846"/>
-        <CursorPos X="45" Y="873"/>
-        <UsageCount Value="6"/>
-      </Unit16>
-      <Unit17>
-        <Filename Value="..\..\source\kcontrols.inc"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="159"/>
-        <CursorPos Y="208"/>
-        <UsageCount Value="38"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit17>
-      <Unit18>
-        <Filename Value="..\..\source\kfunctions.pas"/>
-        <EditorIndex Value="6"/>
-        <UsageCount Value="38"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit18>
-      <Unit19>
-        <Filename Value="Main.lfm"/>
-        <UsageCount Value="38"/>
-        <DefaultSyntaxHighlighter Value="LFM"/>
-      </Unit19>
-      <Unit20>
-        <Filename Value="C:\lazarusSVN\lcl\include\rasterimage.inc"/>
-        <TopLine Value="622"/>
-        <CursorPos Y="650"/>
-        <UsageCount Value="36"/>
-      </Unit20>
-      <Unit21>
-        <Filename Value="C:\lazarusSVN\lcl\include\canvas.inc"/>
-        <TopLine Value="1431"/>
-        <CursorPos Y="1459"/>
-        <UsageCount Value="36"/>
-      </Unit21>
-      <Unit22>
-        <Filename Value="C:\fpc\2.2.4\source\rtl\win\wininc\ascdef.inc"/>
-        <TopLine Value="54"/>
-        <CursorPos X="77" Y="82"/>
-        <UsageCount Value="35"/>
-      </Unit22>
-      <Unit23>
-        <Filename Value="C:\fpc\2.2.4\source\rtl\win\wininc\base.inc"/>
-        <TopLine Value="687"/>
-        <CursorPos X="6" Y="715"/>
-        <UsageCount Value="35"/>
-      </Unit23>
-      <Unit24>
-        <Filename Value="C:\lazarusSVN\lcl\graphics.pp"/>
-        <UnitName Value="Graphics"/>
-        <TopLine Value="185"/>
-        <CursorPos X="5" Y="221"/>
-        <UsageCount Value="22"/>
-      </Unit24>
-      <Unit25>
-        <Filename Value="C:\lazarusSVN\lcl\intfgraphics.pas"/>
-        <UnitName Value="IntfGraphics"/>
-        <TopLine Value="3259"/>
-        <CursorPos Y="3287"/>
-        <UsageCount Value="11"/>
-      </Unit25>
-      <Unit26>
-        <Filename Value="C:\lazarusSVN\lcl\include\custombitmap.inc"/>
-        <TopLine Value="421"/>
-        <CursorPos Y="449"/>
-        <UsageCount Value="11"/>
-      </Unit26>
-      <Unit27>
-        <Filename Value="C:\lazarusSVN\lcl\include\graphic.inc"/>
-        <TopLine Value="112"/>
-        <CursorPos Y="140"/>
-        <UsageCount Value="11"/>
-      </Unit27>
-      <Unit28>
-        <Filename Value="..\..\source\kres.pas"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="228"/>
-        <CursorPos X="31" Y="242"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit28>
-      <Unit29>
-        <Filename Value="C:\lazarus\lcl\include\winapi.inc"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="593"/>
-        <CursorPos X="38" Y="609"/>
-        <UsageCount Value="10"/>
-      </Unit29>
+      </Unit1>
     </Units>
-    <JumpHistory Count="26" HistoryIndex="25">
-      <Position1>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1182" TopLine="1154"/>
-      </Position1>
-      <Position2>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1186" TopLine="1158"/>
-      </Position2>
-      <Position3>
-        <Filename Value="Main.pas"/>
-        <Caret Line="349" TopLine="318"/>
-      </Position3>
-      <Position4>
-        <Filename Value="Main.pas"/>
-        <Caret Line="351" TopLine="318"/>
-      </Position4>
-      <Position5>
-        <Filename Value="DemoLaz.lpr"/>
-        <Caret Line="15" Column="27"/>
-      </Position5>
-      <Position6>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1167" TopLine="1139"/>
-      </Position6>
-      <Position7>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1168" TopLine="1140"/>
-      </Position7>
-      <Position8>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1170" TopLine="1142"/>
-      </Position8>
-      <Position9>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1183" TopLine="1155"/>
-      </Position9>
-      <Position10>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1187" TopLine="1159"/>
-      </Position10>
-      <Position11>
-        <Filename Value="Main.pas"/>
-        <Caret Line="349" TopLine="318"/>
-      </Position11>
-      <Position12>
-        <Filename Value="..\..\source\kicon.pas"/>
-      </Position12>
-      <Position13>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1126" Column="12" TopLine="1106"/>
-      </Position13>
-      <Position14>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1153" Column="15" TopLine="1141"/>
-      </Position14>
-      <Position15>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1806" Column="17" TopLine="1791"/>
-      </Position15>
-      <Position16>
-        <Filename Value="..\..\source\kicon.pas"/>
-        <Caret Line="1807" Column="32" TopLine="1792"/>
-      </Position16>
-      <Position17>
-        <Filename Value="..\..\source\kres.pas"/>
-      </Position17>
-      <Position18>
-        <Filename Value="..\..\source\kres.pas"/>
-        <Caret Line="353" TopLine="338"/>
-      </Position18>
-      <Position19>
-        <Filename Value="..\..\source\kres.pas"/>
-        <Caret Line="225" TopLine="210"/>
-      </Position19>
-      <Position20>
-        <Filename Value="..\..\source\kres.pas"/>
-        <Caret Line="226" TopLine="210"/>
-      </Position20>
-      <Position21>
-        <Filename Value="..\..\source\kres.pas"/>
-        <Caret Line="228" TopLine="210"/>
-      </Position21>
-      <Position22>
-        <Filename Value="..\..\source\kres.pas"/>
-        <Caret Line="238" TopLine="213"/>
-      </Position22>
-      <Position23>
-        <Filename Value="Main.pas"/>
-        <Caret Line="328" Column="19" TopLine="318"/>
-      </Position23>
-      <Position24>
-        <Filename Value="Main.pas"/>
-        <Caret Line="324" Column="34" TopLine="322"/>
-      </Position24>
-      <Position25>
-        <Filename Value="Main.pas"/>
-        <Caret Line="323" Column="34" TopLine="321"/>
-      </Position25>
-      <Position26>
-        <Filename Value="..\..\source\kres.pas"/>
-        <Caret Line="242" Column="32" TopLine="228"/>
-      </Position26>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
       <IncludeFiles Value="..\..\source;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\source"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -364,6 +61,7 @@
     </Parsing>
     <Linking>
       <Debugging>
+        <UseHeaptrc Value="True"/>
         <StripSymbols Value="True"/>
       </Debugging>
       <Options>
@@ -379,20 +77,6 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <BreakPoints Count="1">
-      <Item1>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="..\..\source\kres.pas"/>
-        <Line Value="353"/>
-      </Item1>
-    </BreakPoints>
-    <Watches Count="1">
-      <Item1>
-        <Expression Value="CB"/>
-      </Item1>
-    </Watches>
     <Exceptions Count="3">
       <Item1>
         <Name Value="EAbort"/>

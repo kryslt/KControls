@@ -1006,12 +1006,8 @@ end;
 
 {$IFDEF USE_PNG_SUPPORT}
 procedure TKIcon.AddFromPng(APngImage: TKPngImage);
-{$IFNDEF FPC}
 var
-  I, J: Integer;
-  C: TKColorRec;
   Bitmap: TKAlphaBitmap;
-{$ENDIF}
 begin
   if APngImage <> nil then
   begin
@@ -1029,26 +1025,13 @@ begin
     end else
     begin
       FIconData[FIconCount - 1].IsPNG := False;
-    {$IFNDEF FPC}
       Bitmap := TKAlphaBitmap.Create;
       try
-        Bitmap.SetSize(APngImage.Width, APngImage.Height);
-        Bitmap.DirectCopy := True;
-        for I := 0 to Bitmap.Width - 1 do
-          for J := 0 to Bitmap.Height - 1 do
-          begin
-            C.Value := APngImage.Pixels[I, J];
-            if APngImage.AlphaScanline[J] <> nil then
-              C.A := APngImage.AlphaScanline[J][I]
-            else
-              C.A := 0;
-            Bitmap.Pixel[I, J] := C;
-          end;
+        Bitmap.CopyFromPng(APngImage);
         LoadHandles(FIconCount - 1, MakeHandles(Bitmap.Handle, CreateMonochromeBitmap(Bitmap.Width, Bitmap.Height)), True);
       finally
         Bitmap.Free;
       end;
-    {$ENDIF}
     end;
   end;
 end;
@@ -1117,14 +1100,6 @@ end;
 procedure TKIcon.CopyToAlphaBitmap(Index: Integer; Bitmap: TKAlphaBitmap);
 var
   ID: TKIconData;
-{$IFDEF USE_PNG_SUPPORT}
-  I, J: Integer;
-  C: TKColorRec;
- {$IFDEF FPC}
-  IM: TLazIntfImage;
-  FC: TFPColor;
- {$ENDIF}
-{$ENDIF}
 begin
   if (Index >= 0) and (Index < FIconCount) and (Bitmap <> nil) then
   begin
@@ -1133,32 +1108,8 @@ begin
     Bitmap.DirectCopy := True;
     try
       if ID.IsPng then
-      begin
-    {$IFDEF USE_PNG_SUPPORT}
-      {$IFDEF FPC}
-        IM := ID.PNG.CreateIntfImage;
-        try
-          for I := 0 to ID.Width - 1 do
-            for J := 0 to ID.Height - 1 do
-            begin
-              FC := IM.Colors[I, J];
-              C.A := FC.alpha; C.B := FC.blue; C.R := FC.red; C.G := FC.green;
-              Bitmap.Pixel[I, J] := C;
-            end;
-        finally
-          IM.Free;
-        end;
-      {$ELSE}
-        for I := 0 to ID.Width - 1 do
-          for J := 0 to ID.Height - 1 do
-          begin
-            C.Value := ID.PNG.Pixels[I, J];
-            C.A := ID.PNG.AlphaScanline[J][I];
-            Bitmap.Pixel[I, J] := C;
-          end;
-      {$ENDIF}
-    {$ENDIF}
-      end else
+        Bitmap.CopyFromPng(ID.PNG)
+      else
         InternalCopyToAlphaBitmap(Bitmap, ID.hXOR, ID.pAND, ID.Bpp);
     finally
       Bitmap.DirectCopy := False;
@@ -1214,11 +1165,7 @@ end;
 procedure TKIcon.CopyToPng(Index: Integer; Png: TKPngImage);
 var
   ID: TKIconData;
-{$IFNDEF FPC}
-  I, J: Integer;
-  C: TKColorRec;
   Bitmap: TKAlphaBitmap;
-{$ENDIF}
 begin
   if (Index >= 0) and (Index < FIconCount) and (Png <> nil) then
   begin
@@ -1235,14 +1182,7 @@ begin
         Bitmap.SetSize(ID.Width, ID.Height);
         Bitmap.DirectCopy := True;
         InternalCopyToAlphaBitmap(Bitmap, ID.hXOR, ID.pAND, ID.Bpp);
-        Png.CreateBlank(COLOR_RGBALPHA, 8, ID.Width, ID.Height);
-        for I := 0 to ID.Width - 1 do
-          for J := 0 to ID.Height - 1 do
-          begin
-            C := Bitmap.Pixel[I, J];
-            Png.Pixels[I, J] := C.Value;
-            Png.AlphaScanline[J][I] := C.A;
-          end;
+        Bitmap.CopyToPng(Png);
       finally
         Bitmap.Free;
       end;

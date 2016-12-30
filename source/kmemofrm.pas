@@ -200,16 +200,10 @@ type
     procedure ACParaStyleUpdate(Sender: TObject);
     procedure ACParaStyleExecute(Sender: TObject);
     procedure ACFormatCopyExecute(Sender: TObject);
-    procedure EditorBlockEdit(Sender: TObject; ABlock: TKMemoBlock;
-      var Result: Boolean);
-    procedure EditorMouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
-    procedure EditorDropFiles(Sender: TObject; X, Y: Integer; Files: TStrings);
     procedure ACShowFormattingExecute(Sender: TObject);
     procedure ACShowFormattingUpdate(Sender: TObject);
     procedure ACInsertHyperlinkExecute(Sender: TObject);
     procedure ACEditHyperlinkUpdate(Sender: TObject);
-    procedure EditorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure ACParaNumberingExecute(Sender: TObject);
     procedure ACParaNumberingUpdate(Sender: TObject);
     procedure ACFontSuperscriptExecute(Sender: TObject);
@@ -222,6 +216,10 @@ type
     procedure MIFileExitClick(Sender: TObject);
     procedure ACEditContainerUpdate(Sender: TObject);
     procedure ACInsertContainerExecute(Sender: TObject);
+    procedure EditorBlockEdit(Sender: TObject; ABlock: TKMemoBlock; var Result: Boolean);
+    procedure EditorMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure EditorMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure EditorDropFiles(Sender: TObject; X, Y: Integer; Files: TStrings);
   private
     { Private declarations }
     FDefaultIndent: Integer;

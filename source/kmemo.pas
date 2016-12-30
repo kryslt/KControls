@@ -3814,10 +3814,13 @@ begin
 end;
 
 procedure TKMemoParaStyle.SetLineSpacingFactor(const Value: Double);
+var
+  Tmp: Double;
 begin
-  if Value <> FLineSpacingFactor then
+  Tmp := MinMax(Value, 1, 10);
+  if Tmp <> FLineSpacingFactor then
   begin
-    FLineSpacingFactor := Value;
+    FLineSpacingFactor := Tmp;
     PropsChanged([muExtent]);
   end;
 end;
@@ -8927,6 +8930,7 @@ function TKMemoImageBlock.GetSizingRect: TRect;
 var
   ROuter: TRect;
 begin
+//  Result := inherited GetSizingRect;
   ROuter := OuterRect(False);
   CroppedImage;
   Result := FScaledRect;
@@ -9030,8 +9034,8 @@ end;
 
 procedure TKMemoImageBlock.Resize(ANewWidth, ANewHeight: Integer);
 begin
-  ScaleWidth := ANewWidth;
-  ScaleHeight := ANewHeight;
+  ScaleWidth := ANewWidth + FCrop.Left + FCrop.Right;
+  ScaleHeight := ANewHeight + FCrop.Top + FCrop.Bottom;
 end;
 
 procedure TKMemoImageBlock.CropChanged(Sender: TObject);
@@ -9061,28 +9065,14 @@ begin
       RatioY := ExtentY / FImage.Height;
       // crop in original units
       OrigCrop := Rect(Round(FCrop.Left / RatioX), Round(FCrop.Top / RatioY), Round(FCrop.Right / RatioX), Round(FCrop.Bottom / RatioY));
-      // handle desired image size differently with respect to its position mode
-      if Position = mbpText then
-      begin
-        // when image is placed in text it should be adjusted to page width
-        NewExtentX := FExtent.X - FImageStyle.AllPaddingsLeft - FImageStyle.AllPaddingsRight;
-        ExtentY := Min(MulDiv(NewExtentX, ExtentY, ExtentX),
-          FExtent.Y - FImageStyle.AllPaddingsBottom - FImageStyle.AllPaddingsTop - FWordTopPadding - FWordBottomPadding);
-        ExtentX := NewExtentX;
-      end else
-      begin
-        // otherwise respect desired size
-        Dec(ExtentX, FCrop.Left + FCrop.Right);
-        Dec(ExtentY, FCrop.Top + FCrop.Bottom);
-      end;
+      Dec(ExtentX, FCrop.Left + FCrop.Right);
+      Dec(ExtentY, FCrop.Top + FCrop.Bottom);
       FScaledRect := Rect(0, 0, ExtentX, ExtentY);
       if (ExtentX * ExtentY <> 0) and (FImage.Width * FImage.Height <> 0) then
       begin
         FCroppedImage := TKAlphaBitmap.Create;
         FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
-        FCroppedImage.DrawFrom(FImage, -OrigCrop.Left, -OrigCrop.Top);
-        FCroppedImage.DirectCopy := not FCroppedImage.HasAlpha;
-        FCroppedImage.AlphaFill(255, True);
+        FCroppedImage.CopyFromXY(-OrigCrop.Left, -OrigCrop.Top, FImage);
       end;
     finally
       FCreatingCroppedImage := False;
@@ -9230,12 +9220,6 @@ begin
   Result := Point(
     ImageWidth + FImageStyle.AllPaddingsLeft + FImageStyle.AllPaddingsRight,
     ImageHeight + FImageStyle.AllPaddingsTop + FImageStyle.AllPaddingsBottom);
-  if (Position = mbpText) and (Result.X > ARequiredWidth) then
-  begin
-    // when image is placed in text it should be adjusted to page width
-    Result.Y := MulDiv(Result.Y, ARequiredWidth, Result.X);
-    Result.X := ARequiredWidth;
-  end;
   FExtent := Result;
 end;
 
@@ -9317,17 +9301,8 @@ begin
     begin
       Bitmap := TKAlphaBitmap.Create;
       try
-        Bitmap.SetSize(FCroppedImage.Width, FCroppedImage.Height);
-      {$IFDEF FPC}
-        Bitmap.UpdateHandle;
-      {$ENDIF}
-        Bitmap.Canvas.Brush.Color := BkGnd;
-        Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
-        Bitmap.Canvas.Draw(0, 0, FCroppedImage);
-      {$IFDEF FPC}
-        Bitmap.UpdatePixels;
-      {$ENDIF}
-        Bitmap.AlphaFillPercent(50, True);
+        Bitmap.CopyFromAlphaBitmap(FCroppedImage);
+        Bitmap.AlphaFillPercent(50, False);
         ACanvas.StretchDraw(R, Bitmap);
         if not ReadOnly and (SelectedBlock = Self) then
           SizingGripsDraw(ACanvas, R);
@@ -9340,7 +9315,6 @@ begin
     FImageStyle.PaintBox(ACanvas, ROuter);
     if FCroppedImage <> nil then
       ACanvas.StretchDraw(R, FCroppedImage);
-//    ACanvas.StretchDraw(R, FImage);
   end;
 end;
 

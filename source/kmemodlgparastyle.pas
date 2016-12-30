@@ -72,7 +72,7 @@ type
     { Private declarations }
     FMemo: TKmemo;
     FStyle: TKMemoParaStyle;
-    procedure UpdateLineSpacingValue(AValue: Double);
+    procedure UpdateLineSpacingValue;
   public
     { Public declarations }
     procedure Load(AMemo: TKMemo; AStyle: TKMemoParaStyle);
@@ -90,15 +90,23 @@ implementation
 uses
   Math, KFunctions, KGraphics;
 
+const
+  cLsSingle = 0;
+  cLs1HalfLines = 1;
+  cLsDouble = 2;
+  cLsLeast = 3;
+  cLsExact = 4;
+  cLsFactor = 5;
+
+  cSpNone = 0;
+  cSpFirstLine = 1;
+  cSpHanging = 2;
+
 { TKMemoParaStyleForm }
 
 procedure TKMemoParaStyleForm.CoBLineSpacingClick(Sender: TObject);
 begin
-  case CoBLineSpacing.ItemIndex of
-    3,4: UpdateLineSpacingValue(Abs(FStyle.LineSpacingValue))
-  else
-    UpdateLineSpacingValue(FStyle.LineSpacingFactor);
-  end;
+  UpdateLineSpacingValue;
 end;
 
 procedure TKMemoParaStyleForm.Load(AMemo: TKMemo; AStyle: TKMemoParaStyle);
@@ -112,11 +120,11 @@ begin
   EDRightIndent.Value := FMemo.Px2PtX(AStyle.RightPadding);
   EDFirstIndent.Value := FMemo.Px2PtX(Abs(AStyle.FirstIndent));
   if AStyle.FirstIndent = 0 then
-    CoBFirstIndent.ItemIndex := 0
+    CoBFirstIndent.ItemIndex := cSpNone
   else if AStyle.FirstIndent > 0 then
-    CoBFirstIndent.ItemIndex := 1
+    CoBFirstIndent.ItemIndex := cSpFirstLine
   else
-    CoBFirstIndent.ItemIndex := 2;
+    CoBFirstIndent.ItemIndex := cSpHanging;
   EDSpaceAbove.Value := FMemo.Px2PtY(AStyle.TopPadding);
   EDSpaceBelow.Value := FMemo.Px2PtY(AStyle.BottomPadding);
   EDBorderBottom.Value := FMemo.Px2PtY(AStyle.BorderWidths.Bottom);
@@ -134,24 +142,23 @@ begin
     lsmFactor:
     begin
       if SameValue(AStyle.LineSpacingFactor, 1) then
-        CoBLineSpacing.ItemIndex := 0
+        CoBLineSpacing.ItemIndex := cLsSingle
       else if SameValue(AStyle.LineSpacingFactor, 1.5) then
-        CoBLineSpacing.ItemIndex := 1
+        CoBLineSpacing.ItemIndex := cLs1HalfLines
       else if SameValue(AStyle.LineSpacingFactor, 2) then
-        CoBLineSpacing.ItemIndex := 2
+        CoBLineSpacing.ItemIndex := cLsDouble
       else
-        CoBLineSpacing.ItemIndex := 5;
-      UpdateLineSpacingValue(AStyle.LineSpacingFactor);
+        CoBLineSpacing.ItemIndex := cLsFactor;
     end;
     lsmValue:
     begin
       if AStyle.LineSpacingValue >= 0 then
-        CoBLineSpacing.ItemIndex := 3
+        CoBLineSpacing.ItemIndex := cLsLeast
       else
-        CoBLineSpacing.ItemIndex := 4;
-      UpdateLineSpacingValue(Abs(AStyle.LineSpacingValue));
+        CoBLineSpacing.ItemIndex := cLsExact;
     end;
   end;
+  UpdateLineSpacingValue;
 end;
 
 procedure TKMemoParaStyleForm.Save(AStyle: TKMemoParaStyle);
@@ -162,8 +169,8 @@ begin
     AStyle.LeftPadding := FMemo.Pt2PxX(EDLeftIndent.Value);
     AStyle.RightPadding := FMemo.Pt2PxX(EDRightIndent.Value);
     case CoBFirstIndent.ItemIndex of
-      1: AStyle.FirstIndent := FMemo.Pt2PxX(EDFirstIndent.Value);
-      2: AStyle.FirstIndent := FMemo.Pt2PxX(-EDFirstIndent.Value);
+      cSpFirstLine: AStyle.FirstIndent := FMemo.Pt2PxX(EDFirstIndent.Value);
+      cSpHanging: AStyle.FirstIndent := FMemo.Pt2PxX(-EDFirstIndent.Value);
     else
       AStyle.FirstIndent := 0;
     end;
@@ -179,27 +186,73 @@ begin
       AStyle.Brush.Color := CLBShading.DlgColor;
     AStyle.WordWrap := CBWordWrap.Checked;
     case CoBLineSpacing.ItemIndex of
-      1: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 1.5; end;
-      2: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 2; end;
-      3: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := FMemo.Pt2PxY(-MinMax(EDLineSpacingValue.Value, 5, 100)); end;
-      4: begin AStyle.LineSpacingMode := lsmValue; AStyle.LineSpacingValue := FMemo.Pt2PxY(MinMax(EDLineSpacingValue.Value, 5, 100)); end;
-      5: begin AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := MinMax(EDLineSpacingValue.Value, 0.1, 10); end;
+      cLs1HalfLines:
+      begin
+        AStyle.LineSpacingMode := lsmFactor;
+        AStyle.LineSpacingFactor := 1.5;
+      end;
+      cLsDouble:
+      begin
+        AStyle.LineSpacingMode := lsmFactor;
+        AStyle.LineSpacingFactor := 2;
+      end;
+      cLsLeast:
+      begin
+        AStyle.LineSpacingMode := lsmValue;
+        AStyle.LineSpacingValue := FMemo.Pt2PxY(MinMax(EDLineSpacingValue.Value, 1, 100));;
+      end;
+      cLsExact:
+      begin
+        AStyle.LineSpacingMode := lsmValue;
+        AStyle.LineSpacingValue := -FMemo.Pt2PxY(MinMax(EDLineSpacingValue.Value, 1, 100));
+      end;
+      cLsFactor:
+      begin
+        AStyle.LineSpacingMode := lsmFactor;
+        AStyle.LineSpacingFactor := MinMax(EDLineSpacingValue.Value / 100, 1, 10);
+      end;
     else
-      AStyle.LineSpacingMode := lsmFactor; AStyle.LineSpacingFactor := 1;
+      AStyle.LineSpacingMode := lsmFactor;
+      AStyle.LineSpacingFactor := 1;
     end;
   end;
 end;
 
-procedure TKMemoParaStyleForm.UpdateLineSpacingValue(AValue: Double);
+procedure TKMemoParaStyleForm.UpdateLineSpacingValue;
 begin
+  EDLineSpacingValue.Min := 0;
+  EDLineSpacingValue.Max := 1000;
+  EDLineSpacingValue.Precision := 0;
+  EDLineSpacingValue.CustomSuffix := '%';
   case CoBLineSpacing.ItemIndex of
-    1: begin EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1.5; end;
-    2: begin EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 2; end;
-    3: begin EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := FMemo.Px2PtY(Round(AValue)); end;
-    4: begin EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := FMemo.Px2PtY(Round(AValue)); end;
-    5: begin EDLineSpacingValue.Enabled := True; EDLineSpacingValue.Value := AValue; end;
+    cLs1HalfLines:
+    begin
+      EDLineSpacingValue.Enabled := False;
+      EDLineSpacingValue.Value := 150;
+    end;
+    cLsDouble:
+    begin
+      EDLineSpacingValue.Enabled := False;
+      EDLineSpacingValue.Value := 200;
+    end;
+    cLsLeast, cLsExact:
+    begin
+      EDLineSpacingValue.Min := 1;
+      EDLineSpacingValue.Max := 100;
+      EDLineSpacingValue.CustomSuffix := 'pt';
+      EDLineSpacingValue.Precision := 2;
+      EDLineSpacingValue.Enabled := True;
+      EDLineSpacingValue.Value := MinMax(FMemo.Px2PtY(Abs(FStyle.LineSpacingValue)), 1, 100);
+    end;
+    cLsFactor:
+    begin
+      EDLineSpacingValue.Min := 100;
+      EDLineSpacingValue.Enabled := True;
+      EDLineSpacingValue.Value := FStyle.LineSpacingFactor * 100;
+    end;
   else
-    EDLineSpacingValue.Enabled := False; EDLineSpacingValue.Value := 1;
+    EDLineSpacingValue.Enabled := False;
+    EDLineSpacingValue.Value := 100;
   end;
 end;
 
