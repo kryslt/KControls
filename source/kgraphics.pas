@@ -2348,14 +2348,15 @@ var
 {$IFDEF FPC}
   IM: TLazIntfImage;
   FC: TFPColor;
+{$ELSE}
+  IM: TKPngImage;
 {$ENDIF}
 begin
   UpdatePixels;
 {$IFDEF FPC}
-  APngImage.SetSize(FWidth, FHeight);
   IM := TLazIntfImage.Create(0, 0, [riqfRGB, riqfAlpha]);
 {$ELSE}
-  APngImage.CreateBlank(COLOR_RGBALPHA, 8, FWidth, FHeight);
+  IM := TKPngImage.CreateBlank(COLOR_RGBALPHA, 8, FWidth, FHeight);
 {$ENDIF}
   try
   {$IFDEF FPC}
@@ -2370,19 +2371,19 @@ begin
         FC := ColorRecToFPColor(C);
         IM.Colors[I, J] := FC;
       {$ELSE}
-        APngImage.Pixels[I, J] := C.Value;
-        if APngImage.AlphaScanline[J] <> nil then
-          APngImage.AlphaScanline[J][I] := C.A;
+        IM.Pixels[I, J] := C.Value;
+        if IM.AlphaScanline[J] <> nil then
+          IM.AlphaScanline[J][I] := C.A;
       {$ENDIF}
       end;
     end;
   {$IFDEF FPC}
     APngImage.LoadFromIntfImage(IM);
+  {$ELSE}
+    APngImage.Assign(IM);
   {$ENDIF}
   finally
-  {$IFDEF FPC}
     IM.Free;
-  {$ENDIF}
   end;
 end;
 {$ENDIF}

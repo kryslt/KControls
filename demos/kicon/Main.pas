@@ -142,11 +142,14 @@ begin
         if KIcon.IconData[I].IsPNG then SubItems.Add('yes') else SubItems.Add('no');
       end;
     end;
-  {$IFDEF FPC}
-    LVMain.ItemFocused := LVMain.Items[KIcon.CurrentIndex];
-  {$ELSE}
-    LVMain.ItemIndex := KIcon.CurrentIndex;
-  {$ENDIF}
+    if LVMain.Items.Count > 0 then
+    begin
+    {$IFDEF FPC}
+      LVMain.ItemFocused := LVMain.Items[KIcon.CurrentIndex];
+    {$ELSE}
+      LVMain.ItemIndex := KIcon.CurrentIndex;
+    {$ENDIF}
+    end;
     UpdateSpeedButton;
   end;
 end;
@@ -184,7 +187,8 @@ var
 begin
   KIcon1 := TKIcon.Create;
   try
-    KIcon1.LoadFromHandle(Application.Icon.Handle);
+    KIcon1.LoadFromResource(HInstance, 'MAINICON');
+    //KIcon1.LoadFromHandle(Application.Icon.Handle);
     IMMain.Picture.Assign(KIcon1);
     KIcon := TKIcon(IMMain.Picture.Graphic);
     KIcon.OptimalIcon := True;

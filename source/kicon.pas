@@ -44,7 +44,7 @@ interface
 {$IFDEF MSWINDOWS}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, KGraphics
+  Windows, Messages, SysUtils, Classes, Graphics, KFunctions, KGraphics
 {$IFDEF USE_PNG_SUPPORT}
  {$IFDEF FPC}
   , fpImage, GraphType, IntfGraphics
@@ -247,10 +247,10 @@ type
     HotSpot: TPoint;
     iXOR: PBitmapInfo;
     iXORSize: Integer;
-    pXOR: Pointer;
+    pXOR: PKColorRecs;
     pXORSize: Integer;
     hXOR: HBITMAP;
-    pAND: Pointer;
+    pAND: PBytes;
     pANDSize: Integer;
     hAND: HBITMAP;
     IsPNG: Boolean;
@@ -494,10 +494,7 @@ type
     { Specifies the color resolution a DIB should have after converted from a DDB
       that has been passed to the LoadHandles method. }
     property InHandleBpp: Integer read FInHandleBpp write SetInHandleBpp;
-    { Determines whether a DIB with 32 bits per pixel should have full visibility
-      (alpha channel of each pixel set to 0xFF) after converted from a DDB
-      that has been passed to the LoadHandles method. The alpha channel values will
-      be only set to 0xFF when the current alpha channel of every pixel is zero. }
+    { Not used anymore, kept for backward compatibility. }
     property InHandleFullAlpha: Boolean read FInHandleFullAlpha write FInHandleFullAlpha;
     { Returns the height of the image that has the maximum height of all icon images.
       When @link(DisplayAll) is True and @link(DisplayHorz) is False, returns the
@@ -566,7 +563,7 @@ implementation
 {$IFDEF MSWINDOWS}
 
 uses
-  Math, Registry, KFunctions, KRes;
+  Math, Registry, KRes;
 
 type
   TKMaskBitmapInfo = packed record
@@ -670,6 +667,29 @@ begin
   Result := GDICheck(CreateBitmap(Width, Height, 1, 1, nil));
 end;
 
+function HasAlpha(Pixels: PKColorRecs; Size: Integer): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  Size := Size shr 2;
+  for I := 0 to Size - 1 do
+    if Pixels[I].A <> 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
+procedure FillAlpha(Pixels: PKColorRecs; Size: Integer; Alpha: Byte);
+var
+  I: Integer;
+begin
+  Size := Size shr 2;
+  for I := 0 to Size - 1 do
+    Pixels[I].A := Alpha;
+end;
+
 procedure MaskOrBitBlt(ACanvas: TCanvas; X, Y, Width, Height: Integer;
   DC_XOR, DC_AND: HDC; BM_XOR, BM_AND: HBITMAP;
   XORBits: PKColorRecs; XORSize: Integer;
@@ -678,7 +698,7 @@ procedure MaskOrBitBlt(ACanvas: TCanvas; X, Y, Width, Height: Integer;
 var
   I, J, K, LAnd: Integer;
   Alpha, ByteMask: Byte;
-  FreeBits: Boolean;
+  FreeBits, IsAlpha: Boolean;
   Q: PBytes;
   Ps, Pd: PKColorRecs;
   BMSrc, BMDest: TKAlphaBitmap;
@@ -717,13 +737,21 @@ begin
               end;
             end else
             begin
-              BMSrc.DrawFrom(ACanvas, R);
-              for I := 0 to Height - 1 do
-              begin
-                Ps := @XORBits[I * Width];
-                Pd := BMSrc.ScanLine[I];
-                BlendLine(Ps, Pd, Width);
-              end
+              IsAlpha := HasAlpha(XORbits, XORSize);
+              if not IsAlpha then
+                FillAlpha(XORbits, XORSize, $FF);
+              try
+                BMSrc.DrawFrom(ACanvas, R);
+                for I := 0 to Height - 1 do
+                begin
+                  Ps := @XORBits[I * Width];
+                  Pd := BMSrc.ScanLine[I];
+                  BlendLine(Ps, Pd, Width);
+                end
+              finally
+                if not IsAlpha then
+                  FillAlpha(XORbits, XORSize, $00);
+              end;
             end
           finally
             if FreeBits then FreeMem(XORBits);
@@ -788,18 +816,6 @@ begin
   end;
 end;
 
-procedure FillAlphaIfNone(Pixels: PKColorRecs; Size: Integer; Alpha: Byte);
-var
-  I: Integer;
-begin
-  Size := Size shr 2;
-  for I := 0 to Size - 1 do
-    if Pixels[I].A <> 0 then
-      Exit; // bitmap has a nonempty alpha channel, don't fill
-  for I := 0 to Size - 1 do
-    Pixels[I].A := Alpha;
-end;
-
 function CreateBitmapFromResIcon(const ResName: string; ResType: PChar): TBitmap;
 var
   Icon: TKIcon;
@@ -855,6 +871,7 @@ begin
     try
       SelectObject(DC, BM_XOR);
       BitBlt(ABitmap.Canvas.Handle, 0, 0, ABitmap.Width, ABitmap.Height, DC, 0, 0, SRCCOPY);
+      ABitmap.AlphaFill($FF, True);
       LAnd := CalcByteWidth(ABitmap.Width, 1);
       for I := 0 to ABitmap.Height - 1 do
       begin
@@ -1721,7 +1738,7 @@ begin
             PID.iXORSize := XORInfoSize;
             Move(PBIn^, PID.iXOR^, XORInfoSize);
             PID.iXOR.bmiHeader.biHeight := PID.iXOR.bmiHeader.biHeight div 2;
-            PID.hXOR := GDICheck(CreateDIBSection(DC, PID.iXOR^, DIB_RGB_COLORS, PID.pXOR, 0, 0));
+            PID.hXOR := GDICheck(CreateDIBSection(DC, PID.iXOR^, DIB_RGB_COLORS, Pointer(PID.pXOR), 0, 0));
             if PID.pXOR <> nil then
             begin
               P := PByte(PBIn);
@@ -1732,7 +1749,7 @@ begin
               Error(sIconAllocationError);
             CreateMaskInfo(PID.Width, PID.Height, BIMask);
             PID.hAND := GDICheck(CreateDIBSection(DC, PBitmapInfo(@BIMask)^,
-              DIB_RGB_COLORS, PID.pAND, 0, 0));
+              DIB_RGB_COLORS, Pointer(PID.pAND), 0, 0));
             if PID.pAND <> nil then
             begin
               P := PByte(PBIn);
@@ -1883,7 +1900,7 @@ begin
             PID.iXOR.bmiHeader.biSizeImage := 0;
             Stream.Read(PID.iXOR.bmiColors, PalSize * SizeOf(TRGBQuad));
             PID.hXOR := GDICheck(CreateDIBSection(DC, PID.iXOR^,
-              DIB_RGB_COLORS, PID.pXOR, 0, 0));
+              DIB_RGB_COLORS, Pointer(PID.pXOR), 0, 0));
             if PID.pXOR <> nil then
             begin
               Stream.Read(PID.pXOR^, XORSize);
@@ -1892,7 +1909,7 @@ begin
               Error(sIconAllocationError);
             CreateMaskInfo(PID.Width, PID.Height, BIMask);
             PID.hAND := GDICheck(CreateDIBSection(DC, PBitmapInfo(@BIMask)^,
-              DIB_RGB_COLORS, PID.pAND, 0, 0));
+              DIB_RGB_COLORS, Pointer(PID.pAND), 0, 0));
             if PID.pAND <> nil then
             begin
               Stream.Read(PID.pAND^, ANDSize);
@@ -1964,20 +1981,18 @@ begin
         if Handles.hXOR <> 0 then hBmp := Handles.hXOR else hBmp := Handles.hAND;
         GetDIBits(DC, hBmp, 0, PID.Height, nil, PID.iXOR^, DIB_RGB_COLORS);
         PID.hXOR := GDICheck(CreateDIBSection(DC, PID.iXOR^,
-          DIB_RGB_COLORS, PID.pXOR, 0, 0));
+          DIB_RGB_COLORS, Pointer(PID.pXOR), 0, 0));
         if PID.pXOR <> nil then
         begin
           GetDIBits(DC, hBmp, 0, PID.Height, PID.pXOR,
             PID.iXOR^, DIB_RGB_COLORS);
           PID.pXORSize := XORSize;
-          if (PID.Bpp = 32) and FInHandleFullAlpha then
-            FillAlphaIfNone(PKColorRecs(PID.pXOR), XORSize, $FF);
           Inc(PID.BytesInRes, XORSize);
         end else
           Error(sIconAllocationError);
         CreateMaskInfo(PID.Width, PID.Height, BIMask);
         PID.hAND := GDICheck(CreateDIBSection(DC, PBitmapInfo(@BIMask)^,
-          DIB_RGB_COLORS, PID.pAND, 0, 0));
+          DIB_RGB_COLORS, Pointer(PID.pAND), 0, 0));
         if PID.pAND <> nil then
         begin
           if Handles.hXOR <> 0 then
@@ -2537,7 +2552,7 @@ var
   PID: PKIconData;
   PBI: PBitmapInfoHeader;
   BIMask: TKMaskBitmapInfo;
-  P: PByteArray;
+  P: PBytes;
   hBmp: HBITMAP;
   DC: HDC;
 begin
@@ -2573,14 +2588,14 @@ begin
         for J := 1 to Y do
         begin
           if VOffset >= 0 then
-            BitMove(PByteArray(PID.pXOR)[(PID.Height - J) * XOR1],
+            BitMove(PBytes(PID.pXOR)[(PID.Height - J) * XOR1],
               P[(Value.Height - J - VOffset) * XOR2], X, BitOffset)
           else
-            BitMove(PByteArray(PID.pXOR)[(PID.Height - J + VOffset) * XOR1],
+            BitMove(PBytes(PID.pXOR)[(PID.Height - J + VOffset) * XOR1],
               P[(Value.Height - J) * XOR2], X, BitOffset);
         end;
         DeleteObject(PID.hXOR);
-        PID.pXOR := P;
+        PID.pXOR := PKColorRecs(P);
         PID.pXORSize := Size;
         PID.hXOR := hBmp;
         CreateMaskInfo(PID.Width, PID.Height, BIMask);
@@ -2592,10 +2607,10 @@ begin
         for J := 1 to Y do
         begin
           if VOffset >= 0 then
-            BitMove(PByteArray(PID.pAND)[(PID.Height - J) * AND1],
+            BitMove(PBytes(PID.pAND)[(PID.Height - J) * AND1],
               P[(Value.Height - J - VOffset) * AND2], X, HOffset)
           else
-            BitMove(PByteArray(PID.pAND)[(PID.Height - J + VOffset) * AND1],
+            BitMove(PBytes(PID.pAND)[(PID.Height - J + VOffset) * AND1],
               P[(Value.Height - J) * AND2], X, HOffset);
         end;
         DeleteObject(PID.hAND);
