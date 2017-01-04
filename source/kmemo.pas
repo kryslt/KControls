@@ -10877,7 +10877,7 @@ begin
   // this is the table layout calculation
   if FFixedWidth then
     ARequiredWidth := FRequiredWidth;
-  Dec(ARequiredWidth, FBlockStyle.LeftPadding + FBlockStyle.RightPadding);
+  Dec(ARequiredWidth, FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight);
   // calculate real column count, this may be different from FColCount
   RealColCount := 0;
   for I := 0 to RowCount - 1 do
@@ -11043,8 +11043,8 @@ begin
       Inc(PosY, Heights[I].Index);
     end;
     Extent.Y := PosY;
-    Inc(Extent.X, FBlockStyle.LeftPadding + FBlockStyle.RightPadding);
-    Inc(Extent.Y, FBlockStyle.TopPadding + FBlockStyle.BottomPadding);
+    Inc(Extent.X, FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight);
+    Inc(Extent.Y, FBlockStyle.AllPaddingsTop + FBlockStyle.AllPaddingsBottom);
     SetBlockExtent(Extent.X, Extent.Y);
     WordLeft[0] := 0;
     WordTop[0] := 0;
