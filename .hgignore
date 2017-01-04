@@ -31,7 +31,6 @@ syntax: glob
 *.gif
 *.ico
 
-*.cpp
 *.hpp
 
 *.stat

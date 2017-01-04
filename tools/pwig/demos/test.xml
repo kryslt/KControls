@@ -15,12 +15,24 @@
       <pwig_generator_type>RIDL</pwig_generator_type>
       <pwig_generator_path>../../demos/delphi_ridl/testlib.ridl</pwig_generator_path>
     </pwig_callee_configuration>
+    <pwig_callee_configuration>
+      <pwig_generator_type>Cpp</pwig_generator_type>
+      <pwig_generator_path>../../demos/cpp_callee/testlib.cpp</pwig_generator_path>
+    </pwig_callee_configuration>
   </pwig_callee_configuration_list>
 
   <pwig_caller_configuration_list>
     <pwig_caller_configuration>
       <pwig_generator_type>Pascal</pwig_generator_type>
       <pwig_generator_path>../../demos/pascal_caller/testlib.pas</pwig_generator_path>
+    </pwig_caller_configuration>
+    <pwig_caller_configuration>
+      <pwig_generator_type>CSharp</pwig_generator_type>
+      <pwig_generator_path>../../demos/csharp_caller/testlib.cs</pwig_generator_path>
+    </pwig_caller_configuration>
+    <pwig_caller_configuration>
+      <pwig_generator_type>Cpp</pwig_generator_type>
+      <pwig_generator_path>../../demos/cpp_caller/testlib.cpp</pwig_generator_path>
     </pwig_caller_configuration>
   </pwig_caller_configuration_list>
 
