@@ -194,8 +194,8 @@ begin
   Result := '';
   case ADirection of
     pdIn: Result := '';
-    pdOut: Result := '*';
-    pdInOut: Result := '*';
+    pdOut: Result := '&';
+    pdInOut: Result := '&';
   end;
 end;
 
@@ -467,7 +467,7 @@ begin
         // use constructor and destructor only for default interface
         if Ref.FlagDefault then
         begin
-          Writeln(F, Indent, 'typedef bool (', CallingConvToString(nil), ' *T', AClass.Name, 'Create)(', LIntf.Name, ' * ItemHandle);');
+          Writeln(F, Indent, 'typedef bool (', CallingConvToString(nil), ' *T', AClass.Name, 'Create)(', LIntf.Name, ' &ItemHandle);');
           Writeln(F, Indent, 'typedef bool (', CallingConvToString(nil), ' *T', AClass.Name, 'Destroy)(', LIntf.Name, ' ItemHandle);');
         end;
       end;
@@ -485,9 +485,9 @@ procedure TPWIGGenCpp.WriteMethod(const AClassName: string;
     if AParamDir = pdIn then
       Write(F, '(char *)String2LibUtf8String(', AParamName, ').c_str()')
     else if AStyle in [msLibCallGetLength, msEventSinkCallGetLength] then
-      Write(F, 'NULL, &Length__', AParamName)
+      Write(F, 'NULL, Length__', AParamName)
     else
-      Write(F, 'AnsiString__', AParamName, ', &Length__', AParamName);
+      Write(F, 'AnsiString__', AParamName, ', Length__', AParamName);
   end;
 
 var
@@ -535,7 +535,7 @@ begin
       if RetVal.ParamType.BaseType = btUnicodeString then
         ParamName := 'String__' + AClassName + AIntf.Name + AMethod.Name + ParamName
       else
-        ParamName := '*' + ParamName;
+        ParamName := '' + ParamName;
       RetValAssignment := ParamName + ' = ';
       RetValType := TypeToString(RetVal.ParamType);
     end else
@@ -580,7 +580,7 @@ begin
         ParamDir := ParamDirection(AMethod, RetVal, AGetter);
         WriteLibCallUnicodeStringParam(ParamDir, ParamName);
       end else
-        Write(F, '&', ParamName);
+        Write(F, '', ParamName);
     end;
   end else
   begin
@@ -607,14 +607,14 @@ begin
           if ParamDir = pdIn then
             Write(F, 'char * ', ParamName)
           else
-            Write(F, 'char * ', ParamName, ', int32_t * Length__', ParamName);
+            Write(F, 'char * ', ParamName, ', int32_t &Length__', ParamName);
         end
         else if (Param.ParamType.BaseType = btUnicodeString) and (AStyle in [msClassCall]) then
         begin
           if ParamDir = pdIn then
             Write(F, 'LibUtf8String2String(', ParamName, ')')
           else
-            Write(F, '&String__' + AClassName + AIntf.Name + AMethod.Name + ParamName);
+            Write(F, 'String__' + AClassName + AIntf.Name + AMethod.Name + ParamName);
         end
         else if (Param.ParamType.BaseType = btUnicodeString) and (AStyle in [msLibCall, msLibCallGetLength, msEventSinkCall, msEventSinkCallGetlength]) then
         begin
@@ -636,7 +636,7 @@ begin
         begin
           WriteLibCallUnicodeStringParam(ParamDir, ParamName);
         end else
-          Write(F, '&', ParamName);
+          Write(F, '', ParamName);
       end;
     end;
   end;
@@ -716,14 +716,14 @@ end;
 
 procedure TPWIGGenCpp.WriteCalleeConstructor(AClass: TPWIGClass; AIntf: TPWIGInterface; ABody: Boolean);
 begin
-  Write(F, Indent, 'LIB_EXPORT bool ', CallingConvToString(nil), ' ', AClass.Name, 'Create(', AIntf.Name, ' * ItemHandle)');
+  Write(F, Indent, 'LIB_EXPORT bool ', CallingConvToString(nil), ' ', AClass.Name, 'Create(', AIntf.Name, ' &ItemHandle)');
   if ABody then
   begin
     Writeln(F);
     WriteCurlyBegin;
     Writeln(F, Indent, 'bool __Result = false;');
     WriteTry;
-    Writeln(F, Indent, '*ItemHandle = (', AIntf.Name, ') new ', AClass.Name, '();');
+    Writeln(F, Indent, 'ItemHandle = (', AIntf.Name, ') new ', AClass.Name, '();');
     Writeln(F, Indent, '__Result = true;');
     WriteExcept;
     Writeln(F, Indent, 'return __Result;');
@@ -1121,9 +1121,9 @@ begin
       if Param.ParamType.BaseType = btUnicodeString then
       begin
         Writeln(F, Indent, 'AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ' = String2LibUtf8String(String__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ');');
-        Writeln(F, Indent, '*Length__', ParamName, ' = (int32_t)(AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '.length());')
+        Writeln(F, Indent, 'Length__', ParamName, ' = (int32_t)(AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '.length());')
       end else
-        Writeln(F, Indent, 'Tmp__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ' = *', ParamName, ';');
+        Writeln(F, Indent, 'Tmp__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ' = ', ParamName, ';');
     end;
   WriteCurlyEndElse;
   WriteCurlyBegin;
@@ -1135,11 +1135,11 @@ begin
       begin
         Writeln(F, Indent, 'if ((AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '.length()) > 0)');
         IncIndent;
-        Writeln(F, Indent, 'memcpy(', ParamName, ', AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '.c_str(), LibMin(*Length__', ParamName, ', (int32_t)AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '.length()));');
+        Writeln(F, Indent, 'memcpy(', ParamName, ', AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '.c_str(), LibMin(Length__', ParamName, ', (int32_t)AnsiString__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, '.length()));');
         DecIndent;
       end
       else
-        Writeln(F, Indent, '*', ParamName, ' = Tmp__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ';');
+        Writeln(F, Indent, '', ParamName, ' = Tmp__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ';');
     end;
   WriteCurlyEnd;
   Result := True;
@@ -1159,7 +1159,7 @@ begin
   Writeln(F, Indent, 'm_ItemHandle = AInterfaceHandle;');
   Writeln(F, Indent, 'if ((m_ItemHandle == 0) && (*Func', AClass.Name, 'Create != NULL))');
   IncIndent;
-  Writeln(F, Indent, 'Func', AClass.Name, 'Create(&m_ItemHandle);');
+  Writeln(F, Indent, 'Func', AClass.Name, 'Create(m_ItemHandle);');
   DecIndent;
   // call event handler setters
   for Ref in AClass.InterfaceRefs do
@@ -1658,7 +1658,7 @@ begin
       if RetVal = Param then
         Writeln(F, Indent, TypeToString(Param.ParamType), ' ', ParamName, ' = ', TypeToNullValue(Param.ParamType),';')
       else
-        Writeln(F, Indent, '*', ParamName, ' = ', TypeToNullValue(Param.ParamType),';')
+        Writeln(F, Indent, '', ParamName, ' = ', TypeToNullValue(Param.ParamType),';')
     end;
   Result := True;
 end;
@@ -1729,7 +1729,7 @@ begin
     begin
       ParamName := ReplaceNotAllowedParamName(Param.Name);
       if Param <> RetVal then
-        S := '*'
+        S := ''
       else
         S := '';
       Writeln(F, Indent, 'AnsiString__', ParamName, '[Length__', ParamName, '] = 0;');
@@ -1823,11 +1823,14 @@ begin
         WriteIntfClassProps(LCls);
 
       Writeln(F, Indent, '// Library helper functions');
+      Writeln(F, Indent, 'template <typename T>');
+      Writeln(F, Indent, 'inline T const& LibMax (T const& a, T const& b)  { return a < b ? b:a; }');
+      WriteSpace;
+      Writeln(F, Indent, 'template <typename T>');
+      Writeln(F, Indent, 'inline T const& LibMin (T const& a, T const& b)  { return a < b ? a:b; }');
+      WriteSpace;
       Writeln(F, Indent, 'std::string String2LibUtf8String(std::wstring AText);');
       Writeln(F, Indent, 'std::wstring LibUtf8String2String(std::string);');
-      WriteSpace;
-      Writeln(F, Indent, 'int32_t LibMax(int32_t a, int32_t b);');
-      Writeln(F, Indent, 'int32_t LibMin(int32_t a, int32_t b);');
       WriteSpace;
 
       // finish
@@ -1907,32 +1910,6 @@ begin
       Writeln(F, Indent, 'std::wstring Result(buff);');
       Writeln(F, Indent, 'delete buff;');
       Writeln(F, Indent, 'return Result;');
-      WriteCurlyEnd;
-      WriteSpace;
-
-      Writeln(F, Indent, 'int32_t LibMin(int32_t a, int32_t b)');
-      WriteCurlyBegin;
-      Writeln(F, Indent, 'if (a <= b)');
-      IncIndent;
-      Writeln(F, Indent, 'return a;');
-      DecIndent;
-      Writeln(F, Indent, 'else');
-      IncIndent;
-      Writeln(F, Indent, 'return b;');
-      DecIndent;
-      WriteCurlyEnd;
-      WriteSpace;
-
-      Writeln(F, Indent, 'int32_t LibMax(int32_t a, int32_t b)');
-      WriteCurlyBegin;
-      Writeln(F, Indent, 'if (a >= b)');
-      IncIndent;
-      Writeln(F, Indent, 'return a;');
-      DecIndent;
-      Writeln(F, Indent, 'else');
-      IncIndent;
-      Writeln(F, Indent, 'return b;');
-      DecIndent;
       WriteCurlyEnd;
       WriteSpace;
 
