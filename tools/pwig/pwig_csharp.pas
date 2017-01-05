@@ -64,6 +64,8 @@ type
     property Indent: string read FIndent;
   protected
     F: TextFile;
+    function GetDescription: string; override;
+    function GetName: string; override;
     function CallingConvToString(AMethod: TPWIGMethod): string; virtual;
     function TypeToString(AType: TPWIGType): string; virtual;
     function TypeToNullValue(AType: TPWIGType): string; virtual;
@@ -285,6 +287,16 @@ end;
 procedure TPWIGGenCSharp.WriteSpace;
 begin
   Writeln(F);
+end;
+
+function TPWIGGenCSharp.GetDescription: string;
+begin
+  Result := 'C# (managed code, caller only). Usable in Visual Studio, Xamarin Studio.';
+end;
+
+function TPWIGGenCSharp.GetName: string;
+begin
+  Result := 'CSharp';
 end;
 
 procedure TPWIGGenCSharp.WriteCurlyBegin;
@@ -557,9 +569,9 @@ begin
     Writeln(F);
 end;
 
-function TPWIGGenCsharp.WriteCalleeUnicodeStringDeclarations(
-  AClass: TPWIGClass; AIntf: TPWIGInterface;
-  AMethod: TPWIGMethod; AGetter: Boolean): Boolean;
+function TPWIGGenCSharp.WriteCalleeUnicodeStringDeclarations(
+  AClass: TPWIGClass; AIntf: TPWIGInterface; AMethod: TPWIGMethod;
+  AGetter: Boolean): Boolean;
 var
   Param: TPWIGParam;
   ParamName: string;
@@ -587,9 +599,8 @@ begin
   WriteSpace;
 end;
 
-function TPWIGGenCsharp.WriteCalleeUnicodeStringManagement1(
-  AClass: TPWIGClass; AIntf: TPWIGInterface;
-  AMethod: TPWIGMethod; AGetter: Boolean): Boolean;
+function TPWIGGenCSharp.WriteCalleeUnicodeStringManagement1(AClass: TPWIGClass;
+  AIntf: TPWIGInterface; AMethod: TPWIGMethod; AGetter: Boolean): Boolean;
 var
   Param: TPWIGParam;
   ParamName: string;
@@ -606,7 +617,7 @@ begin
     end;
 end;
 
-function TPWIGGenCsharp.WriteCalleeUnicodeStringManagement2(AClass: TPWIGClass;
+function TPWIGGenCSharp.WriteCalleeUnicodeStringManagement2(AClass: TPWIGClass;
   AIntf: TPWIGInterface; AMethod: TPWIGMethod; AGetter: Boolean): Boolean;
 var
   Param: TPWIGParam;

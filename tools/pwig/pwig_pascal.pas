@@ -69,6 +69,8 @@ type
     property Indent: string read FIndent;
   protected
     F: TextFile;
+    function GetDescription: string; override;
+    function GetName: string; override;
     function CallingConvToString(AMethod: TPWIGMethod): string; virtual;
     function TypeToString(AType: TPWIGType): string; virtual;
     function ReplaceNotAllowedParamName(AName: string): string; virtual;
@@ -289,6 +291,16 @@ end;
 procedure TPWIGGenPascal.WriteExceptLibCall;
 begin
   WriteExcept('on E : Exception do LibCallError(E.Message);');
+end;
+
+function TPWIGGenPascal.GetDescription: string;
+begin
+  Result := 'Pascal (unmanaged code, callee + caller). Usable in Delphi, Lazarus/Free Pascal.';
+end;
+
+function TPWIGGenPascal.GetName: string;
+begin
+  Result := 'Pascal';
 end;
 
 procedure TPWIGGenPascal.SaveCalleeFiles(const AFileName: string);

@@ -47,6 +47,8 @@ type
     property Indent: string read FIndent;
   protected
     F: TextFile;
+    function GetDescription: string; override;
+    function GetName: string; override;
     function InterfaceToString(AIntf: TPWIGInterface): string; virtual;
     function TypeToString(AType: TPWIGType): string; virtual;
     procedure WriteElementProps(AElement: TPWIGElement); virtual;
@@ -156,6 +158,16 @@ end;
 procedure TPWIGGenRIDL.WriteSpace;
 begin
   Writeln(F);
+end;
+
+function TPWIGGenRIDL.GetDescription: string;
+begin
+  Result := 'RIDL (Delphi version of COM IDL). Usable in Delphi.';
+end;
+
+function TPWIGGenRIDL.GetName: string;
+begin
+  Result := 'RIDL';
 end;
 
 procedure TPWIGGenRIDL.SaveCalleeFiles(const AFileName: string);

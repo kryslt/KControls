@@ -69,6 +69,8 @@ type
     property Indent: string read FIndent;
   protected
     F: TextFile;
+    function GetDescription: string; override;
+    function GetName: string; override;
     function CallingConvToString(AMethod: TPWIGMethod): string; virtual;
     function TypeToString(AType: TPWIGType): string; virtual;
     function TypeToNullValue(AType: TPWIGType): string;
@@ -346,6 +348,16 @@ end;
 procedure TPWIGGenCpp.WriteExceptLibCall;
 begin
   WriteExcept('LibCallError(LibUtf8String2String((char*)e.what()));');
+end;
+
+function TPWIGGenCpp.GetDescription: string;
+begin
+  Result := 'C++ (unmanaged code, callee + caller). Usable in Visual Studio, maybe other IDEs.';
+end;
+
+function TPWIGGenCpp.GetName: string;
+begin
+  Result := 'Cpp';
 end;
 
 procedure TPWIGGenCpp.SaveCalleeFiles(const AFileName: string);
