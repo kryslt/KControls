@@ -6,7 +6,7 @@
   This unit implements the base class TKCustomControl for all visible controls
   from the KControls Development Suite.<BR><BR>
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -1869,7 +1869,7 @@ end;
 procedure TKCustomControl.DoOnChangeBounds;
 begin
   inherited;
-  UpdateSize;
+  PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
 end;
 {$ENDIF}
 
@@ -2112,8 +2112,10 @@ end;
 procedure TKCustomControl.Resize;
 begin
   inherited;
+{$IFnDEF FPC}
   FResizeCalled := True;
   UpdateSize;
+{$ENDIF}
 end;
 
 {$IFNDEF FPC}
@@ -2236,8 +2238,10 @@ procedure TKCustomControl.WMSize(var Msg: TLMSize);
 begin
   FResizeCalled := False;
   inherited;
+{$IFnDEF FPC}
   if not FResizeCalled then
     PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
+{$ENDIF}
 end;
 
 {$IFNDEF FPC}

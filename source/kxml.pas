@@ -2,7 +2,7 @@
   @author(Graham Murt, portions Tomas Krysl)
 
   Copyright (c) 2003 Graham Murt  - www.murtsoft.co.uk
-  Portions Copyright © 2015 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Portions Copyright (c) 2015 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part

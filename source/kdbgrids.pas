@@ -3,7 +3,7 @@
   @created(20 Sep 2009)
   @lastmod(20 Jun 2010)
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   This unit provides a data aware control for TKGrid.
   Note: I am still a newbie to Delphi/Lazarus database solutions. If anything

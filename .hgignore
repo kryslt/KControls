@@ -7,7 +7,6 @@ syntax: glob
 *.~*
 *.*~
 *.dsk
-*.dof
 *.local
 *.identcache
 *.tvsconfig

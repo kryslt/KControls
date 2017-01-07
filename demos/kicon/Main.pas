@@ -260,8 +260,10 @@ begin
       end
       else if Picture.Graphic is TKIcon then
         KIcon.Add(TKIcon(Picture.Graphic).Handles[TKIcon(Picture.Graphic).CurrentIndex])
+    {$IFDEF USE_PNG_SUPPORT}
       else if Picture.Graphic is TKPngImage then
         KIcon.AddFromPng(TKPngImage(Picture.Graphic))
+    {$ENDIF}    
       else
       begin
         BM := TBitmap.Create;
@@ -344,7 +346,9 @@ end;
 procedure TMainForm.ACExtractBitmapExecute(Sender: TObject);
 var
   BM: TBitmap;
+{$IFDEF USE_PNG_SUPPORT}
   Png: TKPngImage;
+{$ENDIF}
 begin
 {$IFDEF USE_PNG_SUPPORT}
   SDMain.Filter := cFilterPngsBitmaps;

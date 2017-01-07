@@ -4,7 +4,7 @@
   @created(9 Jan 2005)
   @lastmod(6 Jul 2014)
 
-  Copyright © Tomas Krysl (tomkrysl@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tomkrysl@@tkweb.eu)<BR><BR>
 
   The purpose of the TKIcon component is to replace and expand the standard
   TIcon component provided by VCL. The TKIcon component is not based on Windows
@@ -563,7 +563,7 @@ implementation
 {$IFDEF MSWINDOWS}
 
 uses
-  Math, Registry, KRes;
+  Math, Registry, KControls, KRes;
 
 type
   TKMaskBitmapInfo = packed record
@@ -1124,9 +1124,11 @@ begin
     Bitmap.SetSize(ID.Width, ID.Height);
     Bitmap.DirectCopy := True;
     try
+    {$IFDEF USE_PNG_SUPPORT}
       if ID.IsPng then
         Bitmap.CopyFromPng(ID.PNG)
       else
+    {$ENDIF}  
         InternalCopyToAlphaBitmap(Bitmap, ID.hXOR, ID.pAND, ID.Bpp);
     finally
       Bitmap.DirectCopy := False;
@@ -1240,7 +1242,7 @@ begin
         GetMem(ANDBits, XORSize);
         try
           PBI := PID.iXOR;
-          hBmp := GDICheck(CreateDIBitmap(DC, PBI.bmiHeader, CBM_INIT, PID.pXOR, PBI^, DIB_RGB_COLORS));
+          hBmp := GDICheck(CreateDIBitmap(DC, PBI.bmiHeader, CBM_INIT, PChar(PID.pXOR), PBI^, DIB_RGB_COLORS));
           try
             GetBitmapBits(hBmp, XORSize, XORBits); // obsolete, but the only that works fine...
             GetBitmapBits(PID.hAND, ANDSize, ANDbits);

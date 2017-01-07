@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="10"/>
     <PathDelim Value="\"/>
     <General>
       <SessionStorage Value="InProjectDir"/>
@@ -9,9 +9,6 @@
       <Title Value="kdbgriddemolaz"/>
       <UseXPManifest Value="True"/>
     </General>
-    <VersionInfo>
-      <StringTable ProductVersion=""/>
-    </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="default" Default="True"/>
     </BuildModes>
@@ -61,9 +58,6 @@
   <CompilerOptions>
     <Version Value="11"/>
     <PathDelim Value="\"/>
-    <Target>
-      <Filename Value="kdbgriddemolaz"/>
-    </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\..\source"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
@@ -86,7 +80,9 @@
         <ShowHints Value="False"/>
       </Verbosity>
       <CustomOptions Value="-dTK_TEST"/>
-      <CompilerPath Value="$(CompPath)"/>
+      <OtherDefines Count="1">
+        <Define0 Value="TK_TEST"/>
+      </OtherDefines>
     </Other>
   </CompilerOptions>
 </CONFIG>

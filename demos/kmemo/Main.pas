@@ -150,13 +150,13 @@ end;
 
 procedure TMainForm.LoadFiles;
 begin
-//  KMemo1.LoadFromRTF('test.rtf');
-//  KMemo1.LoadFromRTF('test1.rtf');
-//  KMemo1.LoadFromRTF('test_no_img.rtf');
-//  KMemo1.LoadFromRTF('test_simple.rtf');
-  KMemo1.LoadFromRTF('kmemo_manual.rtf');
-//  KMemo1.LoadFromRTF('simpletable.rtf');
-//  KMemo1.LoadFromRTF('advancedtable.rtf');
+//  KMemo1.LoadFromRTF('../../test.rtf');
+//  KMemo1.LoadFromRTF('../../test1.rtf');
+//  KMemo1.LoadFromRTF('../../test_no_img.rtf');
+//  KMemo1.LoadFromRTF('../../test_simple.rtf');
+  KMemo1.LoadFromRTF('../../kmemo_manual.rtf');
+//  KMemo1.LoadFromRTF('../../simpletable.rtf');
+//  KMemo1.LoadFromRTF('../../advancedtable.rtf');
 //  KMemo1.Select(10, 510);
   KMemo1.SaveToRTF('test_save.rtf', False, True);
 

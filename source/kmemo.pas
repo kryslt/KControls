@@ -1,10 +1,9 @@
-
 { @abstract(This unit contains native replacement for TMemo/TRichEdit components)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(28 Apr 2009)
   @lastmod(30 July 2015)
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -4167,6 +4166,7 @@ begin
   FDragMode := sgpNone;
   FDragRect := CreateEmptyRect;
   FHorzScrollStep := cHorzScrollStepDef;
+  FInUpdateScrollRange := False;
   FLeftPos := 0;
   FLinePosition := eolInside;
   FListTable := TKMemoListTable.Create;
@@ -6595,7 +6595,7 @@ procedure TKCustomMemo.UpdateScrollRange(CallInvalidate: Boolean);
 var
   DeltaHorz, DeltaVert, ClientHorz, ClientVert: Integer;
   SI: TScrollInfo;
-  Show: Boolean;
+  SBVisible: Boolean;
 begin
   if HandleAllocated then
   begin
@@ -6631,26 +6631,32 @@ begin
       {$ENDIF}
         if FScrollBars in [ssBoth, ssHorizontal] then
         begin
-          SI.nMax := FHorzExtent{$IFnDEF FPC}- 1{$ENDIF};
-          SI.nPage := ClientHorz;
-          SI.nPos := FLeftPos;
-          SetScrollInfo(Handle, SB_HORZ, SI, True);
-          Show := Integer(SI.nPage) < FHorzExtent;
-          FHorzScrollExtent := Max(FHorzExtent - Integer(SI.nPage), 0);
+          SBVisible := ClientHorz < FHorzExtent;
+          ShowScrollBar(Handle, SB_HORZ, SBVisible);
+          if SBVisible then
+          begin
+            SI.nMax := FHorzExtent{$IFnDEF FPC}- 1{$ENDIF};
+            SI.nPage := ClientHorz;
+            SI.nPos := FLeftPos;
+            SetScrollInfo(Handle, SB_HORZ, SI, True);
+            FHorzScrollExtent := Max(FHorzExtent - Integer(SI.nPage), 0);
+          end;
         end else
-          Show := False;
-        ShowScrollBar(Handle, SB_HORZ, Show);
+          ShowScrollBar(Handle, SB_HORZ, False);
         if FScrollBars in [ssBoth, ssVertical] then
         begin
-          SI.nMax := FVertExtent{$IFnDEF FPC}- 1{$ENDIF};
-          SI.nPage := ClientVert;
-          SI.nPos := FTopPos;
-          SetScrollInfo(Handle, SB_VERT, SI, True);
-          Show := Integer(SI.nPage) < FVertExtent;
-          FVertScrollExtent := Max(FVertExtent - Integer(SI.nPage), 0);
+          SBVisible := ClientVert < FVertExtent;
+          ShowScrollBar(Handle, SB_VERT, SBVisible);
+          if SBVisible then
+          begin
+            SI.nMax := FVertExtent{$IFnDEF FPC}- 1{$ENDIF};
+            SI.nPage := ClientVert;
+            SI.nPos := FTopPos;
+            SetScrollInfo(Handle, SB_VERT, SI, True);
+            FVertScrollExtent := Max(FVertExtent - Integer(SI.nPage), 0);
+          end;
         end else
-          Show := False;
-        ShowScrollBar(Handle, SB_VERT, Show);
+          ShowScrollBar(Handle, SB_VERT, False);
       end;
       if CallInvalidate then
       begin
@@ -9046,7 +9052,7 @@ end;
 
 function TKMemoImageBlock.CroppedImage: TKAlphaBitmap;
 var
-  ExtentX, ExtentY, NewExtentX: Integer;
+  ExtentX, ExtentY: Integer;
   RatioX, RatioY: Double;
   OrigCrop: TRect;
 begin

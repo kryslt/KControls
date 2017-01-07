@@ -1,9 +1,9 @@
-﻿{ @abstract(This unit contains the TKGrid component and all supporting classes)
+{ @abstract(This unit contains the TKGrid component and all supporting classes)
   @author(Tomas Krysl (tk@tkweb.eu))
   @created(15 Oct 2006)
   @lastmod(6 Jul 2014)
 
-  Copyright Š Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   This unit provides an enhanced replacement for components contained
   in Grids.pas. Major features:
@@ -46,7 +46,7 @@ interface
 
 uses
 {$IFDEF FPC}
-  LCLType, LCLIntf, LMessages, LCLProc, LResources,
+  LCLType, LCLIntf, LCLVersion, LMessages, LCLProc, LResources,
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
@@ -2054,6 +2054,9 @@ type
 
   { @abstract(KGrid base component) This is the class that you use
     as the ancestor for your TKCustomGrid overrides. }
+
+  { TKCustomGrid }
+
   TKCustomGrid = class(TKCustomControl)
   private
   {$IFDEF FPC}
@@ -2185,7 +2188,7 @@ type
   {$ENDIF}
     procedure SetCell(ACol, ARow: Integer; Value: TKGridCell);
     procedure SetCellPainterClass(Value: TKGridCellPainterClass);
-    procedure SetCells(ACol, ARow: Integer; const Text: TKString);
+    procedure SetCells(ACol, ARow: Integer; const Text: KFunctions.TKString);
     procedure SetCellSpan(ACol, ARow: Integer; Value: TKGridCellSpan);
     procedure SetCol(Value: Integer);
     procedure SetColCount(Value: Integer);
@@ -2279,6 +2282,8 @@ type
     FHitCell: TKGridCoord;
     { Specifies the point where left mouse button has been pressed. }
     FHitPos: TPoint;
+    { Prevent infinite UpdateScrollRange calls. }
+    FInUpdateScrollRange: Boolean;
     { Prevent infinite LateUpdate calls. }
     FLateUpdating: Boolean;
     { Field for @link(TKCustomGrid.MaxCol) property. Descendants can modify it. }
@@ -2452,6 +2457,8 @@ type
       Info structure must be already defined before calling this function.
       See @link(TKGridAxisInfo) for details. }
     procedure GetAxisInfo(var Info: TKGridAxisInfo); virtual;
+    { Returns default row height according to control font height. }
+    function GetDefaultRowHeight: Integer; virtual;
     { Returns bounding rectangle where dragged column or row should appear. }
     function GetDragRect(Info: TKGridAxisInfoBoth; out DragRect: TRect): Boolean; virtual;
     { Returns the combination of invisible cells that must be taken into account
@@ -2552,6 +2559,8 @@ type
     procedure InternalUnlockUpdate; override;
     { Determines if control can be painted with OS themes. }
     function IsThemed: Boolean; override;
+    { Returns true if DefaultRowHeight property should be stored in dfm file. }
+    function IsDefaultRowHeightStored: Boolean; virtual;
     { Overriden method - see Delphi help. Responds to keyboard events. Implements
       TCustomGrid specific behavior when the user presses a key. }
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
@@ -2866,6 +2875,10 @@ type
       and @link(TKCustomGrid.RowCount) must be > 1. Otherwise, nothing happens.
       Count will be adapted so that no more but available rows will be deleted. }
     procedure DeleteRows(At, Count: Integer); virtual;
+    {$IF lcl_fullversion >= 1070000}
+    procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
+      const AXProportion, AYProportion: Double; const AScale0Fonts: Boolean); override;
+    {$IFEND}
     { Retrieves the base cell if the cell given by ACol and ARow belongs to a merged cell
       or returns ACol and ARow if it is a non-merged cell. }
     procedure FindBaseCell(ACol, ARow: Integer; out BaseCol, BaseRow: Integer); virtual;
@@ -3166,7 +3179,7 @@ type
       or by setting the @link(TKCustomGrid.RowHeights) property are given the DefaultRowHeight
       as well. When new rows are added to the grid, they are created with
       a height of DefaultRowHeight. }
-    property DefaultRowHeight: Integer read FDefaultRowHeight write SetDefaultRowHeight default cDefaultRowHeightDef;
+    property DefaultRowHeight: Integer read FDefaultRowHeight write SetDefaultRowHeight stored IsDefaultRowHeightStored;
     { Specifies the style how the control is drawn while not enabled. }
     property DisabledDrawStyle: TKGridDisabledDrawStyle read FDisabledDrawStyle write SetDisabledDrawStyle default cDisabledDrawStyleDef;
     { Specifies how a column or row appears while being moved by mouse. }
@@ -6179,7 +6192,7 @@ begin
   FCols := TKGridAxisItems.Create(Self, FColClass);
   FColors := TKGridColors.Create(Self);
   FDefaultColWidth := cDefaultColWidthDef;
-  FDefaultRowHeight := cDefaultRowHeightDef;
+  FDefaultRowHeight := GetDefaultRowHeight;
   FDisabledDrawStyle := cDisabledDrawStyleDef;
   FDragArrow := TKAlphaBitmap.CreateFromRes('KGRID_DRAG_ARROW');
   FDragWindow := nil;
@@ -6198,6 +6211,7 @@ begin
   FHCI.VBegin := TKAlphaBitmap.CreateFromRes('KGRID_HCI_VBEGIN');
   FHCI.VCenter := TKAlphaBitmap.CreateFromRes('KGRID_HCI_VCENTER');
   FHCI.VEnd := TKAlphaBitmap.CreateFromRes('KGRID_HCI_VEND');
+  FInUpdateScrollRange := False;
   FLateUpdating := False;
   FMaxCol := cInvalidIndex;
   FMaxRow := cInvalidIndex;
@@ -7335,6 +7349,39 @@ begin
   end;
 end;
 
+{$IF lcl_fullversion >= 1070000}
+procedure TKCustomGrid.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
+  const AXProportion, AYProportion: Double; const AScale0Fonts: Boolean);
+var
+  I: Integer;
+  C: TKGridCol;
+begin
+  inherited DoAutoAdjustLayout(AMode, AXProportion, AYProportion, AScale0Fonts);
+
+  if AMode in [lapAutoAdjustWithoutHorizontalScrolling, lapAutoAdjustForDPI] then
+  begin
+    LockUpdate;
+    try
+      for I := ColCount - 1 downto 0 do
+      begin
+        C := Cols[I];
+        C.MaxExtent := Round(C.MaxExtent * AXProportion);
+        C.MinExtent := Round(C.MinExtent * AXProportion);
+        C.Extent := Round(C.Extent * AXProportion);
+      end;
+
+      for I := RowCount - 1 downto 0 do
+        RowHeights[I] := Round(RowHeights[I] * AYProportion);
+
+      DefaultColWidth := Round(DefaultColWidth * AXProportion);
+      DefaultRowHeight := Round(DefaultRowHeight * AYProportion);
+    finally
+      UnlockUpdate;
+    end;
+  end;
+end;
+{$IFEND}
+
 function TKCustomGrid.DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean;
 var
   Key: Word;
@@ -7851,6 +7898,22 @@ begin
       FullVisCells := Min(FullVisCells, TotalCellCount);
     end;
   end;
+end;
+
+function TKCustomGrid.GetDefaultRowHeight: Integer;
+var
+  DC: HDC;
+begin
+  DC := GetDC(0);
+  try
+    SelectObject(DC, Font.Handle);
+    Result := GetFontHeight(DC);
+  finally
+    ReleaseDC(0, DC);
+  end;
+  if Result <= 0 then
+    Result := cDefaultRowHeightDef;
+  Inc(Result, 6); // include some padding
 end;
 
 function TKCustomGrid.GetAxisInfoBoth(Mask: TKGridAxisInfoMask): TKGridAxisInfoBoth;
@@ -9588,6 +9651,11 @@ begin
   Result := goThemes in FOptions;
 end;
 
+function TKCustomGrid.IsDefaultRowHeightStored: Boolean;
+begin
+  Result := FDefaultRowHeight <> GetDefaultRowHeight;
+end;
+
 procedure TKCustomGrid.KeyDown(var Key: Word; Shift: TShiftState);
 var
   ACol, ARow, ATopRow, SelCol, SelRow: Integer;
@@ -9738,6 +9806,7 @@ begin
           InvalidateCurrentSelection;
           SafeSetFocus;
         end;
+        KM_SCROLL: UpdateScrollRange(True, True, True);
       end;
     finally
       FLateUpdating := False;
@@ -11342,26 +11411,34 @@ end;
 
 procedure TKCustomGrid.ReadColWidths(Reader: TReader);
 var
-  I: Integer;
+  I, Tmp: Integer;
 begin
   with Reader do
   begin
     ReadListBegin;
     for I := 0 to FColCount - 1 do
-      ColWidths[I] := ReadInteger;
+    begin
+      Tmp := ReadInteger;
+      if Tmp > 0 then
+        ColWidths[I] := Tmp;
+    end;
     ReadListEnd;
   end;
 end;
 
 procedure TKCustomGrid.ReadRowHeights(Reader: TReader);
 var
-  I: Integer;
+  I, Tmp: Integer;
 begin
   with Reader do
   begin
     ReadListBegin;
     for I := 0 to FRowCount - 1 do
-      RowHeights[I] := ReadInteger;
+    begin
+      Tmp := ReadInteger;
+      if Tmp > 0 then
+        RowHeights[I] := Tmp;
+    end;
     ReadListEnd;
   end;
 end;
@@ -13071,6 +13148,7 @@ procedure TKCustomGrid.UpdateScrollRange(Horz, Vert, UpdateNeeded: Boolean);
     I, CellExtent, MaxExtent, PageExtent, ScrollExtent: Integer;
     CheckFirstGridCell: Boolean;
     SI: TScrollInfo;
+    SBVisible: Boolean;
   begin
     Result := False;
     CheckFirstGridCell := True;
@@ -13114,18 +13192,22 @@ procedure TKCustomGrid.UpdateScrollRange(Horz, Vert, UpdateNeeded: Boolean);
     if HandleAllocated then
       if HasScrollBar then
       begin
-        FillChar(SI, SizeOf(TScrollInfo), 0);
-        SI.cbSize := SizeOf(TScrollInfo);
-        SI.fMask := SIF_RANGE or SIF_PAGE or SIF_POS {$IFDEF UNIX}or SIF_UPDATEPOLICY{$ENDIF};
-        SI.nMin := 0;
-        SI.nMax := ScrollExtent {$IFNDEF FPC}- 1{$ENDIF};
-        SI.nPos := ScrollPos + ScrollOffset;
-        SI.nPage := PageExtent;
-      {$IFDEF UNIX}
-        SI.ntrackPos := SB_POLICY_CONTINUOUS;
-      {$ENDIF}
-        SetScrollInfo(Handle, Code, SI, True);
-        ShowScrollBar(Handle, Code, PageExtent < ScrollExtent);
+        SBVisible := PageExtent < ScrollExtent;
+        ShowScrollBar(Handle, Code, SBVisible);
+        if SBVisible then
+        begin
+          FillChar(SI, SizeOf(TScrollInfo), 0);
+          SI.cbSize := SizeOf(TScrollInfo);
+          SI.fMask := SIF_RANGE or SIF_PAGE or SIF_POS {$IFDEF UNIX}or SIF_UPDATEPOLICY{$ENDIF};
+          SI.nMin := 0;
+          SI.nMax := ScrollExtent {$IFNDEF FPC}- 1{$ENDIF};
+          SI.nPos := ScrollPos + ScrollOffset;
+          SI.nPage := PageExtent;
+        {$IFDEF UNIX}
+          SI.ntrackPos := SB_POLICY_CONTINUOUS;
+        {$ENDIF}
+          SetScrollInfo(Handle, Code, SI, True);
+        end;
       end else
         ShowScrollBar(Handle, Code, False);
   end;
@@ -13134,23 +13216,33 @@ var
   UpdateHorz, UpdateVert: Boolean;
 begin
   if not UpdateUnlocked then Exit;
-  UpdateHorz := Horz and Axis(SB_HORZ, HasHorzScrollBar, FScrollModeHorz,
-    GetAxisInfoHorz([aiFixedParams]), FTopLeft.Col, FTopLeftExtent.Col, FScrollPos.X, FScrollOffset.X);
-  UpdateVert := Vert and Axis(SB_VERT, HasVertScrollBar, FScrollModeVert,
-    GetAxisInfoVert([aiFixedParams]), FTopLeft.Row, FTopLeftExtent.Row, FScrollPos.Y, FScrollOffset.Y);
-  if UpdateNeeded or UpdateHorz then
-    InvalidateCols(FFixedCols);
-  if UpdateNeeded or UpdateVert then
-    InvalidateRows(FFixedRows);
-  if UpdateNeeded or UpdateHorz or UpdateVert then
+  if FInUpdateScrollRange then
   begin
-    UpdateEditor(Flag(cGF_EditorModeActive));
-    if UpdateHorz or UpdateVert then
-      TopLeftChanged;
-    if FOptions * [goRowSelect, goRangeSelect] <> [] then
-      InvalidateCurrentSelection;
+    PostLateUpdate(FillMessage(KM_SCROLL, 0, 0), True);
+    Exit;
   end;
-  InvalidatePageSetup;
+  FInUpdateScrollRange := True;
+  try
+    UpdateHorz := Horz and Axis(SB_HORZ, HasHorzScrollBar, FScrollModeHorz,
+      GetAxisInfoHorz([aiFixedParams]), FTopLeft.Col, FTopLeftExtent.Col, FScrollPos.X, FScrollOffset.X);
+    UpdateVert := Vert and Axis(SB_VERT, HasVertScrollBar, FScrollModeVert,
+      GetAxisInfoVert([aiFixedParams]), FTopLeft.Row, FTopLeftExtent.Row, FScrollPos.Y, FScrollOffset.Y);
+    if UpdateNeeded or UpdateHorz then
+      InvalidateCols(FFixedCols);
+    if UpdateNeeded or UpdateVert then
+      InvalidateRows(FFixedRows);
+    if UpdateNeeded or UpdateHorz or UpdateVert then
+    begin
+      UpdateEditor(Flag(cGF_EditorModeActive));
+      if UpdateHorz or UpdateVert then
+        TopLeftChanged;
+      if FOptions * [goRowSelect, goRangeSelect] <> [] then
+        InvalidateCurrentSelection;
+    end;
+    InvalidatePageSetup;
+  finally
+    FInUpdateScrollRange := False;
+  end;
 end;
 
 procedure TKCustomGrid.UpdateSize;
@@ -13327,24 +13419,38 @@ end;
 
 procedure TKCustomGrid.WriteColWidths(Writer: TWriter);
 var
-  I: Integer;
+  I, Tmp: Integer;
 begin
   with Writer do
   begin
     WriteListBegin;
-    for I := 0 to FColCount - 1 do WriteInteger(ColWidths[I]);
+    for I := 0 to FColCount - 1 do
+    begin
+      Tmp := ColWidths[I];
+      if Tmp <> DefaultColWidth then
+        WriteInteger(Tmp)
+      else
+        WriteInteger(0)
+    end;
     WriteListEnd;
   end;
 end;
 
 procedure TKCustomGrid.WriteRowHeights(Writer: TWriter);
 var
-  I: Integer;
+  I, Tmp: Integer;
 begin
   with Writer do
   begin
     WriteListBegin;
-    for I := 0 to FRowCount - 1 do WriteInteger(RowHeights[I]);
+    for I := 0 to FRowCount - 1 do
+    begin
+      Tmp := RowHeights[I];
+      if Tmp <> DefaultRowHeight then
+        WriteInteger(Tmp)
+      else
+        WriteInteger(0)
+    end;
     WriteListEnd;
   end;
 end;

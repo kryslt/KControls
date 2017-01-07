@@ -3,7 +3,7 @@
   @created(20 Oct 2001)
   @lastmod(6 Jul 2014)
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -2238,4 +2238,4 @@ initialization
 {$ELSE}
   {$R kedits.res}
 {$ENDIF}
-end.
+end.

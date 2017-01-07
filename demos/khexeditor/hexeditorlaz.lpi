@@ -114,9 +114,6 @@
   <CompilerOptions>
     <Version Value="11"/>
     <PathDelim Value="\"/>
-    <Target>
-      <Filename Value="khexeditorlaz"/>
-    </Target>
     <SearchPaths>
       <IncludeFiles Value="..\..\source;$(ProjOutDir)"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>

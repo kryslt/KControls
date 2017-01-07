@@ -3,7 +3,7 @@
   @created(20 Oct 2001)
   @lastmod(6 Jul 2014)
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -58,6 +58,10 @@ const
   cLetters = ['a'..'z', 'A'..'Z'];
   { Number. }
   cNumbers = ['0'..'9'];
+
+{$IFnDEF FPC}
+  lcl_fullversion = 0;
+{$ENDIF}
 
 {$IFDEF MSWINDOWS}
   { @exclude }
@@ -2835,3 +2839,4 @@ begin
 end;
 
 end.
+

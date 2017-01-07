@@ -3,7 +3,7 @@
   @created(12 Oct 2005)
   @lastmod(6 Jul 2014)
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
 
   This unit provides a powerfull hexadecimal editor component @link(TKHexEditor)
   with following major features:
@@ -677,6 +677,7 @@ type
     procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
     procedure WMVScroll(var Msg: TLMVScroll); message LM_VSCROLL;
   protected
+    FInUpdateScrollRange: Boolean;
     { Inserts a single crCaretPos item into undo list. Unless Force is set to True,
       this change will be inserted only if previous undo item is not crCaretPos. }
     procedure AddUndoCaretPos(Force: Boolean = True);
@@ -772,6 +773,8 @@ type
     procedure InternalMoveLeft; virtual;
     { Moves the caret one position right. Doesn't perform any succesive adjustments.}
     procedure InternalMoveRight; virtual;
+    { Responds to PostLateUpdate. }
+    procedure LateUpdate(var Msg: TLMessage); override;
     { Overriden method - processes virtual key strokes according to current key mapping scheme.) }
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     { Overriden method - processes character key strokes - data editing }
@@ -1547,6 +1550,7 @@ begin
   FDisabledDrawStyle := cEditDisabledDrawStyleDef;
   FDrawStyles := cDrawStylesDef;
   FEditArea := eaDigits;
+  FInUpdateScrollRange := False;
   FLeftChar := 0;
   FLineHeightPercent := cLineHeightPercentDef;
   FLineSize := cLineSizeDef;
@@ -3138,6 +3142,14 @@ begin
   end;
 end;
 
+procedure TKCustomHexEditor.LateUpdate(var Msg: TLMessage);
+begin
+  inherited;
+  case Msg.Msg of
+    KM_SCROLL: UpdateScrollRange;
+  end;
+end;
+
 procedure TKCustomHexEditor.LoadFromFile(const FileName: TFileName);
 var
   Stream: TFileStream;
@@ -4616,53 +4628,74 @@ end;
 
 procedure TKCustomHexEditor.UpdateScrollRange;
 var
-  I: Integer;
+  I, CharCount: Integer;
   AD: TKHexEditorAreaDimensions;
   SI: TScrollInfo;
+  SBVisible: Boolean;
 begin
   if HandleAllocated then
   begin
-    AD := GetAreaDimensions;
-    // update horizontal scroll position
-    I := FLeftChar - GetMaxLeftChar(AD.TotalHorz);
-    if I > 0 then
-      Dec(FLeftChar, I);
-    FLeftChar := Max(FLeftChar, 0);
-    // update vertical scroll position
-    I := FTopLine - GetMaxTopLine(AD.TotalVert);
-    if I > 0 then
-      Dec(FTopLine, I);
-    FTopLine := Max(FTopLine, 0);
-    if FScrollBars in [ssBoth, ssHorizontal, ssVertical] then
+    if FInUpdateScrollRange then
     begin
-      SI.cbSize := SizeOf(TScrollInfo);
-      SI.fMask := SIF_RANGE or SIF_PAGE or SIF_POS {$IFDEF UNIX}or SIF_UPDATEPOLICY{$ENDIF};
-      SI.nMin := 0;
-    {$IFDEF UNIX}
-      SI.ntrackPos := SB_POLICY_CONTINUOUS;
-    {$ENDIF}
-      if FScrollBars in [ssBoth, ssHorizontal] then
-      begin
-        SI.nMax := AD.TotalHorz{$IFNDEF FPC}- 1{$ENDIF};
-        SI.nPage := GetClientWidthChars;
-        SI.nPos := FLeftChar;
-        SetScrollInfo(Handle, SB_HORZ, SI, True);
-        ShowScrollBar(Handle, SB_HORZ, Integer(SI.nPage) < AD.TotalHorz);
-      end else
-        ShowScrollBar(Handle, SB_HORZ, False);
-      if FScrollBars in [ssBoth, ssVertical] then
-      begin
-        SI.nMax := AD.TotalVert{$IFNDEF FPC}- 1{$ENDIF};
-        SI.nPage := GetClientHeightChars;
-        SI.nPos := FTopLine;
-        SetScrollInfo(Handle, SB_VERT, SI, True);
-        ShowScrollBar(Handle, SB_VERT, Integer(SI.nPage) < AD.TotalVert);
-      end else
-        ShowScrollBar(Handle, SB_VERT, False);
+      PostLateUpdate(FillMessage(KM_SCROLL, 0, 0), True);
+      Exit;
     end;
-    UpdateEditorCaret(True);
-    Invalidate;
-    InvalidatePageSetup;
+    FInUpdateScrollRange := True;
+    try
+      AD := GetAreaDimensions;
+      // update horizontal scroll position
+      I := FLeftChar - GetMaxLeftChar(AD.TotalHorz);
+      if I > 0 then
+        Dec(FLeftChar, I);
+      FLeftChar := Max(FLeftChar, 0);
+      // update vertical scroll position
+      I := FTopLine - GetMaxTopLine(AD.TotalVert);
+      if I > 0 then
+        Dec(FTopLine, I);
+      FTopLine := Max(FTopLine, 0);
+      if FScrollBars in [ssBoth, ssHorizontal, ssVertical] then
+      begin
+        SI.cbSize := SizeOf(TScrollInfo);
+        SI.fMask := SIF_RANGE or SIF_PAGE or SIF_POS {$IFDEF UNIX}or SIF_UPDATEPOLICY{$ENDIF};
+        SI.nMin := 0;
+      {$IFDEF UNIX}
+        SI.ntrackPos := SB_POLICY_CONTINUOUS;
+      {$ENDIF}
+        if FScrollBars in [ssBoth, ssHorizontal] then
+        begin
+          CharCount := Max(GetClientWidthChars, 1);
+          SBVisible := CharCount < AD.TotalHorz;
+          ShowScrollBar(Handle, SB_HORZ, SBVisible);
+          if SBVisible then
+          begin
+            SI.nMax := AD.TotalHorz{$IFNDEF FPC}- 1{$ENDIF};
+            SI.nPage := CharCount;
+            SI.nPos := FLeftChar;
+            SetScrollInfo(Handle, SB_HORZ, SI, True);
+          end;
+        end else
+          ShowScrollBar(Handle, SB_HORZ, False);
+        if FScrollBars in [ssBoth, ssVertical] then
+        begin
+          CharCount := Max(GetClientHeightChars, 1);
+          SBVisible := CharCount < AD.TotalVert;
+          ShowScrollBar(Handle, SB_VERT, SBVisible);
+          if SBVisible then
+          begin
+            SI.nMax := AD.TotalVert{$IFNDEF FPC}- 1{$ENDIF};
+            SI.nPage := CharCount;
+            SI.nPos := FTopLine;
+            SetScrollInfo(Handle, SB_VERT, SI, True);
+          end;
+        end else
+          ShowScrollBar(Handle, SB_VERT, False);
+      end;
+      UpdateEditorCaret(True);
+      Invalidate;
+      InvalidatePageSetup;
+    finally
+      FInUpdateScrollRange := False;
+    end;
   end;
 end;
 

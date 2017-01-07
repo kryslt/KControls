@@ -24,6 +24,8 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_DcuOutput>$(Config)\$(Platform)</DCC_DcuOutput>
+			<DCC_ExeOutput>$(Config)\$(Platform)</DCC_ExeOutput>
 			<DCC_DependencyCheckOutputName>kgriddemoXE.exe</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_E>false</DCC_E>
@@ -46,7 +48,7 @@
 			<DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
 			<BCC_SourceDebuggingOn>true</BCC_SourceDebuggingOn>
 			<DCC_MapFile>3</DCC_MapFile>
-			<DCC_Define>DEBUG;EUREKALOG;EUREKALOG_VER6;$(DCC_Define)</DCC_Define>
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 			<DCC_Optimize>false</DCC_Optimize>
 			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 		</PropertyGroup>

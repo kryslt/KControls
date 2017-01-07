@@ -105,8 +105,6 @@ object MainForm: TMainForm
       Height = 238
       Align = alClient
       Center = True
-      ExplicitTop = 72
-      ExplicitHeight = 231
     end
   end
   object CBDisplayAll: TCheckBox
@@ -199,10 +197,6 @@ object MainForm: TMainForm
       Height = 85
       Align = alClient
       OnPaint = PBAlphaPaint
-      ExplicitLeft = 72
-      ExplicitTop = 8
-      ExplicitWidth = 105
-      ExplicitHeight = 105
     end
   end
   object ODMain: TOpenDialog
