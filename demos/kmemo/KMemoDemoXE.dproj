@@ -1,7 +1,7 @@
 ﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
 			<ProjectGuid>{0B65B936-3CC2-449E-AD05-CFF98FA86AD2}</ProjectGuid>
-			<MainSource>KMemoDemo.dpr</MainSource>
+			<MainSource>KMemoDemoXE.dpr</MainSource>
 			<Base>True</Base>
 			<Config Condition="'$(Config)'==''">Debug</Config>
 			<Platform>Win32</Platform>
@@ -47,7 +47,7 @@
 			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 		</PropertyGroup>
 		<ItemGroup>
-			<DelphiCompile Include="KMemoDemo.dpr">
+			<DelphiCompile Include="KMemoDemoXE.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="Main.pas">
@@ -73,7 +73,7 @@
 			<BorlandProject>
 				<Delphi.Personality>
 					<Source>
-						<Source Name="MainSource">KMemoDemo.dpr</Source>
+						<Source Name="MainSource">KMemoDemoXE.dpr</Source>
 					</Source>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
