@@ -2451,6 +2451,8 @@ type
     { Calls @link(TKCustomGrid.OnEndRowSizing) event handler.
       See the @link(TKGridEndSizingEvent) type for parameter interpretation. }
     function EndRowSizing(var Index, Pos: Integer): Boolean; virtual;
+    { Called from Font.OnChange. Performs some internal adjustments. }
+    procedure FontChange(Sender: TObject);
     { Destroys all column, row and cell instances. }
     procedure FreeData;
     { Returns information structure for column or row axis. Some fields of the
@@ -6203,6 +6205,7 @@ begin
   FEditorTransparency := cEditorTransparencyDef;
   FFixedCols := cInvalidIndex;
   FFixedRows := cInvalidIndex;
+  Font.OnChange := FontChange;
   FGridLineWidth := cGridLineWidthDef;
   FGridState := gsNormal;
   FHCI.HBegin := TKAlphaBitmap.CreateFromRes('KGRID_HCI_HBEGIN');
@@ -7805,6 +7808,12 @@ begin
   end;
 end;
 
+procedure TKCustomGrid.FontChange(Sender: TObject);
+begin
+  if csLoading in ComponentState then
+    DefaultRowHeight := GetDefaultRowHeight;
+end;
+
 procedure TKCustomGrid.FreeData;
 var
   I, J: Integer;
@@ -7913,7 +7922,7 @@ begin
   end;
   if Result <= 0 then
     Result := cDefaultRowHeightDef;
-  Inc(Result, 6); // include some padding
+  Inc(Result, 7); // include some padding
 end;
 
 function TKCustomGrid.GetAxisInfoBoth(Mask: TKGridAxisInfoMask): TKGridAxisInfoBoth;
