@@ -2877,7 +2877,7 @@ type
       and @link(TKCustomGrid.RowCount) must be > 1. Otherwise, nothing happens.
       Count will be adapted so that no more but available rows will be deleted. }
     procedure DeleteRows(At, Count: Integer); virtual;
-    {$IF lcl_fullversion >= 1070000}
+    {$IF lcl_fullversion >= 1080000}
     procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
       const AXProportion, AYProportion: Double; const AScale0Fonts: Boolean); override;
     {$IFEND}
@@ -7352,7 +7352,7 @@ begin
   end;
 end;
 
-{$IF lcl_fullversion >= 1070000}
+{$IF lcl_fullversion >= 1080000}
 procedure TKCustomGrid.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy;
   const AXProportion, AYProportion: Double; const AScale0Fonts: Boolean);
 var
