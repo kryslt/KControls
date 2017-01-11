@@ -28,12 +28,12 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
     TabOrder = 0
-    ExplicitHeight = 505
     object Splitter1: TSplitter
       Left = 500
       Top = 0
+      Width = 4
       Height = 519
-      ExplicitHeight = 505
+      ResizeStyle = rsUpdate
     end
     object Panel1: TPanel
       Left = 0
@@ -43,17 +43,17 @@ object MainForm: TMainForm
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
-      ExplicitHeight = 505
     end
     object Panel2: TPanel
-      Left = 503
+      Left = 504
       Top = 0
-      Width = 494
+      Width = 493
       Height = 519
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
-      ExplicitHeight = 505
+      ExplicitLeft = 503
+      ExplicitWidth = 494
     end
   end
   object BULoad: TButton

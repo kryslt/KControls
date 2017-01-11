@@ -7,6 +7,7 @@ uses
   Main in 'Main.pas' {MainForm};
 
 {$R *.res}
+{$R xpman.res}
 
 begin
 {$IFDEF COMPILER10_UP}

@@ -10874,11 +10874,13 @@ function TKMemoTable.WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordI
 const
   cMinColSize = 20;
 var
-  I, J, Len, RealColCount, ColWidth, DefColCount, DefSpace, DistSpace, MinSpace, OverflowSpace, UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY, VDelta: Integer;
-  Extent: TPoint;
+  I, J, Len, RealColCount, ColWidth, DefColCount, DefSpace, DistSpace, AvailableSpace, OverflowSpace, RequiredSpace, MeasuredWidth, NewWidth,
+  UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY, VDelta, BaseCol, BaseRow: Integer;
+  Ratio: Double;
+  Extent, MeasExtent: TPoint;
   Row: TKMemoTableRow;
-  Cell: TKmemoTableCell;
-  MeasWidths, MinWidths, Heights: TKMemoIndexObjectList;
+  Cell, BaseCell: TKmemoTableCell;
+  DefColWidths, MeasWidths, MinWidths, Heights: TKMemoIndexObjectList;
 begin
   // this is the table layout calculation
   if FFixedWidth then
@@ -10909,6 +10911,7 @@ begin
   end;
   TotalSpace := DefSpace + UndefSpace;
   // now measure cells
+  DefColWidths := TKMemoIndexObjectList.Create;
   MeasWidths := TKMemoIndexObjectList.Create;
   MinWidths := TKMemoIndexObjectList.Create;
   Heights := TKMemoIndexObjectList.Create;
@@ -10922,9 +10925,13 @@ begin
     for I := 0 to RealColCount - 1 do
     begin
       if (I < FColCount) and (FColWidths[I].Index > 0) then
-        ColWidth := Max(MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace), cMinColSize)
+        ColWidth := Max(FColWidths[I].Index {MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace)}, cMinColSize)
       else
         ColWidth := UndefColWidth;
+      DefColWidths.AddItem(ColWidth);
+    end;
+    for I := 0 to RealColCount - 1 do
+    begin
       MeasWidths[I].Index := 0;
       MinWidths[I].Index := 0;
       for J := 0 to RowCount - 1 do
@@ -10933,55 +10940,67 @@ begin
         if I < Row.CellCount then
         begin
           Cell := Row.Cells[I];
-          if Cell.ColSpan = 1 then
+          if Cell.ColSpan < 0 then
           begin
-            Extent := Cell.WordMeasureExtent(ACanvas, 0, cMinColSize);
-            MinWidths[I].Index := Max(MinWidths[I].Index, Extent.X);
-            Extent := Cell.WordMeasureExtent(ACanvas, 0, ColWidth); // Extent.X can be bigger than ColWidth here
-            MeasWidths[I].Index := Max(MeasWidths[I].Index, Extent.X);
-            if Cell.RowSpan = 1 then
-              Heights[J].Index := Max(Heights[J].Index, Extent.Y);
+            FindBaseCell(I, J, BaseCol, BaseRow);
+            BaseCell := Rows[BaseRow].Cells[BaseCol];
+          end else
+          begin
+            BaseCell := Cell;
+            BaseCol := I;
+            BaseRow := J;
           end;
+          Extent := BaseCell.WordMeasureExtent(ACanvas, 0, cMinColSize);
+          Extent.X := DivUp(Extent.X, BaseCell.ColSpan);
+          MinWidths[I].Index := Max(MinWidths[I].Index, Extent.X);
+          MeasExtent := BaseCell.WordMeasureExtent(ACanvas, 0, GetExtentSpanned(DefColWidths, BaseCol, BaseCell.ColSpan)); // MeasExtent.X can be bigger than ColWidth here
+          MeasExtent.X := DivUp(MeasExtent.X, BaseCell.ColSpan);
+          MeasWidths[I].Index := Max(MeasWidths[I].Index, MeasExtent.X);
+          if Cell.RowSpan = 1 then
+            Heights[J].Index := Max(Heights[J].Index, MeasExtent.Y);
         end;
       end;
       if MeasWidths[I].Index = 0 then
-        MeasWidths[I].Index := ColWidth;
+        MeasWidths[I].Index := DefColWidths[I].Index;
       if MinWidths[I].Index = 0 then
-        MinWidths[I].Index := ColWidth;
+        MinWidths[I].Index := DefColWidths[I].Index;
     end;
     // then, if some MeasWidths were bigger than ColWidth, recalculate remaining columns to fit required width
-    OverflowSpace := 0;
+    MeasuredWidth := 0;
     for I := 0 to RealColCount - 1 do
-      Inc(OverflowSpace, MeasWidths[I].Index);
-    Dec(OverflowSpace, ARequiredWidth);
-    if OverflowSpace > 0 then
-    begin
-      MinSpace := 0;
+      Inc(MeasuredWidth, MeasWidths[I].Index);
+    OverflowSpace := MeasuredWidth - ARequiredWidth;
+    if MeasuredWidth > ARequiredWidth then
+    repeat
+      AvailableSpace := 0;
+      RequiredSpace := ARequiredWidth;
       for I := 0 to RealColCount - 1 do
         if MeasWidths[I].Index > MinWidths[I].Index then
-          Inc(MinSpace, MeasWidths[I].Index);
-      if MinSpace > 0 then
+          Inc(AvailableSpace, MeasWidths[I].Index)
+        else
+          Dec(RequiredSpace, MinWidths[I].Index);
+      // AvailableSpace = sum of all MeasWidths bigger than MinWidths
+      // RequiredSpace = ARequiredWidth - sum of all unchangeable MeasWidths (lower than or equal to MinWidths)
+      // now distribute OverflowSpace across AvailableSpace
+      if AvailableSpace > 0 then
       begin
-        DistSpace := 0;
         for I := 0 to RealColCount - 1 do
-          if (MeasWidths[I].Index > MinWidths[I].Index) and (MinSpace > 0) then
+          if (MeasWidths[I].Index > MinWidths[I].Index) and (OverflowSpace > 0) then
           begin
-            VDelta := DivUp(MeasWidths[I].Index * OverflowSpace, MinSpace);
-            Dec(MinSpace, MeasWidths[I].Index);
-            if MeasWidths[I].Index - MinWidths[I].Index < VDelta then
+            NewWidth := Max(Trunc(MeasWidths[I].Index * RequiredSpace / AvailableSpace), MinWidths[I].Index);
+            if NewWidth >= MinWidths[I].Index then
             begin
-              Dec(OverflowSpace, MeasWidths[I].Index - MinWidths[I].Index);
-              Inc(DistSpace, MeasWidths[I].Index - MinWidths[I].Index);
-              MeasWidths[I].Index := MinWidths[I].Index;
-            end else
-            begin
-              Dec(OverflowSpace, VDelta);
-              MeasWidths[I].Index := MeasWidths[I].Index - VDelta;
-              Inc(DistSpace, VDelta);
+              Dec(OverflowSpace, MeasWidths[I].Index - NewWidth);
+              if OverflowSpace < 0 then
+              begin
+                Inc(NewWidth, -OverflowSpace);
+                OverflowSpace := 0;
+              end;
+              MeasWidths[I].Index := NewWidth;
             end;
           end;
       end;
-    end;
+    until (OverflowSpace = 0) or (AvailableSpace = 0);
     // then, measure again with maximum allowed column width and update vertical extents
     for I := 0 to RowCount - 1 do
     begin
@@ -11056,6 +11075,7 @@ begin
     WordTop[0] := 0;
     WordHeight[0] := 0;
   finally
+    DefColWidths.Free;
     MeasWidths.Free;
     MinWidths.Free;
     Heights.Free;
