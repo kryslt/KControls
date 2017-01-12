@@ -1869,7 +1869,10 @@ end;
 procedure TKCustomControl.DoOnChangeBounds;
 begin
   inherited;
-  UpdateSize; //PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
+  if csDesigning in ComponentState then
+    PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True)
+  else
+    UpdateSize;
 end;
 {$ENDIF}
 
