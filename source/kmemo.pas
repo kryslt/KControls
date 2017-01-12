@@ -4700,19 +4700,19 @@ function TKCustomMemo.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
 const
   WHEEL_DIVISOR = 120;
 var
-  LinesToScroll, WheelClicks: Integer;
+  AmountToScroll, WheelClicks: Integer;
 begin
   Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
   if not Result then
   begin
     if ssCtrl in Shift then
-      LinesToScroll := ClientHeight div FVertScrollStep
+      AmountToScroll := ClientHeight
     else
-      LinesToScroll := 3;
+      AmountToScroll := 3 * FVertScrollStep;
     Inc(FMouseWheelAccumulator, WheelDelta);
     WheelClicks := FMouseWheelAccumulator div WHEEL_DIVISOR;
     FMouseWheelAccumulator := FMouseWheelAccumulator mod WHEEL_DIVISOR;
-    ScrollBy(0, - WheelClicks * LinesToScroll, eoScrollWindow in FOptions);
+    ScrollBy(0, - WheelClicks * AmountToScroll, eoScrollWindow in FOptions);
     Result := True;
   end;
 end;
@@ -4929,7 +4929,7 @@ begin
       end;
       ecSelPageTop: 
       begin
-        NewSelEnd := ActiveBlocks.NextIndexByVertValue(Canvas, FTopPos * FVertScrollStep + VertScrollPadding, FPreferredCaretPos, False, TmpPosition);
+        NewSelEnd := ActiveBlocks.NextIndexByVertValue(Canvas, FTopPos + VertScrollPadding, FPreferredCaretPos, False, TmpPosition);
         SelectionExpand(NewSelEnd, True, TmpPosition);
       end;
       ecPageBottom: 
@@ -4939,7 +4939,7 @@ begin
       end;
       ecSelPageBottom: 
       begin
-        NewSelEnd := ActiveBlocks.NextIndexByVertValue(Canvas, FTopPos * FVertScrollStep + ClientHeight - VertScrollPadding, FPreferredCaretPos, True, TmpPosition);
+        NewSelEnd := ActiveBlocks.NextIndexByVertValue(Canvas, FTopPos + ClientHeight - VertScrollPadding, FPreferredCaretPos, True, TmpPosition);
         SelectionExpand(NewSelEnd, True, TmpPosition);
       end;
       ecEditorTop: SelectionInit(0, True, eolInside);
@@ -5099,12 +5099,12 @@ end;
 
 function TKCustomMemo.GetContentHeight: Integer;
 begin
-  Result := FVertExtent * FVertScrollStep;
+  Result := FVertExtent;
 end;
 
 function TKCustomMemo.GetContentLeft: Integer;
 begin
-  Result := -FLeftPos * FHorzScrollStep + FContentPadding.Left;
+  Result := -FLeftPos + FContentPadding.Left;
 end;
 
 function TKCustomMemo.GetContentRect: TRect;
@@ -5117,12 +5117,12 @@ end;
 
 function TKCustomMemo.GetContentTop: Integer;
 begin
-  Result := -FTopPos * FVertScrollStep + FContentPadding.Top;
+  Result := -FTopPos + FContentPadding.Top;
 end;
 
 function TKCustomMemo.GetContentWidth: Integer;
 begin
-  Result := FHorzExtent * FHorzScrollStep;
+  Result := FHorzExtent;
 end;
 
 function TKCustomMemo.GetDefaultTextStyle: TKMemoTextStyle;
@@ -5225,12 +5225,12 @@ end;
 
 function TKCustomMemo.GetMaxLeftPos: Integer;
 begin
-  Result := (FHorzExtent - ClientWidth) div FHorzScrollStep;
+  Result := FHorzExtent - ClientWidth;
 end;
 
 function TKCustomMemo.GetMaxTopPos: Integer;
 begin
-  Result := (FVertExtent - ClientHeight) div FVertScrollStep;
+  Result := FVertExtent - ClientHeight;
 end;
 
 function TKCustomMemo.GetMaxWordLength: TKMemoSelectionIndex;
@@ -5966,7 +5966,7 @@ end;
 function TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; ACallScrollWindow: Boolean): Boolean;
 
   function Axis(Code: Cardinal; HasScrollBar: Boolean;
-    ScrollCode: Cardinal; Delta, MaxScrollPos: Integer; var ScrollPos: Integer): Boolean;
+    ScrollCode: Cardinal; Delta, MaxScrollPos, ScrollStep: Integer; var ScrollPos: Integer): Boolean;
   var
     OldPos, Pos: Integer;
     SI: TScrollInfo;
@@ -5987,13 +5987,15 @@ function TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; 
     case ScrollCode of
       SB_TOP: Pos := 0;
       SB_BOTTOM: Pos := SI.nMax;
-      SB_LINEUP: Dec(Pos);
-      SB_LINEDOWN: Inc(Pos);
+      SB_LINEUP: Dec(Pos, ScrollStep);
+      SB_LINEDOWN: Inc(Pos, ScrollStep);
       SB_PAGEUP: Dec(Pos, SI.nPage);
       SB_PAGEDOWN: Inc(Pos, SI.nPage);
       SB_THUMBTRACK, SB_THUMBPOSITION: Pos := SI.nTrackPos;
       Cardinal(cScrollDelta): Inc(Pos, Delta);
     end;
+    if Pos < MaxScrollPos then
+      Pos := (Pos div ScrollStep) * ScrollStep;
     Pos := MinMax(Pos, 0, MaxScrollPos);
     if Pos <> OldPos then
     begin
@@ -6016,18 +6018,18 @@ var
 begin
   OldLeftPos := FLeftPos;
   OldTopPos := FTopPos;
-  ScrollHorzAxis := Axis(SB_HORZ, FScrollBars in [ssHorizontal, ssBoth], CodeHorz, DeltaHorz, FHorzScrollExtent, FLeftPos);
-  ScrollVertAxis := Axis(SB_VERT, FScrollBars in [ssVertical, ssBoth], CodeVert, DeltaVert, FVertScrollExtent, FTopPos);
+  ScrollHorzAxis := Axis(SB_HORZ, FScrollBars in [ssHorizontal, ssBoth], CodeHorz, DeltaHorz, FHorzScrollExtent, FHorzScrollStep, FLeftPos);
+  ScrollVertAxis := Axis(SB_VERT, FScrollBars in [ssVertical, ssBoth], CodeVert, DeltaVert, FVertScrollExtent, FVertScrollStep, FTopPos);
   Result := ScrollHorzAxis or ScrollVertAxis;
   if Result then
   begin
     if ACallScrollWindow then
-      ScrollWindowEx(Handle, (OldLeftPos - FLeftPos) * FHorzScrollStep, (OldTopPos - FTopPos) * FVertScrollStep,
+      ScrollWindowEx(Handle, OldLeftPos - FLeftPos, OldTopPos - FTopPos,
         nil, nil, 0, nil, SW_INVALIDATE)
     else
       Invalidate;
     UpdateEditorCaret;
-    Inc(FPreferredCaretPos, (OldLeftPos - FLeftPos) * FHorzScrollStep);
+    Inc(FPreferredCaretPos, OldLeftPos - FLeftPos);
   end;
 end;
 
@@ -6041,7 +6043,7 @@ var
   R: TRect;
 begin
   R := IndexToRect(SelEnd, True);
-  ScrollBy((R.Left - ClientWidth div 2) div FHorzScrollStep, (R.Top - ClientHeight div 2) div FVertScrollStep, eoScrollWindow in FOptions);
+  ScrollBy(R.Left - ClientWidth div 2, R.Top - ClientHeight div 2, eoScrollWindow in FOptions);
 end;
 
 function TKCustomMemo.ScrollNeeded(AMousePos: PPoint; out DeltaCol, DeltaRow: Integer): Boolean;
@@ -6055,24 +6057,24 @@ begin
   if AMousePos <> nil then
   begin
     if AMousePos.X < HScrollPadding then
-      DeltaCol := DivDown(AMousePos.X - HScrollPadding, FHorzScrollStep)
+      DeltaCol := AMousePos.X - HScrollPadding
     else if AMousePos.X > ClientWidth - HScrollPadding then
-      DeltaCol := DivUp(AMousePos.X - ClientWidth + HScrollPadding, FHorzScrollStep);
+      DeltaCol := AMousePos.X - ClientWidth + HScrollPadding;
     if AMousePos.Y < VScrollPadding then
-      DeltaRow := DivDown(AMousePos.Y - VScrollPadding, FVertScrollStep)
+      DeltaRow := AMousePos.Y - VScrollPadding
     else if AMousePos.Y > ClientHeight - VScrollPadding then
-      DeltaRow := DivUp(AMousePos.Y - ClientHeight + VScrollPadding, FVertScrollStep);
+      DeltaRow := AMousePos.Y - ClientHeight + VScrollPadding;
   end;
   if (DeltaCol = 0) or (DeltaRow = 0) then
   begin
     if FCaretRect.Left < HScrollPadding then
-      DeltaCol := DivDown(FCaretRect.Left - HScrollPadding, FHorzScrollStep)
-    else if (FCaretRect.Left + FCaretRect.Right > ClientWidth - HScrollPadding){ and (FCaretRect.Left > FHorzScrollStep)} then
-      DeltaCol := DivUp(FCaretRect.Left + FCaretRect.Right - ClientWidth + HScrollPadding, FHorzScrollStep);
+      DeltaCol := FCaretRect.Left - HScrollPadding
+    else if FCaretRect.Left + FCaretRect.Right > ClientWidth - HScrollPadding then
+      DeltaCol := FCaretRect.Left + FCaretRect.Right - ClientWidth + HScrollPadding;
     if FCaretRect.Top < VScrollPadding then
-      DeltaRow := DivDown(FCaretRect.Top - VScrollPadding, FVertScrollStep)
-    else if (FCaretRect.Top + FCaretRect.Bottom > ClientHeight - VScrollPadding){ and (FCaretRect.Top > FVertScrollStep)} then
-      DeltaRow := DivUp(FCaretRect.Top + FCaretRect.Bottom - ClientHeight + VScrollPadding, FVertScrollStep);
+      DeltaRow := FCaretRect.Top - VScrollPadding
+    else if FCaretRect.Top + FCaretRect.Bottom > ClientHeight - VScrollPadding then
+      DeltaRow := FCaretRect.Top + FCaretRect.Bottom - ClientHeight + VScrollPadding;
   end;
   Result := (DeltaCol <> 0) or (DeltaRow <> 0);
 end;
@@ -6608,13 +6610,10 @@ begin
     FInUpdateScrollRange := True;
     try
       FBlocks.MeasureExtent(Canvas, RequiredContentWidth);
-      if FRequiredContentWidth > 0 then
-        FHorzExtent := DivUp(FBlocks.Width + FContentPadding.Left + FContentPadding.Right, FHorzScrollStep)
-      else
-        FHorzExtent := DivDown(FBlocks.Width + FContentPadding.Left + FContentPadding.Right, FHorzScrollStep);
-      FVertExtent := DivUp(FBlocks.Height + FContentPadding.Top + FContentPadding.Bottom, FVertScrollStep);
-      ClientHorz := DivDown(ClientWidth, FHorzScrollStep);
-      ClientVert := DivDown(ClientHeight, FVertScrollStep);
+      FHorzExtent := FBlocks.Width + FContentPadding.Left + FContentPadding.Right;
+      FVertExtent := FBlocks.Height + FContentPadding.Top + FContentPadding.Bottom;
+      ClientHorz := ClientWidth;
+      ClientVert := ClientHeight;
       DeltaHorz := Max(FLeftPos + ClientHorz - FHorzExtent - 1, 0);
       DeltaVert := Max(FTopPos + ClientVert - FVertExtent - 1, 0);
       FHorzScrollExtent := 0;
@@ -6631,7 +6630,7 @@ begin
       {$ENDIF}
         if FScrollBars in [ssBoth, ssHorizontal] then
         begin
-          SBVisible := ClientHorz < FHorzExtent;
+          SBVisible := ClientWidth < FHorzExtent;
           ShowScrollBar(Handle, SB_HORZ, SBVisible);
           if SBVisible then
           begin
