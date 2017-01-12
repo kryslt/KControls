@@ -1869,7 +1869,7 @@ end;
 procedure TKCustomControl.DoOnChangeBounds;
 begin
   inherited;
-  PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
+  UpdateSize; //PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
 end;
 {$ENDIF}
 
@@ -2063,14 +2063,21 @@ end;
 
 procedure TKCustomControl.PostLateUpdate(const Msg: TLMessage;
   IfNotExists: Boolean);
+var
+  MessageExists: Boolean;
+  TmpMsg: tagMSG;
 begin
   if HandleAllocated then
   begin
-    if not IfNotExists or not MessageSearch(Msg.Msg) then
+    MessageExists := MessageSearch(Msg.Msg);
+    if not MessageExists or not IfNotExists then
     begin
       MessagePoke(Msg);
       PostMessage(Handle, KM_LATEUPDATE, 0, 0);
     end;
+    // resend lost message
+    if MessageExists and not PeekMessage(TmpMsg, Handle, KM_LATEUPDATE, KM_LATEUPDATE, PM_NOREMOVE) then
+      PostMessage(Handle, KM_LATEUPDATE, 0, 0);
   end;
 end;
 
@@ -2112,10 +2119,9 @@ end;
 procedure TKCustomControl.Resize;
 begin
   inherited;
-{$IFnDEF FPC}
-  FResizeCalled := True;
-  UpdateSize;
-{$ENDIF}
+// Needs to be handled in Lazarus as well!
+// DoOnChangeBounds is not called in LCL when eg. scrollbars change their visibility etc.
+  PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True);
 end;
 
 {$IFNDEF FPC}
