@@ -1217,7 +1217,6 @@ type
     function GetParaStyle: TKMemoParaStyle; override;
     procedure ParaStyleChanged(Sender: TObject; AReasons: TKMemoUpdateReasons);
     procedure RequiredBorderWidthsChanged(Sender: TObject);
-    procedure RequiredWidthChanged; override;
     procedure SetColSpan(Value: Integer); virtual;
     procedure SetRowSpan(Value: Integer); virtual;
     procedure SetSpan(const Value: TKCellSpan); virtual;
@@ -1250,13 +1249,11 @@ type
     function GetTotalLineCount: Integer; override;
     function GetTotalLineRect(Index: TKMemoTotalLineIndex): TRect; override;
     procedure RequiredHeightChanged; override;
-    procedure RequiredWidthChanged; override;
     procedure SetCellCount(const Value: Integer); virtual;
   public
     constructor Create; override;
     destructor Destroy; override;
     function CanAdd(ABlock: TKMemoBlock): Boolean; override;
-    procedure UpdateRequiredWidth; virtual;
     property CellCount: Integer read GetCellCount write SetCellCount;
     property Cells[Index: Integer]: TKMemoTableCell read GetCells;
     property ParentTable: TKMemoTable read GetParentTable;
@@ -1278,7 +1275,6 @@ type
   protected
     procedure InternalSetCellSpan(ACol, ARow: Integer;
       const Value: TKCellSpan); virtual;
-    procedure RequiredWidthChanged; override;
     procedure SetCellSpan(ACol, ARow: Integer; Value: TKCellSpan); virtual;
     procedure SetColWidths(Index: Integer; const Value: Integer); virtual;
     procedure SetRowHeights(Index: Integer; const Value: Integer); virtual;
@@ -1720,7 +1716,6 @@ type
     FTextStyle: TKMemoTextStyle;
     FTopPos: Integer;
     FUndoList: TKMemoChangeList;
-    FUpdateLock: Integer;
     FWordBreaks: TKSysCharSet;
     FOnBlockClick: TKMemoBlockNotifyEvent;
     FOnBlockDblClick: TKMemoBlockNotifyEvent;
@@ -4205,7 +4200,6 @@ begin
   FTopPos := 0;
   FUndoList := TKMemoChangeList.Create(Self, FRedoList);
   FUndoList.OnChange := UndoChange;
-  FUpdateLock := 0;
   FVertScrollStep := cVertScrollStepDef;
   FWordBreaks := cDefaultWordBreaks;
   FOnChange := nil;
@@ -9569,7 +9563,7 @@ end;
 
 function TKMemoContainer.GetWordHeight(Index: TKMemoWordIndex): Integer;
 begin
-  if FFixedHeight then
+  if FFixedHeight and (FRequiredHeight > 0) then
     Result := FRequiredHeight
   else
     Result := Max(FCurrentRequiredHeight, FBlocks.Height + FBlockStyle.AllPaddingsBottom + FBlockStyle.AllPaddingsTop);
@@ -9602,7 +9596,7 @@ end;
 
 function TKMemoContainer.GetWordWidth(Index: TKMemoWordIndex): Integer;
 begin
-  if FFixedWidth then
+  if FFixedWidth and (FRequiredWidth > 0) then
     Result := FRequiredWidth
   else
     Result := Max(FCurrentRequiredWidth, FBlocks.Width + FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight);
@@ -10008,15 +10002,6 @@ begin
     Table.FixupBorders;
 end;
 
-procedure TKMemoTableCell.RequiredWidthChanged;
-var
-  Row: TKMemoTableRow;
-begin
-  Row := ParentRow;
-  if Row <> nil then
-    Row.UpdateRequiredWidth;
-end;
-
 procedure TKMemoTableCell.SetColSpan(Value: Integer);
 var
   Table: TKMemoTable;
@@ -10153,15 +10138,6 @@ begin
   end;
 end;
 
-procedure TKMemoTableRow.UpdateRequiredWidth;
-var
-  I: Integer;
-begin
-  FRequiredWidth := 0;
-  for I := 0 to CellCount - 1 do
-    Inc(FRequiredWidth, Cells[I].RequiredWidth);
-end;
-
 procedure TKMemoTableRow.RequiredHeightChanged;
 var
   I: Integer;
@@ -10170,34 +10146,6 @@ begin
   begin
     Cells[I].FixedHeight := True;
     Cells[I].RequiredHeight := RequiredHeight;
-  end;
-end;
-
-procedure TKMemoTableRow.RequiredWidthChanged;
-var
-  I, OldWidth, CellWidth: Integer;
-  Ratio: Double;
-begin
-  OldWidth := FBlocks.Width;
-  if OldWidth <= 0 then
-  begin
-    if CellCount > 0 then
-    begin
-      CellWidth := RequiredWidth div CellCount;
-      for I := 0 to CellCount - 1 do
-      begin
-        Cells[I].FixedWidth := True;
-        Cells[I].RequiredWidth := CellWidth;
-      end;
-    end;
-  end else
-  begin
-    Ratio := RequiredWidth / OldWidth;
-    for I := 0 to CellCount - 1 do
-    begin
-      Cells[I].FixedWidth := True;
-      Cells[I].RequiredWidth := Round(Cells[I].RequiredWidth * Ratio);
-    end;
   end;
 end;
 
@@ -10753,19 +10701,6 @@ begin
   end;
 end;
 
-procedure TKMemoTable.RequiredWidthChanged;
-var
-  I: Integer;
-begin
-  LockUpdate;
-  try
-    for I := 0 to RowCount - 1 do
-      Rows[I].RequiredWidth := RequiredWidth;
-  finally
-    UnlockUpdate;
-  end;
-end;
-
 function TKMemoTable.RowValid(ARow: Integer): Boolean;
 begin
   Result := (ARow >= 0) and (ARow < RowCount);
@@ -10873,18 +10808,30 @@ function TKMemoTable.WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordI
 const
   cMinColSize = 20;
 var
-  I, J, Len, RealColCount, ColWidth, DefColCount, DefSpace, DistSpace, AvailableSpace, OverflowSpace, RequiredSpace, MeasuredWidth, NewWidth,
-  UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY, VDelta, BaseCol, BaseRow: Integer;
+  I, J, K, Len, RealColCount, ColWidth, DefColCount, DefSpace, DistSpace, AvailableSpace, OverflowSpace, RequiredSpace, MeasuredWidth, MinSpannedWidth, NewWidth,
+  UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY, VDelta: Integer;
   Ratio: Double;
   Extent, MeasExtent: TPoint;
   Row: TKMemoTableRow;
-  Cell, BaseCell: TKmemoTableCell;
+  Cell: TKmemoTableCell;
   DefColWidths, MeasWidths, MinWidths, Heights: TKMemoIndexObjectList;
 begin
   // this is the table layout calculation
+  // first get required table width
   if FFixedWidth then
-    ARequiredWidth := FRequiredWidth;
-  Dec(ARequiredWidth, FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight);
+  begin
+    if FRequiredWidth > 0 then
+      // required width given for entire table, scale all column widths
+      ARequiredWidth := FRequiredWidth - FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight
+    else
+    begin
+      // required width not given for entire table, use column widths
+      ARequiredWidth := 0;
+      for I := 0 to FColCount - 1 do
+        Inc(ARequiredWidth, FColWidths[I].Index);
+    end;
+  end else
+    Dec(ARequiredWidth, FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight);
   // calculate real column count, this may be different from FColCount
   RealColCount := 0;
   for I := 0 to RowCount - 1 do
@@ -10915,6 +10862,7 @@ begin
   MinWidths := TKMemoIndexObjectList.Create;
   Heights := TKMemoIndexObjectList.Create;
   try
+    DefColWidths.SetSize(RealColCount);
     MeasWidths.SetSize(RealColCount);
     MinWidths.SetSize(RealColCount);
     Heights.SetSize(RowCount);
@@ -10924,11 +10872,14 @@ begin
     for I := 0 to RealColCount - 1 do
     begin
       if (I < FColCount) and (FColWidths[I].Index > 0) then
-        ColWidth := Max(FColWidths[I].Index {MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace)}, cMinColSize)
+        // always scale the predefined column widths to fit into ARequiredWidth
+        // set FixedWidth to true and RequiredWidth to zero or sum of all column widths to get exact column widths
+        ColWidth := Max(MulDiv(FColWidths[I].Index, ARequiredWidth, TotalSpace), cMinColSize)
       else
         ColWidth := UndefColWidth;
-      DefColWidths.AddItem(ColWidth);
+      DefColWidths[I].Index := ColWidth;
     end;
+    // measure unmerged cells
     for I := 0 to RealColCount - 1 do
     begin
       MeasWidths[I].Index := 0;
@@ -10939,30 +10890,49 @@ begin
         if I < Row.CellCount then
         begin
           Cell := Row.Cells[I];
-          if Cell.ColSpan < 0 then
+          if Cell.ColSpan = 1 then
           begin
-            FindBaseCell(I, J, BaseCol, BaseRow);
-            BaseCell := Rows[BaseRow].Cells[BaseCol];
-          end else
-          begin
-            BaseCell := Cell;
-            BaseCol := I;
-            BaseRow := J;
+            Extent := Cell.WordMeasureExtent(ACanvas, 0, cMinColSize);
+            MinWidths[I].Index := Max(MinWidths[I].Index, Extent.X);
+            MeasExtent := Cell.WordMeasureExtent(ACanvas, 0, DefColWidths[I].Index);
+            MeasWidths[I].Index := Max(MeasWidths[I].Index, MeasExtent.X);
+            if Cell.RowSpan = 1 then
+              Heights[J].Index := Max(Heights[J].Index, MeasExtent.Y);
           end;
-          Extent := BaseCell.WordMeasureExtent(ACanvas, 0, cMinColSize);
-          Extent.X := DivUp(Extent.X, BaseCell.ColSpan);
-          MinWidths[I].Index := Max(MinWidths[I].Index, Extent.X);
-          MeasExtent := BaseCell.WordMeasureExtent(ACanvas, 0, GetExtentSpanned(DefColWidths, BaseCol, BaseCell.ColSpan)); // MeasExtent.X can be bigger than ColWidth here
-          MeasExtent.X := DivUp(MeasExtent.X, BaseCell.ColSpan);
-          MeasWidths[I].Index := Max(MeasWidths[I].Index, MeasExtent.X);
-          if Cell.RowSpan = 1 then
-            Heights[J].Index := Max(Heights[J].Index, MeasExtent.Y);
         end;
       end;
       if MeasWidths[I].Index = 0 then
         MeasWidths[I].Index := DefColWidths[I].Index;
       if MinWidths[I].Index = 0 then
         MinWidths[I].Index := DefColWidths[I].Index;
+    end;
+    // measure horizontally merged cells
+    for I := 0 to RealColCount - 1 do
+    begin
+      for J := 0 to RowCount - 1 do
+      begin
+        Row := Rows[J];
+        if I < Row.CellCount then
+        begin
+          Cell := Row.Cells[I];
+          if Cell.ColSpan > 1 then
+          begin
+            MinSpannedWidth := 0;
+            for K := I to I + Cell.ColSpan - 1 do
+              Inc(MinSpannedWidth, MinWidths[K].Index);
+            Extent := Cell.WordMeasureExtent(ACanvas, 0, cMinColSize);
+            if Extent.X > MinSpannedWidth then
+            begin
+              // equally distribute the width of merged cells across participating columns
+              for K := I to I + Cell.ColSpan - 1 do
+              begin
+                MinWidths[K].Index := DivUp(MinWidths[K].Index * Extent.X, MinSpannedWidth);
+                MeasWidths[K].Index := Max(MeasWidths[K].Index, MinWidths[K].Index);
+              end;
+            end;
+          end;
+        end;
+      end;
     end;
     // then, if some MeasWidths were bigger than ColWidth, recalculate remaining columns to fit required width
     MeasuredWidth := 0;
@@ -11228,7 +11198,6 @@ begin
   FSelStart := 0;
   FState := TKMemoMeasState.Create;
   FState.Clear;
-  FUpdateLock := 0;
   FOnUpdate := nil;
   Update([muContent]);
 end;

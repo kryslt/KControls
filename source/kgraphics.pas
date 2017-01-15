@@ -2191,7 +2191,7 @@ begin
           if APngImage.AlphaScanline[J] <> nil then
             C.A := APngImage.AlphaScanline[J][I]
           else
-            C.A := 0;
+            C.A := 255;
         {$ENDIF}
           Pixel[I, J] := C;
         end;
@@ -2325,7 +2325,10 @@ begin
               C := FPColorToColorRec(FC);
             {$ELSE}
               C.Value := APngImage.Pixels[I - X, J - Y];
-              C.A := APngImage.AlphaScanline[J - Y][I - X];
+              if APngImage.AlphaScanline[J - Y] <> nil then
+                C.A := APngImage.AlphaScanline[J - Y][I - X]
+              else
+                C.A := 255;
             {$ENDIF}
               Pixel[I, J] := C;
             end;

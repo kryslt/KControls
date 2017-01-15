@@ -42,6 +42,10 @@ unit kgrids; // lowercase name because of Lazarus/Linux
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}
 
+{$IFnDEF FPC}
+ {$WARN COMPARISON_FALSE OFF} // because of {$IF lcl_fullversion >= 1080000} lines...
+{$ENDIF}
+
 interface
 
 uses
