@@ -1357,6 +1357,7 @@ type
     procedure SetIgnoreParaMark(const Value: Boolean);
     procedure SetItem(Index: TKMemoBlockIndex; const Value: TKMemoBlock);
     procedure SetMemoNotifier(const Value: IKMemoNotifier);
+    function IndexToInnerBlock(AIndex: TKMemoSelectionIndex): TKMemoBlock;
   protected
     FLines: TKMemoLines;
     FRelPos: TKMemoIndexObjectList;
@@ -1471,7 +1472,6 @@ type
     function NextIndexByRowDelta(ACanvas: TCanvas; AIndex: TKMemoSelectionIndex; ARowDelta, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
     function NextIndexByVertExtent(ACanvas: TCanvas; AIndex: TKMemoSelectionIndex; AHeight, ALeftPos: Integer; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
     function NextIndexByVertValue(ACanvas: TCanvas; AValue, ALeftPos: Integer; ADirection: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
-    function PointToBlock(const APoint: TPoint): TKMemoBlock; virtual;
     function PointToBlocks(const APoint: TPoint): TKMemoBlocks; virtual;
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
@@ -2051,6 +2051,8 @@ type
     destructor Destroy; override;
     { Takes property values from another TKCustomMemo class. }
     procedure Assign(Source: TPersistent); override;
+    { Returns innermost block at given position. }
+    function BlockAt(APos: TPoint): TKMemoBlock;
     { Determines whether the caret is visible. }
     function CaretInView: Boolean; virtual;
     { Forces the caret position to become visible. }
@@ -4303,6 +4305,19 @@ begin
   end
   else
     inherited;
+end;
+
+function TKCustomMemo.BlockAt(APos: TPoint): TKMemoBlock;
+var
+  TmpPosition: TKMemoLinePosition;
+  Index: TKMemoSelectionIndex;
+begin
+  SetActiveBlocksForPoint(APos);
+  Index := ActiveBlocks.PointToIndex(Canvas, PointToBlockPoint(APos), False, False, TmpPosition);
+  if Index >= 0 then
+    Result := ActiveBlocks.IndexToInnerBlock(Index)
+  else
+    Result := nil;
 end;
 
 procedure TKCustomMemo.BackgroundChanged(Sender: TObject);
@@ -12336,7 +12351,7 @@ var
   LineIndex: TKMemoLineIndex;
   LocalIndex: TKMemoSelectionIndex;
 begin
-  if AAdjust then  
+  if AAdjust then
     EOLToNormal(AIndex);
   LineIndex := IndexToLineIndex(AIndex);
   Result := LineIndex < FLines.Count - 1;
@@ -12346,6 +12361,15 @@ begin
     if Block is TKMemoContainer then
       Result := TKMemoContainer(Block).Blocks.IndexAboveLastLine(LocalIndex, False)
   end;
+end;
+
+function TKMemoBlocks.IndexToInnerBlock(AIndex: TKMemoSelectionIndex): TKMemoBlock;
+var
+  LocalIndex: TKMemoSelectionIndex;
+begin
+  Result := IndexToBlock(AIndex, LocalIndex);
+  if Result is TKMemoContainer then
+    Result := TKMemoContainer(Result).Blocks.IndexToInnerBlock(LocalIndex);
 end;
 
 function TKMemoBlocks.IndexAtBeginningOfContainer(AIndex: TKMemoSelectionIndex; AAdjust: Boolean): Boolean;
@@ -13844,27 +13868,6 @@ begin
         // this should not happen but we must handle this case
         Result := (LineStartIndex[ALineIndex] + LineEndIndex[ALineIndex]) div 2;
       end;
-    end;
-  end;
-end;
-
-function TKMemoBlocks.PointToBlock(const APoint: TPoint): TKMemoBlock;
-var
-  BlockIndex: TKMemoBlockIndex;
-  Block: TKMemoBlock;
-  R: TRect;
-begin
-  Result := nil;
-  for BlockIndex := 0 to Count - 1 do
-  begin
-    Block := Items[BlockIndex];
-    R := Block.BoundsRect;
-    if Block.Position <> mbpText then
-      KFunctions.OffsetRect(R, Block.LeftOffset, Block.TopOffset);
-    if PtInRect(R, APoint) then
-    begin
-      Result := Block;
-      Exit;
     end;
   end;
 end;
