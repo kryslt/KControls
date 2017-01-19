@@ -1491,7 +1491,7 @@ begin
     If Res = 0 Then
       Exit;
 
-    Stream := TResourceStream.CreateFromID(HInstance, ResID, PChar(RT_VERSION));
+    Stream := TResourceStream.CreateFromID(HInstance, ResID, PWideChar(RT_VERSION));
     Try
       Info.SetCustomRawDataStream(Stream);
       MajorVersion := Info.FixedInfo.FileVersion[0];

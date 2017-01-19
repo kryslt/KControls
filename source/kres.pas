@@ -120,6 +120,7 @@ resourcestring
   sPSErrNoPrinterInstalled = 'No printer is installed on this computer.';
   sPSErrNoDefaultPrinter = 'No default printer selected, cannot continue. Please select default printer.';
   sPSErrPrinterUnknown = 'Unknown error in printer interface. Please restart application and try again.';
+  sPSErrPrinterConfiguration = 'Printer configuration not supported.';
 
   // KControlsDesign texts
   sInvalidGraphicFormat = 'Invalid graphic format.';
@@ -300,6 +301,9 @@ begin
   ResMod(@sPSAllPages, 'Všechny stránky (%d)');
   ResMod(@sPSErrPrintSetup, 'Chybné nastavení tisku');
   ResMod(@sPSErrNoPrinterInstalled, 'Na poèítaèi není instalována žádná tiskárna.');
+  ResMod(@sPSErrNoDefaultPrinter, 'Není zvolena výchozí tiskárna, nelze pokraèovat. Zvolte výchozí tiskárnu.');
+  ResMod(@sPSErrPrinterUnknown, 'Neznámá chyba v tiskovém rozhraní. Prosím restartujte aplikaci a zkuste to znovu.');
+  ResMod(@sPSErrPrinterConfiguration, 'Konfigurace tiskárny není podporována.');
 
   // KControlsDesign texts
   ResMod(@sInvalidGraphicFormat, 'Neplatný grafický formát.');

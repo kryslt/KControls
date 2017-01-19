@@ -137,7 +137,6 @@ object KPrintSetupForm: TKPrintSetupForm
     Caption = '&Print'
     TabOrder = 4
     OnClick = BUPrintClick
-    ExplicitTop = 325
   end
   object BUCancel: TButton
     Left = 383
@@ -149,7 +148,6 @@ object KPrintSetupForm: TKPrintSetupForm
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 5
-    ExplicitTop = 325
   end
   object GBMargins: TGroupBox
     Left = 264
@@ -397,7 +395,6 @@ object KPrintSetupForm: TKPrintSetupForm
     Caption = 'Previe&w...'
     TabOrder = 6
     OnClick = BUPreviewClick
-    ExplicitTop = 325
   end
   object BUOk: TButton
     Left = 303
@@ -409,7 +406,6 @@ object KPrintSetupForm: TKPrintSetupForm
     Default = True
     ModalResult = 1
     TabOrder = 7
-    ExplicitTop = 325
   end
   object GBPrinter: TGroupBox
     Left = 8
@@ -446,9 +442,5 @@ object KPrintSetupForm: TKPrintSetupForm
       TabOrder = 1
       OnClick = BUConfigureClick
     end
-  end
-  object PSDMain: TPrinterSetupDialog
-    Left = 416
-    Top = 29
   end
 end

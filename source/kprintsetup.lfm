@@ -15,7 +15,7 @@ object KPrintSetupForm: TKPrintSetupForm
   OnDestroy = FormDestroy
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.4.4.0'
+  LCLVersion = '1.7'
   object GBFileToPrint: TGroupBox
     Left = 8
     Height = 45
@@ -431,9 +431,5 @@ object KPrintSetupForm: TKPrintSetupForm
       OnClick = BUConfigureClick
       TabOrder = 1
     end
-  end
-  object PSDMain: TPrinterSetupDialog
-    left = 376
-    top = 104
   end
 end

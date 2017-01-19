@@ -23,7 +23,7 @@ interface
 
 uses
 {$IFDEF FPC}
-  LCLType, LCLIntf, LResources, PrintersDlgs,
+  LCLType, LCLIntf, LResources, {$IFnDEF LCLWinCE}PrintersDlgs, {$ENDIF}
 {$ELSE}
   Windows, Messages, Dialogs,
 {$ENDIF}
@@ -86,7 +86,6 @@ type
     BUOk: TButton;
     CBPrintTitle: TCheckBox;
     CBCollate: TCheckBox;
-    PSDMain: TPrinterSetupDialog;
     CBLineNumbers: TCheckBox;
     CBWrapLines: TCheckBox;
     procedure BUConfigureClick(Sender: TObject);
@@ -112,6 +111,9 @@ type
     FOptionsVisible: TKPrintOptions;
     FOptionsEnabled: TKPrintOptions;
     FExtOptionsEnabled: TExtPrintOptions;
+  {$IFnDEF LCLWinCE}
+    FPSD: TPrinterSetupDialog;
+  {$ENDIF}
     procedure SetPageSetup(const Value: TKPrintPageSetup);
     procedure SetPreviewForm(const Value: TKCustomPrintPreviewForm);
   protected
@@ -149,8 +151,11 @@ begin
   FOptionsVisible := [poCollate..poUseColor];
   FOptionsEnabled := FOptionsVisible;
   FExtOptionsEnabled := [Low(TExtPrintOption)..High(TExtPrintOption)];
-{$IFDEF FPC}
-  PSDMain.Title := sPSPrinterSetup;
+{$IfnDEF LCLWinCE}
+  FPSD := TPrinterSetupDialog.Create(Self);
+ {$IFDEF FPC}
+  FPSD.Title := sPSPrinterSetup;
+ {$ENDIF}
 {$ENDIF}
 end;
 
@@ -320,6 +325,9 @@ procedure TKPrintSetupForm.BUConfigureClick(Sender: TObject);
 var
   PrinterCount: Integer;
 begin
+{$IFDEF LCLWinCE}
+  KMsgBox(sPSErrPrintSetup, sPSErrPrinterConfiguration, [mbOk], miStop)
+{$ELSE}
   FormToPageSetup;
   if FPageSetup.IsDefaultPrinter then
   begin
@@ -328,7 +336,7 @@ begin
       PrinterCount := Printer.Printers.Count;
       Printer.Orientation := FPageSetup.Orientation;
       Printer.Copies := FPageSetup.Copies;
-      if PSDMain.Execute then
+      if FPSD.Execute then
       begin
         FPageSetup.LockUpdate;
         try
@@ -347,6 +355,7 @@ begin
     end
   end else
     KMsgBox(sPSErrPrintSetup, sPSErrNoDefaultPrinter, [mbOk], miStop)
+{$ENDIF}
 end;
 
 procedure TKPrintSetupForm.EDTopExit(Sender: TObject);
