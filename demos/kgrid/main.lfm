@@ -12,7 +12,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
-  LCLVersion = '1.4.2.0'
+  LCLVersion = '1.7'
   object PCMain: TPageControl
     Left = 0
     Height = 603
@@ -345,6 +345,7 @@ object Form1: TForm1
         Align = alLeft
         Anchors = [akTop, akLeft, akRight, akBottom]
         ColCount = 8
+        DefaultRowHeight = 21
         Options = [goAlwaysShowEditor, goColMoving, goColSizing, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRangeSelect, goRowMoving, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
         OptionsEx = [gxEnterAppendsRow, gxEnterWraps, gxFixedCellClickSelect, gxTabAppendsRow, gxTabWraps]
         RowCount = 8
@@ -361,26 +362,28 @@ object Form1: TForm1
         OnEditorResize = KGrid1EditorResize
         OnEditorSelect = KGrid1EditorSelect
         OnMeasureCell = KGrid1MeasureCell
+        OnMouseClickCell = KGrid1MouseClickCell
+        OnMouseDblClickCell = KGrid1MouseDblClickCell
         OnPrintPaint = KGrid1PrintPaint
         ColWidths = (
-          64
-          64
-          64
+          0
+          0
+          0
           65
-          64
-          64
-          64
-          64
+          0
+          0
+          0
+          0
         )
         RowHeights = (
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
         )
       end
       object BUPreview: TButton
@@ -436,6 +439,7 @@ object Form1: TForm1
         Width = 830
         Align = alClient
         ColCount = 12
+        DefaultRowHeight = 21
         FixedRows = 3
         Options = [goAlwaysShowEditor, goClippedCells, goColSizing, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRangeSelect, goRowMoving, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
         RangeSelectStyle = rsMS_Excel
@@ -444,40 +448,40 @@ object Form1: TForm1
         OnDrawCell = KGrid2DrawCell
         OnEditorDataToGrid = KGrid2EditorDataToGrid
         ColWidths = (
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
         )
         RowHeights = (
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
         )
       end
     end
@@ -493,6 +497,7 @@ object Form1: TForm1
         Width = 830
         Align = alClient
         ColCount = 12
+        DefaultRowHeight = 21
         Options = [goAlwaysShowEditor, goClippedCells, goColMoving, goColSizing, goColSorting, goDrawFocusSelected, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRangeSelect, goRowMoving, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine, goVirtualGrid]
         RangeSelectStyle = rsMS_Excel
         RowCount = 20
@@ -505,40 +510,40 @@ object Form1: TForm1
         OnExchangeCols = KGrid3ExchangeCols
         OnExchangeRows = KGrid3ExchangeRows
         ColWidths = (
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
-          64
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
         )
         RowHeights = (
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
-          21
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
+          0
         )
       end
     end

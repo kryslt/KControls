@@ -9,54 +9,31 @@ Refer to kcontrols_readme.txt for installation requirements and other informatio
 
 PLANNED:
 -------------------
-- filters (still a TODO, partially can be implemented now via editable fixed rows)
-- multiple disjunct selections (like Excel, still a TODO)
-- tree columns
+- filters (can be implemented via editable fixed rows)
+- tree columns (can be implemented with a short custom code now)
 
 KNOWN PROBLEMS:
 -------------------
-Delphi common:
+Delphi VCL:
  -none, best performance
 
-Lazarus common:
- -KDBGrid demo does not draw unicode fields correctly for certain databases. 
-  applies for all data aware controls, not just TKDBgrid
-  must be FPC/TWideStringField bug 
- -printing/Previewing works correctly in Win32 and Qt (for Lazarus versions with my implementation
-  of affine transformations for device contexts). For GTKx printing via TPostScriptPrinterCanvas,
-  there is no way to effectively implement affine transformations because this canvas is not implemented
-  via a device context mechanism. 
-  
-Target specific:
-Win32: 
- Delphi: 
-  -none 
-  -tested on Windows 98SE (some time ago), Windows XP 32bit, Windows Vista 32bit
- Lazarus: 
-  -transparent editor underpainting incorrect if TKGrid is placed onto TPageControl (LCL problem)
-  -tested on Windows XP 32bit
-Win64: none
- -untested, help appreciated!
-WinCE: 
- -slow inplace editor performance (depending on device)
- -tested partially, help appreciated!
-GTK: 
- -bad check box painting, bad selected range color, drag window flickers, sometimes infinite painting, 
-  sometimes clipping problems (all LCL/GTK problems)
- -tested on Ubuntu Jaunty
-GTK2: 
- -slightly slow inplace editor performance with huge grids (GTK2 problem)
- -scrollbar arrows don't work correctly sometimes  (GTK2 problem)
- -tested on Ubuntu Jaunty
-QT: 
- -slightly slow inplace editor performance with huge grids
- -checkbox not transparent (cannot be solved)
- -scrollbar arrows behave differently (cannot be solved)
- -tested on QT4.5.2/Windows XP
-Carbon: 
- -none
- -untested, help appreciated!
-
+Lazarus LCL:
+ -KDBGrid demo might not draw unicode fields correctly for certain databases. 
+  applies for all data aware controls, not just TKDBgrid (was LCL problem, might be fixed already)
+ -Win32/Win64: 
+   Transparent editor underpainting incorrect if TKGrid is placed onto TPageControl (was widgetset problem, might be fixed already)
+ -GTK2: 
+   Slightly slow inplace editor performance with huge grids (was widgetset problem, might be fixed already)
+ -Carbon: 
+   Print and preview not fully working because of missing implementation of affine transformations for device contexts.
+ -QT: 
+   Slightly slow inplace editor performance with huge grids (was widgetset problem, might be fixed already)
+   Checkbox not transparent (was widgetset problem, might be fixed already)
+   Scrollbar arrows behave differently (was widgetset problem, might be fixed already)
+ -WinCE: 
+   Slow inplace editor performance (was widgetset problem, might be fixed already)
+   Printer4Lazarus package not supported, you have to remove it from dependency.
+   This also means printer setup (via TPrinterSetupDialog) is not supported in TKPrintSetupForm.
 
 CONTRIBUTORS:
 -------------------
@@ -67,6 +44,10 @@ aki: selectable fixed cells
 
 VERSION HISTORY - NEW KCONTROLS PACKAGE
 -------------------
+Version 1.8 (date not set, to be released): 
+  Added:
+    -Multiple disjunct selections
+
 Version 1.7 (August 2015):
   Modified:
     -TKDBGrid empty dataset exception fixed

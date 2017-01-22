@@ -151,6 +151,7 @@ type
     procedure KGrid3SelectionExpand(Sender: TObject; ACol, ARow: Integer;
       var CanExpand: Boolean);
     procedure KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);
+    procedure KGrid1MouseClickCell(Sender: TObject; ACol, ARow: Integer);
   private
     { Private declarations }
     FTextToInsert: TKString;
@@ -257,8 +258,8 @@ begin
   KGrid1.DefaultRowHeight := 34;
 {$ENDIF}
   KGrid1.DoubleBuffered := True;
+{$IFDEF MSWINDOWS}
   // In Windows Vista and 7 this is much more nicer
-{$IFDEF USE_WINAPI}
   if Win32MajorVersion >= 6 then
     KGrid1.OptionsEx := KGrid1.OptionsEx + [gxFixedThemedCells];
 {$ENDIF}
@@ -303,6 +304,7 @@ begin
   // Printing settings
   KGrid1.PageSetup.Title := 'KGridDemo table';
   KGrid1.PageSetup.UnitHeaderSpace := 1; //we want to print a custom header, cm is default
+  KGrid1.RangeSelectStyle := rsMultiSelect;
 
   // Initialize KGrid2 - a design-time tool would be nice here
   KGrid2.DoubleBuffered := True;
@@ -1032,6 +1034,15 @@ begin
   { Calling CellPainter.DefaultMeasure obtains the cell contents from default
     implementation }
   Extent := KGrid1.CellPainter.DefaultMeasure(Priority);
+end;
+
+procedure TForm1.KGrid1MouseClickCell(Sender: TObject; ACol, ARow: Integer);
+begin
+  { Example for new multiple selections. Add new selection when clicking on fixed cell. }
+  if (ACol = 0) and (ARow >= KGrid1.FixedRows) then
+    Kgrid1.AddSelection(GridRect(KGrid1.FixedCols, ARow, KGrid1.ColCount - 1, ARow));
+  if (ARow = 0) and (ACol >= KGrid1.FixedCols) then
+    Kgrid1.AddSelection(GridRect(ACol, KGrid1.FixedRows, ACol, KGrid1.RowCount - 1));
 end;
 
 procedure TForm1.KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);

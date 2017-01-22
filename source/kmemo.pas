@@ -93,11 +93,17 @@ const
   { Maximum color array index. }
   ciMemoColorsMax = ciSelTextFocused;
 
+  { Specifies invalid or unassigned numbering list identifier. }
   cInvalidListID = -1;
 
+  { Default step for horizontal scrolling. }
   cHorzScrollStepDef = 4;
 
+  { Default step for vertical scrolling. }
   cVertScrollStepDef = 10;
+
+  { Threshold for starting a block dragging operation by mouse. }
+  cMouseDragThreshold = 5;
 
   { Default value for the @link(TKMemo.Height) property. }
   cHeight = 200;
@@ -173,6 +179,8 @@ type
     elMouseCapture,
     { Mouse captured and dragging a block. }
     elMouseDrag,
+    { Mouse captured and ready for dragging a block. }
+    elMouseDragInit,
     { Overwrite mode active. }
     elOverwrite,
     { Content is being printed or previewed. }
@@ -699,6 +707,7 @@ type
 
   TKMemoBlock = class(TKObject)
   private
+    FClickOnMouseUp: Boolean;
     FOffset: TPoint;
     FPosition: TKMemoBlockPosition;
     FOnClick: TNotifyEvent;
@@ -812,6 +821,7 @@ type
     property BoundsRect: TRect read GetBoundsRect;
     property BottomPadding: Integer read GetBottomPadding;
     property CanAddText: Boolean read GetCanAddText;
+    property ClickOnMouseUp: Boolean read FClickOnMouseUp write FClickOnMouseUp;
     property DefaultTextStyle: TKMemoTextStyle read GetDefaultTextStyle;
     property DefaultParaStyle: TKMemoParaStyle read GetDefaultParaStyle;
     property Height: Integer read GetHeight;
@@ -4394,9 +4404,9 @@ end;
 
 procedure TKCustomMemo.CancelDrag;
 begin
-  if elMouseDrag in FStates then
+  if FStates * [elMouseDrag, elMouseDragInit] <> [] then
   begin
-    Exclude(FStates, elMouseDrag);
+    FStates := FStates - [elMouseDrag, elMouseDragInit];
     Invalidate;
   end;
 end;
@@ -4780,14 +4790,18 @@ var
   P: TPoint;
   DX, DY: Integer;
 begin
-  if elMouseDrag in FStates then
+  if FStates * [elMouseDrag, elMouseDragInit] <> [] then
   begin
     P := ScreenToClient(Mouse.CursorPos);
     DX := P.X - FDragCurPos.X;
     DY := P.Y - FDragCurPos.Y;
-    TKSizingGrips.ClsAffectRect(FDragMode, DX, DY, FDragRect);
-    FDragCurPos := P;
-    Invalidate;
+    if (elMouseDrag in FStates) or (elMouseDragInit in FStates) and ((Abs(DX) > cMouseDragThreshold) or (Abs(DY) > cMouseDragThreshold)) then
+    begin
+      FStates := FStates - [elMouseDragInit] + [elMouseDrag];
+      TKSizingGrips.ClsAffectRect(FDragMode, DX, DY, FDragRect);
+      FDragCurPos := P;
+      Invalidate;
+    end;
   end;
 end;
 
@@ -5670,7 +5684,7 @@ var
 begin
   inherited;
   P := Point(X, Y);
-  if elMouseDrag in FStates then
+  if FStates * [elMouseDrag, elMouseDragInit] <> [] then
     DragBlock
   else if elMouseCapture in FStates then
   begin
@@ -5689,7 +5703,7 @@ var
   P: TPoint;
 begin
   inherited;
-  Exclude(FStates, elMouseCapture);
+  FStates := FStates - [elMouseCapture, elMouseDragInit];
   UpdateEditorCaret;
   if elMouseDrag in FStates then
     MoveBlock
@@ -6185,7 +6199,7 @@ begin
     FDragRect := ABlock.SizingRect;
     KFunctions.OffsetRect(FDragRect, ContentLeft, ContentTop);
     FDragOrigRect := FDragRect;
-    Include(FStates, elMouseDrag);
+    Include(FStates, elMouseDragInit);
   end;
 end;
 
@@ -6783,6 +6797,7 @@ begin
   FOffset := CreateEmptyPoint;
   FDoubleClickState := mdblNone;
   FMouseCaptureWord := -1;
+  FClickOnMouseUp := True;
   FOnClick := nil;
   FOnDblClick := nil;
 end;
@@ -7561,7 +7576,9 @@ begin
               FDoubleClickState := mdblClickedAndHandled
             else
               FDoubleClickState := mdblClicked;
-          end;
+          end
+          else if not ClickOnMouseUp then
+            Result := Click
         end;
       end;
       maLeftUp:
@@ -7569,7 +7586,7 @@ begin
         if FMouseCaptureWord >= 0 then
         begin
           FMouseCaptureWord := -1;
-          if FDoubleClickState = mdblNone then
+          if ClickOnMouseUp and (FDoubleClickState = mdblNone) then
             Result := Click
         end;
       end;
@@ -8769,6 +8786,7 @@ begin
   FScale := Point(100, 100);
   FCroppedImage := nil;
   FWordTopPadding := 0;
+  ClickOnMouseUp := False; // prevents dragging when Click returns True
 end;
 
 destructor TKMemoImageBlock.Destroy;
@@ -9249,40 +9267,44 @@ begin
   R := GetSizingRect;
   if PtInRect(R, APoint) then
   begin
-    Notifier := MemoNotifier;
-    if Notifier <> nil then
+    Result := inherited WordMouseAction(ACanvas, AWordIndex, AAction, APoint, AShift);
+    if not Result then
     begin
-      case AAction of
-        maMove:
-        begin
-          if ReadOnly then
-            Cursor := crDefault
-          else
+      Notifier := MemoNotifier;
+      if Notifier <> nil then
+      begin
+        case AAction of
+          maMove:
           begin
-            if SelLength > 0 then
+            if ReadOnly then
+              Cursor := crDefault
+            else
             begin
-              Cursor := SizingGripsCursor(R, APoint);
-              if Cursor = crDefault then
+              if SelLength > 0 then
+              begin
+                Cursor := SizingGripsCursor(R, APoint);
+                if Cursor = crDefault then
+                  Cursor := crSizeAll;
+              end else
                 Cursor := crSizeAll;
-            end else
-              Cursor := crSizeAll;
-            if (Position = mbpText) and (Cursor = crSizeAll) then
-              Cursor := crDefault;
+              if (Position = mbpText) and (Cursor = crSizeAll) then
+                Cursor := crDefault;
+            end;
+            Notifier.SetReqMouseCursor(Cursor);
+            Result := True;
           end;
-          Notifier.SetReqMouseCursor(Cursor);
-          Result := True;
-        end;
-        maLeftDown:
-        begin
-          if ssDouble in AShift then
-            Notifier.EditBlock(Self)
-          else
-            Notifier.SelectBlock(Self, SizingGripsPosition(R, APoint));
-          Result := True;
-        end;
-        maRightDown:
-        begin
-          Result := Notifier.SelectBlock(Self, sgpNone);
+          maLeftDown:
+          begin
+            if ssDouble in AShift then
+              Notifier.EditBlock(Self)
+            else
+              Notifier.SelectBlock(Self, SizingGripsPosition(R, APoint));
+            Result := True;
+          end;
+          maRightDown:
+          begin
+            Result := Notifier.SelectBlock(Self, sgpNone);
+          end;
         end;
       end;
     end;
@@ -9362,6 +9384,7 @@ begin
   FRequiredWidth := 0;
   FResizable := True;
   FWordTopPadding := 0;
+  ClickOnMouseUp := False; // prevents dragging when Click returns True
 end;
 
 destructor TKMemoContainer.Destroy;

@@ -14,7 +14,6 @@ PLANNED/STILL MISSING:
 - search/replace commands
 - style sheets
 - tab stops
-- tools for relative objects (images, text boxes), anchors
 - tools for tables
 - undo/redo commands
 
@@ -42,6 +41,13 @@ CONTRIBUTORS:
 
 VERSION HISTORY - NEW KCONTROLS PACKAGE
 -------------------
+Version 1.8 (date not set, to be released): 
+  Added:
+    -tools for relative objects (images, text boxes)
+    -OnBlockClick, OnBlockDblClick events
+    -TKCustomMemo.BlockAt method
+    -TKMemoBlocks.LoadFromStream, TKMemoBlocks.SaveToStream
+
 Version 1.7 (August 2015): 
   Added:
     -many new paragraph and text formatting styles
