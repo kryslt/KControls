@@ -1486,6 +1486,7 @@ type
     procedure PaintToCanvas(ACanvas: TCanvas; ALeft, ATop: Integer; const ARect: TRect); virtual;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
     function PointToIndexOnLine(ACanvas: TCanvas; ALineIndex: TKMemoLineIndex; const APoint: TPoint; AOutOfArea, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
+    function PointToRelativeBlock(const APoint: TPoint): TKMemoBlock; virtual;
     procedure RestoreUpdateState(AValue: TKMemoUpdateReasons); virtual;
     procedure SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean = False); virtual;
     function SaveUpdateState: TKMemoUpdateReasons; virtual;
@@ -4321,13 +4322,15 @@ function TKCustomMemo.BlockAt(APos: TPoint): TKMemoBlock;
 var
   TmpPosition: TKMemoLinePosition;
   Index: TKMemoSelectionIndex;
+  P: TPoint;
 begin
   SetActiveBlocksForPoint(APos);
-  Index := ActiveBlocks.PointToIndex(Canvas, PointToBlockPoint(APos), False, False, TmpPosition);
+  P := PointToBlockPoint(APos);
+  Index := ActiveBlocks.PointToIndex(Canvas, P, False, False, TmpPosition);
   if Index >= 0 then
     Result := ActiveBlocks.IndexToInnerBlock(Index)
   else
-    Result := nil;
+    Result := ActiveBlocks.PointToRelativeBlock(P);
 end;
 
 procedure TKCustomMemo.BackgroundChanged(Sender: TObject);
@@ -8829,6 +8832,7 @@ begin
   begin
     FImage := TGraphicClass(ASource.ClassType).Create;
     FImage.OnChange := ImageChanged;
+    //FImage.Assign(ASource); does not work well in all cases so use slower workaround:
     MS := TMemoryStream.Create;
     try
       ASource.SaveToStream(MS);
@@ -13931,6 +13935,27 @@ begin
         if Result <> nil then
           break;
       end;
+    end;
+  end;
+end;
+
+function TKMemoBlocks.PointToRelativeBlock(const APoint: TPoint): TKMemoBlock;
+var
+  BlockIndex: TKMemoBlockIndex;
+  Block: TKMemoBlock;
+  I: Integer;
+  R: TRect;
+begin
+  Result := nil;
+  for I := 0 to FRelPos.Count - 1 do
+  begin
+    Block := Items[FRelPos[I].Index];
+    R := Block.BoundsRect;
+    KFunctions.OffsetRect(R, Block.LeftOffset, Block.TopOffset);
+    if PtInRect(R, APoint) then
+    begin
+      Result := Block;
+      Exit;
     end;
   end;
 end;
