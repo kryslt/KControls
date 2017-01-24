@@ -8789,7 +8789,6 @@ begin
   FScale := Point(100, 100);
   FCroppedImage := nil;
   FWordTopPadding := 0;
-  ClickOnMouseUp := False; // prevents dragging when Click returns True
 end;
 
 destructor TKMemoImageBlock.Destroy;
@@ -9388,7 +9387,6 @@ begin
   FRequiredWidth := 0;
   FResizable := True;
   FWordTopPadding := 0;
-  ClickOnMouseUp := False; // prevents dragging when Click returns True
 end;
 
 destructor TKMemoContainer.Destroy;
