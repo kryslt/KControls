@@ -1429,6 +1429,7 @@ type
     function AddTable(At: TKMemoBlockIndex = -1): TKMemoTable;
     function AddTextBlock(const AText: TKString; At: TKMemoBlockIndex = -1): TKMemoTextBlock;
     function BlockIndexToBlock(ABlockIndex: TKMemoBlockIndex): TKMemoBlock;
+    function BlockToIndex(ABlock: TKMemoBlock): TKMemoSelectionIndex; virtual;
     procedure Clear; override;
     procedure ClearSelection(ATextOnly: Boolean = True); virtual;
     procedure ConcatEqualBlocks; virtual;
@@ -1448,6 +1449,7 @@ type
     function GetNextBlockByClass(ABlockIndex: TKMemoBlockIndex; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetPageCount(APageHeight: Integer): Integer; virtual;
     procedure GetPageData(APageHeight, APage: Integer; out AOffset, AHeight: Integer); virtual;
+    function GetParentBlocksForBlock(ABlock: TKMemoBlock): TKMemoBlocks; virtual;
     procedure GetSelColors(out TextColor, Background: TColor); virtual;
     function IndexAboveLastLine(AIndex: TKMemoSelectionIndex; AAdjust: Boolean): Boolean; virtual;
     function IndexAtBeginningOfContainer(AIndex: TKMemoSelectionIndex; AAdjust: Boolean): Boolean; virtual;
@@ -1464,7 +1466,6 @@ type
     procedure InsertPlainText(AIndex: TKMemoSelectionIndex; const AValue: TKString); virtual;
     function InsertParagraph(AIndex: TKMemoSelectionIndex; AAdjust: Boolean): Boolean; virtual;
     function InsertString(AIndex: TKMemoSelectionIndex; AAdjust: Boolean; const AValue: TKString; ATextStyle: TKMemoTextStyle = nil): Boolean; virtual;
-    function BlockToIndex(ABlock: TKMemoBlock): TKMemoSelectionIndex; virtual;
     function LastTextStyle(ABlockIndex: TKMemoBlockIndex): TKMemoTextStyle; virtual;
     function LineEndIndexByIndex(AIndex: TKMemoSelectionIndex; AAdjust, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
     function LineStartIndexByIndex(AIndex: TKMemoSelectionIndex; AAdjust: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
@@ -2030,6 +2031,8 @@ type
     function SetMouseCursor(X, Y: Integer): Boolean; override;
     { Shows the caret. }
     procedure ShowEditorCaret; virtual;
+    { Returns the rectangle for dragging/resizing a block, in coordinates relative to the memo. }
+    function SizingRect(ABlock: TKMemoBlock): TRect;
     { Reacts on default text style changes and notifies all text blocks. }
     procedure TextStyleChanged(Sender: TObject); virtual;
     { Calls the @link(TKCustomMemo.DoChange) method. }
@@ -2064,6 +2067,8 @@ type
     procedure Assign(Source: TPersistent); override;
     { Returns innermost block at given position. }
     function BlockAt(APos: TPoint): TKMemoBlock;
+    { Returns block bounding rectangle in coordinates relative to the memo. }
+    function BlockRect(ABlock: TKMemoBlock): TRect;
     { Determines whether the caret is visible. }
     function CaretInView: Boolean; virtual;
     { Forces the caret position to become visible. }
@@ -4333,6 +4338,23 @@ begin
     Result := ActiveBlocks.PointToRelativeBlock(P);
 end;
 
+function TKCustomMemo.BlockRect(ABlock: TKMemoBlock): TRect;
+var
+  OldActiveBlocks: TKMemoBlocks;
+begin
+  Result := CreateEmptyRect;
+  if (ABlock <> nil) and (ABlock.WordCount > 0) then
+  begin
+    OldActiveBlocks := FActiveBlocks;
+    try
+      FActiveBlocks := FBlocks.GetParentBlocksForBlock(ABlock);
+      Result := BlockRectToRect(ABlock.BoundsRect);
+    finally
+      FActiveBlocks := OldActiveBlocks;
+    end;
+  end;
+end;
+
 procedure TKCustomMemo.BackgroundChanged(Sender: TObject);
 begin
   Invalidate;
@@ -6199,8 +6221,7 @@ begin
   begin
     FDragCurPos := ScreenToClient(Mouse.CursorPos);
     FDragMode := APosition;
-    FDragRect := ABlock.SizingRect;
-    KFunctions.OffsetRect(FDragRect, ContentLeft, ContentTop);
+    FDragRect := SizingRect(ABlock);
     FDragOrigRect := FDragRect;
     Include(FStates, elMouseDragInit);
   end;
@@ -6496,6 +6517,23 @@ begin
     SetCaretPos(FCaretRect.Left, FCaretRect.Top);
   {$ENDIF}
     ShowCaret(Handle);
+  end;
+end;
+
+function TKCustomMemo.SizingRect(ABlock: TKMemoBlock): TRect;
+var
+  OldActiveBlocks: TKMemoBlocks;
+begin
+  Result := CreateEmptyRect;
+  if ABlock <> nil then
+  begin
+    OldActiveBlocks := FActiveBlocks;
+    try
+      FActiveBlocks := FBlocks.GetParentBlocksForBlock(ABlock);
+      Result := BlockRectToRect(ABlock.SizingRect);
+    finally
+      FActiveBlocks := OldActiveBlocks;
+    end;
   end;
 end;
 
@@ -6922,13 +6960,22 @@ begin
 end;
 
 function TKMemoBlock.GetHeight: Integer;
+var
+  I: Integer;
 begin
-  Result := WordHeight[0];
+  Result := 0;
+  for I := 0 to WordCount - 1 do
+    Result := Max(Result, WordTop[I] + WordHeight[I]);
+  Dec(Result, Top);
 end;
 
 function TKMemoBlock.GetLeft: Integer;
+var
+  I: Integer;
 begin
   Result := WordLeft[0];
+  for I := 1 to WordCount - 1 do
+    Result := Min(Result, WordLeft[I]);
 end;
 
 function TKMemoBlock.GetMemoNotifier: IKMemoNotifier;
@@ -7064,8 +7111,12 @@ begin
 end;
 
 function TKMemoBlock.GetTop: Integer;
+var
+  I: Integer;
 begin
   Result := WordTop[0];
+  for I := 1 to WordCount - 1 do
+    Result := Min(Result, WordTop[I]);
 end;
 
 function TKMemoBlock.GetTopPadding: Integer;
@@ -7074,8 +7125,13 @@ begin
 end;
 
 function TKMemoBlock.GetWidth: Integer;
+var
+  I: Integer;
 begin
-  Result := WordWidth[0];
+  Result := 0;
+  for I := 0 to WordCount - 1 do
+    Result := Max(Result, WordLeft[I] + WordWidth[I]);
+  Dec(Result, Left);
 end;
 
 function TKMemoBlock.GetWordBaseLine(Index: TKMemoWordIndex): Integer;
@@ -10848,9 +10904,8 @@ function TKMemoTable.WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordI
 const
   cMinColSize = 20;
 var
-  I, J, K, Len, RealColCount, ColWidth, DefColCount, DefSpace, DistSpace, AvailableSpace, OverflowSpace, RequiredSpace, MeasuredWidth, MinSpannedWidth, NewWidth,
+  I, J, K, Len, RealColCount, ColWidth, DefColCount, DefSpace, AvailableSpace, OverflowSpace, RequiredSpace, MeasuredWidth, MinSpannedWidth, NewWidth,
   UndefColCount, UndefColWidth, UndefSpace, TotalSpace, PosX, PosY, VDelta: Integer;
-  Ratio: Double;
   Extent, MeasExtent: TPoint;
   Row: TKMemoTableRow;
   Cell: TKmemoTableCell;
@@ -12117,6 +12172,30 @@ begin
     Result := TKMemoContainer(FParent).ParentBlocks
   else
     Result := nil;
+end;
+
+function TKMemoBlocks.GetParentBlocksForBlock(
+  ABlock: TKMemoBlock): TKMemoBlocks;
+var
+  I: Integer;
+  Block: TKMemoBlock;
+begin
+  Result := nil;
+  for I := 0 to Count - 1 do
+  begin
+    Block := Items[I];
+    if ABlock = Block then
+    begin
+      Result := Self;
+      Exit;
+    end
+    else if Block is TKMemoContainer then
+    begin
+      Result := TKMemoContainer(Block).Blocks.GetParentBlocksForBlock(ABlock);
+      if Result <> nil then
+        Exit;
+    end;
+  end;
 end;
 
 function TKMemoBlocks.GetParentMemo: TKCustomMemo;
@@ -13939,7 +14018,6 @@ end;
 
 function TKMemoBlocks.PointToRelativeBlock(const APoint: TPoint): TKMemoBlock;
 var
-  BlockIndex: TKMemoBlockIndex;
   Block: TKMemoBlock;
   I: Integer;
   R: TRect;
