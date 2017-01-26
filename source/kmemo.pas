@@ -5696,7 +5696,7 @@ begin
           Include(FStates, elMouseCapture);
           SelectionInit(P, False);
         end;
-        ClampInView(@P, eoScrollWindow in FOptions);
+        ClampInView(nil, eoScrollWindow in FOptions);
       end;
     end;
     SafeSetFocus;
@@ -5787,7 +5787,7 @@ begin
     begin
       SetActiveBlocksForPoint(P);
       SelectionInit(P, False);
-      ClampInView(@P, eoScrollWindow in FOptions);
+      ClampInView(nil, eoScrollWindow in FOptions);
     end;
   end;
 end;
@@ -6112,8 +6112,7 @@ begin
       DeltaRow := AMousePos.Y - VScrollPadding
     else if AMousePos.Y > ClientHeight - VScrollPadding then
       DeltaRow := AMousePos.Y - ClientHeight + VScrollPadding;
-  end;
-  if (DeltaCol = 0) or (DeltaRow = 0) then
+  end else
   begin
     if FCaretRect.Left < HScrollPadding then
       DeltaCol := FCaretRect.Left - HScrollPadding
@@ -6137,6 +6136,8 @@ begin
     MousePos := ScreenToClient(Mouse.CursorPos);
     SelectionExpand(MousePos, False);
     if ScrollNeeded(@MousePos, DeltaHorz, DeltaVert) then
+      Scroll(cScrollDelta, cScrollDelta, DeltaHorz, DeltaVert, False)
+    else if ScrollNeeded(nil, DeltaHorz, DeltaVert) then
       Scroll(cScrollDelta, cScrollDelta, DeltaHorz, DeltaVert, False)
     else
       FScrollTimer.Enabled := False;
