@@ -1,11 +1,15 @@
 program DemoXE6;
 
+{$include kcontrols.inc}
+
 uses
   Forms,
   Main in 'Main.pas' {MainForm};
 
 {$R *.res}
-{$R XPman.res}
+{$IFDEF USE_THEMES}
+  {$R xpman.res}
+{$ENDIF}
 
 begin
   Application.Initialize;

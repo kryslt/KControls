@@ -1,13 +1,15 @@
 program Demo7;
 
-{$include KControls.inc}
+{$include kcontrols.inc}
 
 uses
   Forms,
   Main in 'Main.pas' {MainForm};
 
 {$R *.res}
-{$R XPman.res}
+{$IFDEF USE_THEMES}
+  {$R xpman.res}
+{$ENDIF}
 
 begin
 {$IFDEF COMPILER10_UP}

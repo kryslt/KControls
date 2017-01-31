@@ -10,6 +10,7 @@ uses
 {$IFDEF USE_THEMES}
   {$R xpman.res}
 {$ENDIF}
+
 begin
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);

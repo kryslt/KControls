@@ -18,6 +18,7 @@ uses
 {$IFDEF USE_THEMES}
   {$R xpman.res}
 {$ENDIF}
+
 begin
 {$IFDEF COMPILER10_UP}
   ReportMemoryLeaksOnShutdown := DebugHook <> 0;
