@@ -1233,6 +1233,7 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    procedure Assign(ASource: TKObject); override;
     function PointToIndex(ACanvas: TCanvas; const APoint: TPoint; AFirstRow, ALastRow, AOutOfArea, ASelectionExpanding: Boolean;
       out APosition: TKMemoLinePosition): TKMemoSelectionIndex; reintroduce; virtual;
     function WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; ARequiredWidth: Integer): TPoint; override;
@@ -1293,6 +1294,8 @@ type
     constructor Create; override;
     destructor Destroy; override;
     procedure ApplyDefaultCellStyle; virtual;
+    procedure Assign(ASource: TKObject); override;
+    procedure AssignAttributes(ABlock: TKMemoBlock); override;
     function CanAdd(ABlock: TKMemoBlock): Boolean; override;
     function CalcTotalCellWidth(ACol, ARow: Integer): Integer; virtual;
     function CellValid(ACol, ARow: Integer): Boolean; virtual;
@@ -8869,13 +8872,18 @@ begin
   inherited;
   if ABlock is TKMemoImageBlock then
   begin
-    Crop.Assign(TKMemoImageBlock(ABlock).Crop);
-    ImageStyle.Assign(TKMemoImageBlock(ABlock).ImageStyle);
-    ExplicitWidth := TKMemoImageBlock(ABlock).ExplicitWidth;
-    ExplicitHeight := TKMemoImageBlock(ABlock).ExplicitHeight;
-    Resizable := TKMemoImageBlock(ABlock).Resizable;
-    ScaleX := TKMemoImageBlock(ABlock).ScaleX;
-    ScaleY := TKMemoImageBlock(ABlock).ScaleY;
+    LockUpdate;
+    try
+      Crop.Assign(TKMemoImageBlock(ABlock).Crop);
+      ImageStyle.Assign(TKMemoImageBlock(ABlock).ImageStyle);
+      ExplicitWidth := TKMemoImageBlock(ABlock).ExplicitWidth;
+      ExplicitHeight := TKMemoImageBlock(ABlock).ExplicitHeight;
+      Resizable := TKMemoImageBlock(ABlock).Resizable;
+      ScaleX := TKMemoImageBlock(ABlock).ScaleX;
+      ScaleY := TKMemoImageBlock(ABlock).ScaleY;
+    finally
+      UnlockUpdate;
+    end;
   end;
 end;
 
@@ -10011,6 +10019,15 @@ begin
   inherited;
 end;
 
+procedure TKMemoTableCell.Assign(ASource: TKObject);
+begin
+  inherited;
+  if ASource is TKMemoTableCell then
+  begin
+    Span := TKMemoTableCell(ASource).Span;
+  end;
+end;
+
 function TKMemoTableCell.ContentLength: TKMemoSelectionIndex;
 begin
   if (FSpan.ColSpan > 0) and (FSpan.RowSpan > 0) then
@@ -10292,6 +10309,33 @@ begin
   finally
     UnlockUpdate;
   end;
+end;
+
+procedure TKMemoTable.Assign(ASource: TKObject);
+var
+  I: Integer;
+begin
+  inherited;
+  if ASource is TKMemoTable then
+  begin
+    // here cells are already copied, so just update respective fields to avoid SetSize call
+    LockUpdate;
+    try
+      FColCount := TKMemoTable(ASource).ColCount;
+      FColWidths.SetSize(FColCount);
+      for I := 0 to FColCount - 1 do
+        FColWidths[I].Index := TKMemoTable(ASource).ColWidths[I];
+    finally
+      UnlockUpdate;
+    end;
+  end;
+end;
+
+procedure TKMemoTable.AssignAttributes(ABlock: TKMemoBlock);
+begin
+  inherited;
+  if ABlock is TKMemoTable then
+    CellStyle.Assign(TKMemoTable(ABlock).CellStyle);
 end;
 
 function TKMemoTable.CalcTotalCellWidth(ACol, ARow: Integer): Integer;
