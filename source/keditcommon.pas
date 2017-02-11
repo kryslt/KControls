@@ -255,7 +255,9 @@ type
     { TKMemo only: show formatting markers. }
     eoShowFormatting,
     { TKMemo only: acquire TAB characters. }
-    eoWantTab
+    eoWantTab,
+    { TKMemo only: Will wrap text at each character. }
+    eoWrapSingleChars
   );
 
   { Options can be arbitrary combined }

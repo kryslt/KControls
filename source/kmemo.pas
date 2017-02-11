@@ -128,7 +128,7 @@ const
   cArrowBullet = #$25BA;
 
   { Default characters used to break the text words. }
-  cDefaultWordBreaks = [cNULL, cSPACE, '/', '\', ';', ':', '?', '!'];
+  cDefaultWordBreaks = [cNULL, cSPACE, '/', '\', ';', ':', '(', ')', '[', ']', '.', '?', '!'];
 
   { Format for clipboard operations. }
   cRichText = 'Rich Text Format';
@@ -694,6 +694,7 @@ type
     function GetSelectedBlock: TKMemoBlock;
     function GetShowFormatting: Boolean;
     function GetWordBreaks: TKSysCharSet;
+    function GetWrapSingleChars: Boolean;
     function HasFocus: Boolean;
     function SelectBlock(ABlock: TKMemoBlock; APosition: TKSizingGripPosition): Boolean;
     procedure SetReqMouseCursor(ACursor: TCursor);
@@ -879,7 +880,7 @@ type
     function Select(ASelStart, ASelLength: TKMemoSelectionIndex; ADoScroll: Boolean): Boolean; override;
   end;
 
-  TKMemoWordBreakStyle = (wbsLastWordChar, wbsFirstWordChar, wbsEveryWord);
+  TKMemoWordBreakStyle = (wbsLastWordChar, wbsFirstWordChar, wbsEveryWord, wbsEveryChar);
 
   TKMemoTextBlock = class(TKMemoSingleton)
   private
@@ -897,7 +898,7 @@ type
     function ApplyFormatting(const AText: TKString): TKString;
     procedure ApplyTextStyle(ACanvas: TCanvas); virtual;
     function ContentLength: TKMemoSelectionIndex; override;
-    function DrawSingleChars: Boolean; virtual;
+    function SingleCharWords: Boolean; virtual;
     function GetCanAddText: Boolean; override;
     function GetKerningDistance(ACanvas: TCanvas; const AChar1, AChar2: TKChar): Integer;
     function GetSelText: TKString; override;
@@ -1956,6 +1957,8 @@ type
     function GetVertScrollPadding: Integer; virtual;
     { IKMemoNotifier implementation. }
     function GetWordBreaks: TKSysCharSet;
+    { IKMemoNotifier implementation. }
+    function GetWrapSingleChars: Boolean;
     { IKMemoNotifier implementation. }
     function HasFocus: Boolean;
     { Hides the caret. }
@@ -5476,6 +5479,11 @@ begin
   Result := FWordBreaks;
 end;
 
+function TKCustomMemo.GetWrapSingleChars: Boolean;
+begin
+  Result := eoWrapSingleChars in FOptions;
+end;
+
 function TKCustomMemo.HasFocus: Boolean;
 begin
   Result := Focused;
@@ -7772,15 +7780,17 @@ begin
   inherited;
 end;
 
-function TKMemoTextBlock.DrawSingleChars: Boolean;
+function TKMemoTextBlock.SingleCharWords: Boolean;
 var
   Notifier: IKMemoNotifier;
 begin
-  Notifier := MemoNotifier;
-  if Notifier <> nil then
-    Result := Notifier.GetDrawSingleChars
-  else
-    Result := False;
+  Result := FWordBreakStyle = wbsEveryChar;
+  if not Result then
+  begin
+    Notifier := MemoNotifier;
+    if Notifier <> nil then
+      Result := Notifier.GetDrawSingleChars or Notifier.GetWrapSingleChars;
+  end
 end;
 
 function TKMemoTextBlock.EqualProperties(ASource: TKObject): Boolean;
@@ -8032,18 +8042,26 @@ end;
 function TKMemoTextBlock.GetWordBreakable(Index: TKMemoWordIndex): Boolean;
 var
   S: TKString;
+  Notifier: IKMemoNotifier;
 begin
-  S := Words[Index];
-  if S <> '' then
+  Result := False;
+  Notifier := MemoNotifier;
+  if Notifier <> nil then
+    Result := Notifier.GetWrapSingleChars;
+  if not Result then
   begin
-    case FWordBreakStyle of
-      wbsLastWordChar: Result := CharInSetEx(S[Length(S)], [cTAB] + Wordbreaks);
-      wbsFirstWordChar: Result := CharInSetEx(S[1], [cTAB] + Wordbreaks);
-    else
+    S := Words[Index];
+    if S <> '' then
+    begin
+      case FWordBreakStyle of
+        wbsLastWordChar: Result := CharInSetEx(S[Length(S)], [cTAB] + Wordbreaks);
+        wbsFirstWordChar: Result := CharInSetEx(S[1], [cTAB] + Wordbreaks);
+      else
+        Result := True;
+      end;
+    end else
       Result := True;
-    end;
-  end else
-    Result := True;
+  end;
 end;
 
 function TKMemoTextBlock.GetWordBreaks: TKSysCharSet;
@@ -8212,6 +8230,7 @@ begin
   if Value <> FWordBreakStyle then
   begin
     FWordBreakStyle := Value;
+    UpdateWords;
     Update([muExtent]);
   end;
 end;
@@ -8348,7 +8367,7 @@ begin
     PrevIndex := 1;
     IsTab := False;
     WasBreak := False;
-    SingleChars := DrawSingleChars;
+    SingleChars := SingleCharWords;
     while Index <= FTextLength do
     begin
       if SingleChars then

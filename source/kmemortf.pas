@@ -322,7 +322,7 @@ type
     FActiveTableRowPadd: TRect;
     FActiveText: TKMemoTextBlock;
     FActiveURL: TKString;
-    FAtIndex: Integer;
+    FAtIndex: TKMemoBlockIndex;
     FColorTable: TKMemoRTFColorTable;
     FCtrlTable: TKMemoRTFCtrlTable;
     FDefaultCodePage: Integer;
