@@ -1281,7 +1281,11 @@ procedure CenterWindowOnScreen(CenteredWnd: HWnd);
 
 { Load clipboard data to AStream in a format specified by AFormat (if any).
   Loads also AText if clipboard has some data in text format. }
-function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean;
+function ClipboardLoadStreamAs(const AFormat: TKClipboardFormat; AStream: TStream; var AText: TKString): Boolean; overload;
+
+{ Load clipboard data to AStream in a format specified by AFormat (if any).
+  Loads also AText if clipboard has some data in text format. }
+function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean; overload;
 
 { Save data from AStream to clipboard in a format specified by AFormat.
   Optional AText can be saved in text format. }
@@ -1389,19 +1393,17 @@ begin
   SetWindowPos(CenteredWnd, 0, R1.Left, R1.Top, 0, 0, SWP_NOSIZE or SWP_NOZORDER);
 end;
 
-function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean;
+function ClipboardLoadStreamAs(const AFormat: TKClipboardFormat; AStream: TStream; var AText: TKString): Boolean;
 var
-  Fmt: TKClipboardFormat;
-  Data: Cardinal;
+  Data: HGLOBAL;
 begin
   Result := False;
 {$IFDEF FPC}
   with Clipboard do
   begin
-    Fmt := RegisterClipboardFormat(AFormat);
-    if (Fmt <> 0) and HasFormat(Fmt) then
+    if (AFormat <> 0) and HasFormat(AFormat) then
     begin
-      Clipboard.GetFormat(Fmt, AStream);
+      Clipboard.GetFormat(AFormat, AStream);
       Result := True;
     end else
     begin
@@ -1410,8 +1412,7 @@ begin
     end;
   end;
 {$ELSE}
-  Fmt := RegisterClipboardFormat(PChar(AFormat));
-  if Fmt <> 0 then
+  if AFormat <> 0 then
   begin
     Data := 0;
     try
@@ -1419,12 +1420,15 @@ begin
       begin
         Open;
         try
-          Data := GetAsHandle(Fmt);
-          if Data <> 0 then
+          if HasFormat(AFormat) then
           begin
-            AStream.Write(GlobalLock(Data)^, GlobalSize(Data));
-            GlobalUnlock(Data);
-            Result := True;
+            Data := GetAsHandle(AFormat);
+            if Data <> 0 then
+            begin
+              AStream.Write(GlobalLock(Data)^, GlobalSize(Data));
+              GlobalUnlock(Data);
+              Result := True;
+            end;
           end else
           begin
             AText := AsText;
@@ -1442,10 +1446,19 @@ begin
 {$ENDIF}
 end;
 
+function ClipboardLoadStreamAs(const AFormat: string; AStream: TStream; var AText: TKString): Boolean;
+begin
+{$IFDEF FPC}
+  Result := ClipboardLoadStreamAs(RegisterClipboardFormat(AFormat), AStream, AText);
+{$ELSE}
+  Result := ClipboardLoadStreamAs(RegisterClipboardFormat(PChar(AFormat)), AStream, AText);
+{$ENDIF}
+end;
+
 function ClipboardSaveStreamAs(const AFormat: string; AStream: TStream; const AText: TKString): Boolean;
 var
   Fmt: TKClipboardFormat;
-  Data: Cardinal;
+  Data: HGLOBAL;
 begin
   Result := False;
 {$IFDEF FPC}

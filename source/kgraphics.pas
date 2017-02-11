@@ -106,6 +106,8 @@ type
  {$ENDIF}
 {$ENDIF}
 
+  TKJpegImage = TJpegImage;
+
   { Declares possible values for the Attributes parameter in the @link(DrawAlignedText) function. }
   TKTextAttribute = (
     { Bounding rectangle is calculated. No text is drawn. }
@@ -778,6 +780,9 @@ procedure LoadCustomCursor(Cursor: TCursor; const ResName: string);
 { Loads graphic from resource. }
 procedure LoadGraphicFromResource(Graphic: TGraphic; const ResName: string; ResType: PChar);
 
+{ Loads picture from clipboard. Clipboard should have CF_PICTURE format. }
+procedure LoadPictureFromClipboard(APicture: TPicture; APreferredFormat: TKClipboardFormat);
+
 { Builds a TKColorRec structure. }
 function MakeColorRec(R, G, B, A: Byte): TKColorRec; overload;
 
@@ -821,7 +826,7 @@ function VerticalShapePosition(AAlignment: TKVAlign; const ABoundary: TRect; con
 implementation
 
 uses
-  Math, SysUtils, KRes;
+  ClipBrd, Math, SysUtils, KRes;
 
 procedure BlendLine(Src, Dest: PKColorRecs; Count: Integer);
 var
@@ -1623,6 +1628,19 @@ begin
   {$ENDIF}
   except
     Error(sErrGraphicsLoadFromResource);
+  end;
+end;
+
+procedure LoadPictureFromClipboard(APicture: TPicture; APreferredFormat: TKClipboardFormat);
+begin
+  try
+  {$IFDEF FPC}
+    APicture.LoadFromClipboardFormat(APreferredFormat);
+  {$ELSE}
+    APicture.LoadFromClipboardFormat(APreferredFormat, Clipboard.GetAsHandle(APreferredFormat), 0);
+  {$ENDIF}
+  except
+    APicture.Assign(ClipBoard);
   end;
 end;
 

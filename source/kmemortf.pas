@@ -385,8 +385,8 @@ type
   public
     constructor Create(AMemo: TKCustomMemo); override;
     destructor Destroy; override;
-    procedure LoadFromFile(const AFileName: TKString; AtIndex: TKMemoSelectionIndex = -1); virtual;
-    procedure LoadFromStream(AStream: TStream; AtIndex: TKMemoSelectionIndex = -1; AActiveBlocks: TKMemoBlocks = nil); virtual;
+    procedure LoadFromFile(const AFileName: TKString; AActiveBlocks: TKMemoBlocks; AtIndex: TKMemoSelectionIndex); virtual;
+    procedure LoadFromStream(AStream: TStream; AActiveBlocks: TKMemoBlocks; AtIndex: TKMemoSelectionIndex); virtual;
   end;
 
   { Specifies the RTF writer. }
@@ -1983,7 +1983,7 @@ begin
   end;
 end;
 
-procedure TKMemoRTFReader.LoadFromFile(const AFileName: TKString; AtIndex: TKMemoSelectionIndex);
+procedure TKMemoRTFReader.LoadFromFile(const AFileName: TKString; AActiveBlocks: TKMemoBlocks; AtIndex: TKMemoSelectionIndex);
 var
   Stream: TMemoryStream;
 begin
@@ -1992,56 +1992,19 @@ begin
     Stream := TMemoryStream.Create;
     try
       Stream.LoadFromFile(AFileName);
-      LoadFromStream(Stream, AtIndex);
+      LoadFromStream(Stream, AActiveBlocks, AtIndex);
     finally
       Stream.Free;
     end;
   end;
 end;
 
-procedure TKMemoRTFReader.LoadFromStream(AStream: TStream; AtIndex: TKMemoSelectionIndex; AActiveBlocks: TKMemoBlocks);
-var
-  ContLocalIndex, BlockLocalIndex: TKMemoSelectionIndex;
-  Block, NewBlock: TKMemoBlock;
-  Blocks: TKMemoBlocks;
+procedure TKMemoRTFReader.LoadFromStream(AStream: TStream; AActiveBlocks: TKMemoBlocks; AtIndex: TKMemoSelectionIndex);
 begin
   try
     if AActiveBlocks <> nil then
-      Blocks := AActiveBlocks
-    else if FMemo <> nil then
-      Blocks := FMemo.ActiveBlocks
-    else
-      Blocks := nil;
-    if Blocks <> nil then
     begin
-      if AtIndex < 0 then
-      begin
-        FActiveBlocks := Blocks;
-        FAtIndex := FActiveBlocks.Count; // just append new blocks
-      end else
-      begin
-        FActiveBlocks := Blocks.IndexToBlocks(AtIndex, ContLocalIndex); // get active inner blocks
-        if FActiveBlocks <> nil then
-        begin
-          FAtIndex := FActiveBlocks.IndexToBlockIndex(ContLocalIndex, BlockLocalIndex); // get block index within active blocks
-          if FAtIndex >= 0 then
-          begin
-            // if active block is splittable do it and make space for new blocks
-            Block := FActiveBlocks.Items[FAtIndex];
-            NewBlock := Block.Split(BlockLocalIndex);
-            if NewBlock <> nil then
-            begin
-              Inc(FAtIndex);
-              FActiveBlocks.AddAt(NewBlock, FAtIndex);
-            end;
-          end else
-            FAtIndex := FActiveBlocks.Count; // just append new blocks to active blocks
-        end else
-        begin
-          FActiveBlocks := Blocks;
-          FAtIndex := FActiveBlocks.Count; // just append new blocks to active blocks
-        end;
-      end;
+      FActiveBlocks := AActiveBlocks.SplitForInsert(AtIndex, FAtIndex);
       FActiveBlocks.LockUpdate;
       try
         FActiveColor := nil;
@@ -2073,17 +2036,20 @@ begin
         FDefaultFontIndex := 0;
         FIgnoreChars := 0;
         FStream := AStream;
-        ReadStream;
+        try
+          ReadStream;
+        finally
+          FlushText;
+          FlushShape;
+          FlushImage;
+          FlushTable;
+          FActiveState.Free;
+          if FMemo <> nil then
+            FListTable.AssignToListTable(FMemo.ListTable, FFontTable);
+          FActiveBlocks.ConcatEqualBlocks;
+          FActiveBlocks.FixEmptyBlocks;
+        end;
       finally
-        FlushText;
-        FlushShape;
-        FlushImage;
-        FlushTable;
-        FActiveState.Free;
-        if FMemo <> nil then
-          FListTable.AssignToListTable(FMemo.ListTable, FFontTable);
-        FActiveBlocks.ConcatEqualBlocks;
-        FActiveBlocks.FixEmptyBlocks;
         FActiveBlocks.UnlockUpdate;
       end;
     end;

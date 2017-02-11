@@ -1497,6 +1497,7 @@ type
     procedure SetExtent(AWidth, AHeight: Integer); virtual;
     procedure SetRangeParaStyle(AFrom, ATo: TKMemoSelectionIndex; AStyle: TKMemoParaStyle); virtual;
     procedure SetRangeTextStyle(AFrom, ATo: TKMemoSelectionIndex; AStyle: TKMemoTextStyle); virtual;
+    function SplitForInsert(AAtIndex: TKMemoSelectionIndex; out ABlockIndex: TKMemoBlockIndex): TKMemoBlocks; virtual;
     procedure UpdateAttributes; virtual;
     property BoundsRect: TRect read GetBoundsRect;
     property DefaultTextStyle: TKMemoTextStyle read GetDefaultTextStyle;
@@ -4768,7 +4769,13 @@ function TKCustomMemo.DoPaste: Boolean;
 var
   Stream: TMemoryStream;
   S: TKString;
+  Picture: TPicture;
   OldSelectableLength, NewSelectableLength: TKMemoSelectionIndex;
+  BlocksToInsert: TKMemoBlocks;
+  BlockIndex: TKMemoBlockIndex;
+{$IFDEF USE_PNG_SUPPORT}
+  Png: TKPngImage;
+{$ENDIF}
 begin
   // load blocks from clipboard either as RTF or plain text
   Stream := TMemoryStream.Create;
@@ -4789,6 +4796,39 @@ begin
       if NewSelectableLength > OldSelectableLength then
         Select(SelEnd + NewSelectableLength - OldSelectableLength, 0);
       Modified := True;
+    end else
+    begin
+      // try image formats
+      Result := ClipBoard.HasFormat(CF_PICTURE);
+      if Result then
+      begin
+        try
+          Picture := TPicture.Create;
+          try
+            LoadPictureFromClipboard(Picture, CF_BITMAP);
+          {$IFDEF USE_PNG_SUPPORT}
+            // Try to convert unsupported image formats to PNG
+            if not ((Picture.Graphic is TKPngImage) or (Picture.Graphic is TKJPegImage){$IFnDEF FPC} or (Picture.Graphic is TMetafile){$ENDIF}) then
+            begin
+              Png := TKPngImage.Create;
+              try
+                Png.Assign(Picture.Graphic);
+                Picture.Assign(Png);
+              finally
+                Png.Free;
+              end;
+            end;
+          {$ENDIF}
+            BlocksToInsert := ActiveBlocks.SplitForInsert(SelEnd, BlockIndex);
+            if BlocksToInsert <> nil then
+              BlocksToInsert.AddImageBlock(Picture, BlockIndex);
+          finally
+            Picture.Free;
+          end;
+        except
+          // do nothing
+        end;
+      end;
     end;
   finally
     Stream.Free;
@@ -5594,7 +5634,7 @@ begin
   Reader := TKMemoRTFReader.Create(Self);
   try
     Clear(False);
-    Reader.LoadFromFile(AFileName);
+    Reader.LoadFromFile(AFileName, Blocks, -1);
   finally
     Reader.Free;
   end;
@@ -5606,7 +5646,7 @@ var
 begin
   Reader := TKMemoRTFReader.Create(Self);
   try
-    Reader.LoadFromStream(AStream, AtIndex);
+    Reader.LoadFromStream(AStream, ActiveBlocks, AtIndex);
   finally
     Reader.Free;
   end;
@@ -9496,7 +9536,14 @@ procedure TKMemoContainer.Assign(ASource: TKObject);
 begin
   inherited;
   if ASource is TKMemoContainer then
-    Blocks.Assign(TKMemoContainer(ASource).Blocks);
+  begin
+    LockUpdate;
+    try
+      Blocks.Assign(TKMemoContainer(ASource).Blocks);
+    finally
+      UnlockUpdate;
+    end;
+  end;
 end;
 
 procedure TKMemoContainer.AssignAttributes(ABlock: TKMemoBlock);
@@ -13119,7 +13166,7 @@ var
 begin
   Reader := TKMemoRTFReader.Create(ParentMemo);
   try
-    Reader.LoadFromStream(AStream, AtIndex, Self);
+    Reader.LoadFromStream(AStream, Self, AtIndex);
   finally
     Reader.Free;
   end;
@@ -14366,6 +14413,41 @@ begin
     FixEmptyBlocks;
   finally
     UnlockUpdate;
+  end;
+end;
+
+function TKMemoBlocks.SplitForInsert(AAtIndex: TKMemoSelectionIndex; out ABlockIndex: TKMemoBlockIndex): TKMemoBlocks;
+var
+  ContLocalIndex, BlockLocalIndex: TKMemoSelectionIndex;
+  Block, NewBlock: TKMemoBlock;
+begin
+  if AAtIndex < 0 then
+  begin
+    Result := Self;
+    ABlockIndex := Count; // just append new blocks
+  end else
+  begin
+    Result := IndexToBlocks(AAtIndex, ContLocalIndex); // get active inner blocks
+    if Result <> nil then
+    begin
+      ABlockIndex := Result.IndexToBlockIndex(ContLocalIndex, BlockLocalIndex); // get block index within active blocks
+      if ABlockIndex >= 0 then
+      begin
+        // if active block is splittable do it and make space for new blocks
+        Block := Result.Items[ABlockIndex];
+        NewBlock := Block.Split(BlockLocalIndex);
+        if NewBlock <> nil then
+        begin
+          Inc(ABlockIndex);
+          Result.AddAt(NewBlock, ABlockIndex);
+        end;
+      end else
+        ABlockIndex := Result.Count; // just append new blocks to active blocks
+    end else
+    begin
+      Result := Self;
+      ABlockIndex := Result.Count; // just append new blocks to active blocks
+    end;
   end;
 end;
 
