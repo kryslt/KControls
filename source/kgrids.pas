@@ -6744,8 +6744,6 @@ begin
 end;
 
 function TKCustomGrid.CellSelected(ACol, ARow: Integer): Boolean;
-var
-  I: Integer;
 begin
   Result := CellInGridRect(ACol, ARow, Selection);
   if not Result then

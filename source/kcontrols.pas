@@ -613,7 +613,7 @@ type
     {Returns True if page setup component is allocated for this control. }
     property PageSetupAllocated: Boolean read GetPageSetupAllocated;
     { Just to be compatible with Delphi. }
-  {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
+  {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER12_UP)}
     property ParentBackground: Boolean read FParentBackground write FParentBackground default True;
     property ParentDoubleBuffered: Boolean read FParentDoubleBuffered write FParentDoubleBuffered default True;
   {$IFEND}

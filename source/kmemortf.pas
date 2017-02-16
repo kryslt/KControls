@@ -252,7 +252,7 @@ type
   TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop,
     rpiReqWidth, rpiReqHeight, rpiScaleX, rpiScaleY);
   TKMemoRTFListProp = (rplList, rplListOverride, rplListLevel, rplListId, rplListIndex, rplListText, rplLevelStartAt, rplLevelNumberType, rplLevelJustify, rplLevelText,
-    rplLevelFontIndex, rplLevelFirstIndent, rplLevelLeftIndent);
+    rplLevelFontIndex, rplLevelFirstIndent, rplLevelLeftIndent, rplPnText);
   TKMemoRTFParaProp = (rppParD, rppIndentFirst, rppIndentBottom, rppIndentLeft, rppIndentRight, rppIndentTop, rppAlignLeft, rppAlignCenter, rppAlignRight, rppAlignJustify,
     rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor,
     rppLineSpacing, rppLineSpacingMode, rppPar, rppListIndex, rppListLevel, rppListStartAt);
@@ -1480,6 +1480,7 @@ begin
   FCtrlTable.AddCtrl('levelnfc', Integer(rplLevelNumberType), ReadListGroup);
   FCtrlTable.AddCtrl('leveljc', Integer(rplLevelJustify), ReadListGroup);
   FCtrlTable.AddCtrl('leveltext', Integer(rplLevelText), ReadListGroup);
+  FCtrlTable.AddCtrl('pntext', Integer(rplPnText), ReadListGroup);
   // paragraph formatting ctrls
   FCtrlTable.AddCtrl('pard', Integer(rppParD), ReadParaFormatting);
   FCtrlTable.AddCtrl('fi', Integer(rppIndentFirst), ReadParaFormatting);
@@ -2378,7 +2379,12 @@ begin
     rgListLevelText: AddTextToNumberingFormat(string(AText));
   else
     case TKMemoRTFListProp(ACtrl) of
-      rplListText: FActiveState.Group := rgUnknown; // ignore text
+      rplListText, rplPnText: FActiveState.Group := rgUnknown; // ignore text
+      // Note: ignore old Word 95 'pntext' tag as well. We do not support
+      // old Word 95 numbering style (so IMO it should not be ignored)
+      // but some documents mix '\pntext' with '\lsN' control words.
+      // This has the effect that the numbering is displayed twice if '\pntext'
+      // is not ignored.
     end;
   end;
 end;
