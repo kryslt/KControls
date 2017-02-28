@@ -433,7 +433,6 @@ type
     constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
-    procedure AssignNC(ASource: TKMemoTextStyle); virtual;
     procedure Defaults; virtual;
     function EqualProperties(ASource: TKMemoTextStyle): Boolean; virtual;
     procedure NotifyChange(AValue: TKMemoTextStyle); virtual;
@@ -530,7 +529,6 @@ type
     constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TPersistent); override;
-    procedure AssignNC(ASource: TKMemoBlockStyle); virtual;
     function BorderRect(const ARect: TRect): TRect; virtual;
     function InteriorRect(const ARect: TRect): TRect; virtual;
     procedure Defaults; virtual;
@@ -1432,6 +1430,7 @@ type
     function AddParagraph(At: TKMemoBlockIndex = -1): TKMemoParagraph;
     function AddTable(At: TKMemoBlockIndex = -1): TKMemoTable;
     function AddTextBlock(const AText: TKString; At: TKMemoBlockIndex = -1): TKMemoTextBlock;
+    procedure Assign(ASource: TKObjectList); override;
     function BlockIndexToBlock(ABlockIndex: TKMemoBlockIndex): TKMemoBlock;
     function BlockToIndex(ABlock: TKMemoBlock): TKMemoSelectionIndex; virtual;
     procedure Clear; override;
@@ -1826,6 +1825,8 @@ type
     FLinePosition: TKMemoLinePosition;
     FNewTextStyleValid: Boolean;
     FOldCaretRect: TRect;
+    { Method pointer to the private TControl.FontChanged. }
+    FOldFontChanged: TNotifyEvent;
     FPreferredCaretPos: Integer;
     FRequiredMouseCursor: TCursor;
     FSelectedBlock: TKMemoBlock;
@@ -2376,6 +2377,8 @@ type
     property Height default cHeight;
     { See TKCustomMemo.@link(TKCustomMemo.Options) for details. }
     property Options;
+    { Inherited property - see Delphi help. }
+    property ParentFont;
     { Inherited property - see Delphi help. }
     property ParentShowHint;
     { Inherited property - see Delphi help. }
@@ -3273,9 +3276,13 @@ begin
 end;
 
 procedure TKMemoTextStyle.Assign(ASource: TPersistent);
+var
+  OldState: Boolean;
 begin
   if ASource is TKMemoTextStyle then
   begin
+    OldState := Changeable;
+    Changeable := TKMemoTextStyle(ASource).Changeable;
     LockUpdate;
     try
       Brush.Assign(TKMemoTextStyle(ASource).Brush);
@@ -3283,21 +3290,9 @@ begin
       Font.Assign(TKMemoTextStyle(ASource).Font);
       ScriptPosition := TKMemoTextStyle(ASource).ScriptPosition;
     finally
+      Changeable := OldState;
       UnlockUpdate;
     end;
-  end;
-end;
-
-procedure TKMemoTextStyle.AssignNC(ASource: TKMemoTextStyle);
-var
-  OldState: Boolean;
-begin
-  OldState := Changeable;
-  Changeable := False;
-  try
-    Assign(ASource);
-  finally
-    Changeable := OldState;
   end;
 end;
 
@@ -3332,7 +3327,7 @@ end;
 procedure TKMemoTextStyle.NotifyChange(AValue: TKMemoTextStyle);
 begin
   if not FStyleChanged and UpdateUnlocked then
-    AssignNC(AValue);
+    Assign(AValue);
 end;
 
 procedure TKMemoTextStyle.PropsChanged;
@@ -3415,9 +3410,13 @@ begin
 end;
 
 procedure TKMemoBlockStyle.Assign(ASource: TPersistent);
+var
+  OldState: Boolean;
 begin
   if ASource is TKMemoBlockStyle then
   begin
+    OldState := Changeable;
+    Changeable := TKMemoBlockStyle(ASource).Changeable;
     LockUpdate;
     try
       BorderColor := TKMemoBlockStyle(ASource).BorderColor;
@@ -3430,21 +3429,9 @@ begin
       ContentPadding.Assign(TKMemoBlockStyle(ASource).ContentPadding);
       HAlign := TKMemoParaStyle(ASource).HAlign;
     finally
+      Changeable := OldState;
       UnlockUpdate;
     end;
-  end;
-end;
-
-procedure TKMemoBlockStyle.AssignNC(ASource: TKMemoBlockStyle);
-var
-  OldState: Boolean;
-begin
-  OldState := Changeable;
-  Changeable := False;
-  try
-    Assign(ASource);
-  finally
-    Changeable := OldState;
   end;
 end;
 
@@ -3587,7 +3574,7 @@ end;
 procedure TKMemoBlockStyle.NotifyChange(AValue: TKMemoBlockStyle);
 begin
   if not FStyleChanged and UpdateUnlocked then
-    AssignNC(Avalue);
+    Assign(Avalue);
 end;
 
 procedure TKMemoBlockStyle.PaintBox(ACanvas: TCanvas; const ARect: TRect);
@@ -4165,6 +4152,7 @@ begin
   Color := clWindow;
   ControlStyle := [csOpaque, csClickEvents, csDoubleClicks, csCaptureMouse];
   DoubleBuffered := True; // is needed
+  FOldFontChanged := Font.OnChange;
   Font.OnChange := FontChange;
   Height := cHeight;
   ParentColor := False;
@@ -4194,7 +4182,6 @@ begin
   FMaxWordLength := cMaxWordLengthDef;
   FMouseWheelAccumulator := 0;
   FNewTextStyle := TKMemoTextStyle.Create;
-  FNewTextStyle.Changeable := False;
   FNewTextStyleValid := False;
   FOldCaretRect := CreateEmptyRect;
   FOptions := cKMemoOptionsDef;
@@ -4305,7 +4292,7 @@ begin
       Self.KeyMapping.Assign(KeyMapping);
       Self.Modified := False;
       Self.Options := Options;
-      Self.ParaStyle.AssignNC(ParaStyle);
+      Self.ParaStyle.Assign(ParaStyle);
       Self.ParentBiDiMode := ParentBiDiMode;
       Self.ParentColor := ParentColor;
     {$IFNDEF FPC}
@@ -4320,7 +4307,7 @@ begin
       Self.ShowHint := ShowHint;
       Self.TabOrder := TabOrder;
       Self.TabStop := TabStop;
-      Self.TextStyle.AssignNC(TextStyle);
+      Self.TextStyle.Assign(TextStyle);
       Self.Visible := Visible;
     finally
       Self.UnlockUpdate;
@@ -4355,7 +4342,8 @@ begin
     OldActiveBlocks := FActiveBlocks;
     try
       FActiveBlocks := FBlocks.GetParentBlocksForBlock(ABlock);
-      Result := BlockRectToRect(ABlock.BoundsRect);
+      if FActiveBlocks <> nil then
+        Result := BlockRectToRect(ABlock.BoundsRect);
     finally
       FActiveBlocks := OldActiveBlocks;
     end;
@@ -5145,6 +5133,8 @@ end;
 
 procedure TKCustomMemo.FontChange(Sender: TObject);
 begin
+  if Assigned(FOldFontChanged) then
+    FOldFontChanged(Sender);
   if Font.Size <> 0 then
     FTextStyle.Font.Assign(Font);
 end;
@@ -6582,7 +6572,8 @@ begin
     OldActiveBlocks := FActiveBlocks;
     try
       FActiveBlocks := FBlocks.GetParentBlocksForBlock(ABlock);
-      Result := BlockRectToRect(ABlock.SizingRect);
+      if FActiveBlocks <> nil then
+        Result := BlockRectToRect(ABlock.SizingRect);
     finally
       FActiveBlocks := OldActiveBlocks;
     end;
@@ -10335,6 +10326,7 @@ constructor TKMemoTable.Create;
 begin
   inherited;
   FCellStyle := TKMemoBlockStyle.Create;
+  FCellStyle.Changeable := False;
   FColCount := 0;
   FColWidths := TKMemoIndexObjectList.Create;
   FBlockStyle.WrapMode := wrNone;
@@ -10364,7 +10356,7 @@ begin
         if (Cell.ColSpan > 0) and (Cell.RowSpan > 0) then
         begin
           W := FCellStyle.BorderWidth;
-          Cell.BlockStyle.AssignNC(FCellStyle);
+          Cell.BlockStyle.Assign(FCellStyle);
           Cell.BlockStyle.BorderWidth := 0;
           Cell.BlockStyle.BorderWidths.All := 0;
           Cell.RequiredBorderWidths.All := W;
@@ -11531,6 +11523,15 @@ begin
   Result.TextStyle.Assign(LastTextStyle(At));
   Result.Text := AText;
   AddAt(Result, At);
+end;
+
+procedure TKMemoBlocks.Assign(ASource: TKObjectList);
+begin
+  inherited;
+  if ASource is TKMemoBlocks then
+  begin
+    IgnoreParaMark := TKMemoBlocks(ASource).IgnoreParaMark;
+  end;
 end;
 
 function TKMemoBlocks.BlockIndexToBlock(ABlockIndex: TKMemoBlockIndex): TKMemoBlock;

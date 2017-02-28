@@ -338,14 +338,8 @@ object Form1: TForm1
         Align = alLeft
         Anchors = [akLeft, akTop, akRight, akBottom]
         ColCount = 8
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = []
         Options = [goAlwaysShowEditor, goColMoving, goColSizing, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRangeSelect, goRowMoving, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
         OptionsEx = [gxEnterAppendsRow, gxEnterWraps, gxFixedCellClickSelect, gxTabAppendsRow, gxTabWraps, gxMouseWheelScroll]
-        ParentFont = False
         RowCount = 8
         TabOrder = 15
         OnBeginColSizing = KGrid1BeginColSizing

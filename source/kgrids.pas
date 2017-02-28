@@ -2341,6 +2341,8 @@ type
     { Specifies the cell where mouse is over. FMouseOver is valid if goMouseOverCells
       is included in @link(TKCustomGrid.Options). }
     FMouseOver: TKGridCoord;
+    { Method pointer to the private TControl.FontChanged. }
+    FOldFontChanged: TNotifyEvent;
     { Dynamic array to store row instances. Different row classes can
       be used for row instances. }
     FRows: TKGridAxisItems;
@@ -2502,7 +2504,7 @@ type
       to FSelection later. Returns True if selection was changed and False if no fix was needed.}
     function FixSelection(var ARect: TKGridRect): Boolean; virtual;
     { Called from Font.OnChange. Performs some internal adjustments. }
-    procedure FontChange(Sender: TObject);
+    procedure FontChange(Sender: TObject); virtual;
     { Destroys all column, row and cell instances. }
     procedure FreeData;
     { Returns information structure for column or row axis. Some fields of the
@@ -6107,7 +6109,7 @@ begin
   {$IFDEF FPC}
     Details := ThemeServices.GetElementDetails(tmPopupItemHot);
     ThemeServices.DrawElement(FCanvas.Handle, Details, ARect, RClip);
-    Color := clWindowText; // getting text color not supported
+    Color := ColorToRGB(clWindowText); // getting text color not supported
   {$ELSE}
     SelectionTheme := ThemeServices.Theme[teMenu];
     DrawThemeBackground(SelectionTheme, FCanvas.Handle, MENU_POPUPITEM, MPI_HOT, ARect, RClip);
@@ -6364,6 +6366,7 @@ begin
   FEditorTransparency := cEditorTransparencyDef;
   FFixedCols := cInvalidIndex;
   FFixedRows := cInvalidIndex;
+  FOldFontChanged := Font.OnChange;
   Font.OnChange := FontChange;
   FGridLineWidth := cGridLineWidthDef;
   FGridState := gsNormal;
@@ -8036,6 +8039,8 @@ end;
 
 procedure TKCustomGrid.FontChange(Sender: TObject);
 begin
+  if Assigned(FOldFontChanged) then
+    FOldFontChanged(Sender);
   if csLoading in ComponentState then
     DefaultRowHeight := GetDefaultRowHeight;
 end;

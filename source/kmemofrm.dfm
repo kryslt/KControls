@@ -20,6 +20,7 @@ object KMemoFrame: TKMemoFrame
     Font.Name = 'Tahoma'
     Font.Style = []
     Options = [eoDropFiles, eoGroupUndo, eoWantTab]
+    ParentFont = False
     PopupMenu = PMMain
     TabOrder = 0
     OnBlockEdit = EditorBlockEdit
@@ -1834,7 +1835,6 @@ object KMemoFrame: TKMemoFrame
     end
     object MGFont: TMenuItem
       Caption = 'Text'
-      OnClick = ACFontBoldExecute
       object MIFontBold: TMenuItem
         Action = ACFontBold
       end
