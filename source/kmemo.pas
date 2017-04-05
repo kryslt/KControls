@@ -1956,6 +1956,10 @@ type
     function GetRealSelStart: TKMemoSelectionIndex; virtual;
     { Returns actual scroll padding in vertical direction. }
     function GetVertScrollPadding: Integer; virtual;
+    { Specific implementation of the standard Visible property. }
+    function GetVisible: Boolean; reintroduce; virtual;
+    { Specific implementation of the standard Visible property. }
+    procedure SetVisible(Value: Boolean); reintroduce; virtual;
     { IKMemoNotifier implementation. }
     function GetWordBreaks: TKSysCharSet;
     { IKMemoNotifier implementation. }
@@ -2316,6 +2320,8 @@ type
     property UndoLimit: Integer read GetUndoLimit write SetUndoLimit default cUndoLimitDef;
     { Returns vertical scroll padding - relative to client height. }
     property VertScrollPadding: Integer read GetVertScrollPadding;
+    { Inherited property - see Delphi help. }
+    property Visible: Boolean read GetVisible write SetVisible;
     { Defines the characters that will be used to split text to breakable words. }
     property WordBreaks: TKSysCharSet read FWordBreaks write SetWordBreaks;
     { When assigned, this event will be invoked at each change made to the
@@ -5464,6 +5470,11 @@ begin
   Result := Min(FScrollPadding, ClientHeight div 8);
 end;
 
+function TKCustomMemo.GetVisible: Boolean;
+begin
+  Result := inherited Visible;
+end;
+
 function TKCustomMemo.GetWordBreaks: TKSysCharSet;
 begin
   Result := FWordBreaks;
@@ -6537,6 +6548,16 @@ begin
   begin
     FUndoList.Limit := Value;
     FRedoList.Limit := Value;
+  end;
+end;
+
+procedure TKCustomMemo.SetVisible(Value: Boolean);
+begin
+  FBlocks.LockUpdate;
+  try
+    inherited Visible := Value;
+  finally
+    FBlocks.UnLockUpdate;
   end;
 end;
 

@@ -1561,7 +1561,8 @@ function GetControlText(Value: TWinControl): TKString;
   function GetTextBuffer(Value: TWinControl): string;
   begin
     SetLength(Result, Value.GetTextLen);
-    Value.GetTextBuf(PChar(Result), Length(Result) + 1);
+    if Length(Result) > 0 then
+      Value.GetTextBuf(PChar(Result), Length(Result) + 1);
   end;
 
 begin
