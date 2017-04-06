@@ -548,15 +548,19 @@ function GetFormatSettings: TFormatSettings;
 function IntToAscii(Value: Int64; Digits: Integer): string;
 { Converts an integer into binary digit string with custom alignment
   (given by Digits) and suffix. }
-function IntToBinStr(Value: Int64; Digits: Byte; const Suffix: string): string;
+function IntToBinStr(Value: Int64; Digits: Integer; const Suffix: string): string;
 { Converts an integer value into BCD number. }
 function IntToBCD(Value: Cardinal): Cardinal;
-{ Converts an integer into decimal digit string. Equals to IntToStr. }
-function IntToDecStr(Value: Int64): string;
+{ Converts a signed integer into decimal digit string with custom alignment
+  (given by Digits). }
+function IntToDecStr(Value: Int64; Digits: Integer = 0): string;
+{ Converts a unsigned integer into decimal digit string with custom alignment
+  (given by Digits). }
+function UIntToDecStr(Value: UInt64; Digits: Integer = 0): string;
 { Converts an integer into hexadecimal digit string with custom alignment
   (given by Digits), prefix and suffix. Digits represented by alphabetical
   characters can be either in lower or upper case. }
-function IntToHexStr(Value: Int64; Digits: Byte; const Prefix, Suffix: string;
+function IntToHexStr(Value: Int64; Digits: Integer; const Prefix, Suffix: string;
   UseLowerCase: Boolean): string;
 { Converts an integer into octal digit string. }
 function IntToOctStr(Value: Int64): string;
@@ -576,7 +580,7 @@ function BCDToInt(Value: Cardinal): Cardinal;
   (given by Digits) and sign of a value represented by the string (given by Signed).
   Code returns either zero for a successful conversion or the position of
   first bad character. }
-function BinStrToInt(S: string; Digits: Byte; Signed: Boolean;
+function BinStrToInt(S: string; Digits: Integer; Signed: Boolean;
   var Code: Integer): Int64;
 { Converts a decimal digit string into integer. Code returns either zero for
   a successful conversion or the position of first bad character. Equals to Val. }
@@ -585,7 +589,7 @@ function DecStrToInt(S: string; var Code: Integer): Int64;
   (given by Digits) and sign of a value represented by the string (given by Signed).
   Code returns either zero for a successful conversion or the position of
   first bad character. }
-function HexStrToInt(S: string; Digits: Byte; Signed: Boolean;
+function HexStrToInt(S: string; Digits: Integer; Signed: Boolean;
   var Code: Integer): Int64;
 { Converts an octal digit string into integer. Code returns either zero for
   a successful conversion or the position of first bad character. }
@@ -1560,7 +1564,7 @@ begin
   end;
 end;
 
-function IntToBinStr(Value: Int64; Digits: Byte; const Suffix: string): string;
+function IntToBinStr(Value: Int64; Digits: Integer; const Suffix: string): string;
 var
   B: Byte;
   C: Char;
@@ -1579,18 +1583,37 @@ begin
   Result := Result + Suffix;
 end;
 
-function IntToDecStr(Value: Int64): string;
+function IntToDecStr(Value: Int64; Digits: Integer): string;
 var
   B: Byte;
   C: Char;
   Signum: Boolean;
 begin
-  if Value < 0 then
-  begin
-    Signum := True;
-    Value := -Value;
-  end else
-    Signum := False;
+  Result := '';
+  Signum := Value < 0;
+  if Signum  then
+  asm
+    nop
+  end;
+  repeat
+    B := Byte(Value mod 10);
+    if Signum then
+      B := 256 - B;
+    Value := Value div 10;
+    C := Chr(Ord('0') + B);
+    Result := C + Result;
+  until Value = 0;
+  while Length(Result) < Digits do
+    Result := '0' + Result;
+  if Signum then
+    Result := '-' + Result;
+end;
+
+function UIntToDecStr(Value: UInt64; Digits: Integer): string;
+var
+  B: Byte;
+  C: Char;
+begin
   Result := '';
   repeat
     B := Byte(Value mod 10);
@@ -1598,12 +1621,11 @@ begin
     C := Chr(Ord('0') + B);
     Result := C + Result;
   until Value = 0;
-  Result := '0' + Result;
-  if Signum then
-    Result := '-' + Result;
+  while Length(Result) < Digits do
+    Result := '0' + Result;
 end;
 
-function IntToHexStr(Value: Int64; Digits: Byte; const Prefix, Suffix: string; UseLowerCase: Boolean): string;
+function IntToHexStr(Value: Int64; Digits: Integer; const Prefix, Suffix: string; UseLowerCase: Boolean): string;
 var
   B: Byte;
 begin
@@ -1769,7 +1791,7 @@ begin
   end;
 end;
 
-function BinStrToInt(S: string; Digits: Byte; Signed: Boolean; var Code: Integer): Int64;
+function BinStrToInt(S: string; Digits: Integer; Signed: Boolean; var Code: Integer): Int64;
 var
   I, L, Len: Integer;
   N: Byte;
@@ -1851,7 +1873,7 @@ begin
   if Minus then Result := -Result;
 end;
 
-function HexStrToInt(S: string; Digits: Byte; Signed: Boolean; var Code: Integer): Int64;
+function HexStrToInt(S: string; Digits: Integer; Signed: Boolean; var Code: Integer): Int64;
 var
   I, L, Len: Integer;
   N: Byte;

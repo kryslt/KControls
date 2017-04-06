@@ -92,6 +92,34 @@ const
     neoUseUpDown, neoWarning, neoClampToMinMax];
 
 type
+
+  { TKNumberValue }
+
+  TKNumberValue = class
+  private
+    FIVal: Int64;
+    FFVal: Extended;
+    FHasInt: Boolean;
+    procedure SetIVal(const AValue: Int64);
+    procedure SetFVal(const AValue: Extended);
+    function GetFVal: Extended;
+    function GetIVal: Int64;
+    procedure SetHasInt(const Value: Boolean);
+  public
+    constructor CreateEmpty;
+    constructor CreateI(const AValue: Int64);
+    constructor CreateF(const AValue: Extended);
+    procedure Assign(const AValue: TKNumberValue);
+    procedure Clear(AHasIntState: Boolean);
+    function Clamp(const AMinimum, AMaximum: TKNumberValue; ASigned: Boolean = True): Boolean;
+    function EqualsTo(const AValue: TKNumberValue): Boolean;
+    function GreaterThan(const AValue: TKNumberValue; ASigned: Boolean = True): Boolean;
+    function LowerThan(const AValue: TKNumberValue; ASigned: Boolean = True): Boolean;
+    property IVal: Int64 read GetIVal write SetIVal;
+    property FVal: Extended read GetFVal write SetFVal;
+    property HasInt: Boolean read FHasInt write SetHasInt;
+  end;
+
   { TKCustomNumberEdit }
 
   TKCustomNumberEdit = class(TCustomEdit)
@@ -110,8 +138,8 @@ type
     FLabelSpacing: Cardinal;
     FLastInputFormat: TKNumberEditDisplayedFormat;
     FLog: TKLog;
-    FMax: Extended;
-    FMin: Extended;
+    FMax: TKNumberValue;
+    FMin: TKNumberValue;
     FOptions: TKNumberEditOptions;
     FPrecision: Integer;
     FRealUpDownStep: Extended;
@@ -119,43 +147,13 @@ type
     FUpDown: TUpDown;
     FUpdownChanging: Boolean;
     FUpDownStep: Extended;
+    FValue: TKNumberValue;
     FWarningColor: TColor;
     FOnUpDownChange: TNotifyEvent;
-    function GetCaption: TCaption;
-    function GetMaxAsInt: Int64;
-    function GetMinAsInt: Int64;
-    function GetValue: Extended;
-    function GetValueAsInt: Int64;
-    function GetValueAsText: string;
-    function IsCaptionStored: Boolean;
-    function IsCustomSuffixStored: Boolean;
-    function IsMaxStored: Boolean;
-    function IsMinStored: Boolean;
-    function IsUpDownStepStored: Boolean;
-    function IsValueStored: Boolean;
-    procedure KMNEUpdateUpDown(var Msg: TLMessage); message KM_NE_UPDATEUPDOWN;
-    procedure SetAcceptedFormats(AValue: TKNumberEditAcceptedFormats);
-    procedure SetCaption(const AValue: TCaption);
-    procedure SetCustomSuffix(const AValue: string);
-    procedure SetDecimalSeparator(Value: Char);
-    procedure SetDisplayedFormat(AValue: TKNumberEditDisplayedFormat);
-    procedure SetFixedWidth(AValue: Integer);
-    procedure SetHexPrefix(AValue: TKNumberEditHexPrefix);
-    procedure SetLabelPosition(Value: TKLabelPosition);
-    procedure SetLabelSpacing(Value: Cardinal);
-    procedure SetMin(AMin: Extended);
-    procedure SetMinAsInt(AMin: Int64);
-    procedure SetMax(AMax: Extended);
-    procedure SetMaxAsInt(AMax: Int64);
-    procedure SetOptions(AValue: TKNumberEditOptions);
-    procedure SetPrecision(AValue: Integer);
-    procedure SetUpDownStep(AValue: Extended);
-    procedure SetValue(AValue: Extended);
-    procedure SetValueAsInt(AValue: Int64);
-    procedure SetValueAsText(const AValue: string);
     procedure CMEnabledChanged(var Msg: TLMessage); message CM_ENABLEDCHANGED;
     procedure CMVisibleChanged(var Msg: TLMessage); message CM_VISIBLECHANGED;
     procedure CMBiDiModeChanged(var Msg: TLMessage); message CM_BIDIMODECHANGED;
+    procedure KMNEUpdateUpDown(var Msg: TLMessage); message KM_NE_UPDATEUPDOWN;
     procedure WMPaste(var Msg: TLMPaste); message LM_PASTE;
     procedure WMKillFocus(var Msg: TLMKillFocus); message LM_KILLFOCUS;
     procedure WMMove(var Msg: TLMMove); message LM_MOVE;
@@ -167,63 +165,92 @@ type
     procedure CreateWnd; override;
     procedure DoOnChangeBounds; override;
   {$ENDIF}
-    procedure DoWarning(AValue: Extended); dynamic;
-    function GetFormat(S: string; var Fmt: TKNumberEditDisplayedFormat): Extended; virtual;
-    procedure GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string); dynamic;
-    function GetRealSelStart: Integer;
-    function GetRealSelLength: Integer;
-    function InspectInputChar(Key: Char): Char; dynamic;
+    procedure DoWarning(AValue: TKNumberValue); virtual;
+    function GetCaption: TCaption; virtual;
+    procedure GetFormat(AText: string; var Fmt: TKNumberEditDisplayedFormat; AValue: TKNumberValue); virtual;
+    function GetMax: Extended; virtual;
+    function GetMaxAsInt: Int64;
+    function GetMin: Extended; virtual;
+    function GetMinAsInt: Int64; virtual;
+    procedure GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string); virtual;
+    function GetRealSelStart: Integer; virtual;
+    function GetRealSelLength: Integer; virtual;
+    function GetSigned: Boolean; virtual;
+    function GetValue: Extended; virtual;
+    function GetValueAsInt: Int64; virtual;
+    function GetValueAsText: string; virtual;
+    function InspectInputChar(Key: Char): Char; virtual;
+    function IsCaptionStored: Boolean; virtual;
+    function IsCustomSuffixStored: Boolean; virtual;
+    function IsMaxStored: Boolean; virtual;
+    function IsMinStored: Boolean; virtual;
+    function IsUpDownStepStored: Boolean; virtual;
+    function IsValueStored: Boolean; virtual;
     procedure KeyPress(var Key: Char); override;
-    procedure Notification(AComponent: TComponent;
-      Operation: TOperation); override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure SafeSetFocus; virtual;
+    procedure SetAcceptedFormats(AValue: TKNumberEditAcceptedFormats); virtual;
+    procedure SetCaption(const AValue: TCaption); virtual;
+    procedure SetCustomSuffix(const AValue: string); virtual;
+    procedure SetDecimalSeparator(Value: Char); virtual;
+    procedure SetDisplayedFormat(AValue: TKNumberEditDisplayedFormat); virtual;
+    procedure SetFixedWidth(AValue: Integer); virtual;
   {$IFDEF FPC}
-    procedure SetFlat(Value: Boolean);
+    procedure SetFlat(Value: Boolean); virtual;
   {$ENDIF}
-    function SetFormat(AValue: Extended): string; virtual;
+    function SetFormat(AValue: TKNumberValue): string; virtual;
+    procedure SetHexPrefix(AValue: TKNumberEditHexPrefix); virtual;
+    procedure SetLabelPosition(Value: TKLabelPosition); virtual;
+    procedure SetLabelSpacing(Value: Cardinal); virtual;
+    procedure SetMax(AMax: Extended); virtual;
+    procedure SetMaxAsInt(AMax: Int64); virtual;
+    procedure SetMin(AMin: Extended); virtual;
+    procedure SetMinAsInt(AMin: Int64); virtual;
     procedure SetName(const Value: TComponentName); override;
+    procedure SetOptions(AValue: TKNumberEditOptions); virtual;
     procedure SetParent(AParent: TWinControl); override;
-    procedure UpdateFormats; dynamic;
-    procedure UpdateLabel; dynamic;
-    procedure UpdateMaxMin; dynamic;
-    procedure UpdateUpDown(AValue: Extended); dynamic;
-    procedure UpdateUpDownPos; dynamic;
-    procedure UpDownChange; dynamic;
+    procedure SetPrecision(AValue: Integer); virtual;
+    procedure SetUpDownStep(AValue: Extended); virtual;
+    procedure SetValue(AValue: Extended); virtual;
+    procedure SetValueAsInt(AValue: Int64); virtual;
+    procedure SetValueAsText(const AValue: string); virtual;
+    procedure TextToValue; virtual;
+    procedure UpdateFormats; virtual;
+    procedure UpdateLabel; virtual;
+    procedure UpdateMaxMin; virtual;
+    procedure UpdateUpDown(AValue: TKNumberValue); virtual;
+    procedure UpdateUpDownPos; virtual;
+    procedure UpDownChange; virtual;
     procedure UpDownChangingEx(Sender: TObject; var AllowChange: Boolean;
       NewValue: {$IFDEF COMPILER19_UP}Integer{$ELSE}SmallInt{$ENDIF}; Direction: TUpDownDirection);
+    procedure ValueToText; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function Empty: Boolean; virtual;
     procedure Validate; virtual;
-    property LastInputFormat: TKNumberEditDisplayedFormat read FLastInputFormat write FLastInputFormat;
-    property MaxAsInt: Int64 read GetMaxAsInt write SetMaxAsInt;
-    property MinAsInt: Int64 read GetMinAsInt write SetMinAsInt;
-    property ValueAsInt: Int64 read GetValueAsInt write SetValueAsInt;
-    property ValueAsText: string read GetValueAsText write SetValueAsText;
-  public
-    property AcceptedFormats: TKNumberEditAcceptedFormats read FAcceptedFormats
-      write SetAcceptedFormats default [neafDec];
-    property Caption: TCaption read GetCaption write SetCaption stored
-      IsCaptionStored;
-    property CustomSuffix: string read FCustomSuffix write SetCustomSuffix
-      stored IsCustomSuffixStored;
+    property AcceptedFormats: TKNumberEditAcceptedFormats read FAcceptedFormats write SetAcceptedFormats default [neafDec];
+    property Caption: TCaption read GetCaption write SetCaption stored IsCaptionStored;
+    property CustomSuffix: string read FCustomSuffix write SetCustomSuffix stored IsCustomSuffixStored;
     property DecimalSeparator: Char read FDecimalSeparator write SetDecimalSeparator;
-    property DisplayedFormat: TKNumberEditDisplayedFormat read FDisplayedFormat
-      write SetDisplayedFormat default nedfAsInput;
+    property DisplayedFormat: TKNumberEditDisplayedFormat read FDisplayedFormat write SetDisplayedFormat default nedfAsInput;
     property FixedWidth: Integer read FFixedWIdth write SetFixedWidth default 0;
-    property HexPrefix: TKNumberEditHexPrefix read FHexPrefix write SetHexPrefix
-      default nehpC;
+    property HexPrefix: TKNumberEditHexPrefix read FHexPrefix write SetHexPrefix default nehpC;
     property LabelPosition: TKLabelPosition read FLabelPosition write SetLabelPosition default lpAbove;
     property LabelSpacing: Cardinal read FLabelSpacing write SetLabelSpacing default 3;
+    property LastInputFormat: TKNumberEditDisplayedFormat read FLastInputFormat write FLastInputFormat;
     property Log: TKLog read FLog write FLog;
-    property Max: Extended read FMax write SetMax stored IsMaxStored;
-    property Min: Extended read FMin write SetMin stored IsMinStored;
-    property Options: TKNumberEditOptions read FOptions write SetOptions
-      default DefaultNumberEditOptions;
+    property Max: Extended read GetMax write SetMax stored IsMaxStored;
+    property MaxAsInt: Int64 read GetMaxAsInt write SetMaxAsInt;
+    property Min: Extended read GetMin write SetMin stored IsMinStored;
+    property MinAsInt: Int64 read GetMinAsInt write SetMinAsInt;
+    property Options: TKNumberEditOptions read FOptions write SetOptions default DefaultNumberEditOptions;
     property Precision: Integer read FPrecision write SetPrecision default 2;
+    property Signed: Boolean read GetSigned;
     property UpDownStep: Extended read FUpDownStep write SetUpDownStep stored IsUpDownStepStored;
     property Value: Extended read GetValue write SetValue stored IsValueStored;
+    property ValueAsInt: Int64 read GetValueAsInt write SetValueAsInt;
+    property ValueAsText: string read GetValueAsText write SetValueAsText;
     property WarningColor: TColor read FWarningColor write FWarningColor default clRed;
     property OnUpDownChange: TNotifyEvent read FOnUpDownChange write FOnUpDownChange;
   end;
@@ -243,11 +270,14 @@ type
     property LabelSpacing;
     property Log;
     property Max;
+    property MaxAsInt;
     property Min;
+    property MinAsInt;
     property Options;
     property Precision;
     property UpDownStep;
     property Value;
+    property ValueAsInt;
     property WarningColor;
     property OnUpDownChange;
 
@@ -384,8 +414,8 @@ type
     procedure WMMove(var Msg: TLMMove); message LM_MOVE;
     procedure WMSize(var Msg: TLMSize); message LM_SIZE;
   protected
-    procedure ButtonClick(Sender: TObject); dynamic;
-    procedure ButtonExit(Sender: TObject); dynamic;
+    procedure ButtonClick(Sender: TObject); virtual;
+    procedure ButtonExit(Sender: TObject); virtual;
     procedure DoEnter; override;
     procedure DoExit; override;
     procedure DropDown; override;
@@ -710,13 +740,138 @@ begin
     Log.Log(lgInputError, Format(sEDBadSubDirName, [T, S]));
 end;
 
+{ TKNumberValue }
+
+procedure TKNumberValue.Clear(AHasIntState: Boolean);
+begin
+  if AHasIntState then
+    IVal := 0
+  else
+    FVal := 0;
+end;
+
+constructor TKNumberValue.CreateEmpty;
+begin
+  IVal := 0;
+end;
+
+constructor TKNumberValue.CreateF(const AValue: Extended);
+begin
+  FVal := AValue;
+end;
+
+constructor TKNumberValue.CreateI(const AValue: Int64);
+begin
+  IVal := AValue;
+end;
+
+procedure TKNumberValue.Assign(const AValue: TKNumberValue);
+begin
+  FFVal := AValue.FFVal;
+  FIVal := AValue.FIVal;
+  FHasInt := AValue.FHasInt;
+end;
+
+function TKNumberValue.Clamp(const AMinimum, AMaximum: TKNumberValue; ASigned: Boolean): Boolean;
+begin
+  Result := False;
+  if LowerThan(AMinimum, ASigned) then
+  begin
+    Assign(AMinimum);
+    Result := True;
+  end
+  else if GreaterThan(AMaximum, ASigned) then
+  begin
+    Assign(AMaximum);
+    Result := True;
+  end;
+end;
+
+function TKNumberValue.EqualsTo(const AValue: TKNumberValue): Boolean;
+begin
+  if FHasInt then
+    Result := IVal = AValue.IVal
+  else
+    Result := FVal = AValue.FVal;
+end;
+
+function TKNumberValue.GetFVal: Extended;
+begin
+  if FHasInt then
+    Result := FIVal
+  else
+    Result := FFVal
+end;
+
+function TKNumberValue.GetIVal: Int64;
+begin
+  if FHasInt then
+    Result := FIVal
+  else
+  begin
+    try
+      Result := Round(FFVal)
+    except
+      Result := 0;
+    end;
+  end;
+end;
+
+function TKNumberValue.GreaterThan(const AValue: TKNumberValue; ASigned: Boolean): Boolean;
+begin
+  if FHasInt then
+  begin
+    if ASigned then
+      Result := IVal > AValue.IVal
+    else
+      Result := UInt64(IVal) > UInt64(AValue.IVal)
+  end else
+    Result := FVal > AValue.FVal;
+end;
+
+function TKNumberValue.LowerThan(const AValue: TKNumberValue; ASigned: Boolean): Boolean;
+begin
+  if FHasInt then
+  begin
+    if ASigned then
+      Result := IVal < AValue.IVal
+    else
+      Result := UInt64(IVal) < UInt64(AValue.IVal)
+  end else
+    Result := FVal < AValue.FVal;
+end;
+
+procedure TKNumberValue.SetFVal(const AValue: Extended);
+begin
+  FFVal := AValue;
+  FHasInt := False;
+end;
+
+procedure TKNumberValue.SetHasInt(const Value: Boolean);
+begin
+  if Value <> HasInt then
+  begin
+    if Value then
+      IVal := IVal
+    else
+      FVal := FVal;
+  end;
+end;
+
+procedure TKNumberValue.SetIVal(const AValue: Int64);
+begin
+  FIVal := AValue;
+  FHasInt := True;
+end;
+
 { TKNumberEdit }
 
 constructor TKCustomNumberEdit.Create(AOwner: TComponent);
 begin
   inherited;
-  FMin := 0;
-  FMax := 1000;
+  FMin := TKNumberValue.CreateI(0);
+  FMax := TKNumberValue.CreateI(1000);
+  FValue := TKNumberValue.CreateI(0);
   Text := '';
   FWarningColor := clRed;
   FOptions := [neoLowerCase, neoUseLabel, neoUsePrefix, neoUseUpDown, neoWarning, neoClampToMinMax];
@@ -743,626 +898,36 @@ end;
 
 destructor TKCustomNumberEdit.Destroy;
 begin
+  FMin.Free;
+  FMax.Free;
+  FValue.Free;
   inherited;
 end;
 
-function TKCustomNumberEdit.GetFormat(S: string; var Fmt: TKNumberEditDisplayedFormat): Extended;
-var
-  I: Int64;
-  D: Extended;
-  Code: Integer;
-  W: Byte;
-  K: Integer;
+procedure TKCustomNumberEdit.Change;
 begin
-  Result := 0;
-  if S = '' then Exit;
-  if FCustomSuffix <> '' then
-  begin
-    K := Pos(FCustomSuffix, S);
-    if (K > 0) and (K = Length(S) - Length(FCustomSuffix) + 1) then
-      Delete(S, K, Length(CustomSuffix));
-    while (S <> '') and (S[Length(S)] = ' ') do
-      SetLength(S, Length(S) - 1);
-  end;
-  if S = '' then Exit;
-  // decimal integer - most probable
-  if neafDec in FAcceptedFormats then
-  begin
-    I := DecStrToInt(S, Code);
-    if (Code = 0) then
-    begin
-      Fmt := nedfDec;
-      Result := I;
-      Exit;
-    end;
-  end;
-  // hexadecimal integer
-  if neafHex in FAcceptedFormats then
-  begin
-    if FFixedWidth > 0 then W := FFixedWidth else W := 8;  // 32 bit
-    I := HexStrToInt(S, W, not (neoUnsigned in FOptions), Code);
-    if (Code = 0) then
-    begin
-      Fmt := nedfHex;
-      Result := I;
-      Exit;
-    end;
-  end;
-  // binary integer
-  if neafBin in FAcceptedFormats then
-  begin
-    if FFixedWidth > 0 then W := FFixedWidth else W := 16; // 16 bit
-    I := BinStrToInt(S, W, not (neoUnsigned in FOptions), Code);
-    if (Code = 0) then
-    begin
-      Fmt := nedfBin;
-      Result := I;
-      Exit;
-    end;
-  end;
-  // octal integer
-  if neafOct in FAcceptedFormats then
-  begin
-//    if FFixedWidth > 0 then W := FFixedWidth else W := 8; // 24 bit
-    I := OctStrToInt(S, Code);
-    if (Code = 0) then
-    begin
-      Fmt := nedfBin;
-      Result := I;
-      Exit;
-    end;
-  end;
-  // double - custom suffix only
-  if neafFloat in FAcceptedFormats then
-  begin
-    K := Pos('.', S);
-    if K = 0 then K := Pos(',', S);
-    if K = 0 then K := Pos(DecimalSeparator, S);
-    if K > 0 then S[K] := '.';
-    Val(S, D, Code);
-    if (Code = 0) then
-    begin
-      Fmt := nedfFloat;
-      Result := D;
-      Exit;
-    end;
-  end;
-  // ascii - least probable
-  if neafAscii in FAcceptedFormats then
-  begin
-    if FFixedWidth > 0 then W := FFixedWidth else W := 4;  // 32 bit
-    Result := AsciiToInt(S, W);
-    Fmt := nedfAscii;
-  end;
+  inherited;
+  TextToValue;
+  UpdateUpDown(FValue);
 end;
 
-procedure TKCustomNumberEdit.GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string);
+{$IFDEF FPC}
+procedure TKCustomNumberEdit.CreateWnd;
 begin
-  Prefix := '';
-  Suffix := '';
-  case Format of
-    nedfBin: if neoLowerCase in FOptions then Suffix := 'b' else Suffix := 'B';
-    nedfHex:
-      if neoUsePrefix in FOptions then
-        case FHexPrefix of
-          nehpPascal: Prefix := '$';
-          nehpC: Prefix := '0x';
-        end
-      else
-        if neoLowerCase in FOptions then Suffix := 'h' else Suffix := 'H';
-    nedfOct: if neoLowerCase in FOptions then Suffix := 'o' else Suffix := 'O';
-  end;  
+  inherited;
+  UpdateUpDownPos;
+  UpdateLabel;
 end;
 
-function TKCustomNumberEdit.GetRealSelLength: Integer;
+procedure TKCustomNumberEdit.DoOnChangeBounds;
 begin
-  if Sellength >= 0 then
-    Result := SelLength
-  else
-    Result := -SelLength;
+  inherited;
+  UpdateUpDownPos;
+  UpdateLabel;
 end;
+{$ENDIF}
 
-function TKCustomNumberEdit.GetRealSelStart: Integer;
-begin
-  if Sellength >= 0 then
-    Result := SelStart
-  else
-    Result := SelStart - SelLength;
-end;
-
-function TKCustomNumberEdit.SetFormat(AValue: Extended): string;
-var
-  S, Prefix, Suffix: string;
-  A: ShortString;
-  W: Byte;
-  J: Integer;
-  F, G: Extended;
-  Fmt: TKNumberEditDisplayedFormat;
-begin
-  S := '';
-  if FDisplayedFormat = nedfAsInput then
-  begin
-    if Frac(AValue) <> 0 then
-      Fmt := nedfFloat
-    else
-      Fmt := FLastInputFormat;
-  end else
-    Fmt := FDisplayedFormat;
-  GetPrefixSuffix(Fmt, Prefix, Suffix);
-  case Fmt of
-    nedfAscii:
-    begin
-      if FFixedWidth > 0 then W := FFixedWidth else W := 4;
-      S := IntToAscii(Round(AValue), W);
-    end;
-    nedfBin:
-    begin
-//      if FFixedWidth > 0 then W := FFixedWidth else W := 16;
-      S := IntToBinStr(Round(AValue), FFixedWidth, Suffix);
-    end;
-    nedfDec:
-    begin
-      Str(Round(AValue):FFixedWidth, A);
-      S := string(A);
-    end;
-    nedfFloat:
-      begin
-        if FPrecision < 0 then
-        begin
-          S := FloatToStrF(AValue, ffGeneral, 15, 15);
-        end
-        else if FPrecision > 0 then
-        begin
-          Str(AValue:FFixedWidth:FPrecision, A);
-          S := string(A);
-        end else
-        begin
-          // determine number of valid decimal digits
-          W := 0;
-          F := AValue;
-          G := Frac(F);
-          while not (IsZero(G, 1E-10) or IsZero(1 - G, 1E-10)) do
-          begin
-            F := F * 10;
-            G := Frac(F);
-            Inc(W);
-          end;
-          Str(AValue:FFixedWidth:W, A);
-          S := string(A);
-        end;
-        J := Pos('.', S);
-        if J = 0 then J := Pos(',', S);
-        if J > 0 then S[J] := FDecimalSeparator;
-      end;
-    nedfHex:
-    begin
-      if FFixedWidth > 0 then W := FFixedWidth else W := 8;
-      S := IntToHexStr(Round(AValue), W, Prefix, Suffix, neoLowerCase in FOptions);
-    end;
-    nedfOct:
-    begin
-      S := IntToOctStr(Round(AValue));
-    end;
-  end;
-{  Sign := #0;
-  for J := 1 to Length(S) do
-  begin
-    if (S[J] in ['+', '-']) and (J > 1) then
-    begin
-      Sign := S[J];
-      S[J] := '0';
-    end;
-    if S[J] = ' ' then S[J] := '0';
-  end;
-  if Sign = '+' then
-    Delete(S, 1, 1)
-  else if Sign = '-' then
-    S := '-' + S;}
-  if (S <> '') and (FCustomSuffix <> '') then
-    S := S + ' ' + FCustomSuffix;
-  Result := S;
-end;
-
-function TKCustomNumberEdit.GetValue: Extended;
-begin
-  Result := GetFormat(Text, FLastInputFormat);
-  if neoClampToMinMax in FOptions then
-    Result := MinMax(Result, FMin, FMax);
-end;
-
-procedure TKCustomNumberEdit.SetValue(AValue: Extended);
-var
-  S: string;
-begin
-  Font.Color := clWindowText;
-  if AValue > FMax then
-  begin
-    if neoClampToMinMax in FOptions then
-      AValue := FMax;
-    DoWarning(AValue);
-  end
-  else if AValue < FMin then
-  begin
-    if neoClampToMinMax in FOptions then
-      AValue := FMin;
-    DoWarning(AValue);
-  end;
-  S := SetFormat(AValue);
-  Text := S;
-  UpdateUpDown(AValue);
-end;
-
-function TKCustomNumberEdit.GetValueAsInt: Int64;
-begin
-  try
-    Result := Round(GetValue);
-  except
-    Result := 0;
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetValueAsInt(AValue: Int64);
-begin
-  SetValue(AValue);
-end;
-
-function TKCustomNumberEdit.GetValueAsText: string;
-begin
-  Result := SetFormat(GetValue);
-end;
-
-procedure TKCustomNumberEdit.SetValueAsText(const AValue: string);
-var
-  Fmt: TKNumberEditDisplayedFormat;
-begin
-  Fmt := nedfAsInput;
-  SetValue(GetFormat(AValue, Fmt));
-end;
-
-procedure TKCustomNumberEdit.SetMin(AMin: Extended);
-var
-  E: Extended;
-begin
-  if AMin <> FMin then
-  begin
-    E := GetValue;
-    FMin := AMin;
-    UpdateMaxMin;
-    SetValue(E);
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetMax(AMax: Extended);
-var
-  E: Extended;
-begin
-  if AMax <> FMax then
-  begin
-    E := GetValue;
-    FMax := AMax;
-    UpdateMaxMin;
-    SetValue(E);
-  end;
-end;
-
-function TKCustomNumberEdit.GetMinAsInt: Int64;
-begin
-  try
-    Result := Round(FMin);
-  except
-    Result := 0;
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetMinAsInt(AMin: Int64);
-begin
-  SetMin(AMin);
-end;
-
-function TKCustomNumberEdit.GetMaxAsInt: Int64;
-begin
-  try
-    Result := Round(FMax);
-  except
-    Result := 0;
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetMaxAsInt(AMax: Int64);
-begin
-  SetMax(AMax);
-end;
-
-function TKCustomNumberEdit.IsValueStored: Boolean;
-begin
-  Result := GetValue <> 0;
-end;
-
-function TKCustomNumberEdit.IsMinStored: Boolean;
-begin
-  Result := FMin <> 0;
-end;
-
-function TKCustomNumberEdit.IsMaxStored: Boolean;
-begin
-  Result := FMax <> 1000;
-end;
-
-procedure TKCustomNumberEdit.SetOptions(AValue: TKNumberEditOptions);
-var
-  E: Extended;
-begin
-  if FOptions <> AValue then
-  begin
-    E := GetValue;
-    FOptions := AValue;
-    UpdateLabel;
-    UpdateMaxMin;
-    SetValue(E);
-  end;
-end;
-
-procedure TKCustomNumberEdit.UpdateFormats;
-var
-  Fmt: TKNumberEditDisplayedFormat;
-  Fmts: set of TKNumberEditDisplayedFormat;
-begin
-  if FAcceptedFormats = [] then
-    FAcceptedFormats := [neafDec];
-  Fmts := [];
-  Fmt := nedfAsInput;
-  if (neafAscii in FAcceptedFormats) then begin Include(Fmts, nedfAscii); Fmt := nedfAscii end;
-  if (neafBin in FAcceptedFormats) then begin Include(Fmts, nedfBin); Fmt := nedfBin end;
-  if (neafOct in FAcceptedFormats) then begin Include(Fmts, nedfOct); Fmt := nedfOct end;
-  if (neafFloat in FAcceptedFormats) then begin Include(Fmts, nedfFloat); Fmt := nedfFloat end;
-  if (neafHex in FAcceptedFormats) then begin Include(Fmts, nedfHex); Fmt := nedfHex end;
-  if (neafDec in FAcceptedFormats) then begin Include(Fmts, nedfDec); Fmt := nedfDec end;
-  if not (FDisplayedFormat in Fmts) then
-  begin
-    FDisplayedFormat := nedfAsInput;
-    FLastInputFormat := Fmt;
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetAcceptedFormats(AValue: TKNumberEditAcceptedFormats);
-var
-  E: Extended;
-begin
-  if AValue <> FAcceptedFormats then
-  begin
-    E := GetValue;
-    FAcceptedFormats := AValue;
-    UpdateFormats;
-    UpdateMaxMin;
-    SetValue(E);
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetDisplayedFormat(AValue: TKNumberEditDisplayedFormat);
-var
-  E: Extended;
-begin
-  if FDisplayedFormat <> AValue then
-  begin
-    E := GetValue;
-    FDisplayedFormat := AValue;
-    UpdateFormats;
-    UpdateMaxMin;
-    SetValue(E);
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetHexPrefix(AValue: TKNumberEditHexPrefix);
-var
-  E: Extended;
-begin
-  if FHexPrefix <> AValue then
-  begin
-    E := GetValue;
-    FHexPrefix := AValue;
-    SetValue(E);
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetCustomSuffix(const AValue: string);
-var
-  E: Extended;
-begin
-  if AValue <> FCustomSuffix then
-  begin
-    E := GetValue;
-    FCustomSuffix := AValue;
-    SetValue(E);
-  end;
-end;
-
-function TKCustomNumberEdit.IsCustomSuffixStored: Boolean;
-begin
-  Result := FCustomSuffix <> '';
-end;
-
-procedure TKCustomNumberEdit.SetFixedWidth(AValue: Integer);
-var
-  E: Extended;
-begin
-  if FFixedWidth <> AValue then
-  begin
-    E := GetValue;
-    FFixedWidth := AValue;
-    SetValue(E);
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetPrecision(AValue: Integer);
-var
-  E: Extended;
-begin
-  if FPrecision <> AValue then
-  begin
-    E := GetValue;
-    FPrecision := AValue;
-    SetValue(E);
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetUpDownStep(AValue: Extended);
-var
-  E: Extended;
-begin
-  if FUpDownStep <> AValue then
-  begin
-    E := GetValue;
-    FUpDownStep := AValue;
-    SetValue(E);
-  end;
-end;
-
-function TKCustomNumberEdit.IsUpDownStepStored: Boolean;
-begin
-  Result := FUpDownStep <> 1;
-end;
-
-function TKCustomNumberEdit.GetCaption: TCaption;
-begin
-  Result := FLabel.Caption;
-end;
-
-procedure TKCustomNumberEdit.SetCaption(const AValue: TCaption);
-begin
-  FLabel.SetTextBuf(PChar(AValue));
-end;
-
-function TKCustomNumberEdit.IsCaptionStored: Boolean;
-begin
-  Result := FLabel.Caption <> Name;
-end;
-
-procedure TKCustomNumberEdit.SetLabelPosition(Value: TKLabelPosition);
-begin
-  if Value <> FLabelPosition then
-  begin
-    FLabelPosition := Value;
-    UpdateLabel;
-  end;
-end;
-
-procedure TKCustomNumberEdit.SetLabelSpacing(Value: Cardinal);
-begin
-  if Value < 1 then Value := 1;
-  if Value <> FLabelSpacing then
-  begin
-    FLabelSpacing := Value;
-    UpdateLabel;
-  end;
-end;
-
-procedure TKCustomNumberEdit.UpdateMaxMin;
-begin
-  try
-    if (neafHex in FAcceptedFormats) or (FDisplayedFormat = nedfHex) then
-    begin
-      if neoUnsigned in FOptions then
-      begin
-        FMin := KFunctions.MinMax(FMin, 0, High(LongWord));
-        FMax := KFunctions.MinMax(FMax, 0, High(LongWord));
-        if FMax < FMin then
-          FMax := FMin;
-      end else
-      begin
-        FMin := KFunctions.MinMax(FMin, Low(Integer), High(Integer));
-        FMax := KFunctions.MinMax(FMax, Low(Integer), High(Integer));
-        if FMax < FMin then
-          FMax := FMin;
-      end;
-    end;
-    if FMax < FMin then
-      FMax := FMin;
-  except
-    FMin := 0;
-    FMax := 1000;
-  end;
-end;
-
-procedure TKCustomNumberEdit.UpdateUpDown(AValue: Extended);
-var
-  Fmt: TKNumberEditDisplayedFormat;
-  AbsMax, D, PP: Extended;
-begin
-  if FUpdateUpdown and (FUpDown <> nil) then
-    if neoUseUpDown in FOptions then
-    begin
-      AbsMax := Math.Max(Abs(FMax), Abs(FMin));
-      if FDisplayedFormat = nedfAsInput then
-        Fmt := FLastInputFormat
-      else
-        Fmt := FDisplayedFormat;
-      D := 1;
-      case Fmt of
-        nedfDec: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 10, 1));
-        nedfHex: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 16, 1));
-        nedfOct: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 8, 1));
-        nedfBin: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 2, 1));
-        nedfFloat:
-        begin
-          PP := IntPower(10, FPrecision);
-          D := MinMax(FUpDownStep * PP, 1, Math.Max(AbsMax * PP / 10, 1)) / PP;
-        end;
-      end;
-      // UpDown min, max and position are ShortInt! (ough)
-      // - must increase the order accordingly if absolute maximum number has more digits
-      while AbsMax / D > 30000 do
-        case Fmt of
-          nedfDec, nedfFloat: D := D * 10;
-          nedfHex: D := D * 16;
-          nedfOct: D := D * 8;
-          nedfBin: D := D * 2;
-        end;
-      FUpdownChanging := True;
-      try
-        FUpDown.Min := Trunc(FMin / D);
-        FUpDown.Max := Trunc(FMax / D);
-        FUpDown.Position := Trunc(AValue / D);
-        FUpDown.Parent := Parent;
-        FRealUpDownStep := D;
-      finally
-        FUpdownChanging := False;
-      end;
-    end else
-      FUpDown.Parent := nil;
-end;
-
-procedure TKCustomNumberEdit.UpdateUpDownPos;
-begin
-  if FUpDown <> nil then
-    FUpDown.SetBounds(Left + Width, Top, FUpDown.Width, Height);
-end;
-
-procedure TKCustomNumberEdit.UpdateLabel;
-var
-  P: TPoint;
-begin
- if FLabel <> nil then
-  if neoUseLabel in FOptions then
-  begin
-    case FLabelPosition of
-      lpAbove: P := Point(Left, Top - FLabel.Height - Integer(FLabelSpacing));
-      lpBelow: P := Point(Left, Top + Height + Integer(FLabelSpacing));
-      lpLeft: P := Point(Left - Math.Max(Integer(FLabelSpacing), FLabel.Width + 3), Top + (Height - FLabel.Height) div 2);
-      lpRight: P := Point(Left + Width + Integer(FLabelSpacing), Top + (Height - FLabel.Height) div 2);
-    end;
-    FLabel.Left := P.X;
-    FLabel.Top := P.Y;
-    FLabel.Parent := Parent
-  end else
-    FLabel.Parent := nil;
-end;
-
-function TKCustomNumberEdit.Empty: Boolean;
-begin
-  Result := (Text = '') or (Text = '-');
-end;
-
-procedure TKCustomNumberEdit.DoWarning(AValue: Extended);
+procedure TKCustomNumberEdit.DoWarning(AValue: TKNumberValue);
 var
   Fmt: TKNumberEditDisplayedFormat;
 begin
@@ -1385,6 +950,182 @@ begin
       end;
     end;
   end;
+end;
+
+function TKCustomNumberEdit.Empty: Boolean;
+begin
+  Result := (Text = '') or (Text = '-');
+end;
+
+function TKCustomNumberEdit.GetCaption: TCaption;
+begin
+  Result := FLabel.Caption;
+end;
+
+procedure TKCustomNumberEdit.GetFormat(AText: string; var Fmt: TKNumberEditDisplayedFormat; AValue: TKNumberValue);
+var
+  I: Int64;
+  D: Extended;
+  Code: Integer;
+  W: Byte;
+  K: Integer;
+begin
+  AValue.Clear(True);
+  if AText = '' then Exit;
+  if FCustomSuffix <> '' then
+  begin
+    K := Pos(FCustomSuffix, AText);
+    if (K > 0) and (K = Length(AText) - Length(FCustomSuffix) + 1) then
+      Delete(AText, K, Length(CustomSuffix));
+    while (AText <> '') and (AText[Length(AText)] = ' ') do
+      SetLength(AText, Length(AText) - 1);
+  end;
+  if AText = '' then Exit;
+  // decimal integer - most probable
+  if neafDec in FAcceptedFormats then
+  begin
+    I := DecStrToInt(AText, Code);
+    if (Code = 0) then
+    begin
+      Fmt := nedfDec;
+      AValue.IVal := I;
+      Exit;
+    end;
+  end;
+  // hexadecimal integer
+  if neafHex in FAcceptedFormats then
+  begin
+    if FFixedWidth > 0 then W := FFixedWidth else W := 8;  // 32 bit
+    I := HexStrToInt(AText, W, Signed, Code);
+    if (Code = 0) then
+    begin
+      Fmt := nedfHex;
+      AValue.IVal := I;
+      Exit;
+    end;
+  end;
+  // binary integer
+  if neafBin in FAcceptedFormats then
+  begin
+    if FFixedWidth > 0 then W := FFixedWidth else W := 16; // 16 bit
+    I := BinStrToInt(AText, W, Signed, Code);
+    if (Code = 0) then
+    begin
+      Fmt := nedfBin;
+      AValue.IVal := I;
+      Exit;
+    end;
+  end;
+  // octal integer
+  if neafOct in FAcceptedFormats then
+  begin
+    I := OctStrToInt(AText, Code);
+    if (Code = 0) then
+    begin
+      Fmt := nedfBin;
+      AValue.IVal := I;
+      Exit;
+    end;
+  end;
+  // double - custom suffix only
+  if neafFloat in FAcceptedFormats then
+  begin
+    K := Pos('.', AText);
+    if K = 0 then K := Pos(',', AText);
+    if K = 0 then K := Pos(DecimalSeparator, AText);
+    if K > 0 then AText[K] := '.';
+    Val(AText, D, Code);
+    if (Code = 0) then
+    begin
+      Fmt := nedfFloat;
+      AValue.FVal := D;
+      Exit;
+    end;
+  end;
+  // ascii - least probable
+  if neafAscii in FAcceptedFormats then
+  begin
+    if FFixedWidth > 0 then W := FFixedWidth else W := 4;  // 32 bit
+    AValue.IVal := AsciiToInt(AText, W);
+    Fmt := nedfAscii;
+  end;
+end;
+
+function TKCustomNumberEdit.GetMax: Extended;
+begin
+  Result := FMax.FVal;
+end;
+
+function TKCustomNumberEdit.GetMaxAsInt: Int64;
+begin
+  Result := FMax.IVal;
+end;
+
+function TKCustomNumberEdit.GetMin: Extended;
+begin
+  Result := FMin.FVal;
+end;
+
+function TKCustomNumberEdit.GetMinAsInt: Int64;
+begin
+  Result := FMin.IVal;
+end;
+
+procedure TKCustomNumberEdit.GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string);
+begin
+  Prefix := '';
+  Suffix := '';
+  case Format of
+    nedfBin: if neoLowerCase in FOptions then Suffix := 'b' else Suffix := 'B';
+    nedfHex:
+      if neoUsePrefix in FOptions then
+        case FHexPrefix of
+          nehpPascal: Prefix := '$';
+          nehpC: Prefix := '0x';
+        end
+      else
+        if neoLowerCase in FOptions then Suffix := 'h' else Suffix := 'H';
+    nedfOct: if neoLowerCase in FOptions then Suffix := 'o' else Suffix := 'O';
+  end;
+end;
+
+function TKCustomNumberEdit.GetRealSelLength: Integer;
+begin
+  if Sellength >= 0 then
+    Result := SelLength
+  else
+    Result := -SelLength;
+end;
+
+function TKCustomNumberEdit.GetRealSelStart: Integer;
+begin
+  if Sellength >= 0 then
+    Result := SelStart
+  else
+    Result := SelStart - SelLength;
+end;
+
+function TKCustomNumberEdit.GetSigned: Boolean;
+begin
+  Result := not (neoUnsigned in FOptions);
+end;
+
+function TKCustomNumberEdit.GetValue: Extended;
+begin
+  TextToValue;
+  Result := FValue.FVal;
+end;
+
+function TKCustomNumberEdit.GetValueAsInt: Int64;
+begin
+  TextToValue;
+  Result := FValue.IVal;
+end;
+
+function TKCustomNumberEdit.GetValueAsText: string;
+begin
+  TextToValue;
+  Result := SetFormat(FValue);
 end;
 
 function TKCustomNumberEdit.InspectInputChar(Key: Char): Char;
@@ -1481,7 +1222,37 @@ begin
     if KeyDec <> #0 then Result := KeyDec;
     if KeyOct <> #0 then Result := KeyOct;
     if KeySuffix <> #0 then Result := KeySuffix;
-  end;  
+  end;
+end;
+
+function TKCustomNumberEdit.IsCaptionStored: Boolean;
+begin
+  Result := FLabel.Caption <> Name;
+end;
+
+function TKCustomNumberEdit.IsCustomSuffixStored: Boolean;
+begin
+  Result := FCustomSuffix <> '';
+end;
+
+function TKCustomNumberEdit.IsMaxStored: Boolean;
+begin
+  Result := FMax.IVal <> 1000;
+end;
+
+function TKCustomNumberEdit.IsMinStored: Boolean;
+begin
+  Result := FMin.IVal <> 0;
+end;
+
+function TKCustomNumberEdit.IsUpDownStepStored: Boolean;
+begin
+  Result := FUpDownStep <> 1;
+end;
+
+function TKCustomNumberEdit.IsValueStored: Boolean;
+begin
+  Result := GetValue <> 0;
 end;
 
 procedure TKCustomNumberEdit.KeyPress(var Key: Char);
@@ -1493,35 +1264,6 @@ begin
     if Key <> #0 then
       Font.Color := clWindowText;
   end
-end;
-
-procedure TKCustomNumberEdit.Change;
-begin
-  inherited;
-  UpdateUpDown(GetValue);
-end;
-
-{$IFDEF FPC}
-procedure TKCustomNumberEdit.CreateWnd;
-begin
-  inherited;
-  UpdateUpDownPos;
-  UpdateLabel;
-end;
-
-procedure TKCustomNumberEdit.DoOnChangeBounds;
-begin
-  inherited;
-  UpdateUpDownPos;
-  UpdateLabel;
-end;
-{$ENDIF}
-
-procedure TKCustomNumberEdit.SetParent(AParent: TWinControl);
-begin
-  inherited;
-  UpdateUpDown(GetValue);
-  UpdateLabel;
 end;
 
 procedure TKCustomNumberEdit.Notification(AComponent: TComponent;
@@ -1544,6 +1286,64 @@ begin
     Form.ActiveControl := Self;
 end;
 
+procedure TKCustomNumberEdit.SetAcceptedFormats(AValue: TKNumberEditAcceptedFormats);
+begin
+  if AValue <> FAcceptedFormats then
+  begin
+    TextToValue;
+    FAcceptedFormats := AValue;
+    UpdateFormats;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetCaption(const AValue: TCaption);
+begin
+  FLabel.SetTextBuf(PChar(AValue));
+end;
+
+procedure TKCustomNumberEdit.SetCustomSuffix(const AValue: string);
+begin
+  if AValue <> FCustomSuffix then
+  begin
+    TextToValue;
+    FCustomSuffix := AValue;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetDecimalSeparator(Value: Char);
+begin
+  if Value <> FDecimalSeparator then
+  begin
+    FDecimalSeparator := Value;
+    SetValue(GetValue);
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetDisplayedFormat(AValue: TKNumberEditDisplayedFormat);
+begin
+  if FDisplayedFormat <> AValue then
+  begin
+    TextToValue;
+    FDisplayedFormat := AValue;
+    UpdateFormats;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetFixedWidth(AValue: Integer);
+begin
+  if FFixedWidth <> AValue then
+  begin
+    TextToValue;
+    FFixedWidth := AValue;
+    ValueToText;
+  end;
+end;
+
 {$IFDEF FPC}
 procedure TKCustomNumberEdit.SetFlat(Value: Boolean);
 begin
@@ -1554,6 +1354,159 @@ begin
   end;
 end;
 {$ENDIF}
+
+function TKCustomNumberEdit.SetFormat(AValue: TKNumberValue): string;
+var
+  Prefix, Suffix: string;
+  A: ShortString;
+  W: Byte;
+  J: Integer;
+  F, G: Extended;
+  Fmt: TKNumberEditDisplayedFormat;
+begin
+  Result := '';
+  if FDisplayedFormat = nedfAsInput then
+  begin
+    if Frac(AValue.FVal) <> 0 then
+      Fmt := nedfFloat
+    else
+      Fmt := FLastInputFormat;
+  end else
+    Fmt := FDisplayedFormat;
+  GetPrefixSuffix(Fmt, Prefix, Suffix);
+  case Fmt of
+    nedfAscii:
+    begin
+      if FFixedWidth > 0 then W := FFixedWidth else W := 4;
+      Result := IntToAscii(AValue.IVal, W);
+    end;
+    nedfBin:
+    begin
+      if FFixedWidth > 0 then W := FFixedWidth else W := 16;
+      Result := IntToBinStr(AValue.IVal, W, Suffix);
+    end;
+    nedfDec:
+    begin
+      if Signed then
+        Result := IntToDecStr(AValue.IVal, FFixedWidth)
+      else
+        Result := UIntToDecStr(AValue.IVal, FFixedWidth)
+    end;
+    nedfFloat:
+      begin
+        if FPrecision < 0 then
+        begin
+          Result := FloatToStrF(AValue.FVal, ffGeneral, 15, 15);
+        end
+        else if FPrecision > 0 then
+        begin
+          Str(AValue.FVal:FFixedWidth:FPrecision, A);
+          Result := string(A);
+        end else
+        begin
+          // determine number of valid decimal digits
+          W := 0;
+          F := AValue.FVal;
+          G := Frac(F);
+          while not (IsZero(G, 1E-10) or IsZero(1 - G, 1E-10)) do
+          begin
+            F := F * 10;
+            G := Frac(F);
+            Inc(W);
+          end;
+          Str(AValue.FVal:FFixedWidth:W, A);
+          Result := string(A);
+        end;
+        J := Pos('.', Result);
+        if J = 0 then J := Pos(',', Result);
+        if J > 0 then Result[J] := FDecimalSeparator;
+      end;
+    nedfHex:
+    begin
+      if FFixedWidth > 0 then W := FFixedWidth else W := 8;
+      Result := IntToHexStr(AValue.IVal, W, Prefix, Suffix, neoLowerCase in FOptions);
+    end;
+    nedfOct:
+    begin
+      Result := IntToOctStr(AValue.IVal);
+    end;
+  end;
+  if (Result <> '') and (FCustomSuffix <> '') then
+    Result := Result + ' ' + FCustomSuffix;
+end;
+
+procedure TKCustomNumberEdit.SetHexPrefix(AValue: TKNumberEditHexPrefix);
+begin
+  if FHexPrefix <> AValue then
+  begin
+    TextToValue;
+    FHexPrefix := AValue;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetLabelPosition(Value: TKLabelPosition);
+begin
+  if Value <> FLabelPosition then
+  begin
+    FLabelPosition := Value;
+    UpdateLabel;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetLabelSpacing(Value: Cardinal);
+begin
+  if Value < 1 then Value := 1;
+  if Value <> FLabelSpacing then
+  begin
+    FLabelSpacing := Value;
+    UpdateLabel;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetMax(AMax: Extended);
+begin
+  if AMax <> FMax.FVal then
+  begin
+    TextToValue;
+    FMax.FVal := AMax;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetMaxAsInt(AMax: Int64);
+begin
+  if AMax <> FMax.IVal then
+  begin
+    TextToValue;
+    FMax.IVal := AMax;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetMin(AMin: Extended);
+begin
+  if AMin <> FMin.FVal then
+  begin
+    TextToValue;
+    FMin.FVal := AMin;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetMinAsInt(AMin: Int64);
+begin
+  if AMin <> FMin.IVal then
+  begin
+    TextToValue;
+    FMin.IVal := AMin;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
 
 procedure TKCustomNumberEdit.SetName(const Value: TComponentName);
 var
@@ -1568,6 +1521,228 @@ begin
     if (FLabel <> nil) and (csSetCaption in ControlStyle) then
       FLabel.SetTextBuf(PChar(Name));
   end;
+end;
+
+procedure TKCustomNumberEdit.SetOptions(AValue: TKNumberEditOptions);
+begin
+  if FOptions <> AValue then
+  begin
+    TextToValue;
+    FOptions := AValue;
+    UpdateLabel;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetParent(AParent: TWinControl);
+begin
+  inherited;
+  UpdateUpDown(FValue);
+  UpdateLabel;
+end;
+
+procedure TKCustomNumberEdit.SetPrecision(AValue: Integer);
+begin
+  if FPrecision <> AValue then
+  begin
+    TextToValue;
+    FPrecision := AValue;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetUpDownStep(AValue: Extended);
+begin
+  if FUpDownStep <> AValue then
+  begin
+    TextToValue;
+    FUpDownStep := AValue;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetValue(AValue: Extended);
+var
+  Warn: Boolean;
+begin
+  Font.Color := clWindowText;
+  FValue.FVal := AValue;
+  if neoClampToMinMax in FOptions then
+    Warn := FValue.Clamp(FMin, FMax, Signed)
+  else
+    Warn := False;
+  ValueToText;
+  UpdateUpDown(FValue);
+  if Warn then
+    DoWarning(FValue);
+end;
+
+procedure TKCustomNumberEdit.SetValueAsInt(AValue: Int64);
+var
+  Warn: Boolean;
+begin
+  Font.Color := clWindowText;
+  FValue.IVal := AValue;
+  if neoClampToMinMax in FOptions then
+    Warn := FValue.Clamp(FMin, FMax, Signed)
+  else
+    Warn := False;
+  ValueToText;
+  UpdateUpDown(FValue);
+  if Warn then
+    DoWarning(FValue);
+end;
+
+procedure TKCustomNumberEdit.SetValueAsText(const AValue: string);
+var
+  Fmt: TKNumberEditDisplayedFormat;
+  Warn: Boolean;
+begin
+  Font.Color := clWindowText;
+  Fmt := nedfAsInput;
+  GetFormat(AValue, Fmt, FValue);
+  if neoClampToMinMax in FOptions then
+    Warn := FValue.Clamp(FMin, FMax, Signed)
+  else
+    Warn := False;
+  ValueToText;
+  UpdateUpDown(FValue);
+  if Warn then
+    DoWarning(FValue);
+end;
+
+procedure TKCustomNumberEdit.TextToValue;
+begin
+  GetFormat(Text, FLastInputFormat, FValue);
+  if neoClampToMinMax in FOptions then
+    if FValue.Clamp(FMin, FMax, Signed) then
+      DoWarning(FValue);
+end;
+
+procedure TKCustomNumberEdit.UpdateFormats;
+var
+  Fmt: TKNumberEditDisplayedFormat;
+  Fmts: set of TKNumberEditDisplayedFormat;
+begin
+  if FAcceptedFormats = [] then
+    FAcceptedFormats := [neafDec];
+  Fmts := [];
+  Fmt := nedfAsInput;
+  if (neafAscii in FAcceptedFormats) then begin Include(Fmts, nedfAscii); Fmt := nedfAscii end;
+  if (neafBin in FAcceptedFormats) then begin Include(Fmts, nedfBin); Fmt := nedfBin end;
+  if (neafOct in FAcceptedFormats) then begin Include(Fmts, nedfOct); Fmt := nedfOct end;
+  if (neafFloat in FAcceptedFormats) then begin Include(Fmts, nedfFloat); Fmt := nedfFloat end;
+  if (neafHex in FAcceptedFormats) then begin Include(Fmts, nedfHex); Fmt := nedfHex end;
+  if (neafDec in FAcceptedFormats) then begin Include(Fmts, nedfDec); Fmt := nedfDec end;
+  if not (FDisplayedFormat in Fmts) then
+  begin
+    FDisplayedFormat := nedfAsInput;
+    FLastInputFormat := Fmt;
+  end;
+end;
+
+procedure TKCustomNumberEdit.UpdateLabel;
+var
+  P: TPoint;
+begin
+ if FLabel <> nil then
+  if neoUseLabel in FOptions then
+  begin
+    case FLabelPosition of
+      lpAbove: P := Point(Left, Top - FLabel.Height - Integer(FLabelSpacing));
+      lpBelow: P := Point(Left, Top + Height + Integer(FLabelSpacing));
+      lpLeft: P := Point(Left - Math.Max(Integer(FLabelSpacing), FLabel.Width + 3), Top + (Height - FLabel.Height) div 2);
+      lpRight: P := Point(Left + Width + Integer(FLabelSpacing), Top + (Height - FLabel.Height) div 2);
+    end;
+    FLabel.Left := P.X;
+    FLabel.Top := P.Y;
+    FLabel.Parent := Parent
+  end else
+    FLabel.Parent := nil;
+end;
+
+procedure TKCustomNumberEdit.UpdateMaxMin;
+begin
+  try
+    if (neafHex in FAcceptedFormats) or (FDisplayedFormat = nedfHex) then
+    begin
+      if Signed then
+      begin
+        FMin.IVal := KFunctions.MinMax(FMin.IVal, Low(Integer), High(Integer));
+        FMax.IVal := KFunctions.MinMax(FMax.IVal, Low(Integer), High(Integer));
+        if FMax.LowerThan(FMin, True) then
+          FMax.Assign(FMin);
+      end else
+      begin
+        FMin.IVal := KFunctions.MinMax(FMin.IVal, 0, High(LongWord));
+        FMax.IVal := KFunctions.MinMax(FMax.IVal, 0, High(LongWord));
+        if FMax.LowerThan(FMin, False) then
+          FMax.Assign(FMin);
+      end;
+    end else
+    begin
+      if FMax.LowerThan(FMin, Signed) then
+        FMax.Assign(FMin);
+    end;
+  except
+    FMin.IVal := 0;
+    FMax.IVal := 1000;
+  end;
+end;
+
+procedure TKCustomNumberEdit.UpdateUpDown(AValue: TKNumberValue);
+var
+  Fmt: TKNumberEditDisplayedFormat;
+  AbsMax, D, PP: Extended;
+begin
+  if FUpdateUpdown and (FUpDown <> nil) then
+    if neoUseUpDown in FOptions then
+    begin
+      AbsMax := Math.Max(Abs(FMax.FVal), Abs(FMin.FVal));
+      if FDisplayedFormat = nedfAsInput then
+        Fmt := FLastInputFormat
+      else
+        Fmt := FDisplayedFormat;
+      D := 1;
+      case Fmt of
+        nedfDec: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 10, 1));
+        nedfHex: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 16, 1));
+        nedfOct: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 8, 1));
+        nedfBin: D := MinMax(FUpDownStep, 1, Math.Max(AbsMax / 2, 1));
+        nedfFloat:
+        begin
+          PP := IntPower(10, FPrecision);
+          D := MinMax(FUpDownStep * PP, 1, Math.Max(AbsMax * PP / 10, 1)) / PP;
+        end;
+      end;
+      // UpDown min, max and position are ShortInt! (ough)
+      // - must increase the order accordingly if absolute maximum number has more digits
+      while AbsMax / D > 30000 do
+        case Fmt of
+          nedfDec, nedfFloat: D := D * 10;
+          nedfHex: D := D * 16;
+          nedfOct: D := D * 8;
+          nedfBin: D := D * 2;
+        end;
+      FUpdownChanging := True;
+      try
+        FUpDown.Min := Trunc(FMin.FVal / D);
+        FUpDown.Max := Trunc(FMax.FVal / D);
+        FUpDown.Position := Trunc(AValue.FVal / D);
+        FUpDown.Parent := Parent;
+        FRealUpDownStep := D;
+      finally
+        FUpdownChanging := False;
+      end;
+    end else
+      FUpDown.Parent := nil;
+end;
+
+procedure TKCustomNumberEdit.UpdateUpDownPos;
+begin
+  if FUpDown <> nil then
+    FUpDown.SetBounds(Left + Width, Top, FUpDown.Width, Height);
 end;
 
 procedure TKCustomNumberEdit.UpDownChange;
@@ -1586,7 +1761,7 @@ begin
     SafeSetFocus;
     Font.Color := clWindowText;
     FUpdateUpDown := False;
-    V := MinMax(NewValue * FRealUpDownStep, FMin, FMax);
+    V := MinMax(NewValue * FRealUpDownStep, FMin.FVal, FMax.FVal);
     if V <> Value then
     begin
       if (DisplayedFormat = nedfAsInput) and (neafDec in AcceptedFormats) and (Frac(V) = 0) then
@@ -1602,17 +1777,16 @@ end;
 procedure TKCustomNumberEdit.Validate;
 var
   Fmt: TKNumberEditDisplayedFormat;
-  AValue: Extended;
 begin
   if Empty and (neoKeepEmpty in FOptions) then
     Exit;
   Fmt := nedfAsInput;
-  AValue := GetFormat(Text, Fmt);
+  GetFormat(Text, Fmt, FValue);
   if (Fmt = nedfAsInput) and (neoClampToMinMax in FOptions) then
-    AValue := MinMax(AValue, FMin, FMax)
+    FValue.Clamp(FMin, FMax, Signed)
   else
     FLastInputFormat := Fmt;
-  SetValue(AValue);
+  Text := SetFormat(FValue);
   if (Fmt = nedfAsInput) and (ComponentState * [csLoading, csDesigning] = []) and HasParent then
   begin
     if neoWarning in FOptions then Font.Color := FWarningColor;
@@ -1620,10 +1794,16 @@ begin
   end;
 end;
 
+procedure TKCustomNumberEdit.ValueToText;
+begin
+  Text := SetFormat(FValue);
+end;
+
 procedure TKCustomNumberEdit.KMNEUpdateUpDown(var Msg: TLMessage);
 begin
-  UpdateUpDown(GetValue);
-end;    
+  TextToValue;
+  UpdateUpDown(FValue);
+end;
 
 procedure TKCustomNumberEdit.CMBiDiModeChanged(var Msg: TLMessage);
 begin
@@ -1643,15 +1823,6 @@ begin
   inherited;
   if FLabel <> nil then FLabel.Visible := Visible;
   if FUpDown <> nil then FUpDown.Visible := Visible;
-end;
-
-procedure TKCustomNumberEdit.SetDecimalSeparator(Value: Char);
-begin
-  if Value <> FDecimalSeparator then
-  begin
-    FDecimalSeparator := Value;
-    SetValue(GetValue);
-  end;
 end;
 
 procedure TKCustomNumberEdit.WMKillFocus(var Msg: TLMKillFocus);
