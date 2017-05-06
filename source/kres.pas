@@ -154,10 +154,8 @@ procedure LocalizeToCzech;
 
 implementation
 
+{$IFnDEF FPC}
 uses
-{$IFDEF FPC}
-  LResources;
-{$ELSE}
   Windows, KFunctions;
 {$ENDIF}
 
