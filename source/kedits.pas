@@ -807,18 +807,30 @@ begin
 end;
 
 function TKNumberValue.GetIVal: Int64;
+const
+  cMaxInt64F =  9.223372036854775807E+18;
+  cMinInt64F = -9.223372036854775808E+18;
+  cMaxInt64 =  9223372036854775807;
+  cMinInt64 = -9223372036854775808;
 begin
   if FHasInt then
     Result := FIVal
   else
   begin
     try
-      if FFVal > High(Int64) then
-        Result := High(Int64)
-      else if FFVal < Low(Int64) then
-        Result := Low(Int64)
-      else
+      try
         Result := Round(FFVal)
+      except
+        // try to clamp the value to Int64 limits
+        // this requires the Extended type with sufficient precision, at least 10 bytes
+        // might be not accurate when Extended is mapped to Double etc.
+        if FFVal > cMaxInt64F then
+          Result := cMaxInt64
+        else if FFVal < cMinInt64F then
+          Result := cMinInt64
+        else
+          Result := 0;
+      end;
     except
       Result := 0;
     end;
@@ -826,18 +838,30 @@ begin
 end;
 
 function TKNumberValue.GetUIVal: UInt64;
+const
+  cMaxUInt64F = 1.8446744073709551615E+19;
+  cMinUInt64F =                     0E+01;
+  cMaxUInt64 = 18446744073709551615;
+  cMinUInt64 =                    0;
 begin
   if FHasInt then
     Result := UInt64(FIVal)
   else
   begin
     try
-      if FFVal > High(UInt64) then
-        Result := High(UInt64)
-      else if FFVal < Low(UInt64) then
-        Result := Low(UInt64)
-      else
+      try
         Result := Round(FFVal)
+      except
+        // try to clamp the value to UInt64 limits
+        // this requires the Extended type with sufficient precision, at least 10 bytes
+        // might be not accurate when Extended is mapped to Double etc.
+        if FFVal > cMaxUInt64F then
+          Result := cMaxUInt64
+        else if FFVal < cMinUInt64F then
+          Result := cMinUInt64
+        else
+          Result := 0;
+      end;
     except
       Result := 0;
     end;
