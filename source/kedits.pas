@@ -100,11 +100,13 @@ type
     FIVal: Int64;
     FFVal: Extended;
     FHasInt: Boolean;
-    procedure SetIVal(const AValue: Int64);
-    procedure SetFVal(const AValue: Extended);
     function GetFVal: Extended;
     function GetIVal: Int64;
+    function GetUIVal: UInt64;
     procedure SetHasInt(const Value: Boolean);
+    procedure SetIVal(const AValue: Int64);
+    procedure SetFVal(const AValue: Extended);
+    procedure SetUIVal(const AValue: UInt64);
   public
     constructor CreateEmpty;
     constructor CreateI(const AValue: Int64);
@@ -118,6 +120,7 @@ type
     property IVal: Int64 read GetIVal write SetIVal;
     property FVal: Extended read GetFVal write SetFVal;
     property HasInt: Boolean read FHasInt write SetHasInt;
+    property UIVal: UInt64 read GetUIVal write SetUIVal;
   end;
 
   { TKCustomNumberEdit }
@@ -810,7 +813,31 @@ begin
   else
   begin
     try
-      Result := Round(FFVal)
+      if FFVal > High(Int64) then
+        Result := High(Int64)
+      else if FFVal < Low(Int64) then
+        Result := Low(Int64)
+      else
+        Result := Round(FFVal)
+    except
+      Result := 0;
+    end;
+  end;
+end;
+
+function TKNumberValue.GetUIVal: UInt64;
+begin
+  if FHasInt then
+    Result := UInt64(FIVal)
+  else
+  begin
+    try
+      if FFVal > High(UInt64) then
+        Result := High(UInt64)
+      else if FFVal < Low(UInt64) then
+        Result := Low(UInt64)
+      else
+        Result := Round(FFVal)
     except
       Result := 0;
     end;
@@ -824,7 +851,7 @@ begin
     if ASigned then
       Result := IVal > AValue.IVal
     else
-      Result := UInt64(IVal) > UInt64(AValue.IVal)
+      Result := UIVal > AValue.UIVal
   end else
     Result := FVal > AValue.FVal;
 end;
@@ -836,7 +863,7 @@ begin
     if ASigned then
       Result := IVal < AValue.IVal
     else
-      Result := UInt64(IVal) < UInt64(AValue.IVal)
+      Result := UIVal < AValue.UIVal
   end else
     Result := FVal < AValue.FVal;
 end;
@@ -861,6 +888,12 @@ end;
 procedure TKNumberValue.SetIVal(const AValue: Int64);
 begin
   FIVal := AValue;
+  FHasInt := True;
+end;
+
+procedure TKNumberValue.SetUIVal(const AValue: UInt64);
+begin
+  FIVal := Int64(AValue);
   FHasInt := True;
 end;
 
