@@ -611,7 +611,7 @@ begin
     if (Param.ParamType.BaseType = btUnicodeString) and (ParamDirection(AMethod, Param, AGetter) <> pdIn) then
     begin
       ParamName := ReplaceNotAllowedParamName(Param.Name);
-      Writeln(F, Indent, 'if (', ParamName, ' != System.IntPtr.Zero)');
+      Writeln(F, Indent, 'if (', ParamName, ' == System.IntPtr.Zero)');
       WriteCurlyBegin;
       Exit;
     end;
@@ -641,7 +641,7 @@ begin
     begin
       ParamName := ReplaceNotAllowedParamName(Param.Name);
       if Param.ParamType.BaseType = btUnicodeString then
-        Writeln(F, Indent, ParamName, ' = LibInvoke.NativeUtf8FromString(String__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ');')
+        Writeln(F, Indent, 'LibInvoke.NativeUtf8FromStringByRef(', ParamName, ', String__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ');')
       else
         Writeln(F, Indent, ParamName, ' = Tmp__', AClass.Name, AIntf.Name, AMethod.Name, ParamName, ';');
     end;
@@ -1319,11 +1319,18 @@ begin
       Writeln(F, Indent, 'public static System.IntPtr NativeUtf8FromString(string managedString)');
       WriteCurlyBegin;
       Writeln(F, Indent, 'int len = System.Text.Encoding.UTF8.GetByteCount(managedString);');
+      Writeln(F, Indent, 'System.IntPtr nativeUtf8 = System.Runtime.InteropServices.Marshal.AllocHGlobal(len + 1);');
+      Writeln(F, Indent, 'NativeUtf8FromStringByRef(nativeUtf8, managedString);');
+      Writeln(F, Indent, 'return nativeUtf8;');
+      WriteCurlyEnd;
+      WriteSpace;
+
+      Writeln(F, Indent, 'public static void NativeUtf8FromStringByRef(System.IntPtr nativeUtf8, string managedString)');
+      WriteCurlyBegin;
+      Writeln(F, Indent, 'int len = System.Text.Encoding.UTF8.GetByteCount(managedString);');
       Writeln(F, Indent, 'byte[] buffer = new byte[len + 1];');
       Writeln(F, Indent, 'System.Text.Encoding.UTF8.GetBytes(managedString, 0, managedString.Length, buffer, 0);');
-      Writeln(F, Indent, 'System.IntPtr nativeUtf8 = System.Runtime.InteropServices.Marshal.AllocHGlobal(buffer.Length);');
       Writeln(F, Indent, 'System.Runtime.InteropServices.Marshal.Copy(buffer, 0, nativeUtf8, buffer.Length);');
-      Writeln(F, Indent, 'return nativeUtf8;');
       WriteCurlyEnd;
       WriteSpace;
 
