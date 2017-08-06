@@ -850,18 +850,14 @@ end;
 
 procedure TForm1.KGrid1EditorResize(Sender: TObject; AEditor: TWinControl;
   ACol, ARow: Integer; var ARect: TRect);
-{$IFNDEF LCLGTK2}
 var
   InitialCol: Integer;
-{$ENDIF}
 begin
-{$IFNDEF LCLGTK2}
   InitialCol := KGrid1.InitialCol(ACol); // map column indexes
   // you can change the position and size of your editor within the cell here
   case InitialCol of
-    4: Inc(ARect.Left, 2);
+    4: Inc(ARect.Left, KGrid1.CellPainter.CheckBoxHPadding);
   end;
-{$ENDIF}
 end;
 
 procedure TForm1.KGrid1EditorSelect(Sender: TObject; AEditor: TWinControl; ACol,

@@ -1186,6 +1186,7 @@ end;
 procedure TKCustomDBGrid.DataChanged(AUpdateAll: Boolean);
 var
   I, Index, J, Tmp, FirstRow, LastRow, FieldIndex: Integer;
+  CheckboxSize: TSize;
   ADataType: TFieldType;
   Cell: TKGridCell;
 begin
@@ -1197,6 +1198,7 @@ begin
       begin
         // on each dataset manipulation turn editing off
         EditorMode := False;
+        CheckboxSize := GetCheckBoxSize;
         // here memory only grows. I don't know if it is possible to make this more memory effective
         if not FDataLink.EOF and (LastVisibleRow + FDataBufferGrow > FDataLink.BufferCount) then
           FDataLink.BufferCount := FDataLink.BufferCount + FDataBufferGrow;
@@ -1239,7 +1241,7 @@ begin
               TKDBGridCol(Cols[I]).FDataType := ADataType;
               if (dboAutoSizeBooleanCells in FDBOptions) and (ADataType = ftBoolean) then
               begin
-                ColWidths[I] := cCheckBoxFrameSize + CellPainter.HPadding * 2;
+                ColWidths[I] := CheckboxSize.cx + CellPainter.HPadding * 2;
                 Cols[I].CanResize := False;
               end;
               Cell := InternalGetCell(I, InternalGetTitleRow);

@@ -4468,7 +4468,7 @@ begin
   begin
     FScrollBars := Value;
   {$IFDEF FPC}
-    UpdateSize;
+    CallUpdateSize;
   {$ELSE}
     RecreateWnd;
   {$ENDIF}

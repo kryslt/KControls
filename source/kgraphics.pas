@@ -755,6 +755,12 @@ function GetFontAscent(DC: HDC): Integer;
 { Determine the descent of the font currently selected into given DC. }
 function GetFontDescent(DC: HDC): Integer;
 
+{ Determine average character size for given DC. }
+function GetAveCharSize(DC: HDC): TSize;
+
+{ Determine checkbox frame size. }
+function GetCheckBoxSize: TSize;
+
 { Try to determine image DPI. }
 function GetImageDPI(AGraphic: Tgraphic): TPoint;
 
@@ -1414,6 +1420,66 @@ begin
   FillChar(TM, SizeOf(TTextMetric), 0);
   GetTextMetrics(DC, TM);
   Result := TM.tmDescent;
+end;
+
+function GetAveCharSize(DC: HDC): TSize;
+var
+  TM: TTextMetric;
+const
+  Buffer = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+begin
+  FillChar(TM, SizeOf(TTextMetric), 0);
+  GetTextMetrics(DC, TM);
+  GetTextExtentPoint32(DC, Buffer, 52, Result);
+  Result.cx := (Result.cx div 26 + 1) div 2; //div uses trunc rounding; we want arithmetic rounding
+  Result.cy := tm.tmHeight;
+end;
+
+function GetCheckBoxSize: TSize;
+{$IFDEF MSWINDOWS}
+var
+  Bm: HBITMAP;
+  BmSize: BITMAP;
+{$ENDIF}
+{$IFDEF FPC}
+{$ELSE}
+var
+  Theme: HTHEME;
+{$ENDIF}
+begin
+  Result.cx := 0;
+  Result.cy := 0;
+{$IFDEF USE_THEMES}
+  if ThemeServices.ThemesEnabled and ThemeServices.ThemesAvailable then
+  begin
+  {$IFDEF FPC}
+     Result := ThemeServices.GetDetailSize(ThemeServices.GetElementDetails(tbCheckBoxCheckedNormal));
+     Exit;
+  {$ELSE}
+     Theme := ThemeServices.Theme[teButton];
+     if GetThemePartSize(Theme, 0, BP_CHECKBOX, CBS_CHECKEDNORMAL, nil, TS_TRUE, Result) = S_OK then
+       Exit;
+  {$ENDIF}
+  end;
+{$ENDIF}
+
+{$IFDEF MSWINDOWS}
+  Bm := LoadBitmap(0, PChar(OBM_CHECKBOXES));
+  if Bm <> 0 then
+    try
+      if GetObject(Bm, SizeOf(BmSize), @BmSize) = SizeOf(BmSize) then
+        begin
+          Result.cx := BmSize.bmWidth div 4;
+          Result.cy := BmSize.bmHeight div 3;
+        end;
+    finally
+      DeleteObject(Bm);
+    end;
+{$ELSE}
+  // just guessed here
+  Result.cx := 13;
+  Result.cy := 13;
+{$ENDIF}
 end;
 
 function GetImageDPI(AGraphic: Tgraphic): TPoint;

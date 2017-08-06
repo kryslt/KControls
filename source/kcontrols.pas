@@ -175,9 +175,6 @@ const
   { Constant for captured dragging cursor. }
   crDragHandGrip = TCursor(104);
 
-  { Checkbox frame size in logical screen units. }
-  cCheckBoxFrameSize = 13;
-
   { Default value for the @link(TKCustomControl.BorderStyle) property. }
   cBorderStyleDef = bsSingle;
 
@@ -418,6 +415,9 @@ type
   end;
 
   { Base class for all visible controls in KControls. }
+
+  { TKCustomControl }
+
   TKCustomControl = class(TCustomControl)
   private
   {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
@@ -470,6 +470,8 @@ type
     FFlags: Cardinal;
     { Defines the message queue for late update. }
     FMessages: array of TLMessage;
+    { Previous size of control client area. }
+    FOldClientSize: TPoint;
     { Gains access to the list of associated previews. }
     FPreviewList: TList;
     FResizeCalled: Boolean;
@@ -478,6 +480,8 @@ type
     { Gives the descendant the possibility to adjust the associated TKPrintPageSetup
       instance just before printing. }
     procedure AdjustPageSetup; virtual;
+    { Calls @link(TKCustomControl.UpdateSize) only when the control client area has been really modified. }
+    procedure CallUpdateSize; virtual;
     { Cancels any dragging or resizing operations performed by mouse. }
     procedure CancelMode; virtual;
     { Overriden method. Calls @link(TKCustomControl.UpdateSize). }
@@ -1798,6 +1802,8 @@ begin
 {$IFNDEF COMPILER10_UP}
   FMouseInClient := False;
 {$ENDIF}
+  FOldClientSize.X := 0;
+  FOldClientSize.Y := 0;
   FPageSetup := nil;
 {$IF DEFINED(FPC) OR NOT DEFINED(COMPILER10_UP)}
   FParentBackground := True;
@@ -1825,6 +1831,23 @@ end;
 
 procedure TKCustomControl.AdjustPageSetup;
 begin
+end;
+
+procedure TKCustomControl.CallUpdateSize;
+var
+  W, H: Integer;
+begin
+  if HandleAllocated then
+  begin
+    W := ClientWidth;
+    H := ClientHeight;
+    if (FOldClientSize.X <> W) or (FOldClientSize.Y <> H) then
+    begin
+      UpdateSize;
+      FOldClientSize.X := W;
+      FOldClientSize.Y := H;
+    end;
+  end;
 end;
 
 procedure TKCustomControl.CancelMode;
@@ -1857,7 +1880,7 @@ end;
 procedure TKCustomControl.CreateHandle;
 begin
   inherited;
-  UpdateSize;
+  CallUpdateSize;
 end;
 
 procedure TKCustomControl.CreateParams(var Params: TCreateParams);
@@ -1886,7 +1909,7 @@ begin
   if csDesigning in ComponentState then
     PostLateUpdate(FillMessage(LM_SIZE, 0, 0), True)
   else
-    UpdateSize;
+    CallUpdateSize;
 end;
 {$ENDIF}
 
@@ -1983,7 +2006,7 @@ end;
 procedure TKCustomControl.LateUpdate(var Msg: TLMessage);
 begin
   case Msg.Msg of
-    LM_SIZE: UpdateSize;
+    LM_SIZE: CallUpdateSize;
   end;
 end;
 

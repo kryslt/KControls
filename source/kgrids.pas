@@ -1758,6 +1758,9 @@ type
     To adapt cell painting, you can use combinations of elementary painting
     methods in the @link(TKCustomGrid.OnDrawCell) event handler or
     override and adapt some high level methods of TKGridCellPainter. }
+
+  { TKGridCellPainter }
+
   TKGridCellPainter = class(TObject)
   private
     FAttributes: TKTextAttributes;
@@ -1935,28 +1938,28 @@ type
       you must paint to TKGridCellPainter.Canvas. }
     property Canvas: TCanvas read FCanvas write FCanvas;
     { Determines if a standard check box frame should be painted for a selectable
-      cell. To paint a check box frame, you need to implement the @link(OnDrawCell)
+      cell. To paint a checkbox frame, you need to implement the @link(OnDrawCell)
       event handler, set CheckBox to True and call @link(TKGridCellPainter.DefaultDraw),
-      which ensures correct painting of a check box frame. }
+      which ensures correct painting of a checkbox frame. }
     property CheckBox: Boolean read FCheckBox write SetCheckBox;
-    { Specifies if the check box frame should be painted in checked or unchecked
+    { Specifies if the checkbox frame should be painted in checked or unchecked
       state. This property is for backward compatibility and has no effect unless
       @link(TKGridCellPainter.CheckBox) is True. For new designs use the CheckBoxState property. }
     property CheckBoxChecked: Boolean read GetCheckBoxChecked write SetCheckBoxChecked;
-    { Specifies if the check box frame should be painted in enabled or disabled
+    { Specifies if the checkbox frame should be painted in enabled or disabled
       state. }
     property CheckBoxEnabled: Boolean read FCheckBoxEnabled write FCheckBoxEnabled;
-    { Specifies the horizontal padding for the sorting arrow. }
+    { Specifies the horizontal padding for the checkbox frame. }
     property CheckBoxHAlign: TKHAlign read FCheckBoxHAlign write FCheckBoxHAlign;
-    { Specifies the horizontal padding for the sorting arrow. }
+    { Specifies the horizontal padding for the checkbox frame. }
     property CheckBoxHPadding: Integer read FCheckBoxHPadding write FCheckBoxHPadding;
-    { Specifies if the check box frame should be painted in checked, grayed
+    { Specifies if the checkbox frame should be painted in checked, grayed
       or unchecked state. This property has no effect unless
       @link(TKGridCellPainter.CheckBox) is True. Added by Karol Schmidt }
     property CheckboxState: TCheckBoxState read FCheckboxState write FCheckboxState;
-    { Specifies the vertical padding for the sorting arrow. }
+    { Specifies the vertical padding for the checkbox frame. }
     property CheckBoxVAlign: TKVAlign read FCheckBoxVAlign write FCheckBoxVAlign;
-    { Specifies the vertical padding for the sorting arrow. }
+    { Specifies the vertical padding for the checkbox frame. }
     property CheckBoxVPadding: Integer read FCheckBoxVPadding write FCheckBoxVPadding;
     { Specifies the left and top position/origin of the cell in TKCustomGrid's client
       coordinates. }
@@ -5494,7 +5497,7 @@ begin
   inherited;
 end;
 
-function TKGridCellPainter.BeginClip;
+function TKGridCellPainter.BeginClip: Boolean;
 var
   R: TRect;
 begin
@@ -5515,10 +5518,13 @@ begin
 end;
 
 function TKGridCellPainter.CellCheckBoxRect(var BaseRect: TRect; out Bounds, Interior: TRect; StretchMode: TKStretchMode): Boolean;
+var
+  Size: TSize;
 begin
   if FCheckBox and not IsRectEmpty(BaseRect) then
   begin
-    ExcludeShapeFromBaseRect(BaseRect, cCheckBoxFrameSize{$IFDEF LCLQT} + 1{$ENDIF}, cCheckBoxFrameSize, FCheckBoxHAlign,
+    Size := GetCheckBoxSize;
+    ExcludeShapeFromBaseRect(BaseRect, Size.cx, Size.cy, FCheckBoxHAlign,
       FCheckBoxVAlign, FCheckBoxHPadding, FCheckBoxVPadding, StretchMode, Bounds, Interior);
     Result := True;
   end else
@@ -12596,7 +12602,7 @@ begin
       UpdateAxes(UpdateCols, cAll, UpdateRows, cAll, []);
     if UpdateScrollBars or UpdateThemes then
     {$IFDEF FPC}
-      UpdateSize;
+      CallUpdateSize;
     {$ELSE}
       RecreateWnd;
     {$ENDIF}
@@ -12682,7 +12688,7 @@ begin
   begin
     FScrollBars := Value;
   {$IFDEF FPC}
-    UpdateSize;
+    CallUpdateSize;
   {$ELSE}
     RecreateWnd;
   {$ENDIF}
