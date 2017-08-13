@@ -74,7 +74,6 @@ help/kcontrols/KControls.chm
 help/kgrid/manual/kgrid_manual.rtf
 help/kmemo/manual/kmemo_manual.rtf
 
-resource_src/clouds.jpg
 resource_src/kmessagebox_info.png
 resource_src/kmessagebox_question.png
 resource_src/kmessagebox_stop.png
@@ -151,7 +150,7 @@ demos/kmemo/*.manifest
 demos/kmemo/kmemodemo.res
 demos/kmemo/kmemodemolaz.res
 demos/kmemo/xpman.res
-demos/kmemo/kmemo_manual.rtf
+demos/kmemo/clouds.jpg
 demos/kmemo/penguins.jpg
 
 demos/kmemoeditor/kmemoeditor.dpr
@@ -167,4 +166,3 @@ demos/kmemoeditor/*.manifest
 demos/kmemoeditor/kmemoeditor.res
 demos/kmemoeditor/kmemoeditorlaz.res
 demos/kmemoeditor/xpman.res
-demos/kmemoeditor/kmemo_manual.rtf

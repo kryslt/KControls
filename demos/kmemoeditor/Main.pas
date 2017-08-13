@@ -41,7 +41,7 @@ begin
   FFrame := TKMemoFrame.Create(Self);
   FFrame.Align := alClient;
   FFrame.Parent := Self;
-  FFrame.OpenFile('../../kmemo_manual.rtf');
+  FFrame.OpenFile('../../../../help/kmemo/manual/kmemo_manual.rtf');
   Menu := FFrame.MainMenu;
 end;
 

@@ -126,6 +126,7 @@ begin
   m.Data := pointer(Self); //store pointer to object instance
   if m.Code <> nil then
     TProc(m);
+  Result := '';
 end;
 
 procedure TMainForm.FormResize(Sender: TObject);
@@ -150,18 +151,18 @@ end;
 
 procedure TMainForm.LoadFiles;
 begin
+  KMemo1.LoadFromRTF('../../../../help/kmemo/manual/kmemo_manual.rtf');
 //  KMemo1.LoadFromRTF('../../test.rtf');
 //  KMemo1.LoadFromRTF('../../test1.rtf');
 //  KMemo1.LoadFromRTF('../../test_no_img.rtf');
 //  KMemo1.LoadFromRTF('../../test_simple.rtf');
-  KMemo1.LoadFromRTF('../../kmemo_manual.rtf');
 //  KMemo1.LoadFromRTF('../../simpletable.rtf');
 //  KMemo1.LoadFromRTF('../../advancedtable.rtf');
 //  KMemo1.Select(10, 510);
-  KMemo1.SaveToRTF('test_save.rtf', False, True);
+  KMemo1.SaveToRTF('../../test_save.rtf', False, True);
 
-  KMemo2.LoadFromRTF('test_save.rtf');
-  KMemo2.SaveToRTF('test_save_copy.rtf', False, True);
+  KMemo2.LoadFromRTF('../../test_save.rtf');
+  KMemo2.SaveToRTF('../../test_save_copy.rtf', False, True);
 end;
 
 procedure TMainForm.KMemo1DropFiles(Sender: TObject; X, Y: Integer;  Files: TStrings);
@@ -306,7 +307,7 @@ end;
 procedure TMainForm.Test9;
 begin
   // add image from file
-  KMemo1.Blocks.AddImageBlock('penguins.jpg');
+  KMemo1.Blocks.AddImageBlock('../../penguins.jpg');
 end;
 
 procedure TMainForm.Test10;
@@ -314,7 +315,7 @@ var
   IB: TKMemoImageBlock;
 begin
   // add image from file with relative position
-  IB := KMemo1.Blocks.AddImageBlock('penguins.jpg');
+  IB := KMemo1.Blocks.AddImageBlock('../../penguins.jpg');
   IB.Position := mbpRelative;
   IB.LeftOffset := 50;
 end;
@@ -334,7 +335,7 @@ begin
   CO.RequiredWidth := 300;
   CO.BlockStyle.Brush.Color := clLime;
   CO.Blocks.AddTextBlock('Text in a container!');
-  IB := CO.Blocks.AddImageBlock('penguins.jpg');
+  IB := CO.Blocks.AddImageBlock('../../penguins.jpg');
   IB.Resizable := False;
 end;
 
@@ -381,7 +382,7 @@ procedure TMainForm.Test13;
         TB := CO.Blocks.AddTextBlock('This is test text 2');
         TB.TextStyle.Brush.Color := clYellow;
         TB.TextStyle.Font.Style := [fsBold];
-        CO.Blocks.AddImageBlock('../../resource_src/kmessagebox_stop.png');
+        CO.Blocks.AddImageBlock('../../../../resource_src/kmessagebox_stop.png');
         CO.Blocks.AddParagraph;
         CO.Blocks.AddTextBlock('This is test text 3');
         CO.Blocks.AddParagraph;
@@ -443,7 +444,7 @@ procedure TMainForm.Test15;
 begin
   // use an image as background
   KMemo1.Colors.BkGnd := clYellow;
-  KMemo1.Background.Image.LoadFromFile('../../resource_src/clouds.jpg');
+  KMemo1.Background.Image.LoadFromFile('../../clouds.jpg');
 end;
 
 procedure TMainForm.Test16;
@@ -457,8 +458,8 @@ end;
 procedure TMainForm.Test17;
 begin
   // load and save RTF
-  KMemo1.LoadFromRTF('kmemo_manual.rtf');
-  KMemo1.SaveToRTF('kmemo_manual_copy.rtf');
+  KMemo1.LoadFromRTF('../../../../help/kmemo/manual/kmemo_manual.rtf');
+  KMemo1.SaveToRTF('../../kmemo_manual_copy.rtf');
 end;
 
 procedure TMainForm.Test18;
@@ -535,7 +536,7 @@ begin
   // add image from a TPicture
   Picture := TPicture.Create;
   try
-    Picture.LoadFromFile('penguins.jpg');
+    Picture.LoadFromFile('../../penguins.jpg');
     KMemo1.Blocks.AddImageBlock(Picture);
     KMemo1.Select(KMemo1.SelectableLength, 0);
   finally
@@ -559,7 +560,7 @@ begin
   Stream := TMemoryStream.Create;
   try
     Blocks.SaveToRTFStream(Stream);
-    //Stream.SaveToFile('testblocks.rtf');
+    Stream.SaveToFile('../../testblocks.rtf'); // to see the output
     Blocks := TBL.Cells[0, 1].Blocks;
     Stream.Seek(0, soFromBeginning);
     Blocks.Clear;
@@ -588,7 +589,7 @@ begin
     BM.Width := Preview.PageRect.Right - Preview.PageRect.Left;
     BM.Height := Preview.PageRect.Bottom - Preview.PageRect.Top;
     Preview.PaintTo(BM.Canvas);
-    BM.SaveToFile('test.bmp');
+    BM.SaveToFile('../../test.bmp');
   finally
     Preview.Free;
     BM.Free;
