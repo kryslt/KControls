@@ -128,7 +128,7 @@ const
   cArrowBullet = #$25BA;
 
   { Default characters used to break the text words. }
-  cDefaultWordBreaks = [cNULL, cSPACE, '/', '\', ';', ':', '(', ')', '[', ']', '.', '?', '!'];
+  cDefaultWordBreaks = [cNULL, cSPACE, '/', '\', ';', ':', '(', ')', '[', ']', '.', ',', '?', '!'];
 
   { Format for clipboard operations. }
   cRichText = 'Rich Text Format';
@@ -1742,6 +1742,7 @@ type
     function GetActiveBlock: TKMemoBlock;
     function GetActiveInnerBlock: TKMemoBlock;
     function GetActiveInnerBlocks: TKMemoBlocks;
+    function GetCaretRect: TRect;
     function GetCaretVisible: Boolean;
     function GetContentHeight: Integer;
     function GetContentLeft: Integer;
@@ -2220,6 +2221,8 @@ type
     property Background: TKMemoBackground read FBackground write SetBackground;
     { Returns current caret position = selection end. }
     property CaretPos: TKMemoSelectionIndex read GetSelEnd;
+    { Returns caret rectangle in pixels. }
+    property CaretRect: TRect read GetCaretRect;
     { Returns True if caret is visible. }
     property CaretVisible: Boolean read GetCaretVisible;
     { Makes it possible to take all color properties from another TKCustomMemo class. }
@@ -5180,6 +5183,11 @@ var
   DummyLocalIndex: TKMemoSelectionIndex;
 begin
   Result := ActiveBlocks.IndexToBlocks(ActiveBlocks.RealSelEnd, DummyLocalIndex);
+end;
+
+function TKCustomMemo.GetCaretRect: TRect;
+begin
+  Result := FCaretRect;
 end;
 
 function TKCustomMemo.GetCaretVisible: Boolean;
@@ -8878,11 +8886,17 @@ begin
       ListTable := Notifier.GetListTable;
       LevelIndex := Max(FParaStyle.NumberingListLevel, 0);
       List := ListTable.ListByNumbering(FParaStyle.FNumberingList, LevelIndex, Value);
-      ListLevel := List.Levels[LevelIndex];
-      FParaStyle.NumberingList := List.ID;
-      FParaStyle.NumberStartAt := 0;
-      FParaStyle.FirstIndent := ListLevel.FirstIndent;
-      FParaStyle.LeftPadding := ListLevel.LeftIndent;
+      if (List <> nil) and (LevelIndex < List.Levels.Count) then
+      begin
+        FParaStyle.NumberingList := List.ID;
+        FParaStyle.NumberStartAt := 0;
+        ListLevel := List.Levels[LevelIndex];
+        FParaStyle.FirstIndent := ListLevel.FirstIndent;
+        FParaStyle.LeftPadding := ListLevel.LeftIndent;
+      end else
+      begin
+        FParaStyle.NumberingList := cInvalidListID;
+      end;
     end;
   end;
 end;
