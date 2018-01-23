@@ -1,0 +1,21 @@
+{
+  "UpdatePackageData" : {
+    "DisableInOPM" : false,
+    "DownloadZipURL" : "https://bitbucket.org/tkweb/kcontrols/get/83176d9da685.zip",
+    "Name" : "kcontrols_1.7"
+  },
+  "UpdatePackageFiles" : [
+    {
+      "ForceNotify" : false,
+      "InternalVersion" : 1,
+      "Name" : "kcontrolsbase.lpk",
+      "Version" : "1.7.1.0"
+    },
+    {
+      "ForceNotify" : false,
+      "InternalVersion" : 1,
+      "Name" : "kcontrolslaz.lpk",
+      "Version" : "1.7.1.0"
+    }
+  ]
+}

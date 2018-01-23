@@ -1,0 +1,9 @@
+BitmapToAlphaBitmap kgrid_hci_hbegin.bmp .\alphabitmaps\kgrid_hci_hbegin.bmp
+BitmapToAlphaBitmap kgrid_hci_hcenter.bmp .\alphabitmaps\kgrid_hci_hcenter.bmp
+BitmapToAlphaBitmap kgrid_hci_hend.bmp .\alphabitmaps\kgrid_hci_hend.bmp
+BitmapToAlphaBitmap kgrid_hci_vbegin.bmp .\alphabitmaps\kgrid_hci_vbegin.bmp
+BitmapToAlphaBitmap kgrid_hci_vcenter.bmp .\alphabitmaps\kgrid_hci_vcenter.bmp
+BitmapToAlphaBitmap kgrid_hci_vend.bmp .\alphabitmaps\kgrid_hci_vend.bmp
+BitmapToAlphaBitmap kgrid_drag_arrow.bmp .\alphabitmaps\kgrid_drag_arrow.bmp
+BitmapToAlphaBitmap kgrid_sort_arrow.bmp .\alphabitmaps\kgrid_sort_arrow.bmp
+BitmapToAlphaBitmap _cube.bmp .\alphabitmaps\_cube.bmp

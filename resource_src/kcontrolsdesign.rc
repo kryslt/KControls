@@ -1,0 +1,24 @@
+tkgrid BITMAP "tkgrid.bmp"
+tkdbgrid BITMAP "tkdbgrid.bmp"
+tkhexeditor BITMAP "tkhexeditor.bmp"
+tknumberedit BITMAP "tknumberedit.bmp"
+tkfilenameedit BITMAP "tkfilenameedit.bmp"
+tklog BITMAP "tklog.bmp"
+tkprintpreview BITMAP "tkprintpreview.bmp"
+tkprintpreviewdialog BITMAP "tkprintpreviewdialog.bmp"
+tkprintsetupdialog BITMAP "tkprintsetupdialog.bmp"
+tkbrowsefolderdialog BITMAP "tkbrowsefolderdialog.bmp"
+tklinklabel BITMAP "tklinklabel.bmp"
+tkgradientlabel BITMAP "tkgradientlabel.bmp"
+tkpercentprogressbar BITMAP "tkpercentprogressbar.bmp"
+tkmemo BITMAP "tkmemo.bmp"
+tkmemoframe BITMAP "tkmemoframe.bmp"
+tkbitbtn BITMAP "tkbitbtn.bmp"
+tkcolorbutton BITMAP "tkcolorbutton.bmp"
+tkspeedbutton BITMAP "tkspeedbutton.bmp"
+tksplitter BITMAP "tksplitter.bmp"
+tkpagecontrol BITMAP "tkpagecontrol.bmp"
+
+
+
+

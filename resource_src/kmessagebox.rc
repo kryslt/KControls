@@ -1,0 +1,4 @@
+kmessagebox_stop RCDATA "kmessagebox_stop.png"
+kmessagebox_question RCDATA "kmessagebox_question.png"
+kmessagebox_warning RCDATA "kmessagebox_warning.png"
+kmessagebox_info RCDATA "kmessagebox_info.png"

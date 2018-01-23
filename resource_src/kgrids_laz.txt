@@ -1,0 +1,10 @@
+./kgrid_icons/kgrid_hci_hbegin.bmp
+./kgrid_icons/kgrid_hci_hcenter.bmp
+./kgrid_icons/kgrid_hci_hend.bmp
+./kgrid_icons/kgrid_hci_vbegin.bmp
+./kgrid_icons/kgrid_hci_vcenter.bmp
+./kgrid_icons/kgrid_hci_vend.bmp
+./kgrid_icons/kgrid_drag_arrow.bmp
+./kgrid_icons/kgrid_sort_arrow.bmp
+kgrid_cursor_hresize.cur
+kgrid_cursor_vresize.cur

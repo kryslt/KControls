@@ -1,0 +1,2 @@
+kpreview_cursor_hand_free.cur
+kpreview_cursor_hand_grip.cur

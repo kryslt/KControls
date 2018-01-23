@@ -1,0 +1,310 @@
+object KMemoContainerForm: TKMemoContainerForm
+  Left = 809
+  Height = 477
+  Top = 442
+  Width = 524
+  BorderStyle = bsDialog
+  Caption = 'Insert/edit container (text box)'
+  ClientHeight = 477
+  ClientWidth = 524
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '1.5'
+  object BUOk: TButton
+    Left = 352
+    Height = 25
+    Top = 440
+    Width = 75
+    Caption = 'OK'
+    Default = True
+    ModalResult = 1
+    TabOrder = 0
+  end
+  object BUCancel: TButton
+    Left = 433
+    Height = 25
+    Top = 440
+    Width = 75
+    Cancel = True
+    Caption = 'Cancel'
+    ModalResult = 2
+    TabOrder = 1
+  end
+  object GBPreview: TGroupBox
+    Left = 210
+    Height = 429
+    Top = 3
+    Width = 298
+    Caption = 'Preview'
+    ClientHeight = 411
+    ClientWidth = 294
+    TabOrder = 2
+    object MEPreview: TKMemo
+      Left = 0
+      Height = 411
+      Top = 0
+      Width = 294
+      Align = alClient
+      ContentPadding.Left = 5
+      ContentPadding.Top = 5
+      ContentPadding.Right = 5
+      ContentPadding.Bottom = 5
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ReadOnly = True
+      TabOrder = 0
+    end
+  end
+  object GBPosition: TGroupBox
+    Left = 8
+    Height = 120
+    Top = 3
+    Width = 196
+    Caption = 'Position'
+    ClientHeight = 102
+    ClientWidth = 192
+    TabOrder = 3
+    object RBPositionRelative: TRadioButton
+      Left = 14
+      Height = 19
+      Top = 11
+      Width = 59
+      Caption = 'Relative'
+      TabOrder = 0
+    end
+    object RBPositionAbsolute: TRadioButton
+      Left = 14
+      Height = 19
+      Top = 51
+      Width = 62
+      Caption = 'Absolute'
+      TabOrder = 1
+    end
+    object EDOffsetX: TKNumberEdit
+      Left = 126
+      Height = 23
+      Top = 19
+      Width = 43
+      AcceptedFormats = [neafDec, neafFloat]
+      Caption = 'Horz. offset:'
+      CustomSuffix = 'pt'
+      DecimalSeparator = ','
+      Max = 10000
+      Min = -10000
+      Precision = 1
+      Font.Color = clWindowText
+      ParentFont = False
+      TabOrder = 2
+    end
+    object EDOffsetY: TKNumberEdit
+      Left = 126
+      Height = 23
+      Top = 68
+      Width = 43
+      AcceptedFormats = [neafDec, neafFloat]
+      Caption = 'Vert. offset:'
+      CustomSuffix = 'pt'
+      DecimalSeparator = ','
+      Max = 10000
+      Min = -10000
+      Precision = 1
+      Font.Color = clWindowText
+      ParentFont = False
+      TabOrder = 4
+    end
+  end
+  object GBSize: TGroupBox
+    Left = 8
+    Height = 95
+    Top = 127
+    Width = 196
+    Caption = 'Size'
+    ClientHeight = 77
+    ClientWidth = 192
+    TabOrder = 4
+    object EDWidth: TKNumberEdit
+      Left = 14
+      Height = 23
+      Top = 19
+      Width = 51
+      AcceptedFormats = [neafDec, neafFloat]
+      Caption = 'Width:'
+      CustomSuffix = 'pt'
+      DecimalSeparator = ','
+      Min = 1
+      Precision = 1
+      Value = 100
+      OnUpDownChange = EDWidthExit
+      Font.Color = clWindowText
+      ParentFont = False
+      TabOrder = 0
+      OnExit = EDWidthExit
+    end
+    object EDHeight: TKNumberEdit
+      Left = 117
+      Height = 23
+      Top = 19
+      Width = 52
+      AcceptedFormats = [neafDec, neafFloat]
+      Caption = 'Height:'
+      CustomSuffix = 'pt'
+      DecimalSeparator = ','
+      Min = 1
+      Precision = 1
+      Value = 100
+      OnUpDownChange = EDWidthExit
+      Font.Color = clWindowText
+      ParentFont = False
+      TabOrder = 2
+      OnExit = EDWidthExit
+    end
+    object CBAutoWidth: TCheckBox
+      Left = 14
+      Height = 19
+      Top = 50
+      Width = 72
+      Caption = 'Auto width'
+      Checked = True
+      OnClick = EDWidthExit
+      State = cbChecked
+      TabOrder = 4
+    end
+    object CBAutoHeight: TCheckBox
+      Left = 104
+      Height = 19
+      Top = 50
+      Width = 76
+      Caption = 'Auto height'
+      Checked = True
+      OnClick = EDWidthExit
+      State = cbChecked
+      TabOrder = 5
+    end
+  end
+  object GBWrap: TGroupBox
+    Left = 8
+    Height = 114
+    Top = 227
+    Width = 196
+    Caption = 'Content floating'
+    ClientHeight = 96
+    ClientWidth = 192
+    TabOrder = 5
+    object RBWrapAround: TRadioButton
+      Left = 14
+      Height = 19
+      Top = 4
+      Width = 111
+      Caption = 'Float on both sides'
+      OnClick = EDWidthExit
+      TabOrder = 0
+    end
+    object RBWrapAroundLeft: TRadioButton
+      Left = 14
+      Height = 19
+      Top = 27
+      Width = 100
+      Caption = 'Float on left side'
+      OnClick = EDWidthExit
+      TabOrder = 1
+    end
+    object RBWrapAroundRight: TRadioButton
+      Left = 14
+      Height = 19
+      Top = 50
+      Width = 106
+      Caption = 'Float on right side'
+      OnClick = EDWidthExit
+      TabOrder = 2
+    end
+    object RBWrapTopBottom: TRadioButton
+      Left = 14
+      Height = 19
+      Top = 73
+      Width = 58
+      Caption = 'No float'
+      OnClick = EDWidthExit
+      TabOrder = 3
+    end
+  end
+  object GBShading: TGroupBox
+    Left = 8
+    Height = 120
+    Top = 345
+    Width = 196
+    Caption = 'Borders and shading'
+    ClientHeight = 102
+    ClientWidth = 192
+    TabOrder = 6
+    object LBBorderWidth: TLabel
+      Left = 18
+      Height = 13
+      Top = 14
+      Width = 65
+      Caption = 'Border width:'
+      ParentColor = False
+    end
+    object LBBorderColor: TLabel
+      Left = 18
+      Height = 13
+      Top = 43
+      Width = 62
+      Caption = 'Border color:'
+      ParentColor = False
+    end
+    object LBShading: TLabel
+      Left = 17
+      Height = 13
+      Top = 74
+      Width = 42
+      Caption = 'Shading:'
+      ParentColor = False
+    end
+    object EDBorderWidth: TKNumberEdit
+      Left = 98
+      Height = 23
+      Top = 11
+      Width = 55
+      CustomSuffix = 'pt'
+      DecimalSeparator = ','
+      Max = 20
+      Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
+      OnUpDownChange = EDWidthExit
+      Font.Color = clWindowText
+      ParentFont = False
+      TabOrder = 0
+      OnExit = EDWidthExit
+    end
+    object CLBBorder: TKColorButton
+      Left = 98
+      Height = 25
+      Top = 38
+      Width = 70
+      Font.Color = clBtnText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ParentFont = False
+      TabOrder = 2
+      OnClick = EDWidthExit
+      ColorDlgOptions = []
+    end
+    object CLBShading: TKColorButton
+      Left = 98
+      Height = 25
+      Top = 69
+      Width = 70
+      Font.Color = clBtnText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ParentFont = False
+      TabOrder = 3
+      OnClick = EDWidthExit
+      ColorDlgOptions = []
+    end
+  end
+end
