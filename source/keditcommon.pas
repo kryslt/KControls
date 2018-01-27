@@ -746,6 +746,18 @@ begin
   AddKey(ecDeleteLine, ord('Y'), [ssCtrl]);
   AddKey(ecSelectAll, ord('A'), [ssCtrl]);
   AddKey(ecToggleMode, VK_INSERT, []);
+{$IFDEF DARWIN}
+  // MAC specific, what I knew or guessed and worked for me
+  AddKey(ecLineStart, VK_LEFT, [ssMeta]);
+  AddKey(ecLineEnd, VK_RIGHT, [ssMeta]);
+  AddKey(ecSelLineStart, VK_LEFT, [ssMeta, ssShift]);
+  AddKey(ecSelLineEnd, VK_RIGHT, [ssMeta, ssShift]);
+  AddKey(ecSelPageTop, VK_PRIOR, [ssMeta, ssShift]);
+  AddKey(ecSelPageBottom, VK_NEXT, [ssMeta, ssShift]);
+  AddKey(ecCopy, ord('C'), [ssMeta]);
+  AddKey(ecCut, ord('X'), [ssMeta]);
+  AddKey(ecPaste, ord('V'), [ssMeta]);
+{$ENDIF}
 end;
 
 class function TKEditKeyMapping.EmptyMap: TKEditCommandAssignment;

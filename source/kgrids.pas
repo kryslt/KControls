@@ -7974,7 +7974,7 @@ begin
   if ARow <> nil then
   begin
     Index := 0;
-    while Index < ColCount do
+    while Index < RowCount do
     begin
       if FRows[Index] <> TKGridAxisItem(ARow) then
         Inc(Index)
