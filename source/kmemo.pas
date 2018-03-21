@@ -2019,9 +2019,6 @@ type
       by DeltaVert scroll units (lines) or in both directions. CodeHorz and CodeVert
       are the codes coming from WM_HSCROLL or WM_VSCROLL messages. }
     function Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; ACallScrollWindow: Boolean): Boolean;
-    { Scrolls the memo window horizontaly by DeltaHorz scroll units and/or
-      vertically by DeltaVert scroll units (lines). }
-    function ScrollBy(DeltaHorz, DeltaVert: Integer; ACallScrollWindow: Boolean): Boolean;
     { Determines if a cell specified by ACol and ARow should be scrolled, i.e. is
       not fully visible. }
     function ScrollNeeded(AMousePos: PPoint; out DeltaCol, DeltaRow: Integer): Boolean; virtual;
@@ -2194,6 +2191,9 @@ type
     procedure SaveToRTFStream(AStream: TStream; ASelectedOnly: Boolean = False; AReadableOutput: Boolean = False); virtual;
     { Save contents to a plain text file. }
     procedure SaveToTXT(const AFileName: TKString; ASelectedOnly: Boolean = False); virtual;
+    { Scrolls the memo window horizontaly by DeltaHorz scroll units and/or
+      vertically by DeltaVert scroll units (lines). }
+    function ScrollBy(DeltaHorz, DeltaVert: Integer; ACallScrollWindow: Boolean): Boolean; reintroduce; virtual;
     { Specifies the current selection. This is faster than combination of SelStart and SelLength. }
     procedure Select(ASelStart, ASelLength: TKMemoSelectionIndex; ADoScroll: Boolean = True); virtual;
     { Activates relative or absolute positioned container nearest to APoint.
