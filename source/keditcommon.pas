@@ -18,7 +18,7 @@
   that may result from using this code. }
 
 unit keditcommon; // lowercase name because of Lazarus/Linux
-
+ 
 {$include kcontrols.inc}
 {$WEAKPACKAGEUNIT ON}
 
@@ -52,6 +52,10 @@ type
     ecLineStart,
     { Move caret to end of line }
     ecLineEnd,
+    { Move caret left one word }
+    ecWordLeft,
+    { Move caret right one word }
+    ecWordRight,
     { Move caret up one page }
     ecPageUp,
     { Move caret down one page }
@@ -725,8 +729,10 @@ begin
   AddKey(ecSelEditorBottom, VK_END, [ssShift, ssCtrl]);
   AddKey(ecScrollUp, VK_UP, [ssCtrl]);
   AddKey(ecScrollDown, VK_DOWN, [ssCtrl]);
-  AddKey(ecScrollLeft, VK_LEFT, [ssCtrl]);
-  AddKey(ecScrollRight, VK_RIGHT, [ssCtrl]);
+  AddKey(ecWordLeft, VK_LEFT, [ssCtrl]);
+  AddKey(ecWordRight, VK_RIGHT, [ssCtrl]);
+  AddKey(ecScrollLeft, VK_LEFT, [ssShift, ssAlt]);
+  AddKey(ecScrollRight, VK_RIGHT, [ssShift, ssAlt]);
   AddKey(ecScrollCenter, VK_RETURN, [ssCtrl]);
   AddKey(ecUndo, ord('Z'), [ssCtrl]);
   AddKey(ecUndo, VK_BACK, [ssAlt]);

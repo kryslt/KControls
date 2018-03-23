@@ -4543,9 +4543,9 @@ begin
     TmpSelLength := RealSelLength;
     case Command of
       // movement commands
-      ecLeft, ecSelLeft:
+      ecLeft, ecSelLeft, ecWordLeft:
         Result := TmpSelEnd > 0;
-      ecRight:
+      ecRight, ecWordRight:
         Result := TmpSelEnd < ActiveBlocks.SelectableLength;
       ecSelRight:
         Result := TmpSelEnd < ActiveBlocks.SelectableLength;
@@ -4904,7 +4904,8 @@ function TKCustomMemo.ExecuteCommand(Command: TKEditCommand; Data: Pointer): Boo
 var
   TmpSelEnd, NewSelEnd: TKMemoSelectionIndex;
   TmpPosition: TKMemoLinePosition;
-begin                     
+  AStart, AEnd: TKMemoWordIndex;
+begin
   Result := False;
   if CommandEnabled(Command) then
   begin
@@ -4918,6 +4919,19 @@ begin
         NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -1);
         SelectionInit(NewSelEnd, True, eolInside);
       end;
+      ecWordLeft:
+      begin
+        if ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, true, true, AStart, AEnd) then begin
+           if TmpSelEnd <> AStart then
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -(TmpSelEnd-AStart))
+           else begin
+              TmpSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -2);
+              ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, false, true, AStart, AEnd);
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -(TmpSelEnd-AStart));
+           end;
+          SelectionInit(NewSelEnd, True, eolInside);
+        end;
+      end;
       ecSelLeft:
       begin
         NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -1);
@@ -4927,6 +4941,19 @@ begin
       begin
         NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, 1);
         SelectionInit(NewSelEnd, True, TmpPosition);
+      end;
+      ecWordRight:
+      begin
+        if ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, true, true, AStart, AEnd) then begin
+           if TmpSelEnd <> AEnd then
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, (AEnd-TmpSelEnd))
+           else begin
+              TmpSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, 2);
+              ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, false, true, AStart, AEnd);
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, (AEnd-TmpSelEnd));
+           end;
+          SelectionInit(NewSelEnd, True, eolInside);
+        end;
       end;
       ecSelRight:
       begin
