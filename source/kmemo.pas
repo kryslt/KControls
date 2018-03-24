@@ -4543,11 +4543,9 @@ begin
     TmpSelLength := RealSelLength;
     case Command of
       // movement commands
-      ecLeft, ecSelLeft, ecWordLeft:
+      ecLeft, ecSelLeft, ecWordLeft, ecSelWordLeft:
         Result := TmpSelEnd > 0;
-      ecRight, ecWordRight:
-        Result := TmpSelEnd < ActiveBlocks.SelectableLength;
-      ecSelRight:
+      ecRight, ecSelRight, ecWordRight, ecSelWordRight:
         Result := TmpSelEnd < ActiveBlocks.SelectableLength;
       ecUp, ecSelUp, ecPageUp, ecSelPageUp:
         Result := ActiveBlocks.IndexBelowFirstLine(TmpSelEnd, True);
@@ -4937,6 +4935,19 @@ begin
         NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -1);
         SelectionExpand(NewSelEnd, True, eolInside);
       end;
+      ecSelWordLeft:
+      begin
+        if ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, true, true, AStart, AEnd) then begin
+           if TmpSelEnd <> AStart then
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -(TmpSelEnd-AStart))
+           else begin
+              TmpSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -2);
+              ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, false, true, AStart, AEnd);
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, -(TmpSelEnd-AStart));
+           end;
+          SelectionExpand(NewSelEnd, True, eolInside);
+        end;
+      end;
       ecRight:
       begin
         NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, 1);
@@ -4960,7 +4971,20 @@ begin
         NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, 1);
         SelectionExpand(NewSelEnd, True, TmpPosition);
       end;
-      ecUp: 
+      ecSelWordRight:
+      begin
+        if ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, true, true, AStart, AEnd) then begin
+           if TmpSelEnd <> AEnd then
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, (AEnd-TmpSelEnd))
+           else begin
+              TmpSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, 2);
+              ActiveBlocks.GetNearestWordIndexes(TmpSelEnd, false, true, AStart, AEnd);
+              NewSelEnd := ActiveBlocks.NextIndexByCharCount(TmpSelEnd, (AEnd-TmpSelEnd));
+           end;
+          SelectionExpand(NewSelEnd, True, TmpPosition);
+        end;
+      end;
+      ecUp:
       begin
         NewSelEnd := ActiveBlocks.NextIndexByRowDelta(Canvas, TmpSelEnd, -1, FPreferredCaretPos, TmpPosition);
         SelectionInit(NewSelEnd, True, TmpPosition);

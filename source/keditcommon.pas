@@ -86,6 +86,10 @@ type
     ecSelLineStart,
     { Move caret to end of line, affecting selection }
     ecSelLineEnd,
+    { Move caret left one word, affecting selection }
+    ecSelWordLeft,
+    { Move caret right one word, affecting selection }
+    ecSelWordRight,
     { Move caret up one page, affecting selection }
     ecSelPageUp,
     { Move caret down one page, affecting selection }
@@ -727,6 +731,8 @@ begin
   AddKey(ecSelPageBottom, VK_NEXT, [ssShift, ssCtrl]);
   AddKey(ecSelEditorTop, VK_HOME, [ssShift, ssCtrl]);
   AddKey(ecSelEditorBottom, VK_END, [ssShift, ssCtrl]);
+  AddKey(ecSelWordLeft, VK_LEFT, [ssShift, ssCtrl]);
+  AddKey(ecSelWordRight, VK_RIGHT, [ssShift, ssCtrl]);
   AddKey(ecScrollUp, VK_UP, [ssCtrl]);
   AddKey(ecScrollDown, VK_DOWN, [ssCtrl]);
   AddKey(ecWordLeft, VK_LEFT, [ssCtrl]);
