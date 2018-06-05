@@ -4902,7 +4902,7 @@ function TKCustomMemo.ExecuteCommand(Command: TKEditCommand; Data: Pointer): Boo
 var
   TmpSelEnd, NewSelEnd: TKMemoSelectionIndex;
   TmpPosition: TKMemoLinePosition;
-  AStart, AEnd: TKMemoWordIndex;
+  AStart, AEnd: TKMemoSelectionIndex;
 begin
   Result := False;
   if CommandEnabled(Command) then
