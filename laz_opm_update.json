@@ -6,14 +6,14 @@
   },
   "UpdatePackageFiles" : [
     {
-      "ForceNotify" : false,
-      "InternalVersion" : 1,
+      "ForceNotify" : true,
+      "InternalVersion" : 1.7.2.0,
       "Name" : "kcontrolsbase.lpk",
       "Version" : "1.7.2.0"
     },
     {
-      "ForceNotify" : false,
-      "InternalVersion" : 1,
+      "ForceNotify" : true,
+      "InternalVersion" : 1.7.2.0,
       "Name" : "kcontrolslaz.lpk",
       "Version" : "1.7.2.0"
     }
