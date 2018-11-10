@@ -1,8 +1,7 @@
-﻿{ @abstract(This unit contains PWIG Pascal wrapper class generator (usable by Lazarus or Delphi))
-  @author(Tomas Krysl (tk@tkweb.eu))
-  @created(23 Oct 2016)
+﻿{ @abstract(This unit contains PWIG Pascal wrapper class generator (usable by Lazarus or Delphi).)
+  @author(Tomas Krysl)
 
-  Copyright © Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl <BR><BR>
 
   Generated outputs tested in:
   -Lazarus 1.6 + FPC 3.0.0, Win32 (callee + caller)
@@ -12,11 +11,11 @@
   This code is distributed as a freeware. You are free to use it as part
   of your application for any purpose including freeware, commercial and
   shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. You may modify this code
-  solely for your own purpose. Please feel free to contact the author if you
-  think your changes might be useful for other users. You may distribute only
-  the original package. The author accepts no liability for any damage
-  that may result from using this code. }
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 
 unit pwig_pascal;
 

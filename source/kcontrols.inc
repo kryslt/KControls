@@ -1,6 +1,18 @@
-{ This file contains compiler distinctions and conditional defines for all
-  source files in the KControls Development Suite. It has been created from
-  several similar resources available. }
+{ @abstract(This file contains compiler distinctions and conditional defines for all
+  source files in the KControls Development Suite.)
+  @author(Tomas Krysl)
+
+  Copyright (c) Tomas Krysl<BR><BR>
+
+  <B>License:</B><BR>
+  This code is distributed as a freeware. You are free to use it as part
+  of your application for any purpose including freeware, commercial and
+  shareware applications. The origin of this source code must not be
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 
 {$IFNDEF KCONTROLS_INC}
   {$DEFINE KCONTROLS_INC}

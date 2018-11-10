@@ -163,7 +163,7 @@ begin
     if EDTable.Text = '' then
       EDTable.Text := 'images';
     if EDConnectionString.Text = '' then
-      EDConnectionString.Text := 'Localhost-MySQL-tkweb'; //'DRIVER={MySQL ODBC 5.3 ANSI Driver}; SERVER=localhost; PORT=3306; DATABASE=tkweb; UID=root; PASSWORD=root;OPTION=3;';
+      EDConnectionString.Text := 'Localhost-MySQL'; //'DRIVER={MySQL ODBC 5.3 ANSI Driver}; SERVER=localhost; PORT=3306; DATABASE=local; UID=root; PASSWORD=root;OPTION=3;';
   {$ENDIF}
   {$IFDEF FPC}
     if CN.DatabaseName <> EDConnectionString.Text then

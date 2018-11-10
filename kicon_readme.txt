@@ -1,5 +1,5 @@
 Software: TKIcon component for Delphi
-Original authorship: Tomas Krysl (tk@tkweb.eu)
+Original authorship: Tomas Krysl
 -------------------
 
 NOTE:

@@ -1,41 +1,17 @@
-{ @abstract(This unit contains the TKGrid component and all supporting classes)
-  @author(Tomas Krysl (tk@tkweb.eu))
-  @created(15 Oct 2006)
-  @lastmod(6 Jul 2014)
+{ @abstract(This unit contains the TKGrid component and all supporting classes.)
+  @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
-
-  This unit provides an enhanced replacement for components contained
-  in Grids.pas. Major features:
-  <UL>
-  <LI><I>95% compatible with TDraw(String)Grid</I></LI>
-  <LI><I>any TWinControl descendant can be used as inplace editor</I></LI>
-  <LI><I>cell clipping and double buffering</I></LI>
-  <LI><I>cell merging/splitting</I></LI>
-  <LI><I>column/row/grid autosizing</I></LI>
-  <LI><I>cross platform control in Lazarus</I></LI>
-  <LI><I>index mapping - current column/row indexes can be mapped to their initial values</I></LI>
-  <LI><I>last row/column aligning (no scrollbar)</I></LI>
-  <LI><I>printing and previewing</I></LI>
-  <LI><I>row/column hiding with optional visual indication</I></LI>
-  <LI><I>rows, columns and cells are classes</I></LI>
-  <LI><I>several styles possible when moving/sizing cells</I></LI>
-  <LI><I>sorting interface</I></LI>
-  <LI><I>Unicode control</I></LI>
-  <LI><I>various text output attributes (multiline text, end ellipsis etc.)</I></LI>
-  <LI><I>versatile cell painting interface</I></LI>
-  <LI><I>virtual grid option</I></LI>
-  </UL>
+  Copyright (c) Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
   of your application for any purpose including freeware, commercial and
   shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. You may modify this code
-  solely for your own purpose. Please feel free to contact the author if you
-  think your changes might be useful for other users. You may distribute only
-  the original package. The author accepts no liability for any damage
-  that may result from using this code. }
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 
 unit kgrids; // lowercase name because of Lazarus/Linux
 

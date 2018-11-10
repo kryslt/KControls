@@ -1,5 +1,5 @@
 Software: KMemo component for Delphi and Lazarus
-Original authorship: Tomas Krysl (tk@tkweb.eu)
+Original authorship: Tomas Krysl
 -------------------
 
 NOTE:

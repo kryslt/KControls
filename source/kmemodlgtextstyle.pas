@@ -1,9 +1,7 @@
-{ @abstract(This unit contains a dialog for text/script style editing)
-  @author(Tomas Krysl (tk@tkweb.eu))
-  @created(28 Apr 2009)
-  @lastmod(30 July 2015)
+{ @abstract(This unit contains a dialog for text/script style editing.)
+  @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -14,6 +12,7 @@
   notice. The Author accepts no liability for any damage that may result
   from using this code.
 }
+
 unit kmemodlgtextstyle; // lowercase name because of Lazarus/Linux
 
 interface

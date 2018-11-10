@@ -1,22 +1,17 @@
-{ @abstract(This unit contains the TKDBGrid component and all supporting classes)
-  @author(Tomas Krysl (tk@tkweb.eu))
-  @created(20 Sep 2009)
-  @lastmod(20 Jun 2010)
+{ @abstract(This unit contains the TKDBGrid component and all supporting classes.)
+  @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
-
-  This unit provides a data aware control for TKGrid.
-  Note: I am still a newbie to Delphi/Lazarus database solutions. If anything
-  is totally wrong here please feel free to send a patch to me.
+  Copyright (c) Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
   of your application for any purpose including freeware, commercial and
   shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. You may modify this code
-  solely for your own purpose. However, you may distribute only the original
-  package. The Author accepts no liability for any damage that may result
-  from using this code. }
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 
 unit kdbgrids; // lowercase name because of Lazarus/Linux
 

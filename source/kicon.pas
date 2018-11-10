@@ -1,36 +1,18 @@
 { @abstract(This unit provides an advanced Windows icon management
-    i.e. replacement for the Graphics.TIcon component)
-  @author(Tomas Krysl (tomkrysl@tkweb.eu))
-  @created(9 Jan 2005)
-  @lastmod(6 Jul 2014)
+  i.e. replacement for the Graphics.TIcon component.)
+  @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl (tomkrysl@@tkweb.eu)<BR><BR>
-
-  The purpose of the TKIcon component is to replace and expand the standard
-  TIcon component provided by VCL. The TKIcon component is not based on Windows
-  icon functions, but manages the icon structures by itself.
-  <UL>
-    <LH>Major features are:</LH>
-    <LI>32-bit icons/cursors with alpha channel supported</LI>
-    <LI>correct rendering in all 32-bit Windows platforms</LI>
-    <LI>optional rendering of all icon/ cursors subimages</LI>
-    <LI>icons/cursors can be stretched when drawn</LI>
-    <LI>multiple rendering styles</LI>
-    <LI>loading from file/stream, HICON, module resources, file associations</LI>
-    <LI>saving to file/stream</LI>
-    <LI>icon image manipulation (inserting/deleting/cropping/enlarging)</LI>
-    <LI>full TPicture integration (only TPicture.Icon can't be used)</LI>
-  </UL>
+  Copyright (c) Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
   of your application for any purpose including freeware, commercial and
   shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. You may modify this code
-  solely for your own purpose. Please feel free to contact the author if you
-  think your changes might be useful for other users. You may distribute only
-  the original package. The author accepts no liability for any damage
-  that may result from using this code. }
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
   
 unit kicon; // lowercase name because of Lazarus/Linux
 

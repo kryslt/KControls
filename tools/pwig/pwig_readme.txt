@@ -1,5 +1,5 @@
 Software: PWIG (Pascal Wrapper and Interface Generator)
-Original authorship: Tomas Krysl (tk@tkweb.eu)
+Original authorship: Tomas Krysl
 -------------------
 
 NOTE:

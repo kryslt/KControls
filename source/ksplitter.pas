@@ -1,9 +1,7 @@
 { @abstract(This unit contains modified TSplitter component. )
-  @author(Tomas Krysl (tk@@tkweb.eu))
-  @created(20 Oct 2001)
-  @lastmod(12 Feb 2014)
+  @author(Tomas Krysl)
 
-  Copyright (c) 2001-2014 Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
@@ -12,7 +10,8 @@
   misrepresented; you must not claim your authorship. All redistributions
   of the original or modified source code must retain the original copyright
   notice. The Author accepts no liability for any damage that may result
-  from using this code. }
+  from using this code.
+}
 
 unit ksplitter; // lowercase name because of Lazarus/Linux
 

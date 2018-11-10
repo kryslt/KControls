@@ -1,9 +1,7 @@
-{ @abstract(This unit contains RTF reader and writer for TKMemo control)
-  @author(Tomas Krysl (tk@tkweb.eu))
-  @created(28 Apr 2009)
-  @lastmod(30 July 2015)
+{ @abstract(This unit contains RTF reader and writer for TKMemo control.)
+  @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
+  Copyright (c) Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part

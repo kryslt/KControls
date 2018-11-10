@@ -1,31 +1,17 @@
-{ @abstract(This unit contains the TKHexEditor component and all supporting classes)
-  @author(Tomas Krysl (tk@tkweb.eu))
-  @created(12 Oct 2005)
-  @lastmod(6 Jul 2014)
+{ @abstract(This unit contains the TKHexEditor component and all supporting classes.)
+  @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl (tk@@tkweb.eu)<BR><BR>
-
-  This unit provides a powerfull hexadecimal editor component @link(TKHexEditor)
-  with following major features:
-  <UL>
-  <LI><I>advanced editing capabilities</I></LI>
-  <LI><I>advanced rendering styles</I></LI>
-  <LI><I>clipboard operations</I></LI>
-  <LI><I>virtually unlimited undo/redo operations</I></LI>
-  <LI><I>key mapping functionality</I></LI>
-  <LI><I>fast search/replace function</I></LI>
-  <LI><I>print/preview function</I></LI>
-  </UL>
+  Copyright (c) Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
   This code is distributed as a freeware. You are free to use it as part
   of your application for any purpose including freeware, commercial and
   shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. You may modify this code
-  solely for your own purpose. Please feel free to contact the author if you
-  think your changes might be useful for other users. You may distribute only
-  the original package. The author accepts no liability for any damage
-  that may result from using this code. }
+  misrepresented; you must not claim your authorship. All redistributions
+  of the original or modified source code must retain the original copyright
+  notice. The Author accepts no liability for any damage that may result
+  from using this code.
+}
 
 unit khexeditor; // lowercase name because of Lazarus/Linux
 

@@ -1,5 +1,5 @@
 Software: KControls component suite for Delphi and Lazarus
-Original authorship: Tomas Krysl (tk@tkweb.eu)
+Original authorship: Tomas Krysl
 -------------------
 
 
@@ -28,24 +28,27 @@ INSTALLATION:
 
 
 
-TECHNICAL SUPPORT:
+BUG REPORTING:
 -------------------
-Any suggestions, error reports and questions about this software please send to
-the author or discuss on http://www.tkweb.eu.
+In case you find a bug or have ideas to improve please create an issue here:
+https://bitbucket.org/tomkrysl/kcontrols/issues
 
 
 INFO FOR CONTRIBUTORS:
 -------------------
-You may contribute to this project, in such case send your contributions to the author.
-Before sending, be sure to test your contribution thoroughfully.
-As KControls is cross platform and cross IDE, ALWAYS test your contribution in following
-minimum configuration of IDEs and OSes:
-1. Delphi 7 and latest Delphi XE version under Windows 7 or higher
-2. Lazarus32 and Lazarus64 under Windows 7 or higher
-3. Lazarus32 or Lazarus64 under some version of Linux, preferrably Ubuntu or Kubuntu.
-Keep in mind the differences between Delphi and Lazarus (mainly string encoding UTF16 in Delphi vs. UTF8 in Lazarus).
-When working with texts, always test with different Unicode characters.
-Testing of BiDi features is not required, because they are not supported by KControls.
+You may contribute to this project, in such case:
+1) fork the repository on https://bitbucket.org/tomkrysl/kcontrols
+2) implement and test your changes, if possible in all these IDEs:
+  a) Delphi 7 and latest Delphi XE version under Windows 7 or higher
+  b) Lazarus on Windows 7 or higher
+  c) Lazarus on some version of Linux, preferrably Ubuntu or Kubuntu.
+  d) Lazarus on MAC
+  Please (if possible) keep in mind the differences between Delphi and Lazarus (mainly string encoding UTF16 in Delphi vs. UTF8 in Lazarus).
+  When working with texts, always test with different Unicode characters.
+  Testing of BiDi features is not required, because they are not supported by KControls.
+3) create a pull request on https://bitbucket.org/tomkrysl/kcontrols.
+
+If you plan to contribute regularly to this project, you can be granted write access to the repository.
 
 
 VERSION HISTORY:

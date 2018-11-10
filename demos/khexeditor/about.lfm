@@ -36,7 +36,7 @@ object AboutForm: TAboutForm
     Height = 13
     Top = 53
     Width = 105
-    Caption = 'http://www.tkweb.eu'
+    Caption = 'https://bitbucket.org/tomkrysl/kcontrols/'
     ParentColor = False
   end
   object BUOk: TButton
