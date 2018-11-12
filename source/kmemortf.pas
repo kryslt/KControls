@@ -2707,7 +2707,7 @@ begin
     rgNone, rgTextBox, rgFieldResult: AddText(S);
     rgListLevelText: AddTextToNumberingFormat(S);
   end;
-  if SetIgnoreChars then
+  if SetIgnoreChars and (FActiveState.Group <> rgUnknown) then
     FIgnoreChars := FIgnoreCharsAfterUnicode;
 end;
 
@@ -4094,7 +4094,7 @@ begin
       begin
         // first try Ansi codepage conversion for better backward compatibility
         Ansi := StringToAnsiString(C, FCodePage);
-        if (Ansi <> '') and (Ansi <> #0) then
+        if (Length(Ansi) = 1) and (Ansi <> #0) then
         begin
           S := AnsiString(Format('%s\''%.2x', [S, Ord(Ansi[1])]));
           WasAnsi := True;
