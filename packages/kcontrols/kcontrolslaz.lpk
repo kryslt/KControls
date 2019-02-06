@@ -36,7 +36,7 @@ of the original or modified source code must retain the original copyright
 notice. The Author accepts no liability for any damage that may result
 from using this code."/>
     <Version Major="1" Minor="7" Release="3"/>
-    <Files Count="40">
+    <Files Count="42">
       <Item1>
         <Filename Value="..\..\source\kgraphics.pas"/>
         <UnitName Value="kgraphics"/>
@@ -198,6 +198,14 @@ from using this code."/>
         <Filename Value="..\..\source\kmemodlgimage.lfm"/>
         <Type Value="LFM"/>
       </Item40>
+      <Item41>
+        <Filename Value="..\..\source\kmemodlgnumbering.dfm"/>
+        <Type Value="Text"/>
+      </Item41>
+      <Item42>
+        <Filename Value="..\..\source\ksplitter.pas"/>
+        <UnitName Value="ksplitter"/>
+      </Item42>
     </Files>
     <RequiredPkgs Count="4">
       <Item1>
