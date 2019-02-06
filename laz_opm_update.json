@@ -1,21 +1,17 @@
 {
   "UpdatePackageData" : {
     "DisableInOPM" : false,
-    "DownloadZipURL" : "https://bitbucket.org/tomkrysl/kcontrols/get/1.7.2.zip",
-    "Name" : "kcontrols_1.7"
+    "DownloadZipURL" : "https://bitbucket.org/tomkrysl/kcontrols/get/1.7.3.zip",
+    "Name" : "kcontrols"
   },
   "UpdatePackageFiles" : [
     {
-      "ForceNotify" : true,
-      "InternalVersion" : 1.7.2.0,
       "Name" : "kcontrolsbase.lpk",
-      "Version" : "1.7.2.0"
+      "Version" : "1.7.3.0"
     },
     {
-      "ForceNotify" : true,
-      "InternalVersion" : 1.7.2.0,
       "Name" : "kcontrolslaz.lpk",
-      "Version" : "1.7.2.0"
+      "Version" : "1.7.3.0"
     }
   ]
 }
