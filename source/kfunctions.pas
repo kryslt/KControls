@@ -1589,10 +1589,10 @@ var
 begin
   Result := '';
   Signum := Value < 0;
-  if Signum  then
+  {if Signum  then
   asm
     nop
-  end;
+  end;}
   repeat
     B := Byte(Value mod 10);
     if Signum then
@@ -2461,11 +2461,15 @@ begin
     CP := Format('cp%d', [Codepage]);
   Result := LConvEncoding.ConvertEncoding(AText, 'utf8', CP);
 {$ELSE}
-  DefaultChar := #0;
-  W := WideString(AText);
-  Len := WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, nil, 0, @DefaultChar, nil);
-  SetLength(Result, Len - 1);
-  WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, PAnsiChar(Result), Len, @DefaultChar, nil);
+  if AText <> '' then
+  begin
+    DefaultChar := #0;
+    W := WideString(AText);
+    Len := WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, nil, 0, @DefaultChar, nil);
+    SetLength(Result, Len - 1);
+    WideCharToMultiByte(CodePage, 0, PWideChar(W), -1, PAnsiChar(Result), Len, @DefaultChar, nil);
+  end else
+    Result := '';
 {$ENDIF}
 end;
 
