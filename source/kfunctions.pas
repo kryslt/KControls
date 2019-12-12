@@ -535,6 +535,9 @@ function FormatCurrency(Value: Currency; const AFormat: TKCurrencyFormat): TKStr
 { Returns the module version for given module. Tested under WinX, Linux, OSX. }
 function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 
+{ Returns the module version string for given module. Tested under WinX, Linux, OSX. }
+function GetAppVersionString(const ALibName, ACodePage, AString: string; out AValue: string): Boolean;
+
 { Returns number of a specific character in a string. }
 function GetCharCount(const AText: TKString; AChar: TKChar): Integer;
 
@@ -1450,41 +1453,20 @@ end;
 
 function GetAppVersion(const ALibName: string; out MajorVersion, MinorVersion, BuildNumber, RevisionNumber: Word): Boolean;
 var
-{$IFDEF MSWINDOWS}
- dwHandle, dwLen: DWORD;
- BufLen: Cardinal;
- lpData: LPTSTR;
- pFileInfo: ^VS_FIXEDFILEINFO;
+{$IFDEF FPC}
+  Info: TVersionResource;
+  Stream: TResourceStream;
+  ResID: Integer;
+  Res: TFPResourceHandle;
 {$ELSE}
- Info: TVersionResource;
- Stream: TResourceStream;
- ResID: Integer;
- Res: TFPResourceHandle;
+  dwHandle, dwLen: DWORD;
+  BufLen: Cardinal;
+  lpData: LPTSTR;
+  pFileInfo: ^VS_FIXEDFILEINFO;
 {$ENDIF}
 begin
   Result := False;
-{$IFDEF MSWINDOWS}
-  dwLen := GetFileVersionInfoSize(PChar(ALibName), dwHandle);
-  if dwLen <> 0 then
-  begin
-    GetMem(lpData, dwLen);
-    try
-      if GetFileVersionInfo(PChar(ALibName), dwHandle, dwLen, lpData) then
-      begin
-        if VerQueryValue(lpData, '\\', Pointer(pFileInfo), BufLen) then
-        begin
-          MajorVersion := HIWORD(pFileInfo.dwFileVersionMS);
-          MinorVersion := LOWORD(pFileInfo.dwFileVersionMS);
-          BuildNumber := HIWORD(pFileInfo.dwFileVersionLS);
-          RevisionNumber := LOWORD(pFileInfo.dwFileVersionLS);
-          Result := True;
-        end;
-      end;
-    finally
-      FreeMem(lpData);
-    end;
-  end;
-{$ELSE}
+{$IFDEF FPC}
   Info := TVersionResource.Create;
   try
     ResID := 1;
@@ -1507,6 +1489,107 @@ begin
     Result := True;
   finally
     Info.Free;
+  end;
+{$ELSE}
+  dwLen := GetFileVersionInfoSize(PChar(ALibName), dwHandle);
+  if dwLen <> 0 then
+  begin
+    GetMem(lpData, dwLen);
+    try
+      if GetFileVersionInfo(PChar(ALibName), dwHandle, dwLen, lpData) then
+      begin
+        if VerQueryValue(lpData, '\\', Pointer(pFileInfo), BufLen) then
+        begin
+          MajorVersion := HIWORD(pFileInfo.dwFileVersionMS);
+          MinorVersion := LOWORD(pFileInfo.dwFileVersionMS);
+          BuildNumber := HIWORD(pFileInfo.dwFileVersionLS);
+          RevisionNumber := LOWORD(pFileInfo.dwFileVersionLS);
+          Result := True;
+        end;
+      end;
+    finally
+      FreeMem(lpData);
+    end;
+  end;
+{$ENDIF}
+end;
+
+function GetAppVersionString(const ALibName, ACodePage, AString: string; out AValue: string): Boolean;
+{$IFnDEF FPC}
+type
+  TTranslation = packed record
+    wLanguage: Word;
+    wCodePage: Word;
+  end;
+{$ENDIF}
+var
+{$IFDEF FPC}
+  Info: TVersionResource;
+  Stream: TResourceStream;
+  ResID: Integer;
+  Res: TFPResourceHandle;
+{$ELSE}
+  dwHandle, dwLen: DWORD;
+  BufLen: Cardinal;
+  lpData: LPTSTR;
+  pValue: Pointer;
+  Translation: ^TTranslation;
+  CP: string;
+  Tmp: WideString;
+{$ENDIF}
+begin
+  Result := False;
+{$IFDEF FPC}
+  Info := TVersionResource.Create;
+  try
+    ResID := 1;
+    // Defensive code to prevent failure if no resource available...
+    Res := FindResource(HInstance, PChar(PtrInt(ResID)), PChar(RT_VERSION));
+    If Res = 0 Then
+      Exit;
+
+    Stream := TResourceStream.CreateFromID(HInstance, ResID, {$IFDEF LCLWinCE}PWideChar{$ELSE}PChar{$ENDIF}(RT_VERSION));
+    Try
+      Info.SetCustomRawDataStream(Stream);
+      if Info.StringFileInfo.Count > 0 then
+      begin
+        AValue := Info.StringFileInfo.Items[0].Values[AString];
+        Result := True;
+      end;
+      Info.SetCustomRawDataStream(nil);
+    Finally
+      Stream.Free;
+    End;
+  finally
+    Info.Free;
+  end;
+{$ELSE}
+  dwLen := GetFileVersionInfoSize(PChar(ALibName), dwHandle);
+  if dwLen <> 0 then
+  begin
+    GetMem(lpData, dwLen);
+    try
+      if GetFileVersionInfo(PChar(ALibName), dwHandle, dwLen, lpData) then
+      begin
+        if ACodePage = '' then
+        begin
+          // retrieve first codepage available
+          if VerQueryValue(lpData, '\VarFileInfo\Translation', Pointer(Translation), BufLen) and (BufLen >= 4) then
+            CP := Format('%4.4x%4.4x', [Translation.wLanguage, Translation.wCodePage])
+          else
+            CP := ''; // error!
+        end else
+          CP := ACodePage;
+        if (CP <> '') and (VerQueryValue(lpData, PChar(Format('\StringFileInfo\%s\%s', [CP, AString])), pValue, BufLen)) then
+        begin
+          SetString(Tmp, PChar(pValue), BufLen);
+          AValue := string(Tmp);
+          Result := True;
+        end;
+      end;
+    finally
+      FreeMem(lpData);
+    end;
   end;
 {$ENDIF}
 end;
