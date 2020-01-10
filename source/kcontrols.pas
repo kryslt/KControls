@@ -1335,6 +1335,10 @@ procedure SetControlClipRect(AControl: TWinControl; const ARect: TRect);
   WideString (up to Delphi 2007) or string (Delphi 2009, Lazarus). }
 procedure SetControlText(Value: TWinControl; const Text: TKString);
 
+procedure DPIScaleAllForms(FromDPI: Integer = 96);
+procedure DPIScaleControl(Control: TControl; FromDPI: Integer = 96);
+function DPIScaleValue(Value: Int64; FromDPI: Integer = 96): Int64;
+
 implementation
 
 uses
@@ -1652,6 +1656,44 @@ begin
   else
     Result := Value;
   end;
+end;
+
+procedure DPIScaleAllForms(FromDPI: Integer);
+var
+  i: integer;
+begin
+{$IFNDEF FPC}
+  if Screen.PixelsPerInch = FromDPI then
+    exit;
+
+  for i := 0 to Screen.FormCount - 1 do
+    DPIScaleControl(Screen.Forms[i], FromDPI);
+{$ENDIF}
+end;
+
+procedure DPIScaleControl(Control: TControl; FromDPI: Integer);
+var
+  WinControl: TWinControl;
+begin
+{$IFNDEF FPC}
+  if Screen.PixelsPerInch = FromDPI then
+    exit;
+
+  if Control is TWinControl then
+  begin
+    WinControl := TWinControl(Control);
+    WinControl.ScaleBy(Screen.PixelsPerInch, FromDPI);
+  end;
+{$ENDIF}
+end;
+
+function DPIScaleValue(Value: Int64; FromDPI: Integer): Int64;
+begin
+{$IFDEF FPC}
+  Result := Value;
+{$ELSE}
+  Result := Value * Screen.PixelsPerInch div FromDPI;
+{$ENDIF}
 end;
 
 { TKRect }

@@ -290,8 +290,10 @@ begin
   F := CreateMsgBox(Caption, Text, Buttons, Icon, Def);
   try
     if F <> nil then
+    begin
+      DPIScaleControl(F);
       Result := F.ShowModal
-    else
+    end else
       Result := -1;
   finally
     F.Free;
