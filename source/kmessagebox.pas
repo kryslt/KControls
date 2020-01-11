@@ -186,8 +186,8 @@ begin
     end;
     La.Caption := Text;
     La.AutoSize := False;
-    La.Width := W;
-    La.Height := H;
+    La.Width := W + 20;
+    La.Height := H + 10;
     La.Parent := F;
     L := 20;
     H1 := 0;
