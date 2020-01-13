@@ -12922,7 +12922,10 @@ begin
           S := Copy(AValue, St, I - St);
           S := UnicodeStringReplace(S, cCR, '', [rfReplaceAll]); // on Unix systems
           if (S <> '') and InsertString(AIndex, False, S) then
+          begin
             Inc(AIndex, StringLength(S));
+            UpdateAttributes;             // drb, November 2019
+          end;
         end;
         if InsertParagraph(AIndex, True) then
           Inc(AIndex);
@@ -12934,7 +12937,8 @@ begin
     begin
       S := Copy(AValue, St, I - St + 1);
       if S <> '' then
-        InsertString(AIndex, True, S);
+        if InsertString(AIndex, True, S) then
+            UpdateAttributes;             // drb, November 2019
     end;
   finally
     UnlockUpdate;
