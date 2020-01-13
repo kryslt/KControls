@@ -1,7 +1,7 @@
 {
   "UpdatePackageData" : {
     "DisableInOPM" : false,
-    "DownloadZipURL" : "https://bitbucket.org/tomkrysl/kcontrols/get/1.7.3.zip",
+    "DownloadZipURL" : "https://github.com/kryslt/KControls/archive/1.7.3.zip",
     "Name" : "kcontrols"
   },
   "UpdatePackageFiles" : [
