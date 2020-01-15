@@ -810,8 +810,8 @@ const
   cMaxInt64F =  9.223372036854775807E+18;
   cMinInt64F = -9.223372036854775808E+18;
 {$IF DEFINED(FPC) OR DEFINED(COMPILER12_UP)} // maybe incorrect version, I don't know which Delphi version does not complain anymore
-  cMaxInt64 =  9223372036854775807;
-  cMinInt64 = -9223372036854775808;
+  cMaxInt64:Int64 = Int64(9223372036854775807); // compatible for d7
+  cMinInt64:Int64 = -9223372036854775807 - 1 ;  // compatible for d7
 {$IFEND}
 begin
   if FHasInt then
@@ -846,8 +846,8 @@ const
   cMinUInt64F =                     0E+01;
 // maybe incorrect version, I don't know which Delphi version does not complain anymore
 {$IF DEFINED(FPC) OR DEFINED(COMPILER12_UP)}
-  cMaxUInt64 = 18446744073709551615;
-  cMinUInt64 =                    0;
+  cMaxUInt64:UInt64 = $FFFFFFFFFFFFFFFF; //18446744073709551615; // bug in d7
+  cMinUInt64:UInt64 =                 0;
 {$IFEND}
 begin
   if FHasInt then
