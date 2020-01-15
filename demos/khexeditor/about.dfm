@@ -42,7 +42,7 @@ object AboutForm: TAboutForm
     Top = 53
     Width = 196
     Height = 13
-    Caption = 'https://bitbucket.org/tomkrysl/kcontrols/'
+    Caption = 'https://github.com/kryslt/KControls'
   end
   object BUOk: TButton
     Left = 111
