@@ -1,4 +1,5 @@
 KControls component suite for Delphi and Lazarus
+
 Original authorship: Tomas Krysl
 -------------------
 
