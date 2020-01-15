@@ -2003,6 +2003,10 @@ type
     @link(TKCustomGrid.CellPainterClass) property. }
   TKGridCellPainterClass = class of TKGridCellPainter;
 
+  { @abstract(Metaclass for @link(TKGridColors)) This type is used in the
+    @link(TKCustomGrid.ColorsClass) property. }
+  TKGridColorsClass = class of TKGridColors;
+
   { @abstract(Container for all colors used by @link(TKCustomGrid) class)
     This container allows to group many colors into one item in object inspector.
     Colors are accessible via published properties or several public Color*
@@ -2082,10 +2086,7 @@ type
   {$IFDEF FPC}
     FFlat: Boolean;
   {$ENDIF}
-    FCellClass: TKGridCellClass;
     FCellPainter: TKGridCellPainter;
-    FCellPainterClass: TKGridCellPainterClass;
-    FColClass: TKGridColClass;
     FColCount: Integer;
     FDefaultColWidth: Integer;
     FDefaultRowHeight: Integer;
@@ -2104,7 +2105,6 @@ type
     FMoveDirection: TKGridMoveDirection;
     FOptions: TKGridOptions;
     FOptionsEx: TKGridOptionsEx;
-    FRowClass: TKGridRowClass;
     FRowCount: Integer;
     FRangeSelectStyle: TKGridRangeSelectStyle;
     FScrollBars: TScrollStyle;
@@ -2208,7 +2208,6 @@ type
     procedure SetFlat(Value: Boolean);
   {$ENDIF}
     procedure SetCell(ACol, ARow: Integer; Value: TKGridCell);
-    procedure SetCellPainterClass(Value: TKGridCellPainterClass);
     procedure SetCells(ACol, ARow: Integer; const Text: KFunctions.TKString);
     procedure SetCellSpan(ACol, ARow: Integer; Value: TKGridCellSpan);
     procedure SetCol(Value: Integer);
@@ -2494,6 +2493,18 @@ type
     function GetDefaultRowHeight: Integer; virtual;
     { Returns bounding rectangle where dragged column or row should appear. }
     function GetDragRect(Info: TKGridAxisInfoBoth; out DragRect: TRect): Boolean; virtual;
+
+    { Return class for Cells }
+    function GetCellClass: TKGridCellClass; virtual;
+    { Return class for Painters }
+    function GetCellPainterClass: TKGridCellPainterClass; virtual;
+    { Return class for Columns }
+    function GetColClass: TKGridColClass; virtual;
+    { Return class for Rows }
+    function GetRowClass: TKGridRowClass; virtual;
+    { Return class for Colors }
+    function GetColorsClass: TKGridColorsClass; virtual;
+
     { Returns the combination of invisible cells that must be taken into account
       for the state indicated by GridState.  }
     function GridStateToInvisibleCells: TKGridInvisibleCells;
@@ -3072,24 +3083,6 @@ type
     procedure PaintToCanvas(ACanvas: TCanvas); override;
     { Posts a message to system queue to (re)create the inplace editor. }
     procedure PostRecreateEditor; virtual;
-    { Forces the cell class specified by @link(TKCustomGrid.CellClass) to replace
-      all other cell classes that do not inherit from it. Call this method to
-      ensure that all the cells in the grid contain instances of CellClass or those
-      inherited from CellClass. All possible cell class properties are copied by
-      the @link(TKGridCell.Assign) method. }
-    procedure RealizeCellClass; virtual;
-    { Forces the column class specified by @link(TKCustomGrid.ColClass) to replace
-      all other column classes that do not inherit from it. Call this method to
-      ensure that the entire horizontal grid axis contains instances of ColClass
-      or those inherited from ColClass. All possible column class properties are
-      copied by the @link(TKGridAxisItem.Assign) method. }
-    procedure RealizeColClass; virtual;
-    { Forces the row class specified by @link(TKCustomGrid.RowClass) to replace
-      all other row classes that do not inherit from it. Call this method to
-      ensure that the entire vertical grid axis contains instances of RowClass
-      or those inherited from RowClass. All possible row class properties are
-      copied by the @link(TKGridAxisItem.Assign) method. }
-    procedure RealizeRowClass; virtual;
     { Determines if a row specified by ARow can be selected,
       i.e. lies in non-fixed area. }
     function RowSelectable(ARow: Integer): Boolean; virtual;
@@ -3167,12 +3160,12 @@ type
     property Cell[ACol, ARow: Integer]: TKGridCell read GetCell write SetCell;
     { Cell class used to create new cell instances. Cell instances are always
       created on demand. }
-    property CellClass: TKGridCellClass read FCellClass write FCellClass;
+    property CellClass: TKGridCellClass read GetCellClass;
     { Gains access to the active cell painter. }
     property CellPainter: TKGridCellPainter read FCellPainter;
     { Specifies the cell painter class used to create new @link(TKCustomGrid.CellPainter).
       The new cell painter instance will be created immediately. }
-    property CellPainterClass: TKGridCellPainterClass read FCellPainterClass write SetCellPainterClass;
+    property CellPainterClass: TKGridCellPainterClass read GetCellPainterClass;
     { Gains simplified access to the probably most used property of an textual
       cell instance. If the cell instance at the position specified by ACol and ARow
       does not inherit from a textual cell class @link(TKGridTextCell), it will be
@@ -3189,7 +3182,7 @@ type
     property Col: Integer read FSelection.Col1 write SetCol;
     { Column class used to create new column instances. Column instances are always
       created when @link(TKCustomGrid.ColCount) grows. }
-    property ColClass: TKGridColClass read FColClass write FColClass;
+    property ColClass: TKGridColClass read GetColClass;
     { Specifies the number of columns in the grid. Set ColCount to add or delete
       columns at the righthand side of the grid. The value of ColCount includes
       any fixed columns at the left of the grid as well as the scrollable columns
@@ -3200,6 +3193,8 @@ type
     property Color default clWindow;
     { Specifies all colors used by TKCustomGrid's default painting. }
     property Colors: TKGridColors read FColors write SetColors;
+
+    property ColorsClass: TKGridColorsClass read GetColorsClass;
     { Gains access to the column instances. Column instances are always
       created by utilizing @link(TKCustomGrid.ColClass) when @link(TKCustomGrid.ColCount)
       grows. To replace all other column instances with ColClass, call
@@ -3346,7 +3341,7 @@ type
     property Row: Integer read FSelection.Row1 write SetRow;
     { Row class used to create new row instances. Row instances are always
       created when @link(TKCustomGrid.RowCount) grows. }
-    property RowClass: TKGridRowClass read FRowClass write FRowClass;
+    property RowClass: TKGridRowClass read GetRowClass;
     { Specifies the number of rows in the grid. Set RowCount to add or delete rows
       at the bottom of the grid. The value of RowCount includes any fixed rows at
       the top of the grid as well as the scrollable rows in the body of the grid. }
@@ -6331,13 +6326,11 @@ begin
   FCellHintTimer.Interval := cMouseCellHintTimeDef;
   FCellHintTimer.OnTimer := CellHintTimerHandler;
   FCells := nil;
-  FCellClass := TKGridTextCell;
-  FCellPainterClass := TKGridCellPainter;
-  FCellPainter := FCellPainterClass.Create(Self);
-  FColClass := TKGridCol;
+  FCellPainter := CellPainterClass.Create(Self);
   FColCount := cInvalidIndex;
-  FCols := TKGridAxisItems.Create(Self, FColClass);
-  FColors := TKGridColors.Create(Self);
+  FCols := TKGridAxisItems.Create(Self, ColClass);
+
+  FColors := ColorsClass.Create(Self);
   FDefaultColWidth := cDefaultColWidthDef;
   FDefaultRowHeight := GetDefaultRowHeight;
   FDisabledDrawStyle := cDisabledDrawStyleDef;
@@ -6374,9 +6367,8 @@ begin
   FOptions := cOptionsDef;
   FOptionsEx := cOptionsExDef;
   FRangeSelectStyle := cRangeSelectStyleDef;
-  FRowClass := TKGridRow;
   FRowCount := cInvalidIndex;
-  FRows := TKGridAxisItems.Create(Self, FRowClass);
+  FRows := TKGridAxisItems.Create(Self, RowClass);
   FScrollBars := cScrollBarsDef;
   FScrollModeHorz := cScrollModeDef;
   FScrollModeVert := cScrollModeDef;
@@ -8319,6 +8311,31 @@ begin
   end;
 end;
 
+function TKCustomGrid.GetCellClass: TKGridCellClass;
+begin
+  Result:=TKGridTextCell;
+end;
+
+function TKCustomGrid.GetCellPainterClass: TKGridCellPainterClass;
+begin
+  Result:=TKGridCellPainter;
+end;
+
+function TKCustomGrid.GetColClass: TKGridColClass;
+begin
+  Result:=TKGridCol;
+end;
+
+function TKCustomGrid.GetRowClass: TKGridRowClass;
+begin
+  Result:=TKGridRow;
+end;
+
+function TKCustomGrid.GetColorsClass: TKGridColorsClass;
+begin
+  Result:=TKGridColors;
+end;
+
 function TKCustomGrid.GetDrawState(ACol, ARow: Integer; AFocused: Boolean): TKGridDrawState;
 var
   BaseCol, BaseRow: Integer;
@@ -8996,7 +9013,7 @@ end;
 function TKCustomGrid.InternalGetCell(ACol, ARow: Integer): TKGridCell;
 begin
   if FCells[ARow, ACol] = nil then
-    FCells[ARow, ACol] := FCellClass.Create(Self);
+    FCells[ARow, ACol] := CellClass.Create(Self);
   Result := FCells[ARow, ACol];
 end;
 
@@ -9587,8 +9604,8 @@ begin
   try
     if not (Cell is TKGridTextCell) then
     begin
-      if FCellClass.InheritsFrom(TKGridTextCell) then
-        Tmp := FCellClass.Create(Self)
+      if CellClass.InheritsFrom(TKGridTextCell) then
+        Tmp := CellClass.Create(Self)
       else
         Tmp := TKGridTextCell.Create(Self);
       Tmp.Assign(Cell);
@@ -11647,78 +11664,6 @@ begin
   end;
 end;
 
-procedure TKCustomGrid.RealizeCellClass;
-var
-  I, J: Integer;
-  Cell, TmpCell: TKGridCell;
-  UpdateNeeded: Boolean;
-begin
-  if Assigned(FCells) then
-  begin
-    UpdateNeeded := False;
-    for I := 0 to FColCount - 1 do
-      for J := 0 to FRowCount - 1 do
-      begin
-        Cell := FCells[J, I];
-        if (Cell <> nil) and (Cell.ClassType <> FCellClass) then
-        begin
-          TmpCell := FCellClass.Create(Self);
-          FlagSet(cGF_GridUpdates);
-          try
-            TmpCell.Assign(Cell); // copy known properties
-            Cell.Free;
-            FCells[J, I] := TmpCell;
-          finally
-            FlagClear(cGF_GridUpdates);
-          end;
-          UpdateNeeded := True;
-        end;
-      end;
-    if UpdateNeeded then
-      Invalidate;
-  end;
-end;
-
-procedure TKCustomGrid.RealizeColClass;
-var
-  NewItems, BkItems: TKGridAxisItems;
-begin
-  if FCols.ItemClass <> FColClass then
-  begin
-    FlagSet(cGF_GridUpdates);
-    try
-      NewItems := TKGridAxisItems.Create(Self, FColClass);
-      NewItems.Assign(FCols);
-      BKItems := FCols;
-      FCols := NewItems;
-      BKItems.Free;
-    finally
-      FlagClear(cGF_GridUpdates);
-    end;
-    UpdateAxes(True, cAll, False, cAll, []);
-  end;
-end;
-
-procedure TKCustomGrid.RealizeRowClass;
-var
-  NewItems, BkItems: TKGridAxisItems;
-begin
-  if FRows.ItemClass <> FRowClass then
-  begin
-    FlagSet(cGF_GridUpdates);
-    try
-      NewItems := TKGridAxisItems.Create(Self, FRowClass);
-      NewItems.Assign(FRows);
-      BKItems := FRows;
-      FRows := NewItems;
-      BKItems.Free;
-    finally
-      FlagClear(cGF_GridUpdates);
-    end;
-    UpdateAxes(False, cAll, True, cAll, []);
-  end;
-end;
-
 procedure TKCustomGrid.ReadColWidths(Reader: TReader);
 var
   I, Tmp: Integer;
@@ -12209,16 +12154,6 @@ begin
     InternalSetCell(ACol, ARow, Value);
 end;
 
-procedure TKCustomGrid.SetCellPainterClass(Value: TKGridCellPainterClass);
-begin
-  if Value <> FCellPainterClass then
-  begin
-    FCellPainterClass := Value;
-    FCellPainter.Free;
-    FCellPainter := FCellPainterClass.Create(Self);
-  end;
-end;
-
 procedure TKCustomGrid.SetCells(ACol, ARow: Integer; const Text: KFunctions.TKString);
 begin
   if Assigned(FCells) and ColValid(ACol) and RowValid(ARow) then
@@ -12527,8 +12462,8 @@ begin
       Cell := InternalGetCell(ACol, ARow);
       if not (Cell is TKGridObjectCell) then
       begin
-        if FCellClass.InheritsFrom(TKGridObjectCell) then
-          Tmp := FCellClass.Create(Self)
+        if CellClass.InheritsFrom(TKGridObjectCell) then
+          Tmp := CellClass.Create(Self)
         else
           Tmp := TKGridObjectCell.Create(Self);
         Tmp.Assign(Cell);
@@ -13407,7 +13342,7 @@ procedure TKCustomGrid.UpdateScrollRange(Horz, Vert, UpdateNeeded: Boolean);
     MaxExtent := Info.ClientExtent - Info.FixedBoundary;
     I := Info.TotalCellCount - 1;
     FirstGridCellExtent := I;
-    while I >= Info.FixedCellCount do
+    while I >= Max(Info.FixedCellCount,0) do //FixedCellCount may be "-1" (for future initialization : col = 0 and row =0  )
     begin
       CellExtent := Info.CellExtent(I);
       Inc(ScrollExtent, CellExtent + Info.EffectiveSpacing(I));
