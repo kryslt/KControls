@@ -12929,6 +12929,7 @@ begin
         end;
         if InsertParagraph(AIndex, True) then
           Inc(AIndex);
+        UpdateAttributes;
         St := I + 1;
       end;
       Inc(I);
