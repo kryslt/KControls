@@ -1,7 +1,7 @@
 {
   "UpdatePackageData" : {
     "DisableInOPM" : false,
-    "DownloadZipURL" : "https://github.com/kryslt/KControls/archive/1.7.3.zip",
+    "DownloadZipURL" : "https://github.com/kryslt/KControls/archive/master.zip",
     "Name" : "kcontrols"
   },
   "UpdatePackageFiles" : [
@@ -9,13 +9,13 @@
       "ForceNotify" : true,
       "InternalVersion" : 1,
       "Name" : "kcontrolsbase.lpk",
-      "Version" : "1.7.3.0"
+      "Version" : "master"
     },
     {
       "ForceNotify" : true,
       "InternalVersion" : 1,
       "Name" : "kcontrolslaz.lpk",
-      "Version" : "1.7.3.0"
+      "Version" : "master"
     }
   ]
 }
