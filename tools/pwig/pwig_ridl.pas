@@ -49,7 +49,7 @@ type
     function GetDescription: string; override;
     function GetName: string; override;
     function InterfaceToString(AIntf: TPWIGInterface): string; virtual;
-    function TypeToString(AType: TPWIGType): string; virtual;
+    function TypeToString(AType: TPWIGType; AUseEnums: Boolean = True): string; virtual;
     procedure WriteElementProps(AElement: TPWIGElement); virtual;
     procedure WriteAliasProps(AAlias: TPWIGAlias); virtual;
     procedure WriteEnumProps(AEnum: TPWIGEnum); virtual;
@@ -108,7 +108,7 @@ begin
     Result := 'interface';
 end;
 
-function TPWIGGenRIDL.TypeToString(AType: TPWIGType): string;
+function TPWIGGenRIDL.TypeToString(AType: TPWIGType; AUseEnums: Boolean): string;
 begin
   Result := '';
   case AType.BaseType of
@@ -124,7 +124,11 @@ begin
     btRawByteString: Result := 'LPSTR'; // memory management not supported by COM!
     btCurrency: Result := 'CURRENCY';
     btDateTime: Result := 'DATE';
-    btEnum: Result := 'enum ' + FPWIG.Enums.FindName(AType.CustomTypeGUID, AType.CustomTypeName);
+    btEnum:
+      if AUseEnums then
+        Result := 'enum ' + FPWIG.Enums.FindName(AType.CustomTypeGUID, AType.CustomTypeName)
+      else
+        Result := 'unsigned long';
     btAlias: Result := FPWIG.Aliases.FindName(AType.CustomTypeGUID, AType.CustomTypeName);
     btInterface: Result := FPWIG.Interfaces.FindName(AType.CustomTypeGUID, AType.CustomTypeName) + '*';
   end;
@@ -310,9 +314,9 @@ begin
       begin
         // all params are [in] except last one which is [out, retval] for a getter
         if not AGetter or (I < AMethod.Params.Count - 1) then
-          Write(F, '[in] ', TypeToString(Param.ParamType), ' ', Param.Name)
+          Write(F, '[in] ', TypeToString(Param.ParamType, TPWIGProperty(AMethod).PropertyType = ptWriteOnly), ' ', Param.Name)
         else
-          Write(F, '[out, retval] ', TypeToString(Param.ParamType), '* ', Param.Name);
+          Write(F, '[out, retval] ', TypeToString(Param.ParamType, TPWIGProperty(AMethod).PropertyType = ptWriteOnly), '* ', Param.Name);
       end else
       begin
         // write param flags as specified
@@ -324,6 +328,8 @@ begin
           S := '*'
         else
           S := '';
+        if Flags = '' then
+          AddFlag(True, 'in');
         Write(F, '[', Flags, '] ', TypeToString(Param.ParamType), S, ' ', Param.Name)
       end;
       if I < AMethod.Params.Count - 1 then
