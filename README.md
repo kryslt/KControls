@@ -10,8 +10,7 @@ More info at https://bitbucket.org/blog/sunsetting-mercurial-support-in-bitbucke
 Bitbucket continues with GIT support but IMO GitHub is better for GIT.
 
 ## LICENSE:
-License information for each source file can be found in it's header.
-If there is none, the code is public domain.
+This code is licensed under BSD 3-Clause Clear License, see file License.txt or https://spdx.org/licenses/BSD-3-Clause-Clear.html.
 
 ## SYSTEM REQUIREMENTS:
 - platforms: Win32, Win64, GTK, GTK2, QT, Carbon, Cocoa, WinCE(partially tested)

@@ -1,20 +1,13 @@
-{ @abstract(This unit contains simple XML parser and writer.)
-  @author(Graham Murt, portions Tomas Krysl)
+{ @abstract(This file is part of the KControls component suite for Delphi and Lazarus.)
+  @author(Tomas Krysl)
 
-  Copyright (c) 2003 Graham Murt  - www.murtsoft.co.uk
-  Portions Copyright (c) 2015 Tomas Krysl<BR><BR>
+  Copyright (c) 2020 Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
-  This code is distributed as a freeware. You are free to use it as part
-  of your application for any purpose including freeware, commercial and
-  shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. All redistributions
-  of the original or modified source code must retain the original copyright
-  notice. The Author accepts no liability for any damage that may result
-  from using this code.
+  This code is licensed under BSD 3-Clause Clear License, see file License.txt or https://spdx.org/licenses/BSD-3-Clause-Clear.html.
 }
 
-// Original copyright notice: 
+// Original copyright notice:
 
 {******************************************************************************}
 {                                                                              }

@@ -28,15 +28,10 @@
 
 Package KControlsLaz: contains dependencies on LCL.
 "/>
-    <License Value="This code is distributed as a freeware. You are free to use it as part
-of your application for any purpose including freeware, commercial and
-shareware applications. The origin of this source code must not be
-misrepresented; you must not claim your authorship. All redistributions
-of the original or modified source code must retain the original copyright
-notice. The Author accepts no liability for any damage that may result
-from using this code."/>
+    <License Value="This code is licensed under BSD 3-Clause Clear License, see file License.txt or https://spdx.org/licenses/BSD-3-Clause-Clear.html.
+"/>
     <Version Major="1" Minor="7" Release="3"/>
-    <Files Count="42">
+    <Files Count="43">
       <Item1>
         <Filename Value="..\..\source\kgraphics.pas"/>
         <UnitName Value="kgraphics"/>
@@ -206,6 +201,10 @@ from using this code."/>
         <Filename Value="..\..\source\ksplitter.pas"/>
         <UnitName Value="ksplitter"/>
       </Item42>
+      <Item43>
+        <Filename Value="..\..\source\kmemodlgnumbering.pas"/>
+        <UnitName Value="kmemodlgnumbering"/>
+      </Item43>
     </Files>
     <RequiredPkgs Count="4">
       <Item1>
@@ -227,7 +226,6 @@ from using this code."/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
-      <IgnoreBinaries Value="False"/>
     </PublishOptions>
     <CustomOptions Items="ExternHelp" Version="2">
       <_ExternHelp Items="Count"/>

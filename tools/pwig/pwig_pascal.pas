@@ -1,20 +1,10 @@
-﻿{ @abstract(This unit contains PWIG Pascal wrapper class generator (usable by Lazarus or Delphi).)
+﻿{ @abstract(This file is part of the PWIG tool, Pascal Wrapper and Interface Generator.)
   @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl <BR><BR>
-
-  Generated outputs tested in:
-  -Lazarus 1.6 + FPC 3.0.0, Win32 (callee + caller)
-  -Delphi XE, Win32 (callee + caller)
+  Copyright (c) 2020 Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
-  This code is distributed as a freeware. You are free to use it as part
-  of your application for any purpose including freeware, commercial and
-  shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. All redistributions
-  of the original or modified source code must retain the original copyright
-  notice. The Author accepts no liability for any damage that may result
-  from using this code.
+  This code is licensed under BSD 3-Clause Clear License, see file License.txt or https://spdx.org/licenses/BSD-3-Clause-Clear.html.
 }
 
 unit pwig_pascal;

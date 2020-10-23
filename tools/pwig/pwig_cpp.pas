@@ -1,19 +1,10 @@
-﻿{ @abstract(This unit contains PWIG C++ wrapper class generator (usable by C++ IDEs).)
+﻿{ @abstract(This file is part of the PWIG tool, Pascal Wrapper and Interface Generator.)
   @author(Tomas Krysl)
 
-  Copyright (c) Tomas Krysl <BR><BR>
-
-  Generated outputs tested in:
-  -Visual Studio Community 2015 (unmanaged code, callee + caller)
+  Copyright (c) 2020 Tomas Krysl<BR><BR>
 
   <B>License:</B><BR>
-  This code is distributed as a freeware. You are free to use it as part
-  of your application for any purpose including freeware, commercial and
-  shareware applications. The origin of this source code must not be
-  misrepresented; you must not claim your authorship. All redistributions
-  of the original or modified source code must retain the original copyright
-  notice. The Author accepts no liability for any damage that may result
-  from using this code.
+  This code is licensed under BSD 3-Clause Clear License, see file License.txt or https://spdx.org/licenses/BSD-3-Clause-Clear.html.
 }
 
 unit pwig_cpp;
