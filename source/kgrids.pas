@@ -8618,7 +8618,7 @@ end;
 
 function TKCustomGrid.GetVisibleColCount: Integer;
 begin
-  Result := LastVisibleCol;
+  Result := LastVisibleCol - LeftCol + 1;
 end;
 
 function TKCustomGrid.GetVisibleGridRect: TKGridRect;
@@ -8628,7 +8628,7 @@ end;
 
 function TKCustomGrid.GetVisibleRowCount: Integer;
 begin
-  Result := LastVisibleRow;
+  Result := LastVisibleRow - TopRow + 1;
 end;
 
 procedure TKCustomGrid.GMRecreateEditor(var Msg: TLMessage);
