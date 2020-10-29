@@ -1881,6 +1881,8 @@ type
     { Restores normal drawing output after previous
       @link(TKGridCellPainter.BeginClip) call. }
     procedure EndClip; virtual;
+    { Returns True if cell focus should be painted. }
+    function ShouldDrawFocus: Boolean; virtual;
     { Specifies the text attributes used to render the cell text. }
     property Attributes: TKTextAttributes read FAttributes write FAttributes;
     { Specifies the color used to fill the gaps if the Brush
@@ -5764,15 +5766,20 @@ begin
   end;
 end;
 
+function TKGridCellPainter.ShouldDrawFocus: Boolean;
+begin
+  Result := (gdFocused in FState) and
+    (FGrid.Options * [goRangeSelect, goRowSelect, goDrawFocusSelected] = [goDrawFocusSelected]);
+end;
+
 procedure TKGridCellPainter.DrawCellFocus(const ARect: TRect; SkipTest: Boolean);
 begin
-  if (gdFocused in FState) and (SkipTest or (FGrid.Options * [goRangeSelect, goRowSelect,
-    goDrawFocusSelected] = [goDrawFocusSelected])) then
+  if ShouldDrawFocus or SkipTest then
   begin
     // to ensure coming DrawFocusRect will be painted correctly:
     SetBkColor(FCanvas.Handle, $FFFFFF);
     SetTextColor(FCanvas.Handle, 0);
-    FCanvas.DrawFocusRect(FCellRect);
+    FCanvas.DrawFocusRect(ARect);
   end;
 end;
 
@@ -11348,10 +11355,8 @@ begin
     if not (csDesigning in ComponentState) and (goDrawFocusSelected in FOptions) and
       (FOptions * [goRangeSelect, goRowSelect] <> []) and Focused and not EditorMode then
     begin
-      // to ensure coming DrawFocusRect will be painted correctly:
-      SetBkColor(DC, $FFFFFF);
-      SetTextColor(DC, 0);
-      ACanvas.DrawFocusRect(SelectionRect);
+      CellPainter.Canvas:=ACanvas;
+      CellPainter.DrawCellFocus(SelectionRect, True);
     end;
     // default color for client area parts not consumed by cells
     ACanvas.Brush.Style := bsSolid;
