@@ -236,27 +236,27 @@ type
     function Peek: TKMemoRTFState;
   end;
 
-  TKMemoRTFHeaderProp = (rphRtf, rphCodePage, rphDefaultFont, rphIgnoreCharsAfterUnicode, rphFontTable, rphColorTable, rphStyleSheet);
-  TKMemoRTFDocumentProp = (rpdFooter, rpdFooterLeft, rpdFooterRight, rpdHeader, rpdHeaderLeft, rpdHeaderRight, rpdInfo);
-  TKMemoRTFColorProp = (rpcRed, rpcGreen, rpcBlue);
-  TKMemoRTFFieldProp = (rpfiField, rpfiResult);
-  TKMemoRTFFontProp = (rpfIndex, rpfCharset, rpfPitch);
-  TKMemoRTFImageProp = (rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop,
+  TKMemoRTFHeaderProp = (rphNone, rphRtf, rphCodePage, rphDefaultFont, rphIgnoreCharsAfterUnicode, rphFontTable, rphColorTable, rphStyleSheet);
+  TKMemoRTFDocumentProp = (rpdNone, rpdFooter, rpdFooterLeft, rpdFooterRight, rpdHeader, rpdHeaderLeft, rpdHeaderRight, rpdInfo);
+  TKMemoRTFColorProp = (rpcNone, rpcRed, rpcGreen, rpcBlue);
+  TKMemoRTFFieldProp = (rpfiNone, rpfiField, rpfiResult);
+  TKMemoRTFFontProp = (rpfNone, rpfIndex, rpfCharset, rpfPitch);
+  TKMemoRTFImageProp = (rpiNone, rpiPict, rpiJPeg, rpiPng, rpiEmf, rpiWmf, rpiWidth, rpiHeight, rpiCropBottom, rpiCropLeft, rpiCropRight, rpiCropTop,
     rpiReqWidth, rpiReqHeight, rpiScaleX, rpiScaleY);
-  TKMemoRTFListProp = (rplList, rplListOverride, rplListLevel, rplListId, rplListIndex, rplListText, rplLevelStartAt, rplLevelNumberType, rplLevelJustify, rplLevelText,
+  TKMemoRTFListProp = (rplNone, rplList, rplListOverride, rplListLevel, rplListId, rplListIndex, rplListText, rplLevelStartAt, rplLevelNumberType, rplLevelJustify, rplLevelText,
     rplLevelFontIndex, rplLevelFirstIndent, rplLevelLeftIndent, rplPnText);
-  TKMemoRTFParaProp = (rppParD, rppIndentFirst, rppIndentBottom, rppIndentLeft, rppIndentRight, rppIndentTop, rppAlignLeft, rppAlignCenter, rppAlignRight, rppAlignJustify,
+  TKMemoRTFParaProp = (rppNone, rppParD, rppIndentFirst, rppIndentBottom, rppIndentLeft, rppIndentRight, rppIndentTop, rppAlignLeft, rppAlignCenter, rppAlignRight, rppAlignJustify,
     rppBackColor, rppNoWordWrap, rppBorderBottom, rppBorderLeft, rppBorderRight, rppBorderTop, rppBorderAll, rppBorderWidth, rppBorderNone, rppBorderRadius, rppBorderColor,
     rppLineSpacing, rppLineSpacingMode, rppPar, rppListIndex, rppListLevel, rppListStartAt);
-  TKMemoRTFShapeProp = (rpsShape, rpsBottom, rpsLeft, rpsRight, rpsTop, rpsXColumn, rpsYPara, rpsWrap, rpsWrapSide, rpsSn, rpsSv, rpsShapeText);
-  TKMemoRTFSpecialCharProp = (rpscTab, rpscLquote, rpscRQuote, rpscLDblQuote, rpscRDblQuote, rpscEnDash, rpscEmDash, rpscBullet, rpscNBSP, rpscEmSpace, rpscEnSpace,
+  TKMemoRTFShapeProp = (rpsNone, rpsShape, rpsBottom, rpsLeft, rpsRight, rpsTop, rpsXColumn, rpsYPara, rpsWrap, rpsWrapSide, rpsSn, rpsSv, rpsShapeText);
+  TKMemoRTFSpecialCharProp = (rpscNone, rpscTab, rpscLquote, rpscRQuote, rpscLDblQuote, rpscRDblQuote, rpscEnDash, rpscEmDash, rpscBullet, rpscNBSP, rpscEmSpace, rpscEnSpace,
     rpscAnsiChar, rpscUnicodeChar);
-  TKMemoRTFTableProp = (rptbRowBegin, rptbCellEnd, rptbRowEnd, rptbLastRow, rptbRowPaddBottom, rptbRowPaddLeft, rptbRowPaddRight, rptbRowPaddTop, rptbBorderBottom, rptbBorderLeft,
+  TKMemoRTFTableProp = (rptbNone, rptbRowBegin, rptbCellEnd, rptbRowEnd, rptbLastRow, rptbRowPaddBottom, rptbRowPaddLeft, rptbRowPaddRight, rptbRowPaddTop, rptbBorderBottom, rptbBorderLeft,
     rptbPaddAll, rptbBorderRight, rptbBorderTop, rptbBorderWidth, rptbBorderNone, rptbBorderColor, rptbBackColor, rptbHorzMergeBegin, rptbHorzMerge,
     rptbVertMergeBegin, rptbVertMerge, rptbCellPaddBottom, rptbCellPaddLeft, rptbCellPaddRight, rptbCellPaddTop, rptbCellWidth, rptbCellX);
-  TKMemoRTFTextProp = (rptPlain, rptFontIndex, rptBold, rptItalic, rptUnderline, rptStrikeout, rptCaps, rptSmallCaps, rptFontSize, rptForeColor, rptBackColor,
+  TKMemoRTFTextProp = (rptNone, rptPlain, rptFontIndex, rptBold, rptItalic, rptUnderline, rptStrikeout, rptCaps, rptSmallCaps, rptFontSize, rptForeColor, rptBackColor,
     rptSubscript, rptSuperscript);
-  TKMemoRTFUnknownProp = (rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict, rpuFieldInst, rpuListTable, rpuListOverrideTable);
+  TKMemoRTFUnknownProp = (rpuNone, rpuUnknownSym, rpuPageBackground, rpuPicProp, rpuShapeInst, rpuShapePict, rpuNonShapePict, rpuFieldInst, rpuListTable, rpuListOverrideTable);
 
   { Specifies the common ancestor for RTF streaming. }
   TKMemoRTFFiler = class(TObject)
@@ -2727,11 +2727,11 @@ begin
       begin
         // if Method did not use Text use it according to active group
         case FActiveState.Group of
-          rgColorTable: ReadColorGroup(-1, Text, 0);
-          rgFieldInst: ReadFieldGroup(-1, Text, 0);
-          rgFontTable: ReadFontGroup(-1, Text, 0);
-          rgPicture: ReadPictureGroup(-1, Text, 0);
-          rgListLevelText: ReadListGroup(-1, Text, 0);
+          rgColorTable: ReadColorGroup(Integer(rpcNone), Text, 0);
+          rgFieldInst: ReadFieldGroup(Integer(rpfiNone), Text, 0);
+          rgFontTable: ReadFontGroup(Integer(rpfNone), Text, 0);
+          rgPicture: ReadPictureGroup(Integer(rpiNone), Text, 0);
+          rgListLevelText: ReadListGroup(Integer(rplNone), Text, 0);
           rgNone, rgTextBox, rgFieldResult: AddText(TKString(Text));
         end;
       end;
