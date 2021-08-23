@@ -994,7 +994,7 @@ end;
 procedure TKMemoRTFListLevel.SetNumberTypeAsNumbering(const Value: TKMemoParaNumbering);
 begin
   case Value of
-    pnuBullets: FNumberType := 23;
+    pnuBullets, pnuSquareBullets, pnuArrowBullets: FNumberType := 23; // maps to bullet, TODO: find out how other bullet styles are stored in RTF...
     pnuArabic: FNumberType := 0;
     pnuLetterLo: FNumberType := 4;
     pnuLetterHi: FNumberType := 3;
