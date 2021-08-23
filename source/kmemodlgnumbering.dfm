@@ -48,6 +48,8 @@ object KMemoNumberingForm: TKMemoNumberingForm
     Items.Strings = (
       'None'
       'Bullets'
+      'Square Bullets'
+      'Arrow Bullets'
       'Arabic (1,2,3)'
       'Letter Lo (a,b,c)'
       'Letter Hi (A,B,C)'
@@ -93,7 +95,9 @@ object KMemoNumberingForm: TKMemoNumberingForm
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
+      MaxAsInt = 250
       Min = -250.000000000000000000
+      MinAsInt = -250
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       UpDownStep = 5.000000000000000000
       TabOrder = 0
@@ -107,7 +111,9 @@ object KMemoNumberingForm: TKMemoNumberingForm
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250.000000000000000000
+      MaxAsInt = 250
       Min = -250.000000000000000000
+      MinAsInt = -250
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       UpDownStep = 5.000000000000000000
       TabOrder = 2
@@ -172,8 +178,10 @@ object KMemoNumberingForm: TKMemoNumberingForm
       Width = 55
       Height = 21
       DecimalSeparator = ','
+      MaxAsInt = 1000
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       Value = 1.000000000000000000
+      ValueAsInt = 1
       TabOrder = 3
     end
   end

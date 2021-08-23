@@ -252,7 +252,7 @@ type
     property Items[Index: Integer]: TKMemoDictionaryItem read GetItem write SetItem; default;
   end;
 
-  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
+  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets, pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
 
   TKMemoNumberingFormatItem = class(TKObject)
   private
@@ -2801,6 +2801,14 @@ begin
     pnuBullets:
     begin
       AddItem(-1, UnicodeToNativeUTF(cBullet));
+    end;
+    pnuSquareBullets:
+    begin
+      AddItem(-1, UnicodeToNativeUTF(cSquareBullet));
+    end;
+    pnuArrowBullets:
+    begin
+      AddItem(-1, UnicodeToNativeUTF(cArrowBullet));
     end;
     pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi:
     begin
@@ -14601,7 +14609,7 @@ procedure TKMemoBlocks.UpdateAttributes;
         begin
           ItemLevel := List.Levels[Item.Level];
           Numbering := ItemLevel.Numbering;
-          if not (Numbering in [pnuNone, pnuBullets]) then
+          if not (Numbering in [pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets]) then
           begin
             LevelCounter := ItemLevel.LevelCounter;
             if AStyle.NumberStartAt > 0 then
