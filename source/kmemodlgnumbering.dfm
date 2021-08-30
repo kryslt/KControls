@@ -50,6 +50,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
       'Bullets'
       'Square Bullets'
       'Arrow Bullets'
+      'Circle Bullets'
       'Arabic (1,2,3)'
       'Letter Lo (a,b,c)'
       'Letter Hi (A,B,C)'

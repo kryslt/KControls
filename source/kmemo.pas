@@ -115,9 +115,11 @@ const
   { This is the character for standard bullet. }
   cBullet = #$2022;
   { This is the character for square bullet. }
-  cSquareBullet = #$25AB;
+  cSquareBullet = #$25A0;
   { This is the character for arrow bullet. }
   cArrowBullet = #$25BA;
+  { This is the character for circle bullet. }
+  cCircleBullet = #$25CB;
 
   { Default characters used to break the text words. }
   cDefaultWordBreaks = [cNULL, cSPACE, '/', '\', ';', ':', '(', ')', '[', ']', '.', ',', '?', '!'];
@@ -252,7 +254,7 @@ type
     property Items[Index: Integer]: TKMemoDictionaryItem read GetItem write SetItem; default;
   end;
 
-  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets, pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
+  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets, pnuCircleBullets, pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
 
   TKMemoNumberingFormatItem = class(TKObject)
   private
@@ -2809,6 +2811,10 @@ begin
     pnuArrowBullets:
     begin
       AddItem(-1, UnicodeToNativeUTF(cArrowBullet));
+    end;
+    pnuCircleBullets:
+    begin
+      AddItem(-1, UnicodeToNativeUTF(cCircleBullet));
     end;
     pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi:
     begin
@@ -14609,7 +14615,7 @@ procedure TKMemoBlocks.UpdateAttributes;
         begin
           ItemLevel := List.Levels[Item.Level];
           Numbering := ItemLevel.Numbering;
-          if not (Numbering in [pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets]) then
+          if not (Numbering in [pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets, pnuCircleBullets]) then
           begin
             LevelCounter := ItemLevel.LevelCounter;
             if AStyle.NumberStartAt > 0 then
