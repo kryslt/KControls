@@ -112,14 +112,13 @@ const
   cSpaceChar = #$B7;
   { This is the character for tab visualisation. }
   cTabChar = #$2192;
-  { This is the character for standard bullet. }
-  cBullet = #$2022;
-  { This is the character for square bullet. }
-  cSquareBullet = #$25A0;
-  { This is the character for arrow bullet. }
-  cArrowBullet = #$25BA;
-  { This is the character for circle bullet. }
-  cCircleBullet = #$25CB;
+  { These are Bullet Characters. }
+  cTriangleBullet = #$2023;
+  cRoundBullet = #$2022;
+  cArrowTwoBullet = #$21A6;               // https://en.wikipedia.org/wiki/Arrows_(Unicode_block)
+  cArrowOneBullet = #$21A3;               // https://en.wikipedia.org/wiki/Arrows_(Unicode_block)
+  cCircleBullet = #$2218;                 // https://en.wikipedia.org/wiki/Mathematical_Operators_(Unicode_block)
+
 
   { Default characters used to break the text words. }
   cDefaultWordBreaks = [cNULL, cSPACE, '/', '\', ';', ':', '(', ')', '[', ']', '.', ',', '?', '!'];
@@ -254,8 +253,8 @@ type
     property Items[Index: Integer]: TKMemoDictionaryItem read GetItem write SetItem; default;
   end;
 
-  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets, pnuCircleBullets, pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
-
+  TKMemoParaNumbering = (pnuNone, pnuTriangleBullets, pnuBullets, pnuCircleBullets, pnuArrowOneBullets, pnuArrowTwoBullets,  pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
+  // punBullets retained for compatibility with previous versions of KMemo
   TKMemoNumberingFormatItem = class(TKObject)
   private
     FLevel: Integer;
@@ -2802,19 +2801,23 @@ begin
   case ANumbering of
     pnuBullets:
     begin
-      AddItem(-1, UnicodeToNativeUTF(cBullet));
+      AddItem(-1, UnicodeToNativeUTF(cRoundBullet));
     end;
-    pnuSquareBullets:
+    pnuArrowTwoBullets:
     begin
-      AddItem(-1, UnicodeToNativeUTF(cSquareBullet));
+      AddItem(-1, UnicodeToNativeUTF(cArrowTwoBullet));
     end;
-    pnuArrowBullets:
+    pnuArrowOneBullets:
     begin
-      AddItem(-1, UnicodeToNativeUTF(cArrowBullet));
+      AddItem(-1, UnicodeToNativeUTF(cArrowOneBullet));
     end;
     pnuCircleBullets:
     begin
       AddItem(-1, UnicodeToNativeUTF(cCircleBullet));
+    end;
+    pnuTriangleBullets:
+    begin
+      AddItem(-1, UnicodeToNativeUTF(cTriangleBullet));
     end;
     pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi:
     begin
@@ -14615,7 +14618,7 @@ procedure TKMemoBlocks.UpdateAttributes;
         begin
           ItemLevel := List.Levels[Item.Level];
           Numbering := ItemLevel.Numbering;
-          if not (Numbering in [pnuNone, pnuBullets, pnuSquareBullets, pnuArrowBullets, pnuCircleBullets]) then
+          if not (Numbering in [pnuNone, pnuBullets, pnuArrowTwoBullets, pnuArrowOneBullets, pnuCircleBullets, pnuTriangleBullets]) then
           begin
             LevelCounter := ItemLevel.LevelCounter;
             if AStyle.NumberStartAt > 0 then
