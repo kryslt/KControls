@@ -1662,7 +1662,7 @@ begin
     exit;
 
   for i := 0 to Screen.FormCount - 1 do
-    DPIScaleControl(Screen.Forms[i], FromDPI);}
+    DPIScaleControl(Screen.Forms[i], FromDPI);
  {$ENDIF}
 {$ENDIF}
 end;
