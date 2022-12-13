@@ -1663,11 +1663,11 @@ type
     property BackColor: TColor read FBackColor write SetBackColor;
     { This is the brush that will be used to fill the cell background. }
     property Brush: TBrush read FBrush;
-    { Returns True if Brush.OnChange occured. }
+    { Returns True if Brush.OnChange occurred. }
     property BrushChanged: Boolean read FBrushChanged;
     { This is the font that will be used to render the text. }
     property Font: TFont read FFont;
-    { Returns True if Font.OnChange occured. }
+    { Returns True if Font.OnChange occurred. }
     property FontChanged: Boolean read FFontChanged;
     { This is the horizontal alignment
       that will be used to place the text within the cell rectangle. }

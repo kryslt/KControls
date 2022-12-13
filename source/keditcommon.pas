@@ -287,7 +287,7 @@ type
 
   { Declares possible values for the ErrorReason member of the @link(TKEditSearchData) structure }
   TKEditSearchError = (
-    { No error occured }
+    { No error occurred }
     eseOk,
     { There is a character in the search string that cannot be interpreted as hexadecimal digits}
     eseNoDigitsFind,
