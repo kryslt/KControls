@@ -1657,13 +1657,11 @@ var
   i: integer;
 begin
 {$IFNDEF FPC}
- {$IFNDEF COMPILER19_UP}
   if Screen.PixelsPerInch = FromDPI then
     exit;
 
   for i := 0 to Screen.FormCount - 1 do
     DPIScaleControl(Screen.Forms[i], FromDPI);
- {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1672,7 +1670,6 @@ var
   WinControl: TWinControl;
 begin
 {$IFNDEF FPC}
- {$IFNDEF COMPILER19_UP}
   if Screen.PixelsPerInch = FromDPI then
     exit;
 
@@ -1681,17 +1678,16 @@ begin
     WinControl := TWinControl(Control);
     WinControl.ScaleBy(Screen.PixelsPerInch, FromDPI);
   end;
- {$ENDIF}
 {$ENDIF}
 end;
 
 function DPIScaleValue(Value: Int64; FromDPI: Integer): Int64;
 begin
-{$IF DEFINED(FPC) OR DEFINED(COMPILER19_UP)}
+{$IFDEF FPC}
   Result := Value;
 {$ELSE}
   Result := Value * Screen.PixelsPerInch div FromDPI;
-{$IFEND}
+{$ENDIF}
 end;
 
 { TKRect }
