@@ -964,10 +964,8 @@ begin
     FIconData[FIconCount - 1].Width := ABitmap.Width;
     FIconData[FIconCount - 1].Height := ABitmap.Height;
     FIconData[FIconCount - 1].Bpp := 32;
-    begin
-      FIconData[FIconCount - 1].IsPNG := False;
-      LoadHandles(FIconCount - 1, MakeHandles(ABitmap.Handle, CreateMonochromeBitmap(ABitmap.Width, ABitmap.Height)), True);
-    end;
+    FIconData[FIconCount - 1].IsPNG := False;
+    LoadHandles(FIconCount - 1, MakeHandles(ABitmap.Handle, CreateMonochromeBitmap(ABitmap.Width, ABitmap.Height)), True);
   end;
 end;
 
