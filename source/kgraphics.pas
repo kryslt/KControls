@@ -3206,7 +3206,7 @@ function TKTextBox.GetHorzPos(ATextWidth: Integer): Integer;
 begin
   case HAlign of
     halCenter:
-      Result := Max(FClipRect.Left, (FClipRect.Left + FClipRect.Right - ATextWidth) div 2);
+      Result := FClipRect.Left + (FClipRect.Right - FClipRect.Left - ATextWidth) div 2;
     halRight:
       Result := FClipRect.Right - ATextWidth;
   else
@@ -3220,7 +3220,7 @@ begin
     valCenter:
     begin
       Process(0, tbfMeasure);
-      Result := Max(FClipRect.Top, (FClipRect.Bottom + FClipRect.Top - FCalcRect.Top) div 2);
+      Result := FClipRect.Top + (FClipRect.Bottom - FClipRect.Top - FCalcRect.Top) div 2;
     end;
     valBottom:
     begin
