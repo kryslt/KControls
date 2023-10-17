@@ -1,18 +1,18 @@
 object MainForm: TMainForm
   Left = 814
-  Height = 497
+  Height = 549
   Top = 187
   Width = 420
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'KIcon demo'
-  ClientHeight = 497
+  ClientHeight = 549
   ClientWidth = 420
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '1.0.14.0'
+  LCLVersion = '2.1.0.0'
   object BULoad: TButton
     Left = 297
     Height = 26
@@ -121,7 +121,7 @@ object MainForm: TMainForm
   end
   object LVMain: TListView
     Left = 16
-    Height = 113
+    Height = 161
     Top = 368
     Width = 268
     Columns = <    
@@ -173,7 +173,6 @@ object MainForm: TMainForm
     Height = 66
     Top = 416
     Width = 106
-    NumGlyphs = 0
   end
   object BUExtract: TButton
     Left = 297
@@ -211,19 +210,35 @@ object MainForm: TMainForm
       OnPaint = PBAlphaPaint
     end
   end
+  object EDPNGThreshold: TKNumberEdit
+    Left = 297
+    Height = 23
+    Top = 506
+    Width = 80
+    Caption = 'PNG width threshold:'
+    DecimalSeparator = ','
+    MaxAsInt = 1000
+    Min = 1
+    MinAsInt = 1
+    Value = 32
+    ValueAsInt = 32
+    Font.Color = clWindowText
+    ParentFont = False
+    TabOrder = 15
+  end
   object ODMain: TOpenDialog
     Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
-    left = 160
-    top = 48
+    Left = 160
+    Top = 48
   end
   object SDMain: TSaveDialog
     DefaultExt = '.ico'
-    left = 192
-    top = 48
+    Left = 192
+    Top = 48
   end
   object ALMain: TActionList
-    left = 128
-    top = 48
+    Left = 128
+    Top = 48
     object ACSave: TAction
       Caption = 'Save...'
       OnExecute = ACSaveExecute
@@ -275,7 +290,7 @@ object MainForm: TMainForm
       'ColorS=F0FBFF'
       'ColorT=A4A0A0'
     )
-    left = 224
-    top = 48
+    Left = 224
+    Top = 48
   end
 end

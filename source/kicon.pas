@@ -330,12 +330,15 @@ type
     procedure Add(const Handles: TKIconHandles);
     { Adds a new image from TKAlphaBitmap to the end of the internal image list. }
     procedure AddFromAlphaBitmap(ABitmap: TKAlphaBitmap);
-    { Adds a new image from bitmap to the end of the internal image list. }
-    procedure AddFromBitmap(ABitmap: TBitmap);
+    { Adds a new image from bitmap to the end of the internal image list.
+      For ABitmap.Width greater or equal to APngMinSize, PNG image is added.
+      Otherwise classic bitmaps are added. }
+    procedure AddFromBitmap(ABitmap: TBitmap; APngMinSize: Integer = 32);
   {$IFDEF USE_PNG_SUPPORT}
     { Adds a new image from PNG to the end of the internal image list.
-      No conversion is made, thus a PNG icon is added. }
-    procedure AddFromPng(APngImage: TKPngImage);
+      For ABitmap.Width greater or equal to APngMinSize, PNG image is added.
+      Otherwise classic bitmaps are added. }
+    procedure AddFromPng(APngImage: TKPngImage; APngMinSize: Integer = 32);
   {$ENDIF}    
     { Overriden method - see Delphi help. }
     procedure Assign(Source: TPersistent); override;
@@ -969,7 +972,7 @@ begin
   end;
 end;
 
-procedure TKIcon.AddFromBitmap(ABitmap: TBitmap);
+procedure TKIcon.AddFromBitmap(ABitmap: TBitmap; APngMinSize: Integer);
 begin
   if ABitmap <> nil then
   begin
@@ -980,7 +983,7 @@ begin
     FIconData[FIconCount - 1].Height := ABitmap.Height;
     FIconData[FIconCount - 1].Bpp := 32;
   {$IFDEF USE_PNG_SUPPORT}
-    if ABitmap.Width > 32 then
+    if ABitmap.Width > APngMinSize then
     begin
       FIconData[FIconCount - 1].IsPNG := True;
       FIconData[FIconCount - 1].PNG := TKPngImage.Create;
@@ -995,7 +998,7 @@ begin
 end;
 
 {$IFDEF USE_PNG_SUPPORT}
-procedure TKIcon.AddFromPng(APngImage: TKPngImage);
+procedure TKIcon.AddFromPng(APngImage: TKPngImage; APngMinSize: Integer);
 var
   Bitmap: TKAlphaBitmap;
 begin
@@ -1007,7 +1010,7 @@ begin
     FIconData[FIconCount - 1].Width := APngImage.Width;
     FIconData[FIconCount - 1].Height := APngImage.Height;
     FIconData[FIconCount - 1].Bpp := 32;
-    if APngImage.Width > 32 then
+    if APngImage.Width > APngMinSize then
     begin
       FIconData[FIconCount - 1].IsPNG := True;
       FIconData[FIconCount - 1].PNG := TKPngImage.Create;

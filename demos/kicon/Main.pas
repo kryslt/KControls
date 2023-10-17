@@ -9,7 +9,8 @@ uses
   LResources,
 {$ENDIF}
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, ActnList, KIcon, ComCtrls, Buttons, KGraphics;
+  Dialogs, StdCtrls, ExtCtrls, ActnList, KIcon, ComCtrls, Buttons, KGraphics,
+  kedits;
 
 type
 
@@ -43,6 +44,7 @@ type
     ACDisplayHorz: TAction;
     BULoadMain: TButton;
     SBIcon: TSpeedButton;
+    EDPNGThreshold: TKNumberEdit;
     procedure BULoadClick(Sender: TObject);
     procedure ACSaveUpdate(Sender: TObject);
     procedure ACSaveExecute(Sender: TObject);
@@ -262,8 +264,8 @@ begin
         KIcon.Add(TKIcon(Picture.Graphic).Handles[TKIcon(Picture.Graphic).CurrentIndex])
     {$IFDEF USE_PNG_SUPPORT}
       else if Picture.Graphic is TKPngImage then
-        KIcon.AddFromPng(TKPngImage(Picture.Graphic))
-    {$ENDIF}    
+        KIcon.AddFromPng(TKPngImage(Picture.Graphic), EDPNGThreshold.ValueAsInt)
+    {$ENDIF}
       else
       begin
         BM := TBitmap.Create;

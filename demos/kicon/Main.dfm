@@ -4,7 +4,7 @@ object MainForm: TMainForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'KIcon demo'
-  ClientHeight = 503
+  ClientHeight = 545
   ClientWidth = 425
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -120,7 +120,7 @@ object MainForm: TMainForm
     Left = 16
     Top = 376
     Width = 268
-    Height = 115
+    Height = 161
     Columns = <
       item
         Caption = 'Image'
@@ -198,6 +198,20 @@ object MainForm: TMainForm
       Align = alClient
       OnPaint = PBAlphaPaint
     end
+  end
+  object EDPNGThreshold: TKNumberEdit
+    Left = 297
+    Top = 512
+    Width = 80
+    Height = 17
+    Caption = 'PNG width threshold:'
+    DecimalSeparator = ','
+    MaxAsInt = 1000
+    Min = 1.000000000000000000
+    MinAsInt = 1
+    Value = 32.000000000000000000
+    ValueAsInt = 32
+    TabOrder = 15
   end
   object ODMain: TOpenDialog
     Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
