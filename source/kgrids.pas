@@ -9846,8 +9846,16 @@ begin
 end;
 
 procedure TKCustomGrid.InvalidateCurrentSelection;
+var
+  I: Integer;
 begin
-  InvalidateSelection(Selection);
+  if goRangeSelect in FOptions then
+  begin
+    for I := 0 to SelectionCount - 1 do
+      InvalidateSelection(Selections[I]);
+  end
+  else
+    InvalidateSelection(Selection);
   if EditorMode and CellInGridRect(Col, Row, Selection) then
     FEditor.Invalidate;
 end;
