@@ -7053,8 +7053,23 @@ begin
 end;
 
 procedure TKCustomGrid.ClearSelections;
+var
+  I: Integer;
+  OldSelection: TKGridRect;
+  OldSelections: TKGridRectList;
 begin
-  FSelections.Clear;
+  OldSelections:= TKGridRectList.Create(Self);
+  try
+    OldSelection:= Selection;
+    for I := 0 to SelectionCount - 1 do
+      OldSelections.Add(Selections[I]);
+    FSelections.Clear;
+    for I := 0 to OldSelections.Count - 1 do
+      InvalidateSelection(OldSelections[I].Rect);
+    InvalidateSelection(OldSelection);
+  finally
+    OldSelections.Free;
+  end;
 end;
 
 procedure TKCustomGrid.ClearSortMode;
