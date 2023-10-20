@@ -9849,12 +9849,12 @@ procedure TKCustomGrid.InvalidateCurrentSelection;
 var
   I: Integer;
 begin
-  if goRangeSelect in FOptions then
+  if SelectionCount > 0 then
   begin
+    // invalidate all selections in case of rsMultiSelect or rsMultiSelectMS_Excel style
     for I := 0 to SelectionCount - 1 do
       InvalidateSelection(Selections[I]);
-  end
-  else
+  end else
     InvalidateSelection(Selection);
   if EditorMode and CellInGridRect(Col, Row, Selection) then
     FEditor.Invalidate;
