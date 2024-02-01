@@ -51,6 +51,7 @@ tools/**/*.ico
 *.dof
 *.dylib
 *.drc
+*.exe
 *.identcache
 *.ipch
 *.local
@@ -60,6 +61,7 @@ tools/**/*.ico
 *.o
 *.obj
 *.or
+*.otares
 *.pdf
 *.ppu
 *.psd
