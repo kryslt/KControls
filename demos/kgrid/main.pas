@@ -156,6 +156,7 @@ type
     { Private declarations }
     FTextToInsert: TKString;
     FThumbnail: TKAlphaBitmap;
+    FAutosizeGrid: Boolean;
     procedure FillRows(At, BaseIndex, NumRows: Integer);
     procedure SetOption(Option: TKGridOption; State: Boolean);
     procedure PrepareCellPainter(ACol, ARow: Integer;
@@ -181,9 +182,6 @@ uses
   Themes,
 {$ENDIF}
   Input;
-
-const
-  AutosizeRows: Boolean = False;
 
 procedure ParseText(const S: TKString;
   out TextPart: TKString;
@@ -372,6 +370,9 @@ begin
     for J := 0 to KGrid3.RowCount - 1 do
       A[I, J] := Format('Text %s:%s', [Chr(Ord('A') + I), Chr(Ord('A') + J)]);
   end;
+
+  // misc.
+  FAutosizeGrid := False;
 end;
 
 procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: boolean);
@@ -618,7 +619,7 @@ end;
 
 procedure TForm1.CBAutosizeGridClick(Sender: TObject);
 begin
-  AutosizeRows := TCheckBox(Sender).Checked;
+  FAutosizeGrid := TCheckBox(Sender).Checked;
 end;
 
 procedure TForm1.CBClippedCellsClick(Sender: TObject);
@@ -894,7 +895,7 @@ end;
 
 procedure TForm1.KGrid1ColWidthsChanged(Sender: TObject);
 begin
-  if AutosizeRows then
+  if FAutosizeGrid then
     KGrid1.AutosizeGrid(mpRowHeight, False);
 end;
 
@@ -1034,11 +1035,9 @@ end;
 
 procedure TForm1.KGrid1MouseClickCell(Sender: TObject; ACol, ARow: Integer);
 begin
-  { Example for new multiple selections. Add new selection when clicking on fixed cell. }
-  if (ACol = 0) and (ARow >= KGrid1.FixedRows) then
-    Kgrid1.AddSelection(GridRect(KGrid1.FixedCols, ARow, KGrid1.ColCount - 1, ARow));
-  if (ARow = 0) and (ACol >= KGrid1.FixedCols) then
-    Kgrid1.AddSelection(GridRect(ACol, KGrid1.FixedRows, ACol, KGrid1.RowCount - 1));
+  // Here was example for multiple selections and selecting them by clicking at fixed cells.
+  // This is now now fully integrated into the KGrid (gxFixedCellClickSelect, gxFixedCellClickToggle). }
+  ;
 end;
 
 procedure TForm1.KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);
@@ -1160,6 +1159,11 @@ procedure TForm1.KGrid2DrawCell(Sender: TObject; ACol, ARow: Integer; R: TRect;
   State: TKGridDrawState);
 begin
   KGrid2.Cell[ACol, ARow].ApplyDrawProperties;
+  // just for test purposes, keep this here:
+{  KGrid2.CellPainter.Attributes := [];
+  KGrid2.CellPainter.HAlign := halCenter;
+  KGrid2.CellPainter.VAlign := valCenter;
+  KGrid2.CellPainter.Canvas.Font.Size := 20;}
   if State * [gdFixed, gdSelected] = [] then
   begin
     if ARow mod 2 = 0 then

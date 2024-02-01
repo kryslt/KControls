@@ -339,7 +339,7 @@ object Form1: TForm1
         Anchors = [akLeft, akTop, akRight, akBottom]
         ColCount = 8
         Options = [goAlwaysShowEditor, goColMoving, goColSizing, goEditing, goEnterMoves, goFixedHorzLine, goFixedVertLine, goHeader, goHeaderAlignment, goHorzLine, goIndicateHiddenCells, goMouseCanHideCells, goMouseOverCells, goRangeSelect, goRowMoving, goRowSorting, goTabs, goThemes, goThemedCells, goVertLine]
-        OptionsEx = [gxEnterAppendsRow, gxEnterWraps, gxFixedCellClickSelect, gxTabAppendsRow, gxTabWraps, gxMouseWheelScroll]
+        OptionsEx = [gxEnterAppendsRow, gxEnterWraps, gxFixedCellClickSelect, gxFixedCellClickToggle, gxTabAppendsRow, gxTabWraps, gxMouseWheelScroll]
         RowCount = 8
         TabOrder = 15
         OnBeginColSizing = KGrid1BeginColSizing
