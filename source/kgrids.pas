@@ -7008,7 +7008,10 @@ procedure TKCustomGrid.ChangeDataSize(ColInsert: Boolean; ColAt, ColCnt: Integer
           At := MinMax(At, 0, Len);
           for I := At to At + Cnt - 1 do
           begin
-            Item := Data.InsertOnly(I);
+            if I = Data.Count then
+              Item := Data.AddOnly
+            else
+              Item := Data.InsertOnly(I); // known to be slow
             Item.Grid := Self;
             Item.InitialPos := MaxLen + 1;
             Inc(MaxLen);
@@ -7024,8 +7027,8 @@ procedure TKCustomGrid.ChangeDataSize(ColInsert: Boolean; ColAt, ColCnt: Integer
           Cnt := Min(Cnt, Len - At);
           if Cnt > 0 then
           begin
-            for I := At to At + Cnt - 1 do
-              Data.DeleteOnly(At);
+            for I := At + Cnt - 1 downto At do
+              Data.DeleteOnly(At); // known to be slow
             if At < FixedCount then
               Dec(FixedCount, FixedCount - At);
           end;
@@ -8887,7 +8890,7 @@ end;
 
 function TKCustomGrid.GetVisibleGridRect: TKGridRect;
 begin
-  Result := GridRect(FTopLeft.Col, FTopLeft.Row, VisibleColCount, VisibleRowCount);
+  Result := GridRect(FTopLeft.Col, FTopLeft.Row, LastVisibleCol, LastVisibleRow);
 end;
 
 function TKCustomGrid.GetVisibleRowCount: Integer;
@@ -11520,7 +11523,7 @@ end;
 
 procedure TKCustomGrid.PaintToCanvas(ACanvas: TCanvas);
 var
-  I, Bottom, ClientH, ClientW, GridW, GridH, SaveIndex: Integer;
+  I, Bottom, ClientH, ClientW, GridW, GridH, LastCol, LastRow, SaveIndex: Integer;
   TmpExtent: TPoint;
   TmpRect: TRect;
   CurClipRgn, MainClipRgn: HRGN;
@@ -11542,6 +11545,8 @@ begin
     Info := GetAxisInfoBoth([aiFixedParams]);
     GridW := 0; GridH := 0;
     TmpExtent := CreateEmptyPoint;
+    LastCol := LastVisibleCol;
+    LastRow := LastVisibleRow;
     if (goDoubleBufferedCells in FOptions) and not DoubleBuffered then
       CellBitmap := TKAlphaBitmap.Create
     else
@@ -11564,7 +11569,7 @@ begin
           TranslateRectToDevice(DC, TmpRect);
           if ExtSelectClipRectEx(DC, TmpRect, RGN_AND, CurClipRgn, MainClipRgn) then
           begin
-            TmpExtent := PaintCells(ACanvas, CellBitmap, CurClipRgn, FTopLeft.Col, FColCount - 1, FTopLeft.Row, FRowCount - 1,
+            TmpExtent := PaintCells(ACanvas, CellBitmap, CurClipRgn, FTopLeft.Col, LastCol, FTopLeft.Row, LastRow,
               Info.Horz.FixedBoundary - FScrollOffset.X, Info.Vert.FixedBoundary - FScrollOffset.Y, ClientW, ClientH, False, True);
           end;
         finally
@@ -11580,7 +11585,7 @@ begin
         try
           TranslateRectToDevice(DC, TmpRect);
           if ExtSelectClipRectEx(DC, TmpRect, RGN_AND, CurClipRgn, MainClipRgn) then
-            TmpExtent := PaintCells(ACanvas, CellBitmap, CurClipRgn, FTopLeft.Col, FColCount - 1, 0, FFixedRows - 1,
+            TmpExtent := PaintCells(ACanvas, CellBitmap, CurClipRgn, FTopLeft.Col, LastCol, 0, FFixedRows - 1,
               Info.Horz.FixedBoundary - FScrollOffset.X, 0, ClientW, ClientH, False, True);
         finally
           DeleteObject(CurClipRgn);
@@ -11595,7 +11600,7 @@ begin
         try
           TranslateRectToDevice(DC, TmpRect);
           if ExtSelectClipRectEx(DC, TmpRect, RGN_AND, CurClipRgn, MainClipRgn) then
-            TmpExtent := PaintCells(ACanvas, CellBitmap, CurClipRgn, 0, FFixedCols - 1, FTopLeft.Row, FRowCount - 1, 0,
+            TmpExtent := PaintCells(ACanvas, CellBitmap, CurClipRgn, 0, FFixedCols - 1, FTopLeft.Row, LastRow, 0,
               Info.Vert.FixedBoundary - FScrollOffset.Y, ClientW, ClientH, False, True);
         finally
           DeleteObject(CurClipRgn);
