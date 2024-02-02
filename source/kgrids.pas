@@ -2554,10 +2554,10 @@ type
     { Returns always True. }
     function InternalGetSelAvail: Boolean; override;
     { Returns the selection rectangle for given grid rectangle. }
-    function InternalGetSelectionRect(const ARect: TKGridRect): TRect; virtual;
+    function InternalGetSelectionRect(const ARect: TKGridRect; AVisibleOnly: Boolean): TRect; virtual;
     { Returns selection rectangle for a selection if it can be found for a cell given by
       ACol and ARow, otherwise returns rectangle for the main selection. }
-    function InternalGetSelectionsRect(ACol, ARow: Integer): TRect; virtual;
+    function InternalGetSelectionsRect(ACol, ARow: Integer; AVisibleOnly: Boolean): TRect; virtual;
     { Returns height and spacing for several cells according to given parameters. }
     procedure InternalGetVExtent(AIndex, ARowSpan: Integer;
       out DestExtent, DestSpacing: Integer); virtual;
@@ -2967,7 +2967,7 @@ type
       on top-left cell specified in ARect. Set Merged to True to expand the grid
       rectangle by possible merged cell areas. The returned coordinates include
       column and row spacing areas defined by @link(TKCustomGrid.GridLineWidth). }
-    function GridRectToRect(ARect: TKGridRect; var R: TRect;
+    function GridRectToRect(const ARect: TKGridRect; var R: TRect;
       VisibleOnly: Boolean = False; Merged: Boolean = True): Boolean; virtual;
     { Determines if all indexes in ARect are valid column or row indexes. }
     function GridRectValid(const ARect: TKGridRect): Boolean; virtual;
@@ -3122,13 +3122,13 @@ type
     { Selects all cells. }
     procedure SelectAll; virtual;
     { Selects a column. }
-    procedure SelectCol(ACol: Integer; AAddToSelection: Boolean); virtual;
+    procedure SelectCol(ACol: Integer; AAddToSelection: Boolean = False); virtual;
     { Select more columns. }
     procedure SelectCols(FirstCol, Count: Integer); virtual;
     { Normalize current selection. }
     procedure SelectionNormalize; virtual;
     { Selects a row. }
-    procedure SelectRow(ARow: Integer; AAddToSelection: Boolean); virtual;
+    procedure SelectRow(ARow: Integer; AAddToSelection: Boolean = False); virtual;
     { Selects more rows. }
     procedure SelectRows(FirstRow, Count: Integer); virtual;
     { Forces the cell hint to show on screen. }
@@ -8785,10 +8785,10 @@ begin
   Result := True;
 end;
 
-function TKCustomGrid.InternalGetSelectionRect(const ARect: TKGridRect): TRect;
+function TKCustomGrid.InternalGetSelectionRect(const ARect: TKGridRect; AVisibleOnly: Boolean): TRect;
 begin
   Result := CreateEmptyRect;
-  if GridRectToRect(ARect, Result, False, goRangeSelect in FOptions) then
+  if GridRectToRect(ARect, Result, AVisibleOnly, goRangeSelect in FOptions) then
   begin
     if FOptions * [goFixedHorzLine, goHorzLine] = [goFixedHorzLine, goHorzLine] then
       Dec(Result.Bottom, GetEffectiveRowSpacing(Max(ARect.Row1, ARect.Row2)));
@@ -8797,15 +8797,15 @@ begin
   end;
 end;
 
-function TKCustomGrid.InternalGetSelectionsRect(ACol, ARow: Integer): TRect;
+function TKCustomGrid.InternalGetSelectionsRect(ACol, ARow: Integer; AVisibleOnly: Boolean): TRect;
 var
   SelectionIndex: Integer;
 begin
   SelectionIndex := FindSelection(ACol, ARow);
   if SelectionIndex >= 0 then
-    Result := SelectionsRect[SelectionIndex]
+    Result := InternalGetSelectionRect(FSelections.Selections[SelectionIndex], AVisibleOnly)
   else
-    Result := SelectionRect;
+    Result := CreateEmptyRect;
 end;
 
 function TKCustomGrid.GetSelection: TKGridRect;
@@ -8820,7 +8820,7 @@ end;
 
 function TKCustomGrid.GetSelectionRect: TRect;
 begin
-  Result := InternalGetSelectionRect(Selection);
+  Result := InternalGetSelectionRect(Selection, False);
 end;
 
 function TKCustomGrid.GetSelections(Index: Integer): TKGridRect;
@@ -8834,7 +8834,7 @@ end;
 function TKCustomGrid.GetSelectionsRect(Index: Integer): TRect;
 begin
   if (Index >= 0) and (Index < FSelections.Count) then
-    Result := InternalGetSelectionRect(FSelections.Selections[Index])
+    Result := InternalGetSelectionRect(FSelections.Selections[Index], False)
   else
     Result := CreateEmptyRect;
 end;
@@ -8914,7 +8914,7 @@ begin
     RowSelectable(ARect.Row1) and RowSelectable(ARect.Row2);
 end;
 
-function TKCustomGrid.GridRectToRect(ARect: TKGridRect; var R: TRect;
+function TKCustomGrid.GridRectToRect(const ARect: TKGridRect; var R: TRect;
   VisibleOnly: Boolean; Merged: Boolean): Boolean;
 
   function Axis(const Info: TKGridAxisInfo; var Index1, Index2: Integer; Split: Boolean): Boolean;
@@ -8965,22 +8965,31 @@ function TKCustomGrid.GridRectToRect(ARect: TKGridRect; var R: TRect;
 
 var
   Info: TKGridAxisInfoBoth;
+  GR: TKGridRect;
 begin
   Result := False;
-  ARect := NormalizeGridRect(ARect);
+  GR := NormalizeGridRect(ARect);
   if GridRectValid(ARect) then
   begin
     Info := GetAxisInfoBoth([]);
     if Merged then
-      ARect := InternalExpandGridRect(ARect);
-    // aki:
-    if Axis(Info.Horz, ARect.Col1, ARect.Col2, not (gxEditFixedCols in FOptionsEx)) and
-      Axis(Info.Vert, ARect.Row1, ARect.Row2, not (gxEditFixedRows in FOptionsEx)) then
     begin
-      if CellToPoint(ARect.Col1, ARect.Row1, R.TopLeft, VisibleOnly) then
+      // InternalExpandGridRect is extremely slow for big grid rectangles.
+      // So, in case AVisibleOnly is True (when this function is called with the aim to paint cells), limit ARect to visible only area.
+      // However, there might arise display problems in case of merged cells which are partially visible at the moment.
+      // Better fix is welcome.
+      if VisibleOnly then
+        GR := IntersectGridRect(GR, VisibleGridRect);
+      GR := InternalExpandGridRect(GR);
+    end;
+    // aki:
+    if Axis(Info.Horz, GR.Col1, GR.Col2, not (gxEditFixedCols in FOptionsEx)) and
+      Axis(Info.Vert, GR.Row1, GR.Row2, not (gxEditFixedRows in FOptionsEx)) then
+    begin
+      if CellToPoint(GR.Col1, GR.Row1, R.TopLeft, VisibleOnly) then
       begin
-        Axis1(Info.Horz, ARect.Col1, ARect.Col2, R.Left, R.Right);
-        Axis1(Info.Vert, ARect.Row1, ARect.Row2, R.Top, R.Bottom);
+        Axis1(Info.Horz, GR.Col1, GR.Col2, R.Left, R.Right);
+        Axis1(Info.Vert, GR.Row1, GR.Row2, R.Top, R.Bottom);
         Result := (R.Right > R.Left) and (R.Bottom > R.Top);
       end;
     end;
@@ -10136,13 +10145,8 @@ procedure TKCustomGrid.InvalidateCurrentSelection;
 var
   I: Integer;
 begin
-  if FSelections.Count > 0 then
-  begin
-    // invalidate all selections in case of rsMultiSelect or rsMultiSelectMS_Excel style
-    for I := 0 to FSelections.Count - 1 do
-      InvalidateSelection(Selections[I]);
-  end else
-    InvalidateSelection(Selection);
+  for I := 0 to FSelections.Count - 1 do
+    InvalidateSelection(FSelections.Selections[I]);
   if EditorMode and CellInGridRect(Col, Row, Selection) then
     FEditor.Invalidate;
 end;
@@ -10229,11 +10233,11 @@ begin
     begin
       // this causes extremely slow painting under GTKx!
       // do not use goIndicateSelection here!
-      if not (goRowSelect in FOptions) and (FFixedRows > 0) and GridRectToRect(
-        GridRect(ASelection.Col1, 0, ASelection.Col2, FFixedRows - 1), R, True) then
+      if not (goRowSelect in FOptions) and (FFixedRows > 0) and
+        GridRectToRect(GridRect(ASelection.Col1, 0, ASelection.Col2, FFixedRows - 1), R, True) then
         InvalidateRect(Handle, @R, False);
-      if (FFixedCols > 0) and GridRectToRect(
-        GridRect(0, ASelection.Row1, FFixedCols - 1, ASelection.Row2), R, True) then
+      if (FFixedCols > 0) and
+        GridRectToRect(GridRect(0, ASelection.Row1, FFixedCols - 1, ASelection.Row2), R, True) then
         InvalidateRect(Handle, @R, False);
     end;
   end;
@@ -11044,10 +11048,11 @@ begin
           end;
           ClipCells := goClippedCells in FOptions;
         end;
+        // TmpBlockRect is needed for case the cell is part of selected range or row
         if ABlockRect <> nil then
           TmpBlockRect :=  ABlockRect^
         else
-          TmpBlockRect := InternalGetSelectionsRect(ACol, ARow); // needed for case the cell is part of selected range or row
+          TmpBlockRect := InternalGetSelectionsRect(ACol, ARow, True);
         if CellBitmap <> nil then
           KFunctions.OffsetRect(TmpBlockRect, -R.Left, -R.Top);
         if (ACanvas = nil) or (ACanvas = Canvas) then
@@ -11200,7 +11205,8 @@ begin
               end else
                 CellRect.Right := BorderRect.Right;
             end;
-            TmpBlockRect := InternalGetSelectionsRect(J, I); // needed for case the cell is part of selected range or row
+            // TmpBlockRect is needed for case the cell is part of selected range or row
+            TmpBlockRect := InternalGetSelectionsRect(J, I, True);
             if CellBitmap <> nil then
             begin
               TmpRect := Rect(0, 0, CellRect.Right - CellRect.Left, CellRect.Bottom - CellRect.Top);
