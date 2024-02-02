@@ -3436,14 +3436,15 @@ type
     property TopRow: Integer read FTopLeft.Row write SetTopRow;
     { Use VisibleColCount to determine the number of scrollable columns fully visible in the grid.
       VisibleColCount does not include the fixed columns counted by the FixedCols property.
-      It does not include any partially visible columns on the right edge of the grid. }
+      It includes partially visible columns on the right edge of the grid. }
     property VisibleColCount: Integer read GetVisibleColCount;
-    { Indicates the area of scrollable cells visible in the grid. VisibleGridRect does not
-      include any fixed cells or partially visible cells on the right or bottom side of the grid. }
+    { Indicates the area of scrollable cells visible in the grid.
+      VisibleGridRect does not include any fixed cells.
+      It includes partially visible cells on the right or bottom side of the grid. }
     property VisibleGridRect: TKGridRect read GetVisibleGridRect;
     { Use VisibleRowCount to determine the number of scrollable rows fully visible in the grid.
       VisibleRowCount does not include the fixed rows counted by the FixedRows property.
-      It does not include any partially visible rows on the bottom of the grid. }
+      It includes partially visible rows on the bottom of the grid. }
     property VisibleRowCount: Integer read GetVisibleRowCount;
     { OnBeginColDrag is called when the user clicks on a column to start dragging.
       It enables the grid to control whether the column can be repositioned and
