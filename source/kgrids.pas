@@ -3938,23 +3938,26 @@ function GridPoint(ACol, ARow: Integer): TKGridCoord;
 
 { Makes a @link(TKGridRect) record from ACell. Cell will be copied both to Cell1 and
   Cell2 fields of the resulting grid rectangle. }
-function GridRect(ACell: TKGridCoord): TKGridRect; overload;
+function GridRect(const ACell: TKGridCoord): TKGridRect; overload;
 
 { Makes a @link(TKGridRect) record from ACell1 and ACell2. All the input parameters
   will be copied to the corresponding fields of the resulting grid rectangle. }
-function GridRect(ACell1, ACell2: TKGridCoord): TKGridRect; overload;
+function GridRect(const ACell1, ACell2: TKGridCoord): TKGridRect; overload;
 
 { Makes a @link(TKGridRect) record from ACol1, ARow1, ACol2 and ARow2. All the input
   parameters will be copied to the corresponding fields of the resulting grid rectangle. }
-function GridRect(ACol1, ARow1, ACol2, ARow2: Integer): TKGridRect; overload;
+function GridRect(const ACol1, ARow1, ACol2, ARow2: Integer): TKGridRect; overload;
 
 { Compares two grid rectangles. Returns True if all the corresponding fields
   in GridRect1 equal those in GridRect2. }
 function GridRectEqual(const GridRect1, GridRect2: TKGridRect): Boolean;
 
+{ Returns intersection of two grid rectangles. Both input rectangles must be normalized. }
+function IntersectGridRect(const GridRect1, GridRect2: TKGridRect): TKGridRect;
+
 { Makes Cell1 field of ARect always top-left cell and Cell2 field always
   bottom-right cell. }
-procedure NormalizeGridRect(var ARect: TKGridRect);
+function NormalizeGridRect(const ARect: TKGridRect): TKGridRect;
 
 { Determines if the grid rectangle contains a subset of cells belonging to the
   row specified by ARow. }
@@ -4106,7 +4109,7 @@ begin
   end;
 end;
 
-function GridRect(ACell: TKGridCoord): TKGridRect; overload;
+function GridRect(const ACell: TKGridCoord): TKGridRect; overload;
 begin
   with Result do
   begin
@@ -4117,7 +4120,7 @@ begin
   end;
 end;
 
-function GridRect(ACell1, ACell2: TKGridCoord): TKGridRect; overload;
+function GridRect(const ACell1, ACell2: TKGridCoord): TKGridRect; overload;
 begin
   with Result do
   begin
@@ -4126,7 +4129,7 @@ begin
   end;
 end;
 
-function GridRect(ACol1, ARow1, ACol2, ARow2: Integer): TKGridRect; overload;
+function GridRect(const ACol1, ARow1, ACol2, ARow2: Integer): TKGridRect; overload;
 begin
   with Result do
   begin
@@ -4137,10 +4140,19 @@ begin
   end;
 end;
 
-procedure NormalizeGridRect(var ARect: TKGridRect);
+function IntersectGridRect(const GridRect1, GridRect2: TKGridRect): TKGridRect;
 begin
-  if ARect.Col1 > ARect.Col2 then Exchange(ARect.Col1, ARect.Col2);
-  if ARect.Row1 > ARect.Row2 then Exchange(ARect.Row1, ARect.Row2);
+  Result.Col1 := Max(GridRect1.Col1, GridRect2.Col1);
+  Result.Col2 := Min(GridRect1.Col2, GridRect2.Col2);
+  Result.Row1 := Max(GridRect1.Row1, GridRect2.Row1);
+  Result.Row2 := Min(GridRect1.Row2, GridRect2.Row2);
+end;
+
+function NormalizeGridRect(const ARect: TKGridRect): TKGridRect;
+begin
+  Result := ARect;
+  if Result.Col1 > Result.Col2 then Exchange(Result.Col1, Result.Col2);
+  if Result.Row1 > Result.Row2 then Exchange(Result.Row1, Result.Row2);
 end;
 
 function RowInGridRect(ARow: Integer; const R: TKGridRect): Boolean;
@@ -4227,12 +4239,10 @@ var
   R1, R2: TKGridRect;
 begin
   Result := -1;
-  R1 := ARect;
-  NormalizeGridRect(R1);
+  R1 := NormalizeGridRect(ARect);
   for I := 0 to Count - 1 do
   begin
-    R2 := Items[I].Rect;
-    NormalizeGridRect(R2);
+    R2 := NormalizeGridRect(Items[I].Rect);
     if GridRectEqual(R1, R2) then
     begin
       Result := I;
@@ -4265,8 +4275,7 @@ begin
   if FGrid <> nil then
     for I := 0 to Count - 1 do
     begin
-      GR := Items[I].Rect;
-      NormalizeGridRect(GR);
+      GR := NormalizeGridRect(Items[I].Rect);
       if ColInGridRect(ACol, GR) and (GR.Row1 = FGrid.FixedRows) and (GR.Row2 = FGrid.RowCount - 1) then
       begin
         Result := I;
@@ -4284,8 +4293,7 @@ begin
   if FGrid <> nil then
     for I := 0 to Count - 1 do
     begin
-      GR := Items[I].Rect;
-      NormalizeGridRect(GR);
+      GR := NormalizeGridRect(Items[I].Rect);
       if RowInGridRect(ARow, GR) and (GR.Col1 = FGrid.FixedCols) and (GR.Col2 = FGrid.ColCount - 1) then
       begin
         Result := I;
@@ -8298,8 +8306,7 @@ function TKCustomGrid.GetAllCellsSelected: Boolean;
 var
   R: TKGridRect;
 begin
-  R := Selection;
-  NormalizeGridRect(R);
+  R := NormalizeGridRect(Selection);
   Result := (R.Col1 = FFixedCols) and (R.Col2 = FColCount - 1) and
     (R.Row1 = FFixedRows) and (R.Row2 = FRowCount - 1);
 end;
@@ -8308,8 +8315,7 @@ function TKCustomGrid.GetAllColsSelected: Boolean;
 var
   R: TKGridRect;
 begin
-  R := Selection;
-  NormalizeGridRect(R);
+  R := NormalizeGridRect(Selection);
   Result := (R.Row1 = FFixedRows) and (R.Row2 = FRowCount - 1);
 end;
 
@@ -8317,8 +8323,7 @@ function TKCustomGrid.GetAllRowsSelected: Boolean;
 var
   R: TKGridRect;
 begin
-  R := Selection;
-  NormalizeGridRect(R);
+  R := NormalizeGridRect(Selection);
   Result := (R.Col1 = FFixedCols) and (R.Col2 = FColCount - 1);
 end;
 
@@ -8687,8 +8692,7 @@ begin
   Result := 0;
   for I := 0 to FSelections.Count - 1 do
   begin
-    R := FSelections.Selections[I];
-    NormalizeGridRect(R);
+    R := NormalizeGridRect(FSelections.Selections[I]);
     if (R.Row1 = FFixedRows) and (R.Row2 = FRowCount - 1) then
       Inc(Result, R.Col2 - R.Col1);
   end;
@@ -8702,8 +8706,7 @@ begin
   Result := 0;
   for I := 0 to FSelections.Count - 1 do
   begin
-    R := FSelections.Selections[I];
-    NormalizeGridRect(R);
+    R := NormalizeGridRect(FSelections.Selections[I]);
     if (R.Col1 = FFixedCols) and (R.Col2 = FColCount - 1) then
       Inc(Result, R.Row2 - R.Row1);
   end;
@@ -8963,7 +8966,7 @@ var
   Info: TKGridAxisInfoBoth;
 begin
   Result := False;
-  NormalizeGridRect(ARect);
+  ARect := NormalizeGridRect(ARect);
   if GridRectValid(ARect) then
   begin
     Info := GetAxisInfoBoth([]);
@@ -10487,8 +10490,7 @@ var
   R: TKGridRect;
   APageSetup: TKPrintPageSetup;
 begin
-  R := InternalExpandGridRect(Selection);
-  NormalizeGridRect(R);
+  R := NormalizeGridRect(InternalExpandGridRect(Selection));
   APageSetup := PageSetup;
   FitToPage := poFitToPage in APageSetup.Options;
   SelOnly := APageSetup.Range = prSelectedOnly;
@@ -11434,8 +11436,7 @@ var
   R: TKGridRect;
   APageSetup: TKPrintPageSetup;
 begin
-  R := InternalExpandGridRect(Selection);
-  NormalizeGridRect(R);
+  R := NormalizeGridRect(InternalExpandGridRect(Selection));
   APageSetup := PageSetup;
   FitToPage := poFitToPage in APageSetup.Options;
   SelOnly := APageSetup.Range = prSelectedOnly;
@@ -12449,12 +12450,8 @@ begin
 end;
 
 procedure TKCustomGrid.SelectionNormalize;
-var
-  R: TKGridRect;
 begin
-  R := Selection;
-  NormalizeGridRect(R);
-  Selection := R;
+  Selection := NormalizeGridRect(Selection);
 end;
 
 procedure TKCustomGrid.SelectRow(ARow: Integer; AAddToSelection: Boolean);
