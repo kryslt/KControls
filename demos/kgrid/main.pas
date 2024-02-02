@@ -436,8 +436,7 @@ var
   Pos: Integer;
   Sel: TKGridRect;
 begin
-  Sel := KGrid1.Selection;
-  NormalizeGridRect(Sel); // makes Cell1 always top-left cell
+  Sel := NormalizeGridRect(KGrid1.Selection); // makes Cell1 always top-left cell
   // find the 'Initial pos.'-row
   Pos := 1;
   while KGrid1.InitialRow(Pos) <> 1 do Inc(Pos);
@@ -517,8 +516,7 @@ procedure TForm1.ACMergeExecute(Sender: TObject);
 var
   R: TKGridRect;
 begin
-  R := KGrid1.Selection;
-  NormalizeGridRect(R);
+  R := NormalizeGridRect(KGrid1.Selection);
   { merging an area of cells is simple, just assign corresponding cell span
     parameters to the top left cell (base cell) of the planned merged area. }
   KGrid1.CellSpan[R.Col1, R.Row1] := MakeCellSpan(R.Col2 - R.Col1 + 1, R.Row2 - R.Row1 + 1);
@@ -1142,9 +1140,9 @@ begin
   end;
   // apply custom text output attributes
   if (InitialRow > 1) and (InitialCol = 6) then
-    KGrid1.CellPainter.Attributes := [taEndEllipsis, taLineBreak, taWordBreak]
+    KGrid1.CellPainter.Attributes := [taClip, taEndEllipsis, taLineBreak, taWordBreak]
   else
-    KGrid1.CellPainter.Attributes := [taEndEllipsis, taWordBreak]; // this is the default
+    KGrid1.CellPainter.Attributes := [taClip, taEndEllipsis, taWordBreak];
 end;
 
 procedure TForm1.SetOption(Option: TKGridOption; State: Boolean);
