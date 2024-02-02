@@ -6108,8 +6108,10 @@ begin
   else if gdSelected in FState then
   begin
     if FGrid.Options * [goRowSelect, goRangeSelect] <> [] then
+      // draw background shape for entire selection of more cells
       DrawSelectedCellBackground(FBlockRect, @FCellRect)
     else
+      // draw background shape only for a single cell
       DrawSelectedCellBackground(FCellRect)
   end else
     DrawNormalCellBackground(FCellRect);
@@ -7700,12 +7702,12 @@ var
   I: Integer;
 begin
   Result := False;
-  if (Index >= 0) and (Index < SelectionCount) then
+  if (Index >= 0) and (Index < FSelections.Count) then
   begin
     if FSelections.ActiveIndex = Index then
     begin
       // the active selection cannot be deleted, instead move it to another selection if possible
-      if SelectionCount > 1 then
+      if FSelections.Count > 1 then
       begin
         if Index > 0 then
           FSelections.InternalSetActiveIndex(Index - 1)
@@ -8180,7 +8182,7 @@ var
   GR: TKGridRect;
 begin
   Result := False;
-  for I := 0 to SelectionCount - 1 do
+  for I := 0 to FSelections.Count - 1 do
   begin
     GR := FSelections.Selections[I];
     Result := Result or FixSelection(GR);
@@ -8729,7 +8731,7 @@ var
   GR: TKGridRect;
 begin
   GR := FSelections.ActiveSelection;
-  Result := (SelectionCount > 1) or (GR.Row1 <> GR.Row2) or (GR.Col1 <> GR.Col2);
+  Result := (FSelections.Count > 1) or (GR.Row1 <> GR.Row2) or (GR.Col1 <> GR.Col2);
 end;
 
 function TKCustomGrid.GetObjects(ACol, ARow: Integer): TObject;
@@ -8816,7 +8818,7 @@ end;
 
 function TKCustomGrid.GetSelections(Index: Integer): TKGridRect;
 begin
-  if (Index >= 0) and (Index < SelectionCount) then
+  if (Index >= 0) and (Index < FSelections.Count) then
     Result := FSelections.Selections[Index]
   else
     Result := CreateEmptyGridRect;
@@ -8824,7 +8826,7 @@ end;
 
 function TKCustomGrid.GetSelectionsRect(Index: Integer): TRect;
 begin
-  if (Index >= 0) and (Index < SelectionCount) then
+  if (Index >= 0) and (Index < FSelections.Count) then
     Result := InternalGetSelectionRect(FSelections.Selections[Index])
   else
     Result := CreateEmptyRect;
@@ -8950,8 +8952,6 @@ function TKCustomGrid.GridRectToRect(ARect: TKGridRect; var R: TRect;
     begin
       if not VisibleOnly or (I < Info.FixedCellCount) or (I >= Info.FirstGridCell) then
         Inc(AMax, Info.CellExtent(I) + Info.EffectiveSpacing(I));
-     // if (Index1 < Info.FirstGridCell) and (I = Info.FirstGridCell) then
-     //   Dec(AMax, Info.ScrollOffset);
       Inc(I);
     end;
   end;
@@ -9473,7 +9473,7 @@ end;
 
 procedure TKCustomGrid.InternalModifySelection(Index: Integer; ARect: TKGridRect);
 begin
-  if (Index >= 0) and (Index < SelectionCount) then
+  if (Index >= 0) and (Index < FSelections.Count) then
   begin
     if Index = FSelections.ActiveIndex then
       InternalSetSelection(ARect, [sfMustUpdate])
@@ -10129,10 +10129,10 @@ procedure TKCustomGrid.InvalidateCurrentSelection;
 var
   I: Integer;
 begin
-  if SelectionCount > 0 then
+  if FSelections.Count > 0 then
   begin
     // invalidate all selections in case of rsMultiSelect or rsMultiSelectMS_Excel style
-    for I := 0 to SelectionCount - 1 do
+    for I := 0 to FSelections.Count - 1 do
       InvalidateSelection(Selections[I]);
   end else
     InvalidateSelection(Selection);
@@ -11041,7 +11041,7 @@ begin
         if ABlockRect <> nil then
           TmpBlockRect :=  ABlockRect^
         else
-          TmpBlockRect := InternalGetSelectionsRect(ACol, ARow);
+          TmpBlockRect := InternalGetSelectionsRect(ACol, ARow); // needed for case the cell is part of selected range or row
         if CellBitmap <> nil then
           KFunctions.OffsetRect(TmpBlockRect, -R.Left, -R.Top);
         if (ACanvas = nil) or (ACanvas = Canvas) then
@@ -11194,7 +11194,7 @@ begin
               end else
                 CellRect.Right := BorderRect.Right;
             end;
-            TmpBlockRect := InternalGetSelectionsRect(J, I);
+            TmpBlockRect := InternalGetSelectionsRect(J, I); // needed for case the cell is part of selected range or row
             if CellBitmap <> nil then
             begin
               TmpRect := Rect(0, 0, CellRect.Right - CellRect.Left, CellRect.Bottom - CellRect.Top);
@@ -13015,7 +13015,7 @@ procedure TKCustomGrid.SetSelections(Index: Integer; const Value: TKGridRect);
 var
   GR: TKGridRect;
 begin
-  if (Index >= 0) and (Index < SelectionCount) then
+  if (Index >= 0) and (Index < FSelections.Count) then
   begin
     if GridRectSelectable(Value) and not GridRectEqual(Value, FSelections.Selections[Index]) then
     begin
