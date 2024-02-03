@@ -3913,6 +3913,9 @@ procedure ComboSelect(AGrid: TKCustomGrid; AEditor: TComboBox; SelectAll,
   have equal property values. }
 function CompareAxisItems(AxisItems1, AxisItems2: TKGridAxisItems): Boolean;
 
+{ Returns True if GridRectParent fully contains GridRectChild. Both input rectangles must be normalized. }
+function ContainsGridRect(const GridRectParent, GridRectChild: TKGridRect): Boolean;
+
 { Makes a @link(TKGridRect) record. }
 function CreateEmptyGridRect: TKGridRect;
 
@@ -3957,8 +3960,9 @@ function GridRect(const ACol1, ARow1, ACol2, ARow2: Integer): TKGridRect; overlo
   in GridRect1 equal those in GridRect2. }
 function GridRectEqual(const GridRect1, GridRect2: TKGridRect): Boolean;
 
-{ Returns intersection of two grid rectangles. Both input rectangles must be normalized. }
-function IntersectGridRect(const GridRect1, GridRect2: TKGridRect): TKGridRect;
+{ Creates intersection of two grid rectangles. Both input rectangles must be normalized.
+  Returns True if there is valid intersection. }
+function IntersectGridRect(const GridRect1, GridRect2: TKGridRect; out GridRect: TKGridRect): Boolean;
 
 { Makes Cell1 field of ARect always top-left cell and Cell2 field always
   bottom-right cell. }
@@ -4027,6 +4031,15 @@ begin
         Result := False;
         Exit;
       end;
+end;
+
+function ContainsGridRect(const GridRectParent, GridRectChild: TKGridRect): Boolean;
+begin
+  Result :=
+    (GridRectParent.Col1 <= GridRectChild.Col1) and
+    (GridRectParent.Col2 >= GridRectChild.Col2) and
+    (GridRectParent.Row1 <= GridRectChild.Row1) and
+    (GridRectParent.Row2 >= GridRectChild.Row2);
 end;
 
 function CreateEmptyGridRect: TKGridRect;
@@ -4145,12 +4158,13 @@ begin
   end;
 end;
 
-function IntersectGridRect(const GridRect1, GridRect2: TKGridRect): TKGridRect;
+function IntersectGridRect(const GridRect1, GridRect2: TKGridRect; out GridRect: TKGridRect): Boolean;
 begin
-  Result.Col1 := Max(GridRect1.Col1, GridRect2.Col1);
-  Result.Col2 := Min(GridRect1.Col2, GridRect2.Col2);
-  Result.Row1 := Max(GridRect1.Row1, GridRect2.Row1);
-  Result.Row2 := Min(GridRect1.Row2, GridRect2.Row2);
+  GridRect.Col1 := Max(GridRect1.Col1, GridRect2.Col1);
+  GridRect.Col2 := Min(GridRect1.Col2, GridRect2.Col2);
+  GridRect.Row1 := Max(GridRect1.Row1, GridRect2.Row1);
+  GridRect.Row2 := Min(GridRect1.Row2, GridRect2.Row2);
+  Result := (GridRect.Col1 <= GridRect.Col2) and (GridRect.Row1 <= GridRect.Row2);
 end;
 
 function NormalizeGridRect(const ARect: TKGridRect): TKGridRect;
@@ -8969,7 +8983,7 @@ function TKCustomGrid.GridRectToRect(const ARect: TKGridRect; var R: TRect;
 
 var
   Info: TKGridAxisInfoBoth;
-  GR: TKGridRect;
+  GR, VR: TKGridRect;
 begin
   Result := False;
   GR := NormalizeGridRect(ARect);
@@ -8983,8 +8997,13 @@ begin
       // However, there might arise display problems in case of merged cells which are partially visible at the moment.
       // Better fix is welcome.
       if VisibleOnly then
-        GR := IntersectGridRect(GR, VisibleGridRect);
-      GR := InternalExpandGridRect(GR);
+      begin
+        VR := VisibleGridRect;
+        if ContainsGridRect(VR, GR) then // limit for scrollable cells only
+          if IntersectGridRect(GR, VR, GR) then
+            GR := InternalExpandGridRect(GR);
+      end else
+        GR := InternalExpandGridRect(GR);
     end;
     // aki:
     if Axis(Info.Horz, GR.Col1, GR.Col2, not (gxEditFixedCols in FOptionsEx)) and
