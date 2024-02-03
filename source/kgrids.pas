@@ -2787,12 +2787,6 @@ type
       of respective grid areas. Set UpdateNeeded to False to let UpdateScrollRange
       decide whether these need to be invalidated. }
     procedure UpdateScrollRange(Horz, Vert, UpdateNeeded: Boolean); virtual;
-    { Validate initial row indexes. }
-    procedure ValidateInitialRowPositions; virtual;
-    { Validate initial column indexes. }
-    procedure ValidateInitialColPositions; virtual;
-    { Validate initial row and column indexes. }
-    procedure ValidateInitialPositions;
   {$IFNDEF FPC}
     { Inherited method. Used to ensure correct painting for transparent inplace
       editors. }
@@ -3146,15 +3140,25 @@ type
       will clear the current sort status of any column or row. }
     procedure UnlockSortMode; virtual;
     { Unselects column. }
-    procedure UnselectCol(ACol: Integer; ARemoveFromSelection: Boolean);
+    procedure UnselectCol(ACol: Integer; ARemoveFromSelection: Boolean); virtual;
     { Unselects range of cells. }
-    procedure UnselectRange;
+    procedure UnselectRange; virtual;
     { Unselects row. }
-    procedure UnselectRow(ARow: Integer; ARemoveFromSelection: Boolean);
+    procedure UnselectRow(ARow: Integer; ARemoveFromSelection: Boolean); virtual;
     { Updates column and row sorting mode (if there is one) if data has been
       modified in a single cell. Must be called explicitly each time a cell data
       has been modified if sorting interface is used. }
     procedure UpdateSortMode(ACol, ARow: Integer); virtual;
+    { Validate initial row indexes. This function is slow. Call this only if you
+      expect duplicate InitialPos properties in the ArrayOfRows array,
+      eg after inserting or copying new rows into this array. }
+    procedure ValidateInitialRowPositions; virtual;
+    { Validate initial column indexes. This function is slow. Call this only if you
+      expect duplicate InitialPos properties in the ArrayOfCols array,
+      eg after inserting or copying new columns into this array. }
+    procedure ValidateInitialColPositions; virtual;
+    { Validate initial row and column indexes, ie the entire grid. }
+    procedure ValidateInitialPositions;
     { Provides fast read only access to the cell array @link(TKCustomGrid.FCells).
       Any cell can be directly accessed through ArrayOfCells[RowIndex, ColIndex].
       In contrast with the @link(TKCustomGrid.Cell) property, row index
@@ -10073,6 +10077,8 @@ procedure TKCustomGrid.InternalUnlockUpdate;
 begin
   ClearSortMode;
   UpdateAxes(True, cAll, True, cAll, [afCheckMinExtent]);
+  // ValidateInitialPositions should be called here but it is very slow for big grids with many columns or rows.
+  // Call this function explicitly only when you need to remove duplicates of column/row InitialPos properties.
 end;
 
 procedure TKCustomGrid.InvalidateCell(ACol, ARow: Integer);
