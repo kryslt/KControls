@@ -7101,11 +7101,9 @@ begin
   if not RowInsert then
     RowCnt := Min(RowCnt, FRowCount - 1);
   OldFixedCols := FFixedCols;
-  Axis(FCols, ColInsert, cFixedColsDef,
-    ColAt, ColCnt, FMaxCol, FColCount, FFixedCols);
+  Axis(FCols, ColInsert, cFixedColsDef, ColAt, ColCnt, FMaxCol, FColCount, FFixedCols);
   OldFixedRows := FFixedRows;
-  Axis(FRows, RowInsert, cFixedRowsDef,
-    RowAt, RowCnt, FMaxRow, FRowCount, FFixedRows);
+  Axis(FRows, RowInsert, cFixedRowsDef, RowAt, RowCnt, FMaxRow, FRowCount, FFixedRows);
   FMemCol := cInvalidIndex;
   FMemRow := cInvalidIndex;
   if goVirtualGrid in FOptions then
@@ -11712,7 +11710,7 @@ function TKCustomGrid.PointToCell(Point: TPoint; OutSide: Boolean;
     while (I < Info.FixedCellCount) and (Result < 0) do
     begin
       PtEnd := PtBegin + Info.CellExtent(I) + Info.EffectiveSpacing(I);
-      if (InvisibleCells in [icNone, InVis1]) {or (Info.FixedSelectable and (Info.FirstGridCell = Info.FixedCellCount)) } and
+      if (InvisibleCells in [icNone, InVis1]) and
         (Coord >= PtBegin) and (Coord < PtEnd) then
         Result := I;
       PtBegin := PtEnd;
