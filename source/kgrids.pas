@@ -11239,7 +11239,7 @@ begin
                 CellRect.Right := BorderRect.Right;
             end;
             // TmpBlockRect is needed for case the cell is part of selected range or row
-            TmpBlockRect := InternalGetSelectionsRect(J, I, True);
+            TmpBlockRect := InternalGetSelectionsRect(J, I, not Printing);
             if CellBitmap <> nil then
             begin
               TmpRect := Rect(0, 0, CellRect.Right - CellRect.Left, CellRect.Bottom - CellRect.Top);
