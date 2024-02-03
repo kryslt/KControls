@@ -11644,8 +11644,12 @@ begin
     if not (csDesigning in ComponentState) and (goDrawFocusSelected in FOptions) and
       (FOptions * [goRangeSelect, goRowSelect] <> []) and Focused and not EditorMode then
     begin
-      CellPainter.Canvas:=ACanvas;
-      CellPainter.DrawCellFocus(SelectionRect, True);
+      TmpRect := Rect(Info.Horz.FixedBoundary, Info.Vert.FixedBoundary, ClientW, ClientH);
+      if IntersectRect(TmpRect, InternalGetSelectionRect(Selection, True), TmpRect) then
+      begin
+        CellPainter.Canvas := ACanvas;
+        CellPainter.DrawCellFocus(TmpRect, True);
+      end;
     end;
     // default color for client area parts not consumed by cells
     ACanvas.Brush.Style := bsSolid;
