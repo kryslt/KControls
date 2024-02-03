@@ -7972,7 +7972,7 @@ procedure TKCustomGrid.EditorWindowProc(var Msg: TLMessage);
       try
         ACanvas.Handle := DC;
         R := Rect(0, 0, R.Right - R.Left, R.Bottom - R.Top);
-        TmpBlockRect := SelectionRect;
+        TmpBlockRect := InternalGetSelectionRect(Selection, True);
         KFunctions.OffsetRect(TmpBlockRect, -R.Left, -R.Top);
         InternalPaintCell(Col, Row, GetDrawState(Col, Row, HasFocus),
           R, TmpBlockRect, ACanvas, False, False);
@@ -11474,7 +11474,7 @@ begin
   MainClipRgn := CreateRectRgnIndirect(TmpRect);
   try
     SelectClipRgn(APageSetup.Canvas.Handle, MainClipRgn);
-    TmpRect := SelectionRect;
+    TmpRect := InternalGetSelectionRect(Selection, True);
     if SelOnly then
       KFunctions.OffsetRect(TmpRect, -TmpRect.Left, -TmpRect.Top);
     PaintCells(PageSetup.Canvas, nil, MainClipRgn, FirstCol, LastCol, FirstRow, LastRow,
@@ -13974,7 +13974,7 @@ procedure TKCustomGrid.WndProc(var Msg: TMessage);
     TmpBlockRect: TRect;
   begin
     R := Rect(0, 0, R.Right - R.Left, R.Bottom - R.Top);
-    TmpBlockRect := SelectionRect;
+    TmpBlockRect := InternalGetSelectionRect(Selection, True);
     KFunctions.OffsetRect(TmpBlockRect, -R.Left, -R.Top);
     InternalPaintCell(Col, Row, GetDrawState(Col, Row, HasFocus),
       R, TmpBlockRect, ACanvas, False, False);
