@@ -8200,8 +8200,18 @@ begin
 end;
 
 function TKCustomGrid.FindSelection(ACol, ARow: Integer): Integer;
+var
+  I: Integer;
 begin
-  Result := FSelections.Find(ACol, ARow);
+  Result := -1;
+  for I := 0 to FSelections.Count - 1 do
+  begin
+    if CellInGridRect(ACol, ARow, AdjustSelection(FSelections.Selections[I])) then
+    begin
+      Result := I;
+      Break;
+    end;
+  end;
 end;
 
 function TKCustomGrid.FixAllSelections: Boolean;
@@ -8819,7 +8829,7 @@ var
 begin
   SelectionIndex := FindSelection(ACol, ARow);
   if SelectionIndex >= 0 then
-    Result := InternalGetSelectionRect(FSelections.Selections[SelectionIndex], AVisibleOnly)
+    Result := InternalGetSelectionRect(AdjustSelection(FSelections.Selections[SelectionIndex]), AVisibleOnly)
   else
     Result := CreateEmptyRect;
 end;
@@ -8850,7 +8860,7 @@ end;
 function TKCustomGrid.GetSelectionsRect(Index: Integer): TRect;
 begin
   if (Index >= 0) and (Index < FSelections.Count) then
-    Result := InternalGetSelectionRect(FSelections.Selections[Index], False)
+    Result := InternalGetSelectionRect(AdjustSelection(FSelections.Selections[Index]), False)
   else
     Result := CreateEmptyRect;
 end;
@@ -10169,7 +10179,7 @@ var
   I: Integer;
 begin
   for I := 0 to FSelections.Count - 1 do
-    InvalidateSelection(FSelections.Selections[I]);
+    InvalidateSelection(AdjustSelection(FSelections.Selections[I]));
   if EditorMode and CellInGridRect(Col, Row, Selection) then
     FEditor.Invalidate;
 end;
@@ -11491,7 +11501,7 @@ begin
   MainClipRgn := CreateRectRgnIndirect(TmpRect);
   try
     SelectClipRgn(APageSetup.Canvas.Handle, MainClipRgn);
-    TmpRect := InternalGetSelectionRect(Selection, True);
+    TmpRect := InternalGetSelectionRect(Selection, False);
     if SelOnly then
       KFunctions.OffsetRect(TmpRect, -TmpRect.Left, -TmpRect.Top);
     PaintCells(PageSetup.Canvas, nil, MainClipRgn, FirstCol, LastCol, FirstRow, LastRow,
