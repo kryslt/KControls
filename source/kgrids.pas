@@ -6670,12 +6670,13 @@ function TKCustomGrid.AddSelection(Value: TKGridRect): Integer;
 var
   GR: TKGridRect;
 begin
+  Result := -1;
   if GridRectSelectable(Value) then
   begin
     InternalFindBaseCell(Value.Col1, Value.Row1, GR.Col1, GR.Row1);
     InternalFindBaseCell(Value.Col2, Value.Row2, GR.Col2, GR.Row2);
     if InternalCheckSelection(GR) then
-       InternalAddSelection(GR);
+      Result := InternalAddSelection(GR);
   end;
 end;
 
@@ -7726,8 +7727,6 @@ begin
 end;
 
 function TKCustomGrid.DeleteSelection(Index: Integer): Boolean;
-var
-  I: Integer;
 begin
   Result := False;
   if (Index >= 0) and (Index < FSelections.Count) then
@@ -10050,14 +10049,20 @@ begin
     ICol := NewSelection.Col1;
     IRow := NewSelection.Row1;
   end;
-  if (sfMustUpdate in Flags) and not GridRectEqual(FSelections.ActiveSelection, NewSelection) then
+  if sfMustUpdate in Flags then
   begin
-    if not (goAlwaysShowEditor in FOptions) then
-      FlagClear(cGF_EditorModeActive);
-    InvalidateCurrentSelection;
-    FSelections.InternalSetActiveSelection(NewSelection);
-    if not (sfClampInView in Flags) or not ClampInView(ICol, IRow) then
+    if GridRectEqual(FSelections.ActiveSelection, NewSelection) then
+    begin
       InvalidateCurrentSelection;
+    end else
+    begin
+      if not (goAlwaysShowEditor in FOptions) then
+        FlagClear(cGF_EditorModeActive);
+      InvalidateCurrentSelection;
+      FSelections.InternalSetActiveSelection(NewSelection);
+      if not (sfClampInView in Flags) or not ClampInView(ICol, IRow) then
+        InvalidateCurrentSelection;
+    end;    
   end else
     FSelections.InternalSetActiveSelection(NewSelection);
 
@@ -12445,7 +12450,6 @@ function TKCustomGrid.SelectionMove(ACol, ARow: Integer;
   Stage: TKGridSelectionStage;
   Flags: TKGridSelectionFlags): Boolean;
 var
-  I: Integer;
   NewSelection: TKGridRect;
 begin
   Result := False;
