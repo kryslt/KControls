@@ -927,6 +927,16 @@ type
   TKGridSelectionExpandEvent = procedure(Sender: TObject; ACol, ARow: Integer;
     var CanExpand: Boolean) of object;
 
+  { @abstract(Declares event handler for the @link(TKCustomGrid.OnGetCellHintText) event)
+    <UL>
+    <LH>Parameters:</LH>
+    <LI><I>Sender</I> - identifies the event caller.</LI>
+    <LI><I>ACol, ARow</I> - column and row indexes of the cell.</LI>
+    <LI><I>AText</I> - text to return.</LI>
+    </UL> }
+  TKGridCellTextEvent = procedure(Sender: TObject; ACol, ARow: Integer;
+    var AText: TKString) of object;
+
 const
   { This message can be posted to TKGrid to (re)create inplace editor in
     special needs, e.g. outside of inplace editor events. }
@@ -2161,6 +2171,7 @@ type
     FOnEndRowSizing: TKGridEndSizingEvent;
     FOnExchangeCols: TKGridExchangeEvent;
     FOnExchangeRows: TKGridExchangeEvent;
+    FOnGetCellHintText: TKGridCellTextEvent;
     FOnMeasureCell: TKGridMeasureCellEvent;
     FOnMouseCellHint: TKGridCellHintEvent;
     FOnMouseClickCell: TKGridCellEvent;
@@ -2499,6 +2510,8 @@ type
       Info structure must be already defined before calling this function.
       See @link(TKGridAxisInfo) for details. }
     procedure GetAxisInfo(var Info: TKGridAxisInfo); virtual;
+    { Calls @link(TKCustomGrid.OnGetCellHintText) event handler. }
+    function GetCellHintText(ACol, ARow: Integer): TKString; virtual;
     { Returns default row height according to control font height. }
     function GetDefaultRowHeight: Integer; virtual;
     { Returns bounding rectangle where dragged column or row should appear. }
@@ -3601,6 +3614,9 @@ type
       implementing a custom behavior parallel to sorting cell instances owned
       by the grid. This event is called from @link(TKCustomGrid.MoveRow), either. }
     property OnExchangeRows: TKGridExchangeEvent read FOnExchangeRows write FOnExchangeRows;
+    { OnGetCellHintText is called whenever the virtual grid needs to display a text hint for a cell.
+      In virtual grid, there is no TKGridCell.Hint property. }
+    property OnGetCellHintText: TKGridCellTextEvent read FOnGetCellHintText write FOnGetCellHintText;
     { OnMeasureCell is called whenever the grid needs to get the horizontal and vertical extent
       of the data displayed in a cell. If the OnMeasureCell event
       handler is not assigned, all cells in the grid will be measured by default. }
@@ -3825,6 +3841,8 @@ type
     property OnExchangeCols;
     { See TKCustomGrid.@link(TKCustomGrid.OnExchangeRows) for details. }
     property OnExchangeRows;
+    { See TKCustomGrid.@link(TKCustomGrid.OnGetCellHintText) for details. }
+    property OnGetCellHintText;
     { Inherited property - see Delphi help. }
     property OnGetSiteInfo;
     { Inherited property - see Delphi help. }
@@ -6620,6 +6638,7 @@ begin
   FOnEndRowSizing := nil;
   FOnExchangeCols := nil;
   FOnExchangeRows := nil;
+  FOnGetCellHintText := nil;
   FOnMeasureCell := nil;
   FOnMouseCellHint := nil;
   FOnMouseClickCell := nil;
@@ -7610,18 +7629,19 @@ var
   R: TRect;
   Extent: TPoint;
   IsHint: Boolean;
-  AText: KFunctions.TKString;
+  HintText: KFunctions.TKString;
 begin
   if ColValid(ACol) and Cols[ACol].CellHint then
   begin
     if AShow then
     begin
-      IsHint := Assigned(FCells) and (Cell[ACol, ARow].Hint <> '');
-      if IsHint then
-        AText := Cell[ACol, ARow].Hint
-      else
-        AText := Cells[ACol, ARow];
-      if (AText <> '') and
+      HintText := GetCellHintText(ACol, ARow);
+      if (HintText = '') and Assigned(FCells) then
+        HintText := Cell[ACol, ARow].Hint;
+      IsHint := HintText <> '';
+      if not IsHint then
+        HintText := Cells[ACol, ARow];
+      if (HintText <> '') and
         ((ARow >= FFixedRows) or IsHint) and
         ((ARow <> FEditorCell.Row) or (ACol <> FEditorCell.Col) or not EditorMode) and
         CellRect(ACol, ARow, R, True) then
@@ -7632,7 +7652,7 @@ begin
         begin
           FreeAndNil(FHint);
           FHint := TKTextHint.Create(nil);
-          TKTextHint(FHint).Text := AText;
+          TKTextHint(FHint).Text := HintText;
           Inc(R.Left, 10);
           Inc(R.Top, 10);
           FHint.ShowAt(ClientToScreen(R.TopLeft));
@@ -8490,6 +8510,13 @@ begin
     Result := InternalGetCell(ACol, ARow)
   else
     Result := nil;
+end;
+
+function TKCustomGrid.GetCellHintText(ACol, ARow: Integer): KFunctions.TKString;
+begin
+  Result := '';
+  if Assigned(FOnGetCellHintText) then
+    FOnGetCellHintText(Self, ACol, ARow, Result);
 end;
 
 function TKCustomGrid.GetCells(ACol, ARow: Integer): KFunctions.TKString;
