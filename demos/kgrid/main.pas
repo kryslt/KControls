@@ -148,10 +148,12 @@ type
     procedure BUAutosizeRowClick(Sender: TObject);
     procedure KGrid1ColWidthsChanged(Sender: TObject);
     procedure CBAutosizeGridClick(Sender: TObject);
-    procedure KGrid3SelectionExpand(Sender: TObject; ACol, ARow: Integer;
-      var CanExpand: Boolean);
     procedure KGrid1MouseDblClickCell(Sender: TObject; ACol, ARow: Integer);
     procedure KGrid1MouseClickCell(Sender: TObject; ACol, ARow: Integer);
+    procedure KGrid1GetCellHintText(Sender: TObject; ACol, ARow: Integer;
+      var AText: string);
+    procedure KGrid3GetCellHintText(Sender: TObject; ACol, ARow: Integer;
+      var AText: string);
   private
     { Private declarations }
     FTextToInsert: TKString;
@@ -303,6 +305,10 @@ begin
   KGrid1.PageSetup.Title := 'KGridDemo table';
   KGrid1.PageSetup.UnitHeaderSpace := 1; //we want to print a custom header, cm is default
   KGrid1.RangeSelectStyle := rsMultiSelect;
+  for I := KGrid1.FixedCols to KGrid1.ColCount - 1 do
+  begin
+    KGrid1.Cols[I].CellHint := True;
+  end;
 
   // Initialize KGrid2 - a design-time tool would be nice here
   KGrid2.DoubleBuffered := True;
@@ -369,6 +375,8 @@ begin
     SetLength(A[I], KGrid3.RowCount);
     for J := 0 to KGrid3.RowCount - 1 do
       A[I, J] := Format('Text %s:%s', [Chr(Ord('A') + I), Chr(Ord('A') + J)]);
+    if I >= KGrid3.FixedCols then
+      KGrid3.Cols[I].CellHint := True;
   end;
 
   // misc.
@@ -867,6 +875,17 @@ begin
   KGrid1.DefaultEditorSelect(AEditor, ACol, ARow, SelectAll, CaretToLeft, SelectedByMouse);
 end;
 
+procedure TForm1.KGrid1GetCellHintText(Sender: TObject; ACol, ARow: Integer;
+  var AText: string);
+begin
+  if ARow >= KGrid1.FixedRows then
+    AText := Format(
+      'This is a cell hint working in a normal grid.' + cEOL +
+      'Column %d, row %d.' + cEOL +
+      'This is here just to demonstrate cell hints.',
+      [ACol, ARow]);
+end;
+
 procedure TForm1.KGrid1PrintPaint(Sender: TObject);
 begin
   // print custom header (here almost the same as poTitle)
@@ -1243,10 +1262,15 @@ begin
   end;
 end;
 
-procedure TForm1.KGrid3SelectionExpand(Sender: TObject; ACol, ARow: Integer;
-  var CanExpand: Boolean);
+procedure TForm1.KGrid3GetCellHintText(Sender: TObject; ACol, ARow: Integer;
+  var AText: string);
 begin
-  ;
+  if ARow >= KGrid3.FixedRows then
+    AText := Format(
+      'This is a cell hint working in a virtual grid.' + cEOL +
+      'Column %d, row %d.' + cEOL +
+      'This is here just to demonstrate cell hints.',
+      [ACol, ARow]);
 end;
 
 {$IFDEF FPC}

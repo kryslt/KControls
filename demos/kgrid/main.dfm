@@ -353,6 +353,7 @@ object Form1: TForm1
         OnEditorKeyPreview = KGrid1EditorKeyPreview
         OnEditorResize = KGrid1EditorResize
         OnEditorSelect = KGrid1EditorSelect
+        OnGetCellHintText = KGrid1GetCellHintText
         OnMeasureCell = KGrid1MeasureCell
         OnMouseClickCell = KGrid1MouseClickCell
         OnMouseDblClickCell = KGrid1MouseDblClickCell
@@ -490,7 +491,7 @@ object Form1: TForm1
         OnEditorDataToGrid = KGrid3EditorDataToGrid
         OnExchangeCols = KGrid3ExchangeCols
         OnExchangeRows = KGrid3ExchangeRows
-        OnSelectionExpand = KGrid3SelectionExpand
+        OnGetCellHintText = KGrid3GetCellHintText
         ColWidths = (
           64
           64
