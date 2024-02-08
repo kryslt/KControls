@@ -1,0 +1,45 @@
+<STYLE>
+<!--
+body		{ background: #F0F0FF; font-size: 11px; font-family: Verdana; }
+
+p		{ margin-top: .6em; margin-bottom: .6em; font-size: 11px; }
+
+table	{ font-size: 100%; margin-top: 1em; margin-bottom: 1em; background-color: #6495ED; }
+
+td { padding-left: 5px; text-align: left; background-color: #E8E8FF; }
+
+table.enum { font-size: 100%; margin-top: 1em; margin-bottom: 1em; background-color: #F0F0FF; }
+
+td.enum { padding-left: 5px; text-align: left; background-color: #F0F0FF; }
+
+code { font-size: 12px; font-family: "Courier New", Courier, monospace; }
+
+h1		{ font-size: 140%; margin-bottom: .5em; background-color: #D0D0FF; font-weight: bold; color: Navy; }
+
+h2		{ font-size: 112%; margin-top: 1.5em; margin-bottom: .5em; background-color: #D0D0FF; font-weight: bold; color: Navy; }
+
+h3		{ font-size: 110%; margin-top: 1.2em; margin-bottom: .5em; }
+
+h4		{ font-size: 105%; margin-top: 1.2em; margin-bottom: .5em; }
+
+h5		{ font-size: 100%; margin-top: 1.2em; margin-bottom: .5em; }
+
+big		{ font-weight: bold; font-size: 105%; }
+
+		
+ul		{ margin-top: .6em; margin-bottom: 1em; margin-left: 0em; }
+
+	
+li		{ margin-bottom: 0em; margin-left: 2em; }
+
+		
+		
+/*	TERM AND DEFINITION TAGS	*/
+dl		{ margin-top: 0em; }
+
+dt		{ font-weight: bold; margin-top: 1em; margin-left: 1.5em; }
+
+		
+/*a:hover {font-weight: bold; }*/
+-->
+</STYLE>

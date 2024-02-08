@@ -25,7 +25,6 @@ demos/khexeditor/*.hex
 demos/kicon/demo*.res
 demos/kmemo/kmemodemo*.res
 demos/kmemoeditor/kmemoeditor*.res
-help/**/*.css
 help/**/*.chm
 help/**/*.chw
 help/**/*.gif
