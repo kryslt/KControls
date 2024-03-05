@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{02425E29-0FDA-4C65-8DB0-325DB06F753F}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="KControls_RXE.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="KControls_DXE.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="KControls_RXE">
+        <MSBuild Projects="KControls_RXE.dproj"/>
+    </Target>
+    <Target Name="KControls_RXE:Clean">
+        <MSBuild Projects="KControls_RXE.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="KControls_RXE:Make">
+        <MSBuild Projects="KControls_RXE.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="KControls_DXE">
+        <MSBuild Projects="KControls_DXE.dproj"/>
+    </Target>
+    <Target Name="KControls_DXE:Clean">
+        <MSBuild Projects="KControls_DXE.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="KControls_DXE:Make">
+        <MSBuild Projects="KControls_DXE.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="KControls_RXE;KControls_DXE"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="KControls_RXE:Clean;KControls_DXE:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="KControls_RXE:Make;KControls_DXE:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
