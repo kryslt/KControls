@@ -11,7 +11,7 @@ packages/**/*.cpp
 packages/**/*.res
 packages/lazarus/kcontrolsbase.pas 
 packages/lazarus/kcontrolslaz.pas 
-packages/kcontrols_copies/
+package_copies/
 demos/**/*.ico
 demos/**/*.rtf
 demos/**/*.ini
