@@ -1,4 +1,4 @@
-kcontrols_readme.txt
+README.md
 kgrid_readme.txt
 khexeditor_readme.txt
 kicon_readme.txt
@@ -55,20 +55,20 @@ source/kedits.lrs
 source/kmessagebox.res
 source/kmessagebox.lrs
 source/kcontrols.inc
-source/xpman.res
 
-packages/kcontrols/kcontrols_*.dpk
-packages/kcontrols/kcontrols_*.dproj
-packages/kcontrols/kcontrols_*.cbproj
-packages/kcontrols/kcontrols_*.cpp
-packages/kcontrols/kcontrols_*.groupproj
-packages/kcontrols/kcontrolslaz.lpk
-packages/kcontrols/kcontrolsdesign.pas
-packages/kcontrols/kcontrolsdesign.dcr
-packages/kcontrols/kcontrolsdesign.lrs
-packages/kcontrols/kpictureeditor.pas
-packages/kcontrols/kpictureeditor.dfm
-packages/kcontrols/*.res
+packages/**/kcontrols_*.dpk
+packages/**/kcontrols_*.dproj
+packages/**/kcontrols_*.cbproj
+packages/**/kcontrols_*.cpp
+packages/**/kcontrols_*.groupproj
+packages/lazarus/kcontrolslaz.lpk
+packages/lazarus/kcontrolsbase.lpk
+packages/kcontrolsdesign.pas
+packages/kcontrolsdesign.dcr
+packages/kcontrolsdesign.lrs
+packages/kpictureeditor.pas
+packages/kpictureeditor.dfm
+packages/kpictureeditor.lrs
 
 help/kcontrols/KControls.chm
 help/kgrid/manual/kgrid_manual.rtf
