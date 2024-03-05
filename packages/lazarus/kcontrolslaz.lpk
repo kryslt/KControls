@@ -89,11 +89,11 @@ Package KControlsLaz: contains dependencies on LCL.
         <UnitName Value="kwidewinprocs"/>
       </Item14>
       <Item15>
-        <Filename Value="kcontrolsdesign.lrs"/>
+        <Filename Value="..\kcontrolsdesign.lrs"/>
         <Type Value="LRS"/>
       </Item15>
       <Item16>
-        <Filename Value="kcontrolsdesign.pas"/>
+        <Filename Value="..\kcontrolsdesign.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="kcontrolsdesign"/>
       </Item16>
