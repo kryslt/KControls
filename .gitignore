@@ -4,11 +4,13 @@ Release/
 source/__history/
 source/backup/
 source/contrib/
-packages/kcontrols/*.cpp
-packages/kcontrols/*.hpp
-packages/kcontrols/*.res
-packages/kcontrols/kcontrolsbase.pas 
-packages/kcontrols/kcontrolslaz.pas 
+packages/*.hpp
+packages/*.res
+packages/**/*.hpp
+packages/**/*.cpp
+packages/**/*.res
+packages/lazarus/kcontrolsbase.pas 
+packages/lazarus/kcontrolslaz.pas 
 packages/kcontrols_copies/
 demos/**/*.ico
 demos/**/*.rtf
@@ -54,7 +56,6 @@ tools/**/*.ico
 *.identcache
 *.ipch
 *.local
-*.lrs
 *.lps
 *.map
 *.o
