@@ -73,6 +73,7 @@ type
     procedure Test25;
     procedure Test26;
     procedure Test27;
+    procedure Test28;
   end;
 
 var
@@ -112,7 +113,7 @@ begin
   KMemo2.Parent := Panel2;
   KMemo2.Clear;
 
-  for I := 1 to 27 do
+  for I := 1 to 28 do
     CoBTest.Items.Add('Test ' + IntToStr(I));
 end;
 
@@ -629,6 +630,35 @@ begin
     MyStream.Free;
   end;
   // there should be google hyperlink on first line and then yahoo hyperlink on second line
+end;
+
+procedure TMainForm.Test28;
+var
+  TB: TKMemoTextBlock;
+  PA: TKMemoParagraph;
+begin
+  // an example of multi-level paragraph numbering
+  TB := KMemo1.Blocks.AddTextBlock('First heading first level');
+  PA := KMemo1.Blocks.AddParagraph;
+  PA.ParaStyle.NumberingListLevel := 0;
+  PA.Numbering := pnuArabic;
+  TB := KMemo1.Blocks.AddTextBlock('First heading second level');
+  PA := KMemo1.Blocks.AddParagraph;
+  PA.ParaStyle.NumberingListLevel := 1;
+  PA.Numbering := pnuLetterLo;
+  TB := KMemo1.Blocks.AddTextBlock('First heading third level');
+  PA := KMemo1.Blocks.AddParagraph;
+  PA.ParaStyle.NumberingListLevel := 2;
+  PA.Numbering := pnuArabic;
+  TB := KMemo1.Blocks.AddTextBlock('Second heading first level');
+  PA := KMemo1.Blocks.AddParagraph;
+  PA.ParaStyle.NumberingListLevel := 0;
+  PA.Numbering := pnuArabic;
+  TB := KMemo1.Blocks.AddTextBlock('Second heading second level');
+  PA := KMemo1.Blocks.AddParagraph;
+  PA.ParaStyle.NumberingListLevel := 1;
+  PA.Numbering := pnuLetterLo;
+  //etc.
 end;
 
 end.
