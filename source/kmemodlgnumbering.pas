@@ -37,11 +37,14 @@ type
     RBStartFromOne: TRadioButton;
     RBStartAt: TRadioButton;
     EDStartAt: TKNumberEdit;
+    LBSeparator: TLabel;
+    EDSeparator: TEdit;
     procedure RGNumberingClick(Sender: TObject);
     procedure CoBListLevelClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure RBContinuousClick(Sender: TObject);
+    procedure EDSeparatorExit(Sender: TObject);
   private
     { Private declarations }
     FMemo: TKMemo;
@@ -80,6 +83,12 @@ begin
   end;
 end;
 
+procedure TKMemoNumberingForm.EDSeparatorExit(Sender: TObject);
+begin
+  if not FLoading then
+    UpdateFields;
+end;
+
 procedure TKMemoNumberingForm.FormCreate(Sender: TObject);
 begin
   FListTableCopy := TKMemoListTable.Create;
@@ -108,6 +117,10 @@ begin
       FListID := FPara.ParaStyle.NumberingList;
       FListLevel := FPara.ParaStyle.NumberingListLevel;
       RGNumbering.ItemIndex := Integer(FPara.Numbering);
+      if APara.NumberingListLevel <> nil then
+        EDSeparator.Text := APara.NumberingListLevel.LastNumberSeparator
+      else
+        EDSeparator.Text := '.';
       UpdateFields;
     finally
       FLoading := False;
@@ -130,6 +143,7 @@ procedure TKMemoNumberingForm.Save;
 var
   ListLevel: TKMemoListLevel;
 begin
+  UpdateFields;
   FListTable.Assign(FListTableCopy);
   FPara.ParaStyle.SetNumberingListAndLevel(FListID, FListLevel);
   ListLevel := FPara.NumberingListLevel;
@@ -150,13 +164,14 @@ procedure TKMemoNumberingForm.UpdateFields;
 var
   List: TKMemoList;
   ListLevel: TKMemoListLevel;
+  B: Boolean;
 begin
   if not FUpdating and (FPara <> nil) then
   begin
     FUpdating := True;
     try
       FListLevel := Max(FListLevel, 0);
-      List := FListTableCopy.ListByNumbering(FListID, FListLevel, TKMemoParaNumbering(RGNumbering.ItemIndex));
+      List := FListTableCopy.ListByNumbering(FListID, FListLevel, TKMemoParaNumbering(RGNumbering.ItemIndex), EDSeparator.Text);
       if List <> nil then
       begin
         FListID := List.ID;
@@ -183,10 +198,12 @@ begin
       end;
       EDFirstIndent.Enabled := List <> nil;
       EDLeftIndent.Enabled := List <> nil;
-      CoBListLevel.Enabled := List <> nil;
-      RBContinuous.Enabled := List <> nil;
-      RBStartFromOne.Enabled := List <> nil;
-      RBStartAt.Enabled := List <> nil;
+      B := (List <> nil) and (ListLevel.Numbering >= pnuArabic);
+      EDSeparator.Enabled := B;
+      CoBListLevel.Enabled := B;
+      RBContinuous.Enabled := B;
+      RBStartFromOne.Enabled := B;
+      RBStartAt.Enabled := B;
     finally
       FUpdating := False;
     end;

@@ -253,7 +253,7 @@ type
     property Items[Index: Integer]: TKMemoDictionaryItem read GetItem write SetItem; default;
   end;
 
-  TKMemoParaNumbering = (pnuNone, pnuTriangleBullets, pnuBullets, pnuCircleBullets, pnuArrowOneBullets, pnuArrowTwoBullets,  pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
+  TKMemoParaNumbering = (pnuNone, pnuBullets, pnuCircleBullets, pnuArrowOneBullets, pnuArrowTwoBullets, pnuTriangleBullets, pnuArabic, pnuLetterLo, pnuLetterHi, pnuRomanLo, pnuRomanHi);
   // punBullets retained for compatibility with previous versions of KMemo
   TKMemoNumberingFormatItem = class(TKObject)
   private
@@ -290,6 +290,8 @@ type
     FNumberStartAt: Integer;
     FLeftIndent: Integer;
     FLevelCounter: Integer;
+    function GetLastNumberSeparator: TKString;
+    procedure SetLastNumberSeparator(const Value: TKString);
     procedure SetNumbering(const Value: TKMemoParaNumbering);
     procedure SetNumberStartAt(const Value: Integer);
     procedure SetFirstIndent(const Value: Integer);
@@ -302,6 +304,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
     procedure Assign(ASource: TKObject); override;
+    property LastNumberSeparator: TKString read GetLastNumberSeparator write SetLastNumberSeparator;
     property LevelCounter: Integer read FLevelCounter write FLevelCounter;
     property FirstIndent: Integer read FFirstIndent write SetFirstIndent;
     property LeftIndent: Integer read FLeftIndent write SetLeftPadding;
@@ -361,7 +364,8 @@ type
     procedure ClearLevelCounters;
     function FindByID(AListID: Integer): TKMemoList;
     procedure ListChanged(AList: TKMemoList; ALevel: TKMemoListLevel); virtual;
-    function ListByNumbering(AListID, ALevelIndex: Integer; ANumbering: TKMemoParaNumbering): TKMemoList; virtual;
+    function ListByNumbering(AListID, ALevelIndex: Integer; ANumbering: TKMemoParaNumbering;
+      const ALastNumberSeparator: TKString = '.'): TKMemoList; virtual;
     function NextID: Integer;
     property Items[Index: Integer]: TKMemoList read GetItem write SetItem; default;
     property OnChanged: TKMemoListChangedEvent read FOnChanged write FOnChanged;
@@ -2909,6 +2913,19 @@ begin
   FNumberingFontChanged := True;
 end;
 
+function TKMemoListLevel.GetLastNumberSeparator: TKString;
+var
+  I: Integer;
+begin
+  Result := '';
+  if (FNumbering >= pnuArabic) and (FNumberingFormat.Count > 0) then
+  begin
+    I := FNumberingFormat.Count - 1;
+    if FNumberingFormat[I].Level < 0 then
+      Result := FNumberingFormat[I].Text;
+  end;
+end;
+
 procedure TKMemoListLevel.SetFirstIndent(const Value: Integer);
 begin
   if Value <> FFirstIndent then
@@ -2940,6 +2957,21 @@ begin
       Levelindex := 0;
     FNumberingFormat.Defaults(Value, LevelIndex);
     Changed;
+  end;
+end;
+
+procedure TKMemoListLevel.SetLastNumberSeparator(const Value: TKString);
+var
+  I: Integer;
+begin
+  if (FNumbering >= pnuArabic) and (FNumberingFormat.Count > 0) then
+  begin
+    I := FNumberingFormat.Count - 1;
+    if (FNumberingFormat[I].Level < 0) and (FNumberingFormat[I].Text <> Value) then
+    begin
+      FNumberingFormat[I].Text := Value;
+      Changed;
+    end;
   end;
 end;
 
@@ -3084,7 +3116,7 @@ begin
     FCallUpdate := True;
 end;
 
-function TKMemoListTable.ListByNumbering(AListID, ALevelIndex: Integer; ANumbering: TKMemoParaNumbering): TKMemoList;
+function TKMemoListTable.ListByNumbering(AListID, ALevelIndex: Integer; ANumbering: TKMemoParaNumbering; const ALastNumberSeparator: TKString): TKMemoList;
 var
   I, J: Integer;
   List: TKMemoList;
@@ -3104,6 +3136,7 @@ begin
         // level found, modify it
         ListLevel := List.Levels[ALevelIndex];
         ListLevel.Numbering := ANumbering;
+        ListLevel.LastNumberSeparator := ALastNumberSeparator;
       end else
       begin
         // add missing levels
@@ -3112,6 +3145,7 @@ begin
           ListLevel := TKMemoListLevel.Create;
           List.Levels.Add(ListLevel);
           ListLevel.Numbering := ANumbering;
+          ListLevel.LastNumberSeparator := ALastNumberSeparator;
         end;
       end;
       Result := List;
@@ -3123,7 +3157,7 @@ begin
         List := Items[I];
         if ALevelIndex < List.Levels.Count then
         begin
-          if List.Levels[ALevelIndex].Numbering = ANumbering then
+          if (List.Levels[ALevelIndex].Numbering = ANumbering) and (List.Levels[ALevelIndex].LastNumberSeparator = ALastNumberSeparator) then
           begin
             Result := List;
             Break;
@@ -3136,6 +3170,7 @@ begin
             ListLevel := TKMemoListLevel.Create;
             List.Levels.Add(ListLevel);
             ListLevel.Numbering := ANumbering;
+            ListLevel.LastNumberSeparator := ALastNumberSeparator;
           end;
           Result := List;
           Break;
@@ -3151,6 +3186,7 @@ begin
         ListLevel := TKMemoListLevel.Create;
         List.Levels.Add(ListLevel);
         ListLevel.Numbering := ANumbering;
+        ListLevel.LastNumberSeparator := ALastNumberSeparator;
       end;
       Add(List);
       Result := List;

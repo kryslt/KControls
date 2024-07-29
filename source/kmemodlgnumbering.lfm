@@ -1,24 +1,24 @@
 object KMemoNumberingForm: TKMemoNumberingForm
-  Left = 0
-  Height = 402
-  Top = 0
+  Left = 400
+  Height = 426
+  Top = 271
   Width = 375
   BorderStyle = bsDialog
   Caption = 'Bullets and numbering'
-  ClientHeight = 402
+  ClientHeight = 426
   ClientWidth = 375
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
+  Position = poScreenCenter
+  LCLVersion = '3.99.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  Position = poScreenCenter
-  LCLVersion = '1.6.0.4'
   object BUOk: TButton
     Left = 211
     Height = 25
-    Top = 367
+    Top = 390
     Width = 75
     Caption = 'OK'
     Default = True
@@ -28,7 +28,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   object BUCancel: TButton
     Left = 292
     Height = 25
-    Top = 367
+    Top = 390
     Width = 75
     Cancel = True
     Caption = 'Cancel'
@@ -37,7 +37,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   end
   object RGNumbering: TRadioGroup
     Left = 8
-    Height = 161
+    Height = 184
     Top = 8
     Width = 359
     AutoFill = True
@@ -47,35 +47,39 @@ object KMemoNumberingForm: TKMemoNumberingForm
     ChildSizing.EnlargeVertical = crsHomogenousChildResize
     ChildSizing.ShrinkHorizontal = crsScaleChilds
     ChildSizing.ShrinkVertical = crsScaleChilds
-    ChildSizing.Layout = cclLeftToRightThenTopToBottom
-    ChildSizing.ControlsPerLine = 2
-    ClientHeight = 143
+    ChildSizing.Layout = cclTopToBottomThenLeftToRight
+    ChildSizing.ControlsPerLine = 6
+    ClientHeight = 166
     ClientWidth = 355
+    ColumnLayout = clVerticalThenHorizontal
     Columns = 2
     ItemIndex = 0
     Items.Strings = (
       'None'
       'Bullets'
-      'Square Bullets'
-      'Arrow Bullets'
       'Circle Bullets'
+      'Arrow One Bullets'
+      'Arrow Two Bullets'
+      'Triangle Bullets'
       'Arabic (1,2,3)'
       'Letter Lo (a,b,c)'
       'Letter Hi (A,B,C)'
       'Roman Lo (i,ii,iii)'
       'Roman Hi (I,II,III)'
     )
-    OnClick = RGNumberingClick
+    ParentBackground = False
     TabOrder = 2
+    OnClick = RGNumberingClick
   end
   object GBOptions: TGroupBox
     Left = 8
     Height = 98
-    Top = 175
+    Top = 198
     Width = 359
     Caption = 'Options'
     ClientHeight = 80
     ClientWidth = 355
+    ParentBackground = False
     TabOrder = 3
     object LBFirstIndent: TLabel
       Left = 10
@@ -101,6 +105,13 @@ object KMemoNumberingForm: TKMemoNumberingForm
       Caption = 'Level:'
       ParentColor = False
     end
+    object LBSeparator: TLabel
+      Left = 186
+      Height = 13
+      Top = 5
+      Width = 52
+      Caption = 'Separator:'
+    end
     object EDFirstIndent: TKNumberEdit
       Left = 90
       Height = 23
@@ -110,10 +121,13 @@ object KMemoNumberingForm: TKMemoNumberingForm
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250
+      MaxAsInt = 250
       Min = -250
+      MinAsInt = -250
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       Precision = 1
       UpDownStep = 5
+      ValueAsInt = 0
       Font.Color = clWindowText
       ParentFont = False
       TabOrder = 0
@@ -127,10 +141,13 @@ object KMemoNumberingForm: TKMemoNumberingForm
       CustomSuffix = 'pt'
       DecimalSeparator = ','
       Max = 250
+      MaxAsInt = 250
       Min = -250
+      MinAsInt = -250
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       Precision = 1
       UpDownStep = 5
+      ValueAsInt = 0
       Font.Color = clWindowText
       ParentFont = False
       TabOrder = 2
@@ -152,48 +169,58 @@ object KMemoNumberingForm: TKMemoNumberingForm
         'eighth'
         'ninth'
       )
-      OnClick = CoBListLevelClick
       Style = csDropDownList
       TabOrder = 4
+      OnClick = CoBListLevelClick
+    end
+    object EDSeparator: TEdit
+      Left = 245
+      Height = 21
+      Top = 2
+      Width = 47
+      TabOrder = 5
+      Text = '.'
+      OnExit = EDSeparatorExit
     end
   end
   object GBStartAt: TGroupBox
     Left = 8
     Height = 80
-    Top = 279
+    Top = 302
     Width = 359
     Caption = 'Starting value'
     ClientHeight = 62
     ClientWidth = 355
+    ParentBackground = False
     TabOrder = 4
     object RBContinuous: TRadioButton
       Left = 10
-      Height = 19
+      Height = 17
       Top = 1
-      Width = 74
+      Width = 72
       Caption = 'Continuous'
       Checked = True
-      OnClick = RBContinuousClick
       TabOrder = 0
       TabStop = True
+      OnClick = RBContinuousClick
     end
     object RBStartFromOne: TRadioButton
       Left = 10
-      Height = 19
+      Height = 17
       Top = 24
-      Width = 107
+      Width = 105
       Caption = 'Again start from 1'
-      OnClick = RBContinuousClick
       TabOrder = 1
+      OnClick = RBContinuousClick
     end
     object RBStartAt: TRadioButton
       Left = 185
-      Height = 19
+      Height = 17
       Top = 1
-      Width = 106
+      Width = 104
       Caption = 'Set custom value:'
-      OnClick = RBContinuousClick
       TabOrder = 2
+      OnClick = RBContinuousClick
     end
     object EDStartAt: TKNumberEdit
       Left = 184
@@ -201,8 +228,11 @@ object KMemoNumberingForm: TKMemoNumberingForm
       Top = 24
       Width = 55
       DecimalSeparator = ','
+      MaxAsInt = 1000
+      MinAsInt = 0
       Options = [neoLowerCase, neoUsePrefix, neoUseUpDown, neoWarning]
       Value = 1
+      ValueAsInt = 1
       Font.Color = clWindowText
       ParentFont = False
       TabOrder = 3

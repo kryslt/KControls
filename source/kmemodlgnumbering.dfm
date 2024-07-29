@@ -3,7 +3,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Bullets and numbering'
-  ClientHeight = 402
+  ClientHeight = 427
   ClientWidth = 375
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   TextHeight = 13
   object BUOk: TButton
     Left = 211
-    Top = 367
+    Top = 390
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -29,7 +29,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   end
   object BUCancel: TButton
     Left = 292
-    Top = 367
+    Top = 390
     Width = 75
     Height = 25
     Cancel = True
@@ -41,16 +41,17 @@ object KMemoNumberingForm: TKMemoNumberingForm
     Left = 8
     Top = 8
     Width = 359
-    Height = 161
+    Height = 184
     Caption = 'Numbering style'
     Columns = 2
     ItemIndex = 0
     Items.Strings = (
       'None'
       'Bullets'
-      'Square Bullets'
-      'Arrow Bullets'
       'Circle Bullets'
+      'Arrow One Bullets'
+      'Arrow Two Bullets'
+      'Triangle Bullets'
       'Arabic (1,2,3)'
       'Letter Lo (a,b,c)'
       'Letter Hi (A,B,C)'
@@ -61,7 +62,7 @@ object KMemoNumberingForm: TKMemoNumberingForm
   end
   object GBOptions: TGroupBox
     Left = 8
-    Top = 175
+    Top = 198
     Width = 359
     Height = 98
     Caption = 'Options'
@@ -86,6 +87,13 @@ object KMemoNumberingForm: TKMemoNumberingForm
       Width = 29
       Height = 13
       Caption = 'Level:'
+    end
+    object LBSeparator: TLabel
+      Left = 186
+      Top = 27
+      Width = 52
+      Height = 13
+      Caption = 'Separator:'
     end
     object EDFirstIndent: TKNumberEdit
       Left = 90
@@ -138,10 +146,19 @@ object KMemoNumberingForm: TKMemoNumberingForm
         'eighth'
         'ninth')
     end
+    object EDSeparator: TEdit
+      Left = 245
+      Top = 24
+      Width = 47
+      Height = 21
+      TabOrder = 5
+      Text = '.'
+      OnExit = EDSeparatorExit
+    end
   end
   object GBStartAt: TGroupBox
     Left = 8
-    Top = 279
+    Top = 302
     Width = 359
     Height = 80
     Caption = 'Starting value'
