@@ -9331,7 +9331,7 @@ var
   RatioX, RatioY: Double;
   OrigCrop: TRect;
 begin
-  if (FCroppedImage = nil) and (FImage <> nil) and not FCreatingCroppedImage then
+  if (FCroppedImage = nil) and (FImage <> nil) and (FImage.Width * FImage.Height <> 0) and not FCreatingCroppedImage then
   begin
     FCreatingCroppedImage := True;
     try
@@ -9349,7 +9349,7 @@ begin
       Dec(ExtentX, FCrop.Left + FCrop.Right);
       Dec(ExtentY, FCrop.Top + FCrop.Bottom);
       FScaledRect := Rect(0, 0, ExtentX, ExtentY);
-      if (ExtentX * ExtentY <> 0) and (FImage.Width * FImage.Height <> 0) then
+      if ExtentX * ExtentY <> 0 then
       begin
         FCroppedImage := TKAlphaBitmap.Create;
         FCroppedImage.SetSize(FImage.Width - OrigCrop.Left - OrigCrop.Right, FImage.Height - OrigCrop.Top - OrigCrop.Bottom);
