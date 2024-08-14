@@ -2320,7 +2320,10 @@ begin
   else if AGraphic is TJpegImage then
     CopyFromXYJpeg(X, Y, AGraphic as TJpegImage)
   else
+  begin
     DrawFrom(AGraphic, X, Y);
+    AlphaFill($FF, True);
+  end;
 end;
 
 procedure TKAlphaBitmap.CopyFromXYAlphaBitmap(X, Y: Integer; ABitmap: TKAlphaBitmap);
