@@ -198,8 +198,8 @@ begin
   // check if a number is present
   if (I > 0) and (I < Len) then
   begin
-    Val(Copy(S, I, Len), NumberPart, Code);
-    TextPart := Copy(S, 1, I - 1);
+    Val(Copy(S, I + 1, Len), NumberPart, Code);
+    TextPart := Copy(S, 1, I);
   end else
   begin
     TextPart := S;
@@ -781,7 +781,7 @@ begin
     that the inplace editor has a parent control and this is
     the fact here (grid is always parent of inplace editor). }
   if InitialRow < KGrid1.FixedRows then Exit;
-  S := Cell.Text + ' ' + IntToStr(Cell.Number);
+  S := Cell.Text + IntToStr(Cell.Number);
   case InitialCol of
     2: with TComboBox(AEditor) do
     begin
@@ -1088,7 +1088,7 @@ begin
         end;
         if S <> '' then with TMyTextCell(KGrid1.Cell[I, At + J]) do
         begin
-          Text := S;
+          Text := S + ' ';
           Number := BaseIndex + J;
         end;
       end;
@@ -1119,7 +1119,7 @@ begin
     { Display cell text and cell number. The Text property of CellPainter
       is already filled with the Text property of the corresponding TKGridTextCell
       cell instance. }
-    KGrid1.CellPainter.Text := KGrid1.CellPainter.Text + ' ' + IntToStr(Cell.Number);
+    KGrid1.CellPainter.Text := KGrid1.CellPainter.Text + IntToStr(Cell.Number);
   // mouse "hover" simulation for default grid colors
   with KGrid1.CellPainter.Canvas do
   begin
