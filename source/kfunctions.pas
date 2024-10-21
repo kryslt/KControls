@@ -609,6 +609,10 @@ function MinMax(Value, Min, Max: SmallInt): SmallInt; overload;
 function MinMax(Value, Min, Max: Integer): Integer; overload;
 { Returns a clipped Int64 value so that it lies between Min and Max }
 function MinMax(Value, Min, Max: Int64): Int64; overload;
+{$IFDEF COMPILER10_UP }
+{ Returns a clipped UInt64 value so that it lies between Min and Max }
+function MinMax(Value, Min, Max: UInt64): UInt64; overload;
+{$ENDIF}
 { Returns a clipped Single value so that it lies between Min and Max }
 function MinMax(Value, Min, Max: Single): Single; overload;
 { Returns a clipped Double value so that it lies between Min and Max }
@@ -1998,7 +2002,7 @@ begin
   if Signed and (Digits < 16) then
   begin
     M := Int64(1) shl (Digits shl 2);
-    if Result >= M shr 1 - 1 then
+    if Result > (M shr 1) - 1 then
       Dec(Result, M);
   end;
 end;
@@ -2102,6 +2106,21 @@ begin
   else
     Result := Max;
 end;
+
+{$IFDEF COMPILER10_UP }
+function MinMax(Value, Min, Max: UInt64): UInt64;
+begin
+  if Max < Min then
+    Exchange(Min, Max);
+  if Value <= Max then
+    if Value >= Min then
+      Result := Value
+    else
+      Result := Min
+  else
+    Result := Max;
+end;
+{$ENDIF}
 
 function MinMax(Value, Min, Max: Single): Single;
 begin

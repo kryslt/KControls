@@ -166,14 +166,17 @@ type
     procedure GetFormat(AText: string; var Fmt: TKNumberEditDisplayedFormat; AValue: TKNumberValue); virtual;
     function GetMax: Extended; virtual;
     function GetMaxAsInt: Int64;
+    function GetMaxAsUInt: UInt64;
     function GetMin: Extended; virtual;
     function GetMinAsInt: Int64; virtual;
+    function GetMinAsUInt: UInt64;
     procedure GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string); virtual;
     function GetRealSelStart: Integer; virtual;
     function GetRealSelLength: Integer; virtual;
     function GetSigned: Boolean; virtual;
     function GetValue: Extended; virtual;
     function GetValueAsInt: Int64; virtual;
+    function GetValueAsUInt: UInt64; virtual;
     function GetValueAsText: string; virtual;
     function InspectInputChar(Key: Char): Char; virtual;
     function IsCaptionStored: Boolean; virtual;
@@ -200,8 +203,10 @@ type
     procedure SetLabelSpacing(Value: Cardinal); virtual;
     procedure SetMax(AMax: Extended); virtual;
     procedure SetMaxAsInt(AMax: Int64); virtual;
+    procedure SetMaxAsUInt(AMax: UInt64); virtual;
     procedure SetMin(AMin: Extended); virtual;
     procedure SetMinAsInt(AMin: Int64); virtual;
+    procedure SetMinAsUInt(AMin: UInt64); virtual;
     procedure SetName(const Value: TComponentName); override;
     procedure SetOptions(AValue: TKNumberEditOptions); virtual;
     procedure SetParent(AParent: TWinControl); override;
@@ -209,6 +214,7 @@ type
     procedure SetUpDownStep(AValue: Extended); virtual;
     procedure SetValue(AValue: Extended); virtual;
     procedure SetValueAsInt(AValue: Int64); virtual;
+    procedure SetValueAsUInt(AValue: UInt64); virtual;
     procedure SetValueAsText(const AValue: string); virtual;
     procedure TextToValue; virtual;
     procedure UpdateFormats; virtual;
@@ -238,14 +244,17 @@ type
     property Log: TKLog read FLog write FLog;
     property Max: Extended read GetMax write SetMax stored IsMaxStored;
     property MaxAsInt: Int64 read GetMaxAsInt write SetMaxAsInt;
+    property MaxAsUInt: UInt64 read GetMaxAsUInt write SetMaxAsUInt;
     property Min: Extended read GetMin write SetMin stored IsMinStored;
     property MinAsInt: Int64 read GetMinAsInt write SetMinAsInt;
+    property MinAsUInt: UInt64 read GetMinAsUInt write SetMinAsUInt;
     property Options: TKNumberEditOptions read FOptions write SetOptions default DefaultNumberEditOptions;
     property Precision: Integer read FPrecision write SetPrecision default 2;
     property Signed: Boolean read GetSigned;
     property UpDownStep: Extended read FUpDownStep write SetUpDownStep stored IsUpDownStepStored;
     property Value: Extended read GetValue write SetValue stored IsValueStored;
     property ValueAsInt: Int64 read GetValueAsInt write SetValueAsInt;
+    property ValueAsUInt: UInt64 read GetValueAsUInt write SetValueAsUInt;
     property ValueAsText: string read GetValueAsText write SetValueAsText;
     property WarningColor: TColor read FWarningColor write FWarningColor default clRed;
     property OnUpDownChange: TNotifyEvent read FOnUpDownChange write FOnUpDownChange;
@@ -1120,6 +1129,11 @@ begin
   Result := FMax.IVal;
 end;
 
+function TKCustomNumberEdit.GetMaxAsUInt: UInt64;
+begin
+  Result := FMax.UIVal;
+end;
+
 function TKCustomNumberEdit.GetMin: Extended;
 begin
   Result := FMin.FVal;
@@ -1128,6 +1142,11 @@ end;
 function TKCustomNumberEdit.GetMinAsInt: Int64;
 begin
   Result := FMin.IVal;
+end;
+
+function TKCustomNumberEdit.GetMinAsUInt: UInt64;
+begin
+  Result := FMin.UIVal;
 end;
 
 procedure TKCustomNumberEdit.GetPrefixSuffix(Format: TKNumberEditDisplayedFormat; out Prefix, Suffix: string);
@@ -1185,6 +1204,12 @@ function TKCustomNumberEdit.GetValueAsText: string;
 begin
   TextToValue;
   Result := SetFormat(FValue);
+end;
+
+function TKCustomNumberEdit.GetValueAsUInt: UInt64;
+begin
+  TextToValue;
+  Result := FValue.UIVal;
 end;
 
 function TKCustomNumberEdit.InspectInputChar(Key: Char): Char;
@@ -1545,6 +1570,17 @@ begin
   end;
 end;
 
+procedure TKCustomNumberEdit.SetMaxAsUInt(AMax: UInt64);
+begin
+  if AMax <> FMax.UIVal then
+  begin
+    TextToValue;
+    FMax.UIVal := AMax;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
 procedure TKCustomNumberEdit.SetMin(AMin: Extended);
 begin
   if AMin <> FMin.FVal then
@@ -1562,6 +1598,17 @@ begin
   begin
     TextToValue;
     FMin.IVal := AMin;
+    UpdateMaxMin;
+    ValueToText;
+  end;
+end;
+
+procedure TKCustomNumberEdit.SetMinAsUInt(AMin: UInt64);
+begin
+  if AMin <> FMin.UIVal then
+  begin
+    TextToValue;
+    FMin.UIVal := AMin;
     UpdateMaxMin;
     ValueToText;
   end;
@@ -1671,6 +1718,22 @@ begin
     DoWarning(FValue);
 end;
 
+procedure TKCustomNumberEdit.SetValueAsUInt(AValue: UInt64);
+var
+  Warn: Boolean;
+begin
+  Font.Color := clWindowText;
+  FValue.UIVal := AValue;
+  if neoClampToMinMax in FOptions then
+    Warn := FValue.Clamp(FMin, FMax, Signed)
+  else
+    Warn := False;
+  ValueToText;
+  UpdateUpDown(FValue);
+  if Warn then
+    DoWarning(FValue);
+end;
+
 procedure TKCustomNumberEdit.TextToValue;
 begin
   GetFormat(Text, FLastInputFormat, FValue);
@@ -1728,14 +1791,14 @@ begin
     begin
       if Signed then
       begin
-        FMin.IVal := KFunctions.MinMax(FMin.IVal, Low(Integer), High(Integer));
-        FMax.IVal := KFunctions.MinMax(FMax.IVal, Low(Integer), High(Integer));
+        FMin.IVal := KFunctions.MinMax(FMin.IVal, Low(Int64), High(Int64));
+        FMax.IVal := KFunctions.MinMax(FMax.IVal, Low(Int64), High(Int64));
         if FMax.LowerThan(FMin, True) then
           FMax.Assign(FMin);
       end else
       begin
-        FMin.IVal := KFunctions.MinMax(FMin.IVal, 0, High(LongWord));
-        FMax.IVal := KFunctions.MinMax(FMax.IVal, 0, High(LongWord));
+        FMin.UIVal := KFunctions.MinMax(FMin.UIVal, 0, High(UInt64));
+        FMax.UIVal := KFunctions.MinMax(FMax.UIVal, 0, High(UInt64));
         if FMax.LowerThan(FMin, False) then
           FMax.Assign(FMin);
       end;
@@ -1775,11 +1838,15 @@ begin
           D := MinMax(FUpDownStep * PP, 1, Math.Max(AbsMax * PP / 10, 1)) / PP;
         end;
       end;
-    {$IFnDEF COMPILER19_UP}
       // UpDown min, max and position are SmallInt! (ough)
       // This restriction applies to Delphi XE4 and below and also for Lazarus!
+      // For Delphi XE5 and newer they are Integer.
       // We must increase the order accordingly if AbsMax has more digits
+    {$IFDEF COMPILER19_UP}
+      while AbsMax / D > High(Integer) do
+    {$ELSE}
       while AbsMax / D > High(SmallInt) do
+    {$ENDIF}
       begin
         case Fmt of
           nedfDec, nedfFloat: D := D * 10;
@@ -1790,7 +1857,6 @@ begin
           Break; // for nedfAscii, just skip this. The developer is responsible for reasonable limits.
         end;
       end;
-    {$ENDIF}
       FUpdownChanging := True;
       try
         FUpDown.Min := Trunc(FMin.FVal / D);
