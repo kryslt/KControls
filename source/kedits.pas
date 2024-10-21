@@ -1775,15 +1775,22 @@ begin
           D := MinMax(FUpDownStep * PP, 1, Math.Max(AbsMax * PP / 10, 1)) / PP;
         end;
       end;
-      // UpDown min, max and position are ShortInt! (ough)
-      // - must increase the order accordingly if absolute maximum number has more digits
-      while AbsMax / D > 30000 do
+    {$IFnDEF COMPILER19_UP}
+      // UpDown min, max and position are SmallInt! (ough)
+      // This restriction applies to Delphi XE4 and below and also for Lazarus!
+      // We must increase the order accordingly if AbsMax has more digits
+      while AbsMax / D > High(SmallInt) do
+      begin
         case Fmt of
           nedfDec, nedfFloat: D := D * 10;
           nedfHex: D := D * 16;
           nedfOct: D := D * 8;
           nedfBin: D := D * 2;
+        else
+          Break; // for nedfAscii, just skip this. The developer is responsible for reasonable limits.
         end;
+      end;
+    {$ENDIF}
       FUpdownChanging := True;
       try
         FUpDown.Min := Trunc(FMin.FVal / D);
