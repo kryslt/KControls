@@ -789,8 +789,8 @@ type
     function EqualProperties(ASource: TKObject): Boolean; override;
     procedure GetWordIndexes(AIndex: TKMemoSelectionIndex; out ASt, AEn: TKMemoSelectionIndex); virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: TKMemoSelectionIndex; ACaret: Boolean): TRect; virtual;
-    function InsertParagraph(AIndex: TKMemoSelectionIndex): Boolean; virtual;
-    function InsertString(const AText: TKString; At: TKMemoSelectionIndex = -1): Boolean; virtual;
+    function InsertParagraph(AIndex: TKMemoSelectionIndex = -1): Boolean; virtual;
+    function InsertString(const AText: TKString; AIndex: TKMemoSelectionIndex = -1): Boolean; virtual;
     function MeasureExtent(ACanvas: TCanvas; ARequiredWidth: Integer): TPoint; virtual;
     procedure NotifyDefaultTextChange; virtual;
     procedure NotifyDefaultParaChange; virtual;
@@ -808,7 +808,7 @@ type
     function Select(ASelStart, ASelLength: TKMemoSelectionIndex; ADoScroll: Boolean): Boolean; virtual;
     function SelectableLength(ALocalCalc: Boolean = False): TKMemoSelectionIndex; virtual;
     function SelectedBlock: TKMemoBlock; virtual;
-    function Split(At: TKMemoSelectionIndex; AllowEmpty: Boolean = False): TKMemoBlock; virtual;
+    function Split(AIndex: TKMemoSelectionIndex; AllowEmpty: Boolean = False): TKMemoBlock; virtual;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AIndex: TKMemoSelectionIndex; ACaret: Boolean): TRect; virtual;
     function WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; ARequiredWidth: Integer): TPoint; virtual;
     function WordMouseAction(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; virtual;
@@ -926,7 +926,7 @@ type
     procedure SetWordTop(Index: TKMemoWordIndex; const Value: Integer); override;
     procedure SetWordTopPadding(Index: TKMemoWordIndex; const Value: Integer); override;
     procedure SetWordWidth(Index: TKMemoWordIndex; const Value: Integer); override;
-    class procedure SplitText(const ASource: TKString; At: Integer; out APart1, APart2: TKString);
+    class procedure SplitText(const ASource: TKString; AIndex: Integer; out APart1, APart2: TKString);
     function TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer; virtual;
     procedure TextStyleChanged(Sender: TObject);
     procedure UpdateWords; virtual;
@@ -941,12 +941,12 @@ type
     function Concat(ABlock: TKMemoBlock): Boolean; override;
     function EqualProperties(ASource: TKObject): Boolean; override;
     procedure GetWordIndexes(AIndex: TKMemoSelectionIndex; out ASt, AEn: TKMemoSelectionIndex); override;
-    function InsertString(const AText: TKString; At: TKMemoSelectionIndex = -1): Boolean; override;
+    function InsertString(const AText: TKString; AIndex: TKMemoSelectionIndex = -1): Boolean; override;
     procedure NotifyDefaultTextChange; override;
     procedure NotifyOptionsChange; override;
     procedure NotifyPrintBegin; override;
     procedure NotifyPrintEnd; override;
-    function Split(At: TKMemoSelectionIndex; AllowEmpty: Boolean = False): TKMemoBlock; override;
+    function Split(AIndex: TKMemoSelectionIndex; AllowEmpty: Boolean = False): TKMemoBlock; override;
     function WordIndexToRect(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AIndex: TKMemoSelectionIndex; ACaret: Boolean): TRect; override;
     function WordMeasureExtent(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; ARequiredWidth: Integer): TPoint; override;
     function WordMouseAction(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; AAction: TKMemoMouseAction; const APoint: TPoint; AShift: TShiftState): Boolean; override;
@@ -995,7 +995,7 @@ type
     procedure AssignAttributes(ABlock: TKMemoBlock); override;
     function Concat(ABlock: TKMemoBlock): Boolean; override;
     procedure NotifyDefaultParaChange; override;
-    function Split(At: TKMemoSelectionIndex; AllowEmpty: Boolean = False): TKMemoBlock; override;
+    function Split(AIndex: TKMemoSelectionIndex; AllowEmpty: Boolean = False): TKMemoBlock; override;
     procedure WordPaintToCanvas(ACanvas: TCanvas; AWordIndex: TKMemoWordIndex; ALeft, ATop: Integer); override;
     property Height: Integer read FExtent.Y write FExtent.Y;
     property Left: Integer read FOrigin.X write FOrigin.X;
@@ -1418,26 +1418,26 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-    function AddAt(AObject: TKMemoBlock; At: TKMemoBlockIndex = -1): TKMemoBlockIndex; virtual;
-    function AddContainer(At: TKMemoBlockIndex = -1): TKMemoContainer;
-    function AddHyperlink(const AText, AURL: TKString; At: TKMemoBlockIndex = -1): TKMemoHyperlink; overload;
-    function AddHyperlink(ABlock: TKMemoHyperlink; At: TKMemoBlockIndex = -1): TKMemoHyperlink; overload;
-    function AddImageBlock(AImage: TPicture; At: TKMemoBlockIndex = -1): TKMemoImageBlock; overload;
-    function AddImageBlock(const APath: TKString; At: TKMemoBlockIndex = -1): TKMemoImageBlock; overload;
-    function AddParagraph(At: TKMemoBlockIndex = -1): TKMemoParagraph;
-    function AddTable(At: TKMemoBlockIndex = -1): TKMemoTable;
-    function AddTextBlock(const AText: TKString; At: TKMemoBlockIndex = -1): TKMemoTextBlock;
+    function AddAt(AObject: TKMemoBlock; ABlockIndex: TKMemoBlockIndex = -1): TKMemoBlockIndex; virtual;
+    function AddContainer(ABlockIndex: TKMemoBlockIndex = -1): TKMemoContainer;
+    function AddHyperlink(const AText, AURL: TKString; ABlockIndex: TKMemoBlockIndex = -1): TKMemoHyperlink; overload;
+    function AddHyperlink(ABlock: TKMemoHyperlink; ABlockIndex: TKMemoBlockIndex = -1): TKMemoHyperlink; overload;
+    function AddImageBlock(AImage: TPicture; ABlockIndex: TKMemoBlockIndex = -1): TKMemoImageBlock; overload;
+    function AddImageBlock(const APath: TKString; ABlockIndex: TKMemoBlockIndex = -1): TKMemoImageBlock; overload;
+    function AddParagraph(ABlockIndex: TKMemoBlockIndex = -1): TKMemoParagraph;
+    function AddTable(ABlockIndex: TKMemoBlockIndex = -1): TKMemoTable;
+    function AddTextBlock(const AText: TKString; ABlockIndex: TKMemoBlockIndex = -1): TKMemoTextBlock;
     procedure Assign(ASource: TKObjectList); override;
     function BlockIndexToBlock(ABlockIndex: TKMemoBlockIndex): TKMemoBlock;
     function BlockToIndex(ABlock: TKMemoBlock): TKMemoSelectionIndex; virtual;
     procedure Clear; override;
     procedure ClearSelection(ATextOnly: Boolean = True); virtual;
     procedure ConcatEqualBlocks; virtual;
-    procedure DeleteBOL(At: TKMemoSelectionIndex); virtual;
-    procedure DeleteChar(At: TKMemoSelectionIndex); virtual;
-    procedure DeleteEOL(At: TKMemoSelectionIndex); virtual;
-    procedure DeleteLastChar(At: TKMemoSelectionIndex); virtual;
-    procedure DeleteLine(At: TKMemoSelectionIndex); virtual;
+    procedure DeleteBOL(AIndex: TKMemoSelectionIndex); virtual;
+    procedure DeleteChar(AIndex: TKMemoSelectionIndex); virtual;
+    procedure DeleteEOL(AIndex: TKMemoSelectionIndex); virtual;
+    procedure DeleteLastChar(AIndex: TKMemoSelectionIndex); virtual;
+    procedure DeleteLine(AIndex: TKMemoSelectionIndex); virtual;
     procedure FixEmptyBlocks; virtual;
     procedure FixEOL(AIndex: TKMemoSelectionIndex; AAdjust: Boolean; var ALinePos: TKMemoLinePosition); virtual;
     function GetLastBlockByClass(ABlockIndex: TKMemoBlockIndex; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
@@ -1461,10 +1461,10 @@ type
     function IndexToLineIndex(AIndex: TKMemoSelectionIndex): TKMemoLineIndex; virtual;
     function IndexToRect(ACanvas: TCanvas; AIndex: TKMemoSelectionIndex; ACaret, AAdjust: Boolean): TRect; virtual;
     function InsideOfTable: Boolean; virtual;
-    procedure InsertChar(At: TKMemoSelectionIndex; const AValue: TKChar; AOverWrite: Boolean; ATextStyle: TKMemoTextStyle = nil); virtual;
-    procedure InsertNewLine(At: TKMemoSelectionIndex); virtual;
-    procedure InsertPlainText(AIndex: TKMemoSelectionIndex; const AValue: TKString); virtual;
+    procedure InsertChar(AIndex: TKMemoSelectionIndex; const AValue: TKChar; AOverWrite: Boolean; ATextStyle: TKMemoTextStyle = nil); virtual;
+    procedure InsertNewLine(AIndex: TKMemoSelectionIndex); virtual;
     function InsertParagraph(AIndex: TKMemoSelectionIndex; AAdjust: Boolean): Boolean; virtual;
+    procedure InsertPlainText(AIndex: TKMemoSelectionIndex; const AValue: TKString); virtual;
     function InsertString(AIndex: TKMemoSelectionIndex; AAdjust: Boolean; const AValue: TKString; ATextStyle: TKMemoTextStyle = nil): Boolean; virtual;
     function LastTextStyle(ABlockIndex: TKMemoBlockIndex): TKMemoTextStyle; virtual;
     function LineEndIndexByIndex(AIndex: TKMemoSelectionIndex; AAdjust, ASelectionExpanding: Boolean; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex; virtual;
@@ -2097,16 +2097,16 @@ type
       <LI><I>Command</I> - specifies the command to inspect</LI>
       </UL> }
     function CommandEnabled(Command: TKEditCommand): Boolean; virtual;
-    { Delete all characters from beginning of line to position given by At. }
-    procedure DeleteBOL(At: TKMemoSelectionIndex);
-    { Delete character at position At (Delete key). }
-    procedure DeleteChar(At: TKMemoSelectionIndex); virtual;
-    { Delete all characters from position given by At to the end of line. }
-    procedure DeleteEOL(At: TKMemoSelectionIndex);
-    { Delete character before position At (Backspace key). }
-    procedure DeleteLastChar(At: TKMemoSelectionIndex); virtual;
-    { Delete whole line at position At. }
-    procedure DeleteLine(At: TKMemoSelectionIndex);
+    { Delete all characters from beginning of line to position given by AIndex. }
+    procedure DeleteBOL(AIndex: TKMemoSelectionIndex);
+    { Delete character at position AIndex (Delete key). }
+    procedure DeleteChar(AIndex: TKMemoSelectionIndex); virtual;
+    { Delete all characters from position given by AIndex to the end of line. }
+    procedure DeleteEOL(AIndex: TKMemoSelectionIndex);
+    { Delete character before position AIndex (Backspace key). }
+    procedure DeleteLastChar(AIndex: TKMemoSelectionIndex); virtual;
+    { Delete whole line at position AIndex. }
+    procedure DeleteLine(AIndex: TKMemoSelectionIndex);
     { Delete block previously selected with @link(TKCustomMemo.SelectBlock), if any. }
     procedure DeleteSelectedBlock; virtual;
     { Executes given command. This function first calls CommandEnabled to
@@ -2134,23 +2134,23 @@ type
     { Inserts a character at specified position.
       <UL>
       <LH>Parameters:</LH>
-      <LI><I>At</I> - position where the character should be inserted.</LI>
+      <LI><I>AIndex</I> - position where the character should be inserted.</LI>
       <LI><I>AValue</I> - character</LI>
       </UL> }
-    procedure InsertChar(At: TKMemoSelectionIndex; const AValue: TKChar); virtual;
+    procedure InsertChar(AIndex: TKMemoSelectionIndex; const AValue: TKChar); virtual;
     { Inserts new line at specified position.
       <UL>
       <LH>Parameters:</LH>
-      <LI><I>At</I> - position where the new line should be inserted.</LI>
+      <LI><I>AIndex</I> - position where the new line should be inserted.</LI>
       </UL> }
-    procedure InsertNewLine(At: TKMemoSelectionIndex); virtual;
-    { Inserts a string at specified position.
+    procedure InsertNewLine(AIndex: TKMemoSelectionIndex); virtual;
+    { Inserts a string at specified position. The string may not contain new line characters.
       <UL>
       <LH>Parameters:</LH>
-      <LI><I>At</I> - position where the string should be inserted.</LI>
+      <LI><I>AIndex</I> - position where the string should be inserted.</LI>
       <LI><I>AValue</I> - inserted string</LI>
       </UL> }
-    procedure InsertString(At: TKMemoSelectionIndex; const AValue: TKString); virtual;
+    procedure InsertString(AIndex: TKMemoSelectionIndex; const AValue: TKString); virtual;
     { Load contents from a file. Chooses format automatically by extension.
       Text file is default format. }
     procedure LoadFromFile(const AFileName: TKString); virtual;
@@ -4687,39 +4687,39 @@ begin
 {$ENDIF}
 end;
 
-procedure TKCustomMemo.DeleteBOL(At: TKMemoSelectionIndex);
+procedure TKCustomMemo.DeleteBOL(AIndex: TKMemoSelectionIndex);
 begin
-  ActiveBlocks.DeleteBOL(At);
+  ActiveBlocks.DeleteBOL(AIndex);
   Modified := True;
 end;
 
-procedure TKCustomMemo.DeleteChar(At: TKMemoSelectionIndex);
+procedure TKCustomMemo.DeleteChar(AIndex: TKMemoSelectionIndex);
 begin
   if RelativeSelected then
     DeleteSelectedBlock
   else
-    ActiveBlocks.DeleteChar(At);
+    ActiveBlocks.DeleteChar(AIndex);
   Modified := True;
 end;
 
-procedure TKCustomMemo.DeleteEOL(At: TKMemoSelectionIndex);
+procedure TKCustomMemo.DeleteEOL(AIndex: TKMemoSelectionIndex);
 begin
-  ActiveBlocks.DeleteEOL(At);
+  ActiveBlocks.DeleteEOL(AIndex);
   Modified := True;
 end;
 
-procedure TKCustomMemo.DeleteLastChar(At: TKMemoSelectionIndex);
+procedure TKCustomMemo.DeleteLastChar(AIndex: TKMemoSelectionIndex);
 begin
   if RelativeSelected then
     DeleteSelectedBlock
   else
-    ActiveBlocks.DeleteLastChar(At);
+    ActiveBlocks.DeleteLastChar(AIndex);
   Modified := True;
 end;
 
-procedure TKCustomMemo.DeleteLine(At: TKMemoSelectionIndex);
+procedure TKCustomMemo.DeleteLine(AIndex: TKMemoSelectionIndex);
 begin
-  ActiveBlocks.DeleteLine(At);
+  ActiveBlocks.DeleteLine(AIndex);
   Modified := True;
 end;
 
@@ -5605,7 +5605,7 @@ begin
   Result := BlockRectToRect(ActiveBlocks.IndexToRect(Canvas, AValue, ACaret, ActiveBlocks.EOLToNormal(AValue)));
 end;
 
-procedure TKCustomMemo.InsertChar(At: TKMemoSelectionIndex; const AValue: TKChar);
+procedure TKCustomMemo.InsertChar(AIndex: TKMemoSelectionIndex; const AValue: TKChar);
 var
   Style: TKMemoTextStyle;
 begin
@@ -5615,17 +5615,17 @@ begin
     FNewTextStyleValid := False;
   end else
     Style := nil;
-  ActiveBlocks.InsertChar(At, AValue, elOverwrite in FStates, Style);
+  ActiveBlocks.InsertChar(AIndex, AValue, elOverwrite in FStates, Style);
   Modified := True;
 end;
 
-procedure TKCustomMemo.InsertNewLine(At: TKMemoSelectionIndex);
+procedure TKCustomMemo.InsertNewLine(AIndex: TKMemoSelectionIndex);
 begin
-  ActiveBlocks.InsertNewLine(At);
+  ActiveBlocks.InsertNewLine(AIndex);
   Modified := True;
 end;
 
-procedure TKCustomMemo.InsertString(At: TKMemoSelectionIndex; const AValue: TKString);
+procedure TKCustomMemo.InsertString(AIndex: TKMemoSelectionIndex; const AValue: TKString);
 begin
   if AValue <> '' then
   begin
@@ -5634,10 +5634,10 @@ begin
       if ActiveBlocks.SelLength > 0 then
       begin
         ActiveBlocks.ClearSelection;
-        At := ActiveBlocks.SelEnd;
+        AIndex := ActiveBlocks.SelEnd;
       end;
       // always insert (don't overwrite)
-      ActiveBlocks.InsertString(At, True, AValue);
+      ActiveBlocks.InsertString(AIndex, True, AValue);
     finally
       EndUndoGroup;
     end;
@@ -7421,7 +7421,7 @@ begin
   end;
 end;
 
-function TKMemoBlock.InsertString(const AText: TKString; At: TKMemoSelectionIndex): Boolean;
+function TKMemoBlock.InsertString(const AText: TKString; AIndex: TKMemoSelectionIndex): Boolean;
 begin
   Result := False;
 end;
@@ -7760,7 +7760,7 @@ begin
     Result := sgpNone;
 end;
 
-function TKMemoBlock.Split(At: TKMemoSelectionIndex; AllowEmpty: Boolean): TKMemoBlock;
+function TKMemoBlock.Split(AIndex: TKMemoSelectionIndex; AllowEmpty: Boolean): TKMemoBlock;
 begin
   Result := nil;
 end;
@@ -8217,15 +8217,15 @@ begin
   Result := StrCPIndexToByteIndex(AText, AIndex);
 end;
 
-function TKMemoTextBlock.InsertString(const AText: TKString; At: TKMemoSelectionIndex): Boolean;
+function TKMemoTextBlock.InsertString(const AText: TKString; AIndex: TKMemoSelectionIndex): Boolean;
 var
   S, T, Part1, Part2: TKString;
 begin
   Result := False;
   S := Text;
-  if At >= 0 then
+  if AIndex >= 0 then
   begin
-    SplitText(S, At + 1, Part1, Part2);
+    SplitText(S, AIndex + 1, Part1, Part2);
     T := Part1 + AText + Part2;
   end
   else
@@ -8397,31 +8397,31 @@ begin
   FWords[Index].Extent := P;
 end;
 
-function TKMemoTextBlock.Split(At: TKMemoSelectionIndex; AllowEmpty: Boolean): TKMemoBlock;
+function TKMemoTextBlock.Split(AIndex: TKMemoSelectionIndex; AllowEmpty: Boolean): TKMemoBlock;
 var
   Block: TKMemoTextBlock;
   S, Part1, Part2: TKString;
   Cls: TKMemoBlockClass;
   TmpSelStart, TmpSelEnd: TKMemoSelectionIndex;
 begin
-  if ((At > 0) or AllowEmpty and (At = 0)) and (At < ContentLength) then
+  if ((AIndex > 0) or AllowEmpty and (AIndex = 0)) and (AIndex < ContentLength) then
   begin
     Cls := TKMemoBlockClass(Self.ClassType);
     Block := Cls.Create as TKMemoTextBlock;
     Block.Assign(Self);
     S := GetText;
-    SplitText(S, At + 1, Part1, Part2);
+    SplitText(S, AIndex + 1, Part1, Part2);
     // split selection when necessary
     if SelLength > 0 then
     begin
       TmpSelStart := SelStart;
       TmpSelEnd := SelEnd;
-      if TmpSelStart < At then
-        Select(TmpSelStart, At - TmpSelStart, False)
+      if TmpSelStart < AIndex then
+        Select(TmpSelStart, AIndex - TmpSelStart, False)
       else
         Select(-1, 0, False);
-      if TmpSelEnd > At then
-        Block.Select(0, TmpSelEnd - At, False)
+      if TmpSelEnd > AIndex then
+        Block.Select(0, TmpSelEnd - AIndex, False)
       else
         Block.Select(-1, 0, False)
     end;
@@ -8432,10 +8432,10 @@ begin
     Result := nil;
 end;
 
-class procedure TKMemoTextBlock.SplitText(const ASource: TKString; At: Integer; out APart1, APart2: TKString);
+class procedure TKMemoTextBlock.SplitText(const ASource: TKString; AIndex: Integer; out APart1, APart2: TKString);
 begin
-  APart1 := StringCopy(ASource, 1, At - 1);
-  APart2 := StringCopy(ASource, At, Length(ASource) - At + 1);
+  APart1 := StringCopy(ASource, 1, AIndex - 1);
+  APart2 := StringCopy(ASource, AIndex, Length(ASource) - AIndex + 1);
 end;
 
 function TKMemoTextBlock.TextIndexToIndex(var AText: TKString; ATextIndex: Integer): Integer;
@@ -8997,7 +8997,7 @@ begin
   end;
 end;
 
-function TKMemoParagraph.Split(At: TKMemoSelectionIndex; AllowEmpty: Boolean): TKMemoBlock;
+function TKMemoParagraph.Split(AIndex: TKMemoSelectionIndex; AllowEmpty: Boolean): TKMemoBlock;
 begin
   Result := nil;
 end;
@@ -11550,7 +11550,7 @@ begin
     FOnUpdate(AReasons);
 end;
 
-function TKMemoBlocks.AddAt(AObject: TKMemoBlock; At: TKMemoBlockIndex): TKMemoBlockIndex;
+function TKMemoBlocks.AddAt(AObject: TKMemoBlock; ABlockIndex: TKMemoBlockIndex): TKMemoBlockIndex;
 begin
   if AObject <> nil then
   begin
@@ -11559,13 +11559,13 @@ begin
     begin
       if Empty and (Count > 0) then
         inherited Delete(0);
-      if (At < 0) or (At >= Count) then
+      if (ABlockIndex < 0) or (ABlockIndex >= Count) then
       begin
         Result := inherited Add(AObject);
       end else
       begin
-        inherited Insert(At, AObject);
-        Result := At;
+        inherited Insert(ABlockIndex, AObject);
+        Result := ABlockIndex;
       end;
     end else
     begin
@@ -11576,57 +11576,57 @@ begin
     Result := -1;
 end;
 
-function TKMemoBlocks.AddContainer(At: TKMemoBlockIndex): TKMemoContainer;
+function TKMemoBlocks.AddContainer(ABlockIndex: TKMemoBlockIndex): TKMemoContainer;
 begin
   LockUpdate;
   try
     Result := TKMemoContainer.Create;
-    AddAt(Result, At);
+    AddAt(Result, ABlockIndex);
   finally
     UnlockUpdate;
   end;
 end;
 
-function TKMemoBlocks.AddHyperlink(ABlock: TKMemoHyperlink; At: TKMemoBlockIndex): TKMemoHyperlink;
+function TKMemoBlocks.AddHyperlink(ABlock: TKMemoHyperlink; ABlockIndex: TKMemoBlockIndex): TKMemoHyperlink;
 begin
   Result := ABlock;
-  Result.TextStyle.Assign(LastTextStyle(At));
+  Result.TextStyle.Assign(LastTextStyle(ABlockIndex));
   Result.DefaultStyle;
-  AddAt(Result, At);
+  AddAt(Result, ABlockIndex);
 end;
 
-function TKMemoBlocks.AddHyperlink(const AText, AURL: TKString; At: TKMemoBlockIndex): TKMemoHyperlink;
+function TKMemoBlocks.AddHyperlink(const AText, AURL: TKString; ABlockIndex: TKMemoBlockIndex): TKMemoHyperlink;
 begin
   Result := TKMemoHyperLink.Create;
-  Result.TextStyle.Assign(LastTextStyle(At));
+  Result.TextStyle.Assign(LastTextStyle(ABlockIndex));
   Result.DefaultStyle;
   Result.Text := AText;
   Result.URL := AURL;
-  AddAt(Result, At);
+  AddAt(Result, ABlockIndex);
 end;
 
-function TKMemoBlocks.AddImageBlock(AImage: TPicture; At: TKMemoBlockIndex): TKMemoImageBlock;
+function TKMemoBlocks.AddImageBlock(AImage: TPicture; ABlockIndex: TKMemoBlockIndex): TKMemoImageBlock;
 begin
   Result := TKMemoImageBlock.Create;
   if AImage <> nil then
     Result.Image := AImage.Graphic;
-  AddAt(Result, At);
+  AddAt(Result, ABlockIndex);
 end;
 
-function TKMemoBlocks.AddImageBlock(const APath: TKString; At: TKMemoBlockIndex): TKMemoImageBlock;
+function TKMemoBlocks.AddImageBlock(const APath: TKString; ABlockIndex: TKMemoBlockIndex): TKMemoImageBlock;
 begin
   Result := TKMemoImageBlock.Create;
   if APath <> '' then
     Result.LoadFromFile(APath);
-  AddAt(Result, At);
+  AddAt(Result, ABlockIndex);
 end;
 
-function TKMemoBlocks.AddParagraph(At: TKMemoBlockIndex): TKMemoParagraph;
+function TKMemoBlocks.AddParagraph(ABlockIndex: TKMemoBlockIndex): TKMemoParagraph;
 var
   PA: TKMemoParagraph;
 begin
   Result := TKMemoParagraph.Create;
-  PA := GetNearestParagraphBlock(At);
+  PA := GetNearestParagraphBlock(ABlockIndex);
   if PA <> nil then
   begin
     Result.AssignAttributes(PA);
@@ -11636,24 +11636,24 @@ begin
     end;
   end else
   begin
-    Result.TextStyle.Assign(LastTextStyle(At));
+    Result.TextStyle.Assign(LastTextStyle(ABlockIndex));
     Result.ParaStyle.Assign(GetDefaultParaStyle);
   end;
-  AddAt(Result, At);
+  AddAt(Result, ABlockIndex);
 end;
 
-function TKMemoBlocks.AddTable(At: TKMemoBlockIndex): TKMemoTable;
+function TKMemoBlocks.AddTable(ABlockIndex: TKMemoBlockIndex): TKMemoTable;
 begin
   Result := TKMemoTable.Create;
-  AddAt(Result, At);
+  AddAt(Result, ABlockIndex);
 end;
 
-function TKMemoBlocks.AddTextBlock(const AText: TKString; At: TKMemoBlockIndex): TKMemoTextBlock;
+function TKMemoBlocks.AddTextBlock(const AText: TKString; ABlockIndex: TKMemoBlockIndex): TKMemoTextBlock;
 begin
   Result := TKMemoTextBlock.Create;
-  Result.TextStyle.Assign(LastTextStyle(At));
+  Result.TextStyle.Assign(LastTextStyle(ABlockIndex));
   Result.Text := AText;
-  AddAt(Result, At);
+  AddAt(Result, ABlockIndex);
 end;
 
 procedure TKMemoBlocks.Assign(ASource: TKObjectList);
@@ -11806,61 +11806,61 @@ begin
   end;
 end;
 
-procedure TKMemoBlocks.DeleteBOL(At: TKMemoSelectionIndex);
+procedure TKMemoBlocks.DeleteBOL(AIndex: TKMemoSelectionIndex);
 var
   LineStart: TKMemoSelectionIndex;
   TmpPos: TKMemoLinePosition;
 begin
-  LineStart := LineStartIndexByIndex(At, True, TmpPos);
-  Select(LineStart, At - LineStart);
+  LineStart := LineStartIndexByIndex(AIndex, True, TmpPos);
+  Select(LineStart, AIndex - LineStart);
   ClearSelection;
 end;
 
-procedure TKMemoBlocks.DeleteChar(At: TKMemoSelectionIndex);
+procedure TKMemoBlocks.DeleteChar(AIndex: TKMemoSelectionIndex);
 var
   NextIndex: TKMemoSelectionIndex;
 begin
   if SelLength <> 0 then
     ClearSelection
-  else if not IndexAtEndOfContainer(At, True) then
+  else if not IndexAtEndOfContainer(AIndex, True) then
   begin
-    NextIndex := NextIndexByCharCount(At, 1);
-    Select(At, NextIndex - At, True, True);
+    NextIndex := NextIndexByCharCount(AIndex, 1);
+    Select(AIndex, NextIndex - AIndex, True, True);
     ClearSelection;
   end;
 end;
 
-procedure TKMemoBlocks.DeleteEOL(At: TKMemoSelectionIndex);
+procedure TKMemoBlocks.DeleteEOL(AIndex: TKMemoSelectionIndex);
 var
   LineEnd: TKMemoSelectionIndex;
   TmpPos: TKMemoLinePosition;
 begin
-  LineEnd := LineEndIndexByIndex(At, True, True, TmpPos);
-  Select(At, LineEnd - At);
+  LineEnd := LineEndIndexByIndex(AIndex, True, True, TmpPos);
+  Select(AIndex, LineEnd - AIndex);
   ClearSelection;
 end;
 
-procedure TKMemoBlocks.DeleteLastChar(At: TKMemoSelectionIndex);
+procedure TKMemoBlocks.DeleteLastChar(AIndex: TKMemoSelectionIndex);
 var
   LastIndex: TKMemoSelectionIndex;
 begin
   if SelLength <> 0 then
     ClearSelection
-  else if not IndexAtBeginningOfContainer(At, True) then
+  else if not IndexAtBeginningOfContainer(AIndex, True) then
   begin
-    LastIndex := NextIndexByCharCount(At, -1);
-    Select(LastIndex, At - LastIndex, True, True);
+    LastIndex := NextIndexByCharCount(AIndex, -1);
+    Select(LastIndex, AIndex - LastIndex, True, True);
     ClearSelection;
   end;
 end;
 
-procedure TKMemoBlocks.DeleteLine(At: TKMemoSelectionIndex);
+procedure TKMemoBlocks.DeleteLine(AIndex: TKMemoSelectionIndex);
 var
   LineStart, LineEnd: TKMemoSelectionIndex;
   TmpPos: TKMemoLinePosition;
 begin
-  LineStart := LineStartIndexByIndex(At, True, TmpPos);
-  LineEnd := LineEndIndexByIndex(At, True, True, TmpPos);
+  LineStart := LineStartIndexByIndex(AIndex, True, TmpPos);
+  LineEnd := LineEndIndexByIndex(AIndex, True, True, TmpPos);
   Select(LineStart, LineEnd - LineStart);
   ClearSelection;
 end;
@@ -12886,25 +12886,25 @@ begin
     Result := Rect(0, 0, 0, Abs(GetDefaultTextStyle.Font.Height));
 end;
 
-procedure TKMemoBlocks.InsertChar(At: TKMemoSelectionIndex; const AValue: TKChar; AOverWrite: Boolean; ATextStyle: TKMemoTextStyle);
+procedure TKMemoBlocks.InsertChar(AIndex: TKMemoSelectionIndex; const AValue: TKChar; AOverWrite: Boolean; ATextStyle: TKMemoTextStyle);
 var
   NextIndex: TKMemoSelectionIndex;
 begin
   if SelLength <> 0 then
   begin
     ClearSelection;
-    At := FSelEnd;
+    AIndex := FSelEnd;
   end
   else if AOverwrite then
-    DeleteChar(At);
-  if InsertString(At, True, AValue, ATextStyle) then
+    DeleteChar(AIndex);
+  if InsertString(AIndex, True, AValue, ATextStyle) then
   begin
-    NextIndex := NextIndexByCharCount(At, 1);
+    NextIndex := NextIndexByCharCount(AIndex, 1);
     Select(NextIndex, 0, True, True);
   end;
 end;
 
-procedure TKMemoBlocks.InsertNewLine(At: TKMemoSelectionIndex);
+procedure TKMemoBlocks.InsertNewLine(AIndex: TKMemoSelectionIndex);
 var
   NextIndex: TKMemoSelectionIndex;
   AtEnd: Boolean;
@@ -12912,13 +12912,13 @@ begin
   if SelLength > 0 then
   begin
     ClearSelection;
-    At := FSelEnd;
+    AIndex := FSelEnd;
   end;
-  AtEnd := IndexAtEndOfContainer(At, True);
+  AtEnd := IndexAtEndOfContainer(AIndex, True);
   // always insert (don't overwrite)
-  if InsertParagraph(At, True) and not AtEnd then
+  if InsertParagraph(AIndex, True) and not AtEnd then
   begin
-    NextIndex := NextIndexByCharCount(At, 1);
+    NextIndex := NextIndexByCharCount(AIndex, 1);
     Select(NextIndex, 0, True, True);
   end;
 end;
@@ -12986,7 +12986,7 @@ begin
       S := Copy(AValue, St, I - St + 1);
       if S <> '' then
         if InsertString(AIndex, True, S) then
-            UpdateAttributes;             // drb, November 2019
+          UpdateAttributes;             // drb, November 2019
     end;
   finally
     UnlockUpdate;
