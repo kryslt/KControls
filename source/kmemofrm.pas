@@ -682,7 +682,7 @@ begin
       Cont.RequiredWidth := Editor.Pt2PxX(FDefaultTextBoxSize.X);
       Cont.RequiredHeight := Editor.Pt2PxY(FDefaultTextBoxSize.Y);
       Cont.BlockStyle.BorderWidth := Editor.Pt2PxX(FDefaultTextBoxBorderWidth);
-      Cont.InsertString(sMemoSampleTextBox + cEOL);
+      Cont.InsertPlainText(sMemoSampleTextBox + cEOL);
       Created := True;
     end;
   end;

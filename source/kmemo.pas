@@ -1175,8 +1175,10 @@ type
     function CalcAscent(ACanvas: TCanvas): Integer; override;
     function CanAdd(ABlock: TKMemoBlock): Boolean; override;
     procedure ClearSelection(ATextOnly: Boolean); override;
-    function InsertParagraph(AIndex: TKMemoSelectionIndex): Boolean; override;
-    function InsertString(const AText: TKString; At: TKMemoSelectionIndex = -1): Boolean; override;
+    procedure InsertNewLine(AIndex: TKMemoSelectionIndex = -1); virtual;
+    function InsertParagraph(AIndex: TKMemoSelectionIndex = -1): Boolean; override;
+    procedure InsertPlainText(const AValue: TKString; AIndex: TKMemoSelectionIndex = -1); virtual;
+    function InsertString(const AText: TKString; AIndex: TKMemoSelectionIndex = -1): Boolean; override;
     procedure NotifyDefaultParaChange; override;
     procedure NotifyDefaultTextChange; override;
     procedure NotifyPrintBegin; override;
@@ -2144,6 +2146,13 @@ type
       <LI><I>AIndex</I> - position where the new line should be inserted.</LI>
       </UL> }
     procedure InsertNewLine(AIndex: TKMemoSelectionIndex); virtual;
+    { Inserts a plain text at specified position. The string may contain new line characters.
+      <UL>
+      <LH>Parameters:</LH>
+      <LI><I>AIndex</I> - position where the string should be inserted.</LI>
+      <LI><I>AValue</I> - inserted string</LI>
+      </UL> }
+    procedure InsertPlainText(AIndex: TKMemoSelectionIndex; const AValue: TKString); virtual;
     { Inserts a string at specified position. The string may not contain new line characters.
       <UL>
       <LH>Parameters:</LH>
@@ -5623,6 +5632,27 @@ procedure TKCustomMemo.InsertNewLine(AIndex: TKMemoSelectionIndex);
 begin
   ActiveBlocks.InsertNewLine(AIndex);
   Modified := True;
+end;
+
+procedure TKCustomMemo.InsertPlainText(AIndex: TKMemoSelectionIndex;
+  const AValue: TKString);
+begin
+  if AValue <> '' then
+  begin
+    BeginUndoGroup(ckInsert);
+    try
+      if ActiveBlocks.SelLength > 0 then
+      begin
+        ActiveBlocks.ClearSelection;
+        AIndex := ActiveBlocks.SelEnd;
+      end;
+      // always insert (don't overwrite)
+      ActiveBlocks.InsertPlainText(AIndex, AValue);
+    finally
+      EndUndoGroup;
+    end;
+    Modified := True;
+  end
 end;
 
 procedure TKCustomMemo.InsertString(AIndex: TKMemoSelectionIndex; const AValue: TKString);
@@ -9900,16 +9930,24 @@ begin
     Result := Max(FCurrentRequiredWidth, FBlocks.Width + FBlockStyle.AllPaddingsLeft + FBlockStyle.AllPaddingsRight);
 end;
 
+procedure TKMemoContainer.InsertNewLine(AIndex: TKMemoSelectionIndex);
+begin
+  FBlocks.InsertNewLine(AIndex);
+end;
+
 function TKMemoContainer.InsertParagraph(AIndex: TKMemoSelectionIndex): Boolean;
 begin
   Result := FBlocks.InsertParagraph(AIndex, False);
 end;
 
-function TKMemoContainer.InsertString(const AText: TKString; At: TKMemoSelectionIndex): Boolean;
+procedure TKMemoContainer.InsertPlainText(const AValue: TKString; AIndex: TKMemoSelectionIndex);
 begin
-  if At < 0 then
-    At := FBlocks.SelectableLength;
-  Result := FBlocks.InsertString(At, False, AText);
+  FBlocks.InsertPlainText(AIndex, AValue);
+end;
+
+function TKMemoContainer.InsertString(const AText: TKString; AIndex: TKMemoSelectionIndex): Boolean;
+begin
+  Result := FBlocks.InsertString(AIndex, False, AText);
 end;
 
 procedure TKMemoContainer.NotifyDefaultParaChange;
@@ -12914,6 +12952,8 @@ procedure TKMemoBlocks.InsertChar(AIndex: TKMemoSelectionIndex; const AValue: TK
 var
   NextIndex: TKMemoSelectionIndex;
 begin
+  if AIndex < 0 then
+    AIndex := SelectableLength;
   if SelLength <> 0 then
   begin
     ClearSelection;
@@ -12933,6 +12973,8 @@ var
   NextIndex: TKMemoSelectionIndex;
   AtEnd: Boolean;
 begin
+  if AIndex < 0 then
+    AIndex := SelectableLength;
   if SelLength > 0 then
   begin
     ClearSelection;
@@ -12953,6 +12995,8 @@ var
   LocalIndex: TKMemoSelectionIndex;
   Block: TKMemoBlock;
 begin
+  if AIndex < 0 then
+    AIndex := SelectableLength;
   if AAdjust then
     EOLToNormal(AIndex);
   LockUpdate;
@@ -12979,6 +13023,8 @@ var
   I, Ln, St: Integer;
   S: TKString;
 begin
+  if AIndex < 0 then
+    AIndex := SelectableLength;
   LockUpdate;
   try
     St := 1;
@@ -13024,6 +13070,8 @@ var
   Block, NewBlock, LastBlock, NextBlock: TKMemoBlock;
 begin
   Result := False;
+  if AIndex < 0 then
+    AIndex := SelectableLength;
   if AAdjust then
     EOLToNormal(AIndex);
   LockUpdate;
