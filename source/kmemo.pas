@@ -1438,7 +1438,7 @@ type
     procedure DeleteEOL(AIndex: TKMemoSelectionIndex); virtual;
     procedure DeleteLastChar(AIndex: TKMemoSelectionIndex); virtual;
     procedure DeleteLine(AIndex: TKMemoSelectionIndex); virtual;
-    procedure FixEmptyBlocks; virtual;
+    procedure FixEmptyBlocks(ARecursive: Boolean = False); virtual;
     procedure FixEOL(AIndex: TKMemoSelectionIndex; AAdjust: Boolean; var ALinePos: TKMemoLinePosition); virtual;
     function GetLastBlockByClass(ABlockIndex: TKMemoBlockIndex; AClass: TKMemoBlockClass): TKMemoBlock; virtual;
     function GetNearestAnchorBlockIndex(ABlockIndex: TKMemoBlockIndex): TKMemoBlockIndex; virtual;
@@ -5748,6 +5748,7 @@ begin
   try
     Clear(False);
     Reader.LoadFromFile(AFileName, Blocks, -1);
+    FBlocks.FixEmptyBlocks(True);
   finally
     Reader.Free;
   end;
@@ -5779,6 +5780,7 @@ begin
     finally
       List.Free;
     end;
+    FBlocks.FixEmptyBlocks(True);
   end;
 end;
 
@@ -5794,6 +5796,7 @@ begin
   finally
     List.Free;
   end;
+  FBlocks.FixEmptyBlocks(True);
 end;
 
 procedure TKCustomMemo.MeasurePages(var Info: TKPrintMeasureInfo);
@@ -6566,6 +6569,7 @@ begin
     Stream.Seek(0, soFromBeginning);
     Clear(False);
     LoadFromRTFStream(Stream, -1);
+    FBlocks.FixEmptyBlocks(True);
   finally
     Stream.Free;
   end;
@@ -7007,6 +7011,7 @@ begin
   FDoubleClickState := mdblNone;
   FMouseCaptureWord := -1;
   FClickOnMouseUp := True;
+  FPosition := mbpText;
   FOnClick := nil;
   FOnDblClick := nil;
 end;
@@ -11875,23 +11880,42 @@ begin
   end;
 end;
 
-procedure TKMemoBlocks.FixEmptyBlocks;
+procedure TKMemoBlocks.FixEmptyBlocks(ARecursive: Boolean);
 var
   I: TKMemoBlockIndex;
-  SelectableCnt: Integer;
+  Cont: Boolean;
   Block: TKMemoBlock;
 begin
-  // do not leave empty blocks, always add single paragraph
-  SelectableCnt := 0;
-  for I := 0 to Count - 1 do
+  // always add a paragraph at the end when there is none
+  I := Count;
+  if I = 0 then
   begin
-    Block := Items[I];
-    if (Block.Position = mbpText) and not (Block is TKMemoContainer) then
-      Inc(SelectableCnt);
-  end;
-  if SelectableCnt = 0 then
-  begin
+    // empty blocks, just add one paragraph
     AddParagraph;
+  end else
+  begin
+    // use one loop for these operations:
+    // -trace all nested container blocks if ARecursive is true
+    // -add paragraph as the very last block if there is none
+    Cont := True;
+    while I > 0 do
+    begin
+      Dec(I);
+      Block := Items[I];
+      if Block is TKMemoContainer then
+      begin
+        if ARecursive then
+          TKMemoContainer(Block).Blocks.FixEmptyBlocks(True);
+      end
+      else if Cont and (Block.Position = mbpText) then
+      begin
+        Cont := False;
+        if not (Block is TKMemoParagraph) then
+          AddParagraph;
+        if not ARecursive then
+          Exit;
+      end;
+    end;
   end;
 end;
 
