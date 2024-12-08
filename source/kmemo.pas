@@ -6663,13 +6663,7 @@ end;
 
 procedure TKCustomMemo.SetText(const Value: TKString);
 begin
-  ActiveBlocks.LockUpdate;
-  try
-    ActiveBlocks.Clear;
-    ActiveBlocks.Text := Value;
-  finally
-    ActiveBlocks.UnlockUpdate;
-  end;
+  ActiveBlocks.Text := Value;
 end;
 
 procedure TKCustomMemo.SetTopPos(Value: Integer);
@@ -8051,7 +8045,7 @@ begin
   if Result then
   begin
     TmpLen := SelectableLength;
-    InsertString(TKMemoTextBlock(ABlock).Text, -1);
+    InsertString(TKMemoTextBlock(ABlock).Text);
     // concat selection when necessary
     if (ABlock.SelLength > 0) and (ABlock.SelStart = 0) then
     begin
