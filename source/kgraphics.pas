@@ -191,6 +191,16 @@ type
   { Set of TKButtonState values. }
   TKButtonDrawStates = set of TKButtonDrawState;
 
+  { Type of resampling kernel for @link(TKAlphaBitmap.Resample). }
+  TKResamplingKernel = (
+    { Bicubic kernel. }
+    rkBicubic,
+    { Lanczos kernel. }
+    rkLanczos,
+    { Triangle kernel. }
+    rkTriangle
+  );
+
   { Contains common properties for all KCOntrols TGraphic descendants. }
   TKGraphic = class(TGraphic)
   protected
@@ -226,6 +236,8 @@ type
     FPixelsChanged: Boolean;
     FUpdateLock: Integer;
     FWidth: Integer;
+    FResamplingWindow: Cardinal;
+    FResamplingKernel: TKResamplingKernel;
   {$IFDEF DEBUG_ALPHABITMAP}
     FLog: TKLog;
   {$ENDIF}
@@ -354,6 +366,8 @@ type
     procedure SaveToStream(Stream: TStream); override;
     { Specifies the bitmap size. }
     procedure SetSize(AWidth, AHeight: Integer); {$IFNDEF FPC} reintroduce;{$ENDIF}
+    { Resamples the bitmap to a destination TKAlphaBitmap. }
+    function Resample(ADest: TKAlphaBitmap; AWidth, AHeight: Integer): Boolean;
     { Unlocks calls to @link(TKAlphaBitmap.Changed). }
     procedure UnlockUpdate; virtual;
     { Updates the bitmap handle from bitmap pixels. }
@@ -380,6 +394,10 @@ type
     property Pixels: PKColorRecs read FPixels;
     { Set this property to True if you have modified the bitmap pixels. }
     property PixelsChanged: Boolean read FPixelsChanged write FPixelsChanged;
+    { Specifies resampling kernel for @link(TKAlphaBitmap.Resample). }
+    property ResamplingKernel: TKResamplingKernel read FResamplingKernel write FResamplingKernel;
+    { Specifies window size for resampling kernel. }
+    property ResamplingWindow: Cardinal read FResamplingWindow write FResamplingWindow;
     { Returns the pointer to a bitmap scan line. }
     property ScanLine[Index: Integer]: PKColorRecs read GetScanLine;
     { Returns total number of pixels. }
@@ -1924,6 +1942,8 @@ begin
   FOldBitmap := 0;
   FPixels := nil;
   FPixelsChanged := False;
+  FResamplingKernel := rkLanczos;
+  FResamplingWindow := 0;
   FWidth := 0;
 end;
 
@@ -2346,10 +2366,13 @@ var
 begin
   LockUpdate;
   try
-    for I := X to X + ABitmap.Width - 1 do
-      for J := Y to Y + ABitmap.Height - 1 do
-        if (I >= 0) and (I < FWidth) and (J >= 0) and (J < FHeight) then
-          Pixels[J * FWidth + I] := ABitmap.Pixels[(J - Y) * ABitmap.Width + (I - X)];
+    if FPixels <> nil then
+    begin
+      for I := X to X + ABitmap.Width - 1 do
+        for J := Y to Y + ABitmap.Height - 1 do
+          if (I >= 0) and (I < FWidth) and (J >= 0) and (J < FHeight) then
+            Pixels[J * FWidth + I] := ABitmap.Pixels[(J - Y) * ABitmap.Width + (I - X)];
+    end
   finally
     UnlockUpdate;
   end;
@@ -2774,6 +2797,391 @@ begin
   finally
     UnlockUpdate;
   end;
+end;
+
+function TKAlphaBitmap.Resample(ADest: TKAlphaBitmap; AWidth, AHeight: Integer): Boolean;
+
+  function MaxDiv(U, W: Integer): Integer;
+  var
+    R: Integer;
+  begin
+    while W <> 0 do
+    begin
+      R := U mod W;
+      U := W;
+      W := R;
+    end;
+    Result := U;
+  end;
+
+  function BicubicEq(APoint, APeriod: Integer): Double;
+  var
+    A, X: Double;
+  begin
+    A := 0.5;
+    X := Abs(APoint / APeriod);
+    if X <= 1 then
+      Result := (A + 2) * Sqr(X) * X - (A + 3) * Sqr(X) + 1
+    else if (X > 1) and (X < 2) then
+      Result := A * Sqr(X) * X - 5 * A * Sqr(X) + 8 * A * X - 4 * A
+    else
+      Result := 0;
+  end;
+
+  function LanczosEq(APoint, APeriod, AWindow: Integer): Double;
+
+    function SinC(X: Double): Double;
+    begin
+      Result := Sin(PI * X) / (PI * X);
+    end;
+
+  begin
+    Result := SinC(APoint / (APeriod * AWindow)) * SinC(APoint / APeriod);
+  end;
+
+type
+  TKernelInfo = record
+    DownSampling: Boolean;
+    Period,
+    Size,
+    Step,
+    SampleWnd,
+    ValueDivisor: Integer;
+  end;
+
+  procedure GetKernelInfo(ANewSize, AOldSize: Integer; out AInfo: TKernelInfo; ADebugStr: string);
+  const
+    // maximum number of precalculated kernel values between source pixels
+    cUpSampleMaxKernelSplit = 16;
+    // maximum total kernel size (should be fine enough for up to 4x image enlarging)
+    cUpSampleMaxKernelSize = cUpSampleMaxKernelSplit * 4;
+    // maximum total kernel size (should be fine enough for most cases)
+    cDownSampleMaxKernelSize = 32;
+  var
+    D: Integer;
+    XDiv, XFrac: Word;
+    S: string;
+  begin
+    D := MaxDiv(ANewSize - 1, AOldSize - 1);
+    if ANewSize > AOldSize then
+    begin
+      // upsampling
+      DivMod(ANewSize - 1, Max(AOldSize - 1, 1), XDiv, XFrac);
+      AInfo.DownSampling := False;
+      if XFrac = 0 then
+        AInfo.Period := XDiv // exact multiple
+      else
+        AInfo.Period := XDiv * Min((AOldSize - 1) div D, cUpSampleMaxKernelSplit);
+      AInfo.Period := Min(AInfo.Period, cUpSampleMaxKernelSize);
+      AInfo.ValueDivisor := 1;
+      AInfo.Step := AInfo.Period;
+    end else
+    begin
+      // downsampling
+      DivMod(AOldSize - 1, Max(ANewSize - 1, 1), XDiv, XFrac);
+      AInfo.DownSampling := True;
+      if XFrac = 0 then
+        AInfo.Period := XDiv // exact multiple
+      else
+        AInfo.Period := XDiv * ((AOldSize - 1) div D);
+      AInfo.Period := Min(AInfo.Period, cDownSampleMaxKernelSize);
+      // AInfo.Period must be exactly divisible by XDiv, so find nearest XDiv
+      if XDiv > AInfo.Period div 2 then
+      begin
+        while AInfo.Period mod XDiv <> 0 do
+          Dec(XDiv);
+      end else
+      begin
+        while AInfo.Period mod XDiv <> 0 do
+          Inc(XDiv);
+      end;
+      AInfo.Step := AInfo.Period div XDiv;
+      AInfo.ValueDivisor := AInfo.Period div AInfo.Step;
+    end;
+{$IFDEF DEBUG_ALPHABITMAP}
+    if FLog <> nil then
+    begin
+      if AInfo.DownSampling then S := 'DN' else S := 'UP';
+      FLog.Log(lgInfo, Format('Dimension %s: %s, modulo %d, period %d, step %d, divisor %d.', [ADebugStr, S, D, AInfo.Period, AInfo.Step, AInfo.ValueDivisor]));
+    end;
+{$ENDIF}
+  end;
+
+const
+  cNormalizeShift = 6; // used to normalize kernel and convolution
+var
+  I, J, K, L,
+  KernelNorm, KernelNormSqr, KernelNormShl, KernelNormShr, KernelValue, KernelX, KernelY,
+  Row1, Row2, Tmp, USize, ValueDivisor, Window, W1, W2, XReal, YReal: Integer;
+  RValue, GValue, BValue, AValue: Int64;
+  XDiv, XFrac, YDiv, YFrac: Word;
+  X, Y, Z: Double;
+  CR: TKColorRec;
+  InfoX, InfoY: TKernelInfo;
+  Kernel: array of array of Integer;
+{$IFDEF DEBUG_ALPHABITMAP}
+  KernelValueSum: Integer;
+  SampledRow: TKDynColorRecs;
+{$ENDIF}
+begin
+  // Written by me from scratch.
+  // This method applies the same resampling kernel (=low pass filter cropped by window) for upsampling (interpolation) and downsampling (low pass filter).
+  // For downsampling you may need to use faster filters (Window=1) than for upsampling to increase speed.
+
+  // some essential checks
+  if (ADest = nil) or (FPixels = nil) or (Size = 0) or (AWidth * AHeight = 0) then
+    Exit(False);
+  UpdatePixels;
+  // prepare destination bimtap
+  ADest.SetSize(AWidth, AHeight);
+  // needs resampling?
+  if (FWidth = AWidth) and (FHeight = AHeight) then
+  begin
+    // no just copy unchanged
+    ADest.CopyFromXYAlphaBitmap(0, 0, Self);
+{$IFDEF DEBUG_ALPHABITMAP}
+    if FLog <> nil then
+      FLog.Log(lgInfo, 'No resampling done, dimensions the same.');
+{$ENDIF}
+    Exit(True);
+  end;
+{$IFDEF DEBUG_ALPHABITMAP}
+  if FLog <> nil then
+    FLog.Log(lgInfo, 'Resampling started.');
+{$ENDIF}
+  // get necessary parameters for resampling kernel
+  GetKernelInfo(AWidth, FWidth, InfoX, 'X');
+  GetKernelInfo(AHeight, FHeight, InfoY, 'Y');
+  // kernel normalize constant - this value should be sufficient high
+  KernelNormShl := cNormalizeShift;
+  KernelNorm := 1 shl KernelNormShl; //64
+  KernelNormShr := KernelNormShl * 2; // 12
+  KernelNormSqr := 1 shl KernelNormShr; //4096
+  // precalculate resampling kernel
+  case FResamplingKernel of
+    rkBicubic:
+    begin
+      // Good results for low upsampling rates, makes artifacts.
+      // for more info see https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm
+      Window := 2; // fixed
+      InfoX.Size := InfoX.Period * Window;
+      InfoY.Size := InfoY.Period * Window;
+      SetLength(Kernel, InfoY.Size * 2 + 1);
+      for I := -InfoY.Size to InfoY.Size do
+      begin
+        SetLength(Kernel[I + InfoY.Size], InfoX.Size * 2 + 1);
+        Y := BicubicEq(I, InfoY.Period);
+        for J := -InfoX.Size to InfoX.Size do
+        begin
+          X := BicubicEq(J, InfoX.Period);
+          Kernel[I + InfoY.Size][J + InfoX.Size] := Round(X * Y * KernelNormSqr);
+        end;
+      end;
+    end;
+    rkLanczos:
+    begin
+      // Perfect for photos and high upsampling but makes artifacts caused by window crop.
+      // Thus I use modified Lanczos kernel to avoid them.
+      // I just take the halfwaves cropped by window and add them to the central uncropped area.
+      // Their size must be equal to the kernel size in each dimension.
+      // for more info see https://en.wikipedia.org/wiki/Lanczos_resampling
+      if FResamplingWindow = 0 then
+        Window := 2 // tradeoff between speed and quality
+      else
+        Window := MinMax(FResamplingWindow, 1, 5);
+      InfoX.Size := InfoX.Period * Window;
+      InfoY.Size := InfoY.Period * Window;
+      SetLength(Kernel, InfoY.Size * 2 + 1);
+      for I := -InfoY.Size to InfoY.Size do
+      begin
+        SetLength(Kernel[I + InfoY.Size], InfoX.Size * 2 + 1);
+        if I = 0 then
+          Y := 1
+        else
+        begin
+          // original Lanczos kernel
+          Y := LanczosEq(I, InfoY.Period, Window);
+          // modify to avoid artifacts
+          if I < 0 then
+            Z := LanczosEq(I - InfoY.Size, InfoY.Period, Window)
+          else
+            Z := LanczosEq(I + InfoY.Size, InfoY.Period, Window);
+          Y := Y + Z;
+        end;
+        for J := -InfoX.Size to InfoX.Size do
+        begin
+          // original Lanczos kernel
+          if J = 0 then
+            X := 1
+          else
+          begin
+            X := LanczosEq(J, InfoX.Period, Window);
+            // modify to avoid artifacts
+            if J < 0 then
+              Z := LanczosEq(J - InfoX.Size, InfoX.Period, Window)
+            else
+              Z := LanczosEq(J + InfoX.Size, InfoX.Period, Window);
+            X := X + Z;
+          end;
+          Kernel[I + InfoY.Size][J + InfoX.Size] := Round(X * Y * KernelNormSqr);
+        end;
+      end;
+    end;
+    rkTriangle:
+    begin
+      // Good results for low upsampling rates + is simple and fast.
+      Window := 1; // fixed
+      InfoX.Size := InfoX.Period * Window;
+      InfoY.Size := InfoY.Period * Window;
+      SetLength(Kernel, InfoY.Size * 2 + 1);
+      for I := -InfoY.Size to InfoY.Size do
+      begin
+        SetLength(Kernel[I + InfoY.Size], InfoX.Size * 2 + 1);
+        for J := -InfoX.Size to InfoX.Size do
+          Kernel[I + InfoY.Size][J + InfoX.Size] :=
+           (KernelNorm - Abs(I * KernelNorm div InfoY.Size)) *
+           (KernelNorm - Abs(J * KernelNorm div InfoX.Size));
+      end;
+    end else
+    begin
+      InfoX.Size := 0;
+      InfoY.Size := 0;
+      Kernel := nil;
+    end;
+  end;
+  if Kernel = nil then
+  begin
+{$IFDEF DEBUG_ALPHABITMAP}
+    if FLog <> nil then
+      FLog.Log(lgInfo, 'No resampling kernel, quit.');
+{$ENDIF}
+    Exit(False);
+  end;
+  // update parameters
+  InfoX.SampleWnd := InfoX.Size div InfoX.Step;
+  InfoY.SampleWnd := InfoY.Size div InfoY.Step;
+  ValueDivisor := InfoX.ValueDivisor * InfoY.ValueDivisor * KernelNormSqr;
+{$IFDEF DEBUG_ALPHABITMAP}
+  SetLength(SampledRow, AWidth);
+{$ENDIF}
+  // now resample
+  ADest.LockUpdate;
+  try
+    // convolution - multiply samples (pixels) from source bitmap with kernel and save them to destination bitmap
+    // for more info see https://en.wikipedia.org/wiki/Convolution
+    for J := 0 to AHeight - 1 do
+    begin
+      Row2 := J * AWidth;
+      YReal := J * (FHeight - 1) * InfoY.Step div Max(AHeight - 1, 1);
+      DivMod(YReal, InfoY.Step, YDiv, YFrac);
+      for I := 0 to AWidth - 1 do
+      begin
+        Xreal := I * (FWidth - 1) * InfoX.Step div Max(AWidth - 1, 1);
+        DivMod(Xreal, InfoX.Step, XDiv, XFrac);
+        // clear accumulators
+        RValue := 0;
+        GValue := 0;
+        BValue := 0;
+        AValue := 0;
+{$IFDEF DEBUG_ALPHABITMAP}
+        KernelValueSum := 0;
+{$ENDIF}
+        // multiply with kernel
+        for K := YDiv - InfoY.SampleWnd + 1 to YDiv + InfoY.SampleWnd do
+        begin
+          Row1 := K * FWidth;
+          for L := XDiv - InfoX.SampleWnd + 1 to XDiv + InfoX.SampleWnd do
+          begin
+            // take sample from source bitmap
+            if (K >= 0) and (K < FHeight) then
+            begin
+              if (L >= 0) and (L < FWidth) then
+                CR := FPixels[Row1 + L]
+              else if L < 0 then
+                CR := FPixels[Row1]
+              else
+                CR := FPixels[Row1 + FWidth - 1];
+            end
+            else if K < 0 then
+            begin
+              if (L >= 0) and (L < FWidth) then
+                CR := FPixels[L]
+              else if L < 0 then
+                CR := FPixels[0]
+              else
+                CR := FPixels[FWidth - 1];
+            end else
+            begin
+              Tmp := (FHeight - 1) * FWidth;
+              if (L >= 0) and (L < FWidth) then
+                CR := FPixels[Tmp + L]
+              else if L < 0 then
+                CR := FPixels[Tmp]
+              else
+                CR := FPixels[Tmp + FWidth - 1];
+            end;
+            // take kernel value
+            KernelX := XFrac - (L - XDiv) * InfoX.Step + InfoX.Size;
+            KernelY := YFrac - (K - YDiv) * InfoY.Step + InfoY.Size;
+            if (KernelY >= 0) and (KernelY < Length(Kernel)) then
+            begin
+              if (KernelX >= 0) and (KernelX < Length(Kernel[KernelY])) then
+                KernelValue := Kernel[KernelY][KernelX]
+              else
+                KernelValue := 0; // should not end here when upsampling
+            end else
+              KernelValue := 0; // should not end here when upsampling
+            // multiply with input sample
+            if KernelValue <> 0 then
+            begin
+              Inc(RValue, CR.R * KernelValue);
+              Inc(GValue, CR.G * KernelValue);
+              Inc(BValue, CR.B * KernelValue);
+              Inc(AValue, CR.A * KernelValue);
+{$IFDEF DEBUG_ALPHABITMAP}
+              Inc(KernelValueSum, KernelValue);
+{$ENDIF}
+            end;
+          end;
+        end;
+        // normalize and save sample to destination bitmap
+        if ValueDivisor > KernelNormSqr then
+        begin
+          // use slower divisions in case of downsampling in any dimension
+          ADest.Pixels[Row2 + I].R := MinMax(RValue div ValueDivisor, 0, 255);
+          ADest.Pixels[Row2 + I].G := MinMax(GValue div ValueDivisor, 0, 255);
+          ADest.Pixels[Row2 + I].B := MinMax(BValue div ValueDivisor, 0, 255);
+          ADest.Pixels[Row2 + I].A := MinMax(AValue div ValueDivisor, 0, 255);
+        end else
+        begin
+          // faster shifts in case of upsampling in all dimensions
+          ADest.Pixels[Row2 + I].R := Min(Abs(RValue) shr KernelNormShr, 255);
+          ADest.Pixels[Row2 + I].G := Min(Abs(GValue) shr KernelNormShr, 255);
+          ADest.Pixels[Row2 + I].B := Min(Abs(BValue) shr KernelNormShr, 255);
+          ADest.Pixels[Row2 + I].A := Min(Abs(AValue) shr KernelNormShr, 255);
+        end;
+{$IFDEF DEBUG_ALPHABITMAP}
+        SampledRow[I] := ADest.Pixels[Row2 + I]; // to better see the resulting line in debugger
+        if KernelValueSum <> ValueDivisor then
+        begin
+          Tmp := Abs(KernelValueSum * 100 div ValueDivisor);
+          // Let's neglect integer divison errors and check for kernel correctness.
+          // If kernel application is not correct then image is either too dark (<100) or too bright (>100).
+          if (Tmp < 99) or (Tmp > 101) then
+            if FLog <> nil then
+              FLog.Log(lgError, Format('Kernel size wrong! Sum %d, divisor %d.', [KernelValueSum, ValueDivisor]));
+        end;
+{$ENDIF}
+      end;
+    end;
+  finally
+    ADest.UnlockUpdate;
+  end;
+{$IFDEF DEBUG_ALPHABITMAP}
+  if FLog <> nil then
+    FLog.Log(lgInfo, 'Resampling ended.');
+{$ENDIF}
+  Result := True;
 end;
 
 {$IFNDEF FPC}
