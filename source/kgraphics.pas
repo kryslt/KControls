@@ -36,6 +36,9 @@ uses
   , UxTheme
  {$ENDIF}
 {$ENDIF}
+{$IFDEF DEBUG_ALPHABITMAP}
+  , KLog
+{$ENDIF}
   ;
 
 const
@@ -223,6 +226,9 @@ type
     FPixelsChanged: Boolean;
     FUpdateLock: Integer;
     FWidth: Integer;
+  {$IFDEF DEBUG_ALPHABITMAP}
+    FLog: TKLog;
+  {$ENDIF}
     function GetScanLine(Index: Integer): PKColorRecs;
     function GetHandle: HBITMAP;
     function GetHasAlpha: Boolean;
@@ -364,6 +370,10 @@ type
     property Handle: HBITMAP read GetHandle;
     { Returns true if alpha channel is nonzero for at least one pixel. }
     property HasAlpha: Boolean read GetHasAlpha;
+  {$IFDEF DEBUG_ALPHABITMAP}
+    { Specifies the log component for debug logging. }
+    property Log: TKLog read FLog write FLog;
+  {$ENDIF}
     { Specifies the pixel color. Does range checking. }
     property Pixel[X, Y: Integer]: TKColorRec read GetPixel write SetPixel;
     { Returns the pointer to bitmap pixels. }
@@ -1910,6 +1920,7 @@ begin
   FImage := TLazIntfImage.Create(0, 0);
 {$ENDIF}
   FHeight := 0;
+  FLog := nil;
   FOldBitmap := 0;
   FPixels := nil;
   FPixelsChanged := False;
