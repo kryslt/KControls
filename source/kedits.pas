@@ -696,8 +696,14 @@ var
   T: string;
 begin
   Result := False;
-  Warn := True;
+  Warn := False;
   T := S;
+  if (S = '.') or (S = '..') then
+  begin
+    Result := True;
+    Exit;
+  end;
+  Warn := True;
   if Length(S) > 0 then
   begin
     if CharInSetEx(S[1], SubDirIllegalCharSet) then
@@ -724,7 +730,7 @@ begin
       Inc(Len);
       Result := True;
     end;
-    while S[Len] = '.' do
+    while (Len > 0) and (S[Len] = '.') do
     begin
       Delete(S, Len, 1);
       Dec(Len);
