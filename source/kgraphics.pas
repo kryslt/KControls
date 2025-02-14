@@ -228,6 +228,7 @@ type
     function GetHasAlpha: Boolean;
     function GetPixel(X, Y: Integer): TKColorRec;
     procedure SetPixel(X, Y: Integer; Value: TKColorRec);
+    function GetSize: Integer;
   protected
     { Calls OnChanged event. }
     procedure Changed(Sender: TObject); override;
@@ -371,6 +372,8 @@ type
     property PixelsChanged: Boolean read FPixelsChanged write FPixelsChanged;
     { Returns the pointer to a bitmap scan line. }
     property ScanLine[Index: Integer]: PKColorRecs read GetScanLine;
+    { Returns total number of pixels. }
+    property Size: Integer read GetSize;
   end;
 
 {$IFDEF MSWINDOWS}
@@ -1967,7 +1970,7 @@ begin
   begin
     LockUpdate;
     try
-      for I := 0 to FWidth * FHeight - 1 do
+      for I := 0 to Size - 1 do
         FPixels[I].A := Alpha;
     finally
       UnlockUpdate;
@@ -1984,7 +1987,7 @@ begin
   try
     CS := ColorToColorRec(AColor);
     SwapBR(CS);
-    for I := 0 to FWidth * FHeight - 1 do
+    for I := 0 to Size - 1 do
       if (FPixels[I].R = CS.R) and (FPixels[I].G = CS.G) and (FPixels[I].B = CS.B) then
         FPixels[I].A := AAlpha;
   finally
@@ -1998,7 +2001,7 @@ var
 begin
   LockUpdate;
   try
-    for I := 0 to FWidth * FHeight - 1 do
+    for I := 0 to Size - 1 do
       if FPixels[I].A <> 0 then
         FPixels[I].A := Percent * FPixels[I].A div 100
       else if IfEmpty then
@@ -2128,7 +2131,7 @@ var
 begin
   LockUpdate;
   try
-    for I := 0 to FWidth * FHeight - 1 do
+    for I := 0 to Size - 1 do
       FPixels[I].Value := 0;
   finally
     UnlockUpdate;
@@ -2191,14 +2194,14 @@ end;
 
 procedure TKAlphaBitmap.CopyFromAlphaBitmap(ABitmap: TKAlphaBitmap);
 var
-  I, Size: Integer;
+  I, ByteSize: Integer;
 begin
   LockUpdate;
   try
     SetSize(ABitmap.Width, ABitmap.Height);
-    Size := FWidth * SizeOf(TKColorRec);
+    ByteSize := FWidth * SizeOf(TKColorRec);
     for I := 0 to FHeight - 1 do
-      Move(ABitmap.ScanLine[I]^, ScanLine[I]^, Size);
+      Move(ABitmap.ScanLine[I]^, ScanLine[I]^, ByteSize);
   finally
     UnlockUpdate;
   end;
@@ -2523,7 +2526,7 @@ var
 begin
   LockUpdate;
   try
-    for I := 0 to FWidth * FHeight - 1 do
+    for I := 0 to Size - 1 do
       FPixels[I].Value := Color.Value;
   finally
     UnlockUpdate;
@@ -2565,6 +2568,11 @@ begin
   Result := @FPixels[Index * FWidth];
 end;
 
+function TKAlphaBitmap.GetSize: Integer;
+begin
+  Result := FWidth * FHeight;
+end;
+
 function TKAlphaBitmap.GetHandle: HBITMAP;
 begin
   Result := FHandle;
@@ -2575,7 +2583,7 @@ var
   I: Integer;
 begin
   Result := False;
-  for I := 0 to FWidth * FHeight - 1 do
+  for I := 0 to Size - 1 do
     if FPixels[I].A <> 0 then
     begin
       Result := True;
@@ -2594,7 +2602,7 @@ var
 begin
   LockUpdate;
   try
-    for I := 0 to FWidth * FHeight - 1 do
+    for I := 0 to Size - 1 do
     begin
       // R and B are swapped
       Average := (Integer(7) * FPixels[I].R + Integer(72) * FPixels[I].G + Integer(21) * FPixels[I].B) div 100;
@@ -2614,7 +2622,7 @@ var
 begin
   LockUpdate;
   try
-    for I := 0 to FWidth * FHeight - 1 do
+    for I := 0 to Size - 1 do
     begin
       X.Value := BrightColor(ColorRecToColor(FPixels[I]), APercent, AMode);
       FPixels[I].R := X.R;
@@ -2730,23 +2738,23 @@ end;
 
 procedure TKAlphaBitmap.MirrorVert;
 var
-  I, Size, Index: Integer;
+  I, ByteSize, Index: Integer;
   SrcScan, DstScan: PKColorRecs;
   Buf: PKColorRec;
 begin
   LockUpdate;
   try
-    Size:= FWidth * SizeOf(TKColorRec);
+    ByteSize:= FWidth * SizeOf(TKColorRec);
     Index := FHeight - 1;
-    GetMem(Buf, Size);
+    GetMem(Buf, ByteSize);
     try
       for I := 0 to (FHeight shr 1) - 1 do
       begin
         SrcScan := ScanLine[I];
         DstScan := ScanLine[Index];
-        Move(SrcScan^, Buf^, Size);
-        Move(DstScan^, SrcScan^, Size);
-        Move(Buf^, DstScan^, Size);
+        Move(SrcScan^, Buf^, ByteSize);
+        Move(DstScan^, SrcScan^, ByteSize);
+        Move(Buf^, DstScan^, ByteSize);
         Dec(Index);
       end;
     finally
@@ -2767,7 +2775,7 @@ end;
 
 procedure TKAlphaBitmap.SaveToStream(Stream: TStream);
 var
-  Size: Integer;
+  ByteSize: Integer;
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
 begin
@@ -2775,10 +2783,10 @@ begin
   if FAutoMirror then
     MirrorVert;
 {$ENDIF}
-  Size := FWidth * FHeight * 4;
+  ByteSize := Size * 4;
   FillChar(BF, SizeOf(TBitmapFileHeader), 0);
   BF.bfType := $4D42;
-  BF.bfSize := SizeOf(TBitmapFileHeader) + SizeOf(TBitmapInfoHeader) + Size;
+  BF.bfSize := SizeOf(TBitmapFileHeader) + SizeOf(TBitmapInfoHeader) + ByteSize;
   BF.bfOffBits := SizeOf(TBitmapFileHeader) + SizeOf(TBitmapInfoHeader);
   Stream.Write(BF, SizeOf(TBitmapFileHeader));
   FillChar(BI, SizeOf(TBitmapInfoHeader), 0);
@@ -2788,9 +2796,9 @@ begin
   BI.biPlanes := 1;
   BI.biBitCount := 32;
   BI.biCompression := BI_RGB;
-  BI.biSizeImage := Size;
+  BI.biSizeImage := ByteSize;
   Stream.Write(BI, SizeOf(TBitmapInfoHeader));
-  Stream.Write(FPixels^, Size);
+  Stream.Write(FPixels^, ByteSize);
 {$IFnDEF MSWINDOWS}
   if FAutoMirror then
     MirrorVert;
