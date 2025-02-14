@@ -542,27 +542,29 @@ begin
   T := S; Err := False; DirAdded := False;
   Len := Length(T); K := 1;
   B0 := False; B := False; B1 := False; B2 := False;
-  for I := 1 to Len do if T[I] = '/' then T[I] := '\';
+  for I := 1 to Len do
+    if T[I] in ['/', '\'] then
+       T[I] := cDirectoryDelimiter;
   if Len > 0 then
   begin
     {check drive}
     if CharInSetEx(UpCase(T[1]), ['A'..'Z']) and (T[2] = ':') then
     begin
-      if (T[3] <> '\') then
+      if (T[3] <> cDirectoryDelimiter) then
       begin
-        Insert('\', T, 3);
+        Insert(cDirectoryDelimiter, T, 3);
         Inc(Len);
       end;
       K := 4;
     end
-    else if (S[1] = '.') and (S[2] = '\') then  //check current dir
+    else if (S[1] = '.') and (S[2] = cDirectoryDelimiter) then  //check current dir
       K := 3
-    else if (S[1] = '.') and (S[2] = '.') and (S[3] = '\') then //check parent dir
+    else if (S[1] = '.') and (S[2] = '.') and (S[3] = cDirectoryDelimiter) then //check parent dir
       K := 4
    { else  //check protocol - not enabled
     begin
       I := 0;
-      while not (S[I] in [':', '\']) do Inc(I);
+      while not (S[I] in [':', cDirectoryDelimiter]) do Inc(I);
       if (I <> 0) and (S[I] = ':') then
       begin
         T1 := LowerCase(Copy(S, 1, I - 1));
@@ -577,7 +579,7 @@ begin
         while CharInSetEx(T[1], SubDirIllegalCharSet) do Delete(T, 1, 1);
       if foAddInitialDir in Options then
       begin
-        if InitialDir[Length(InitialDir)] = '\' then
+        if InitialDir[Length(InitialDir)] = cDirectoryDelimiter then
           T := Format('%s%s', [InitialDir, T])
         else
           T := Format('%s\%s', [InitialDir, T]);
@@ -590,14 +592,14 @@ begin
       end;
     end;
     {check subdirectories}
-    while (K < Len) and (FindCharFromPos(T, '\', Len, K) or (foFolderOnly in Options)) do
+    while (K < Len) and (FindCharFromPos(T, cDirectoryDelimiter, Len, K) or (foFolderOnly in Options)) do
     begin
       {check or correct next subdirectory}
       if K < Len then
       begin
         I := K;
-        while (I < Len) and (T[I] <> '\') do Inc(I);
-        if T[I] <> '\' then Inc(I);
+        while (I < Len) and (T[I] <> cDirectoryDelimiter) do Inc(I);
+        if T[I] <> cDirectoryDelimiter then Inc(I);
         T1 := Copy(T, K, I - K);
         if CorrectSubDirName(T1, Warn, nil) then
         begin
@@ -646,7 +648,7 @@ begin
           else
             if (InitialDir = '') or (ExtractFilePath(T) <> '') then
               T1 := T
-            else if InitialDir[Length(InitialDir)] = '\' then
+            else if InitialDir[Length(InitialDir)] = cDirectoryDelimiter then
               T1 := InitialDir + T
             else
               T1 := Format('%s\%s', [InitialDir, T]);
