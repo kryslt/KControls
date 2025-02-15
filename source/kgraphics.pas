@@ -2844,10 +2844,12 @@ type
     cUpSampleMaxKernelSplit = 16;
     // maximum total kernel size (should be fine enough for up to 4x image enlarging)
     cUpSampleMaxKernelSize = cUpSampleMaxKernelSplit * 4;
-    // maximum total kernel size (should be fine enough for most cases)
-    cDownSampleMaxKernelSize = 32;
+    // maximum number of precalculated kernel values between source pixels
+    cDownSampleMaxKernelSplit = 8;
+    // maximum total kernel size (should be fine enough for most images)
+    cDownSampleMaxKernelSize = cDownSampleMaxKernelSplit * 8;
   var
-    D: Integer;
+    D, Tmp: Integer;
     XDiv, XFrac: Word;
     S: string;
   begin
@@ -2872,17 +2874,22 @@ type
       if XFrac = 0 then
         AInfo.Period := XDiv // exact multiple
       else
-        AInfo.Period := XDiv * ((AOldSize - 1) div D);
+      begin
+        if XFrac > ANewSize div 2 then
+          Inc(XDiv); // for better image take take more source pixels
+        AInfo.Period := XDiv * Min((AOldSize - 1) div D, cDownSampleMaxKernelSplit);
+      end;
       AInfo.Period := Min(AInfo.Period, cDownSampleMaxKernelSize);
-      // AInfo.Period must be exactly divisible by XDiv, so find nearest XDiv
-      if XDiv > AInfo.Period div 2 then
+      // AInfo.Period must be exactly divisible by XDiv, so find nearest match
+      if AInfo.Period mod XDiv <> 0 then
       begin
-        while AInfo.Period mod XDiv <> 0 do
+        while (XDiv > 1) and (XDiv > AInfo.Period) do
           Dec(XDiv);
-      end else
-      begin
-        while AInfo.Period mod XDiv <> 0 do
-          Inc(XDiv);
+        Tmp := 1;
+        repeat
+          Inc(Tmp);
+        until Tmp * XDiv >= AInfo.Period;
+        AInfo.Period := (Tmp - 1) * XDiv;
       end;
       AInfo.Step := AInfo.Period div XDiv;
       AInfo.ValueDivisor := AInfo.Period div AInfo.Step;
@@ -2901,7 +2908,7 @@ const
 var
   I, J, K, L,
   KernelNorm, KernelNormSqr, KernelNormShl, KernelNormShr, KernelValue, KernelX, KernelY,
-  Row1, Row2, Tmp, USize, ValueDivisor, Window: Integer;
+  Row1, Row2, Tmp, ValueDivisor, Window: Integer;
   XReal, YReal, RValue, GValue, BValue, AValue: Int64;
   XDiv, XFrac, YDiv, YFrac: Word;
   X, Y, Z: Double;
@@ -2909,7 +2916,7 @@ var
   InfoX, InfoY: TKernelInfo;
   Kernel: array of array of Integer;
 {$IFDEF DEBUG_ALPHABITMAP}
-  KernelValueSum: Integer;
+  KernelValueSum, MinKernelValueSum, MaxKernelValueSum: Integer;
   SampledRow: TKDynColorRecs;
 {$ENDIF}
 begin
@@ -2925,7 +2932,7 @@ begin
   // needs resampling?
   if (FWidth = AWidth) and (FHeight = AHeight) then
   begin
-    // no just copy unchanged
+    // no, just copy unchanged
     ADest.CopyFromXYAlphaBitmap(0, 0, Self);
 {$IFDEF DEBUG_ALPHABITMAP}
     if FLog <> nil then
@@ -3050,6 +3057,8 @@ begin
   InfoY.SampleWnd := InfoY.Size div InfoY.Step;
   ValueDivisor := InfoX.ValueDivisor * InfoY.ValueDivisor * KernelNormSqr;
 {$IFDEF DEBUG_ALPHABITMAP}
+  MinKernelValueSum := MaxInt;
+  MaxKernelValueSum := 0;
   SetLength(SampledRow, AWidth);
 {$ENDIF}
   // now resample
@@ -3117,9 +3126,9 @@ begin
               if (KernelX >= 0) and (KernelX < Length(Kernel[KernelY])) then
                 KernelValue := Kernel[KernelY][KernelX]
               else
-                KernelValue := 0; // should not end here when upsampling
+                KernelValue := 0; // should not end here
             end else
-              KernelValue := 0; // should not end here when upsampling
+              KernelValue := 0; // should not end here
             // multiply with input sample
             if KernelValue <> 0 then
             begin
@@ -3151,15 +3160,8 @@ begin
         end;
 {$IFDEF DEBUG_ALPHABITMAP}
         SampledRow[I] := ADest.Pixels[Row2 + I]; // to better see the resulting line in debugger
-        if KernelValueSum <> ValueDivisor then
-        begin
-          Tmp := Abs(KernelValueSum * 100 div ValueDivisor);
-          // Let's neglect integer divison errors and check for kernel correctness.
-          // If kernel application is not correct then image is either too dark (<100) or too bright (>100).
-          if (Tmp < 99) or (Tmp > 101) then
-            if FLog <> nil then
-              FLog.Log(lgError, Format('Kernel size wrong! Sum %d, divisor %d.', [KernelValueSum, ValueDivisor]));
-        end;
+        MinKernelValueSum := Min(MinKernelValueSum, KernelValueSum);
+        MaxKernelValueSum := Max(MaxKernelValueSum, KernelValueSum);
 {$ENDIF}
       end;
     end;
@@ -3168,7 +3170,14 @@ begin
   end;
 {$IFDEF DEBUG_ALPHABITMAP}
   if FLog <> nil then
+  begin
+    FLog.Log(lgInfo, Format('Kernel stats: mins. %d, maxs. %d, v-div %d.', [MinKernelValueSum, MaxKernelValueSum, ValueDivisor]));
+    // Let's neglect integer divison errors and check for kernel correctness.
+    // If kernel application is not correct then image is either too dark (<100) or too bright (>100).
+    if (Abs(MinKernelValueSum * 100 div ValueDivisor) < 95) or (Abs(MaxKernelValueSum * 100 div ValueDivisor) > 105) then
+      FLog.Log(lgError, Format('Kernel size not optimal!', [KernelValueSum, ValueDivisor]));
     FLog.Log(lgInfo, 'Resampling ended.');
+  end;
 {$ENDIF}
   Result := True;
 end;
