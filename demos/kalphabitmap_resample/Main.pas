@@ -199,7 +199,7 @@ end;
 procedure TMainForm.UpdateAspectRatio;
 begin
   if CBAspectRatio.Checked then
-    EDH.Text := IntToStr(MulDiv(FB1.Height, StrToIntDef(EDW.Text, FB1.Width), FB1.Width);
+    EDH.Text := IntToStr(MulDiv(FB1.Height, StrToIntDef(EDW.Text, FB1.Width), FB1.Width));
 end;
 
 procedure TMainForm.UpdateImages;

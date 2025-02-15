@@ -5,17 +5,17 @@ program kalphabitmap_resample;
 {$ENDIF}
 
 uses
-{$IFDEF FPC}
+  {$IFDEF FPC}
   Interfaces,
-{$ENDIF}
+  {$ENDIF }
   Forms,
-  Main in 'Main.pas' {Form1};
+  Main in 'Main.pas' {MainForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.
