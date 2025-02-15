@@ -3174,8 +3174,8 @@ begin
     FLog.Log(lgInfo, Format('Kernel stats: mins. %d, maxs. %d, v-div %d.', [MinKernelValueSum, MaxKernelValueSum, ValueDivisor]));
     // Let's neglect integer divison errors and check for kernel correctness.
     // If kernel application is not correct then image is either too dark (<100) or too bright (>100).
-    if (Abs(MinKernelValueSum * 100 div ValueDivisor) < 95) or (Abs(MaxKernelValueSum * 100 div ValueDivisor) > 105) then
-      FLog.Log(lgError, Format('Kernel size not optimal!', [KernelValueSum, ValueDivisor]));
+    if (MulDiv(MinKernelValueSum, 100, ValueDivisor) < 95) or (MulDiv(MaxKernelValueSum, 100, ValueDivisor) > 105) then
+      FLog.Log(lgError, 'Kernel size not optimal!');
     FLog.Log(lgInfo, 'Resampling ended.');
   end;
 {$ENDIF}
