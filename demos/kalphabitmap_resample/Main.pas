@@ -111,6 +111,7 @@ begin
       FB1.Canvas.FillRect(Rect(I * cBlockSize, J * cBlockSize, I * cBlockSize + cBlockSize, J * cBlockSize + cBlockSize));
     end;
   end;
+  FB1.UpdatePixels;
   FB1.AlphaFill(255);
   FB1.SaveToFile('../../test.bmp');
   UpdateImages;

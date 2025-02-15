@@ -1938,7 +1938,9 @@ begin
   FImage := TLazIntfImage.Create(0, 0);
 {$ENDIF}
   FHeight := 0;
+{$IFDEF DEBUG_ALPHABITMAP}
   FLog := nil;
+{$ENDIF}
   FOldBitmap := 0;
   FPixels := nil;
   FPixelsChanged := False;
@@ -2696,20 +2698,7 @@ end;
 
 procedure TKAlphaBitmap.LoadFromGraphic(Image: TGraphic);
 begin
-  LockUpdate;
-  try
-    SetSize(Image.Width, Image.Height);
-  {$IFDEF MSWINDOWS}
-    Canvas.Draw(0, 0, Image);
-  {$ELSE}
-    if Image is TRasterImage then
-      FImage.Assign(TRasterImage(Image).CreateIntfImage);
-  {$ENDIF}
-    // if bitmap has no alpha channel, create full opacity
-    AlphaFill($FF, True);
-  finally
-    UnlockUpdate;
-  end;
+  CopyFrom(Image);
 end;
 
 procedure TKAlphaBitmap.LoadFromStream(Stream: TStream);
@@ -2912,8 +2901,8 @@ const
 var
   I, J, K, L,
   KernelNorm, KernelNormSqr, KernelNormShl, KernelNormShr, KernelValue, KernelX, KernelY,
-  Row1, Row2, Tmp, USize, ValueDivisor, Window, W1, W2, XReal, YReal: Integer;
-  RValue, GValue, BValue, AValue: Int64;
+  Row1, Row2, Tmp, USize, ValueDivisor, Window: Integer;
+  XReal, YReal, RValue, GValue, BValue, AValue: Int64;
   XDiv, XFrac, YDiv, YFrac: Word;
   X, Y, Z: Double;
   CR: TKColorRec;
@@ -2931,7 +2920,6 @@ begin
   // some essential checks
   if (ADest = nil) or (FPixels = nil) or (Size = 0) or (AWidth * AHeight = 0) then
     Exit(False);
-  UpdatePixels;
   // prepare destination bimtap
   ADest.SetSize(AWidth, AHeight);
   // needs resampling?
@@ -3065,6 +3053,7 @@ begin
   SetLength(SampledRow, AWidth);
 {$ENDIF}
   // now resample
+  ADest.UpdatePixels;
   ADest.LockUpdate;
   try
     // convolution - multiply samples (pixels) from source bitmap with kernel and save them to destination bitmap
@@ -3072,11 +3061,11 @@ begin
     for J := 0 to AHeight - 1 do
     begin
       Row2 := J * AWidth;
-      YReal := J * (FHeight - 1) * InfoY.Step div Max(AHeight - 1, 1);
+      YReal := Int64(J) * (FHeight - 1) * InfoY.Step div Max(AHeight - 1, 1);
       DivMod(YReal, InfoY.Step, YDiv, YFrac);
       for I := 0 to AWidth - 1 do
       begin
-        Xreal := I * (FWidth - 1) * InfoX.Step div Max(AWidth - 1, 1);
+        Xreal := Int64(I) * (FWidth - 1) * InfoX.Step div Max(AWidth - 1, 1);
         DivMod(Xreal, InfoX.Step, XDiv, XFrac);
         // clear accumulators
         RValue := 0;
