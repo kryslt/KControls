@@ -5,17 +5,20 @@ interface
 {$include kcontrols.inc}
 
 uses
+ {$IFDEF MSWINDOWS}
+  Windows,
+ {$ENDIF}
   SysUtils, Classes, Graphics,
   Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
 
   KFunctions, KGraphics, KLog, KEdits;
 
 type
-  TForm1 = class(TForm)
+  TMainForm = class(TForm)
     BUResample: TButton;
     EDW: TEdit;
     EDH: TEdit;
-    KLog1: TKLog;
+    Log: TKLog;
     LBLog: TListBox;
     EDWindow: TEdit;
     BULoadFromFile: TButton;
@@ -37,6 +40,11 @@ type
     BUTriple: TButton;
     BUXdYh: TButton;
     CBAspectRatio: TCheckBox;
+    Timer: TTimer;
+    EDAnimCnt: TEdit;
+    Label7: TLabel;
+    BUAnimDown: TButton;
+    BUAnimUp: TButton;
     procedure BUResampleClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure BULoadFromFileClick(Sender: TObject);
@@ -48,9 +56,14 @@ type
     procedure EDFileChange(Sender: TObject);
     procedure EDWExit(Sender: TObject);
     procedure CBAspectRatioClick(Sender: TObject);
+    procedure TimerTimer(Sender: TObject);
+    procedure BUAnimDownClick(Sender: TObject);
+    procedure BUAnimUpClick(Sender: TObject);
   private
     { Private declarations }
-    FStartup: Boolean;
+    FAnimation, FAnimationDirection: Boolean;
+    FAnimationCount, FAnimatedWidth, FAnimatedHeight: Integer;
+    FInsideTimer, FStartup: Boolean;
     FB1, FB2: TKAlphaBitmap;
     procedure LoadBitmap(const AFileName: string);
     procedure LoadTestBitmap;
@@ -62,32 +75,37 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainForm: TMainForm;
 
 implementation
 
 {$R *.dfm}
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FStartup := True;
+  FAnimation := False;
+  FInsideTimer := False;
   FB1 := TKAlphaBitmap.Create;
+{$IFDEF DEBUG_ALPHABITMAP}
+  FB1.Log := Log;
+{$ENDIF}
   FB2 := TKAlphaBitmap.Create;
   EDFile.FileName := '../../penguins.jpg';
-  CBAspectRatio.Checked;
   CoBType.ItemIndex := Integer(rkLanczos);
   EDWindow.Text := '2';
   LoadTestBitmap;
+  CBAspectRatio.Checked := True;
   FStartup := False;
 end;
 
-procedure TForm1.LoadBitmap(const AFileName: string);
+procedure TMainForm.LoadBitmap(const AFileName: string);
 begin
   FB1.LoadFromFile(AFileName);
   UpdateImages;
 end;
 
-procedure TForm1.LoadTestBitmap;
+procedure TMainForm.LoadTestBitmap;
 const
   cBlockSize = 20;
   cBlockCount = 10;
@@ -117,26 +135,74 @@ begin
   UpdateImages;
 end;
 
-procedure TForm1.Resample;
+procedure TMainForm.Resample;
 begin
+  FAnimation := False;
   FB1.ResamplingKernel := TKResamplingKernel(CoBType.ItemIndex);
   FB1.ResamplingWindow := StrToIntDef(EDWindow.Text, 3);
 {$IFDEF DEBUG_ALPHABITMAP}
-  KLog1.Clear;
-  FB1.Log := KLog1;
+  Log.Clear;
 {$ENDIF}
   UpdateAspectRatio;
   FB1.Resample(FB2, StrToIntDef(EDW.Text, FB1.Width), StrToIntDef(EDH.Text, FB1.Height));
   IM2.Picture.Assign(FB2);
 end;
 
-procedure TForm1.UpdateAspectRatio;
+procedure TMainForm.TimerTimer(Sender: TObject);
 begin
-  if CBAspectRatio.Checked then
-    EDH.Text := IntToStr(FB1.Height * StrToIntDef(EDW.Text, FB1.Width) div FB1.Width);
+  if FInsideTimer then Exit;
+  if FAnimation then
+  begin
+    FInsideTimer := True;
+    try
+    {$IFDEF DEBUG_ALPHABITMAP}
+      Log.Clear;
+    {$ENDIF}
+      FB1.Resample(FB2, FAnimatedWidth, FAnimatedHeight);
+      IM2.Picture.Assign(FB2);
+      if FAnimationDirection then
+      begin
+        if FB1.Width > FB1.Height then
+        begin
+          Inc(FAnimatedHeight);
+          FAnimatedWidth := MulDiv(FAnimatedHeight, FB1.Width, FB1.Height);
+        end else
+        begin
+          Inc(FAnimatedWidth);
+          FAnimatedHeight := MulDiv(FAnimatedWidth, FB1.Height, FB1.Width);
+        end;
+      end else
+      begin
+        if FB1.Width > FB1.Height then
+        begin
+          Dec(FAnimatedHeight);
+          FAnimatedWidth := MulDiv(FAnimatedHeight, FB1.Width, FB1.Height);
+        end else
+        begin
+          Dec(FAnimatedWidth);
+          FAnimatedHeight := MulDiv(FAnimatedWidth, FB1.Height, FB1.Width);
+        end;
+        if (FAnimatedWidth = 1) or (FAnimatedheight = 1) then
+          FAnimation := False;
+      end;
+      Dec(FAnimationCount);
+      if FAnimationCount = 0 then
+        FAnimation := False;
+      EDW.Text := IntToStr(FAnimatedWidth);
+      EDH.Text := IntToStr(FAnimatedHeight);
+    finally
+      FInsideTimer := False;
+    end;
+  end;
 end;
 
-procedure TForm1.UpdateImages;
+procedure TMainForm.UpdateAspectRatio;
+begin
+  if CBAspectRatio.Checked then
+    EDH.Text := IntToStr(MulDiv(FB1.Height, StrToIntDef(EDW.Text, FB1.Width), FB1.Width);
+end;
+
+procedure TMainForm.UpdateImages;
 begin
   IM1.Picture.Assign(FB1);
   IM2.Picture.Assign(FB1);
@@ -144,33 +210,51 @@ begin
   EDH.Text := IntToStr(FB1.Height);
 end;
 
-procedure TForm1.BUDoubleClick(Sender: TObject);
+procedure TMainForm.BUDoubleClick(Sender: TObject);
 begin
   EDW.Text := IntToStr(FB1.Width * 2);
   EDH.Text := IntToStr(FB1.Height * 2);
   Resample;
 end;
 
-procedure TForm1.BUHalfClick(Sender: TObject);
+procedure TMainForm.BUHalfClick(Sender: TObject);
 begin
   EDW.Text := IntToStr(FB1.Width div 2);
   EDH.Text := IntToStr(FB1.Height div 2);
   Resample;
 end;
 
-procedure TForm1.BUResampleClick(Sender: TObject);
+procedure TMainForm.BUResampleClick(Sender: TObject);
 begin
   Resample;
 end;
 
-procedure TForm1.BUTripleClick(Sender: TObject);
+procedure TMainForm.BUTripleClick(Sender: TObject);
 begin
   EDW.Text := IntToStr(FB1.Width * 3);
   EDH.Text := IntToStr(FB1.Height * 3);
   Resample;
 end;
 
-procedure TForm1.BUXdYhClick(Sender: TObject);
+procedure TMainForm.BUAnimDownClick(Sender: TObject);
+begin
+  FAnimation := True;
+  FAnimationDirection := False;
+  FAnimatedWidth := FB1.Width;
+  FAnimatedHeight := FB1.Height;
+  FAnimationCount := StrToIntDef(EDAnimCnt.Text, 10);
+end;
+
+procedure TMainForm.BUAnimUpClick(Sender: TObject);
+begin
+  FAnimation := True;
+  FAnimationDirection := True;
+  FAnimatedWidth := FB1.Width;
+  FAnimatedHeight := FB1.Height;
+  FAnimationCount := StrToIntDef(EDAnimCnt.Text, 10);
+end;
+
+procedure TMainForm.BUXdYhClick(Sender: TObject);
 begin
   CBAspectRatio.Checked := False;
   EDW.Text := IntToStr(FB1.Width * 2);
@@ -178,31 +262,31 @@ begin
   Resample;
 end;
 
-procedure TForm1.CBAspectRatioClick(Sender: TObject);
+procedure TMainForm.CBAspectRatioClick(Sender: TObject);
 begin
   UpdateAspectRatio;
 end;
 
-procedure TForm1.EDFileChange(Sender: TObject);
+procedure TMainForm.EDFileChange(Sender: TObject);
 begin
   if not FStartup then
     BULoadFromFileClick(nil);
 end;
 
-procedure TForm1.EDWExit(Sender: TObject);
+procedure TMainForm.EDWExit(Sender: TObject);
 begin
   UpdateAspectRatio;
 end;
 
-procedure TForm1.BULoadFromFileClick(Sender: TObject);
+procedure TMainForm.BULoadFromFileClick(Sender: TObject);
 begin
   if FileExists(EDFile.FileName) then
     LoadBitmap(EDFile.FileName)
   else
-    KLog1.Log(lgError, 'File does not exist!');
+    Log.Log(lgError, 'File does not exist!');
 end;
 
-procedure TForm1.BULoadTestBitmapClick(Sender: TObject);
+procedure TMainForm.BULoadTestBitmapClick(Sender: TObject);
 begin
   LoadTestBitmap;
 end;
