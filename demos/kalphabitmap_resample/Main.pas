@@ -7,6 +7,8 @@ interface
 uses
  {$IFDEF MSWINDOWS}
   Windows,
+ {$ELSE}
+  LCLType,
  {$ENDIF}
   SysUtils, Classes, Graphics,
   Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
@@ -131,7 +133,10 @@ begin
   end;
   FB1.UpdatePixels;
   FB1.AlphaFill(255);
-  FB1.SaveToFile('../../test.bmp');
+  try
+    FB1.SaveToFile('../../test.bmp');
+  except
+  end;
   UpdateImages;
 end;
 
