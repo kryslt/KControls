@@ -24,8 +24,31 @@ This code is licensed under BSD 3-Clause Clear License, see file License.txt or 
 ## INSTALLATION:
 1. Compile and install package. It might be needed to specify search path to Source directory in Delphi/RAD Studio.
    For Rad Studio XE2 and later add VCL and VCL.Imaging namespaces to Unit Scope Names.
-2. When compiling an application or demo, it might be needed to specify the search path to KControls sources 
+```sh
+# prerequisuites (Lazarus Command Line Build Tool)
+$ sudo apt install lcl-utils
+
+# Build using lazbuild 
+# First build the base package
+$ lazbuild packages/lazarus/kcontrolsbase.lpk
+
+# Then build the design package
+$ lazbuild packages/lazarus/kcontrolslaz.lpk
+
+# object files are in packages/lazarus/lib/
+$ ls packages/lazarus/lib/
+```
+
+3. When compiling an application or demo, it might be needed to specify the search path to KControls sources 
    or JCL sources (if JCL is configured via kcontrols.inc).
+
+```sh
+# build the demo
+$ lazbuild demos/kgrid/kgriddemolaz.lpr
+
+# run the demo
+$ demos/kgrid/lib/x86_64-linux/kgriddemolaz
+```
 
 ## BUG REPORTING:
 In case you find a bug or have ideas to improve please create an issue or pull request here:
