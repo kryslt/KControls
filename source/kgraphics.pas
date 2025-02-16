@@ -247,6 +247,7 @@ type
     function GetPixel(X, Y: Integer): TKColorRec;
     procedure SetPixel(X, Y: Integer; Value: TKColorRec);
     function GetSize: Integer;
+    function GetBoundsRect: TRect;
   protected
     { Calls OnChanged event. }
     procedure Changed(Sender: TObject); override;
@@ -376,6 +377,8 @@ type
     procedure UpdatePixels; dynamic;
     { Automatically mirrors the bitmap vertically for Linux hosts, when reading/writing from/to a stream. }
     property AutoMirror: Boolean read FAutoMirror write FAutoMirror default True;
+    { Returns bounding rectangle. }
+    property BoundsRect: TRect read GetBoundsRect;
     { Returns the bitmap memory canvas. }
     property Canvas: TCanvas read FCanvas;
     { Temporary flag. Use when copying data directly from another TGraphic to TKAlphaBitmap. }
@@ -2559,6 +2562,11 @@ begin
   finally
     UnlockUpdate;
   end;
+end;
+
+function TKAlphaBitmap.GetBoundsRect: TRect;
+begin
+  Result := Rect(0, 0, FWidth, FHeight);
 end;
 
 function TKAlphaBitmap.GetEmpty: Boolean;
