@@ -285,8 +285,9 @@ type
       stored in the alpha bitmap. }
     procedure AlphaStretchDrawTo(ACanvas: TCanvas; const ARect: TRect);
     { Fills the alpha channel with Alpha. If the optional IfEmpty parameter is True,
-      the alpha channel won't be modified unless it has zero value for all pixels. }
-    procedure AlphaFill(Alpha: Byte; IfEmpty: Boolean = False); overload;
+      the alpha channel won't be modified unless it has zero value for all pixels.
+      If APRect is given, the alpha channel will be filled only inside this rectangle. }
+    procedure AlphaFill(Alpha: Byte; IfEmpty: Boolean = False; APRect: PRect = nil); overload;
     { Fills the alpha channel according to given parameters. Currently it is used
       internally by @link(TKDragWindow). }
     procedure AlphaFill(Alpha: Byte; BlendColor: TColor; Gradient, Translucent: Boolean); overload;
@@ -1994,9 +1995,10 @@ begin
   AlphaStretchDrawTo(ACanvas, Rect(X, Y, X + FWidth, Y + FHeight));
 end;
 
-procedure TKAlphaBitmap.AlphaFill(Alpha: Byte; IfEmpty: Boolean);
+procedure TKAlphaBitmap.AlphaFill(Alpha: Byte; IfEmpty: Boolean; APRect: PRect);
 var
-  I: Integer;
+  I, J, Row: Integer;
+  R: TRect;
   LocHasAlpha: Boolean;
 begin
   LocHasAlpha := False;
@@ -2006,8 +2008,20 @@ begin
   begin
     LockUpdate;
     try
-      for I := 0 to Size - 1 do
-        FPixels[I].A := Alpha;
+      if APRect = nil then
+      begin
+        for I := 0 to Size - 1 do
+          FPixels[I].A := Alpha;
+      end
+      else if IntersectRect(R, BoundsRect, APRect^) then
+      begin
+        for I := R.Top to R.Bottom - 1 do
+        begin
+          Row := I * FWidth;
+          for J := R.Left to R.Right - 1 do
+            FPixels[Row + J].A := Alpha;
+        end;
+      end;
     finally
       UnlockUpdate;
     end;
