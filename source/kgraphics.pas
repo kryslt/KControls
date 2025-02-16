@@ -1929,7 +1929,7 @@ begin
   FCanvas := TCanvas.Create;
   FCanvas.Handle := CreateCompatibleDC(0);
   FUpdateLock := 0;
-  FAutoMirror := True;
+  FAutoMirror := False;
   FDescription := 'KControls alpha bitmap';
   FDirectCopy := False;
   FFileFilter := '*.bma;*.bmp;*.png;*.jpg';
@@ -2061,11 +2061,7 @@ begin
       VSum := Alpha;
     end;
     CS := ColorToColorRec(BlendColor);
-  {$IFNDEF MSWINDOWS}
     for I := 0 to FHeight - 1 do
-  {$ELSE}
-    for I := FHeight - 1 downto 0 do
-  {$ENDIF}
     begin
       Scan := ScanLine[I];
       HAlpha := Alpha;
@@ -2186,11 +2182,7 @@ begin
     LockUpdate;
     try
       SwapBR(Color);
-    {$IFDEF MSWINDOWS}
-      Index := (FHeight - Y - 1) * FWidth + X;
-    {$ELSE}
       Index := Y * FWidth + X;
-    {$ENDIF}
       A2 := Color.A;
       if A2 = 255 then
         FPixels[Index] := Color
@@ -2583,11 +2575,7 @@ function TKAlphaBitmap.GetPixel(X, Y: Integer): TKColorRec;
 begin
   if (X >= 0) and (X < FWidth) and (Y >= 0) and (Y < FHeight) then
   begin
-  {$IFDEF MSWINDOWS}
-    Result := FPixels[(FHeight - Y - 1) * FWidth + X];
-  {$ELSE}
     Result := FPixels[Y * FWidth + X];
-  {$ENDIF}
     SwapBR(Result);
   end else
     Result := MakeColorRec(0,0,0,0);
@@ -3234,11 +3222,7 @@ begin
     LockUpdate;
     try
       SwapBR(Value);
-    {$IFDEF MSWINDOWS}
-      FPixels[(FHeight - Y - 1) * FWidth + X] := Value;
-    {$ELSE}
       FPixels[Y * FWidth + X] := Value;
-    {$ENDIF}
     finally
       UnlockUpdate;
     end;
@@ -3286,7 +3270,7 @@ begin
         FillChar(BI, SizeOf(TBitmapInfoHeader), 0);
         BI.biSize := SizeOf(TBitmapInfoHeader);
         BI.biWidth := FWidth;
-        BI.biHeight := FHeight;
+        BI.biHeight := -FHeight; // TTB bitmap
         BI.biPlanes := 1;
         BI.biBitCount := 32;
         BI.biCompression := BI_RGB;
