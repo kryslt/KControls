@@ -310,6 +310,8 @@ type
     procedure CopyFrom(AGraphic: TGraphic);
     { Takes dimensions and pixels from ABitmap. }
     procedure CopyFromAlphaBitmap(ABitmap: TKAlphaBitmap);
+    { Takes diemnsions and pixels from any graphic. }
+    procedure CopyFromGraphic(AGraphic: TGraphic);
     { Takes diemnsions and pixels from APngImage. }
     procedure CopyFromJpeg(AJpegImage: TJPEGImage);
   {$IFDEF USE_PNG_SUPPORT}
@@ -376,7 +378,7 @@ type
     procedure UpdateHandle; dynamic;
     { Updates the pixels from bitmap handle. }
     procedure UpdatePixels; dynamic;
-    { Automatically mirrors the bitmap vertically for Linux hosts, when reading/writing from/to a stream. }
+    { Does nothing, kept for backward compatibility. }
     property AutoMirror: Boolean read FAutoMirror write FAutoMirror default True;
     { Returns bounding rectangle. }
     property BoundsRect: TRect read GetBoundsRect;
@@ -2231,7 +2233,7 @@ begin
   else if AGraphic is TJpegImage then
     CopyFromJpeg(AGraphic as TJpegImage)
   else
-    DrawFrom(AGraphic, 0, 0);
+    CopyFromGraphic(AGraphic);
 end;
 
 procedure TKAlphaBitmap.CopyFromAlphaBitmap(ABitmap: TKAlphaBitmap);
@@ -2246,6 +2248,16 @@ begin
       Move(ABitmap.ScanLine[I]^, ScanLine[I]^, ByteSize);
   finally
     UnlockUpdate;
+  end;
+end;
+
+procedure TKAlphaBitmap.CopyFromGraphic(AGraphic: TGraphic);
+begin
+  if not AGraphic.Empty then
+  begin
+    SetSize(AGraphic.Width, AGraphic.Height);
+    DrawFrom(AGraphic, 0, 0);
+    AlphaFill($FF, True);
   end;
 end;
 
@@ -2715,6 +2727,7 @@ procedure TKAlphaBitmap.LoadFromStream(Stream: TStream);
 var
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
+  TTB: Boolean;
 begin
   Stream.Read(BF, SizeOf(TBitmapFileHeader));
   if BF.bfType = $4D42 then
@@ -2724,14 +2737,13 @@ begin
     begin
       LockUpdate;
       try
-        SetSize(BI.biWidth, BI.biHeight);
+        TTB := BI.biHeight < 0;
+        SetSize(BI.biWidth, Abs(BI.biHeight));
         Stream.Read(FPixels^, BI.biSizeImage);
         // if bitmap has no alpha channel, create full opacity
         AlphaFill($FF, True);
-      {$IFnDEF MSWINDOWS}
-        if FAutoMirror then
+        if not TTB then
           MirrorVert;
-      {$ENDIF}
       finally
         UnlockUpdate;
       end;
@@ -3206,10 +3218,6 @@ var
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
 begin
-{$IFnDEF MSWINDOWS}
-  if FAutoMirror then
-    MirrorVert;
-{$ENDIF}
   ByteSize := Size * 4;
   FillChar(BF, SizeOf(TBitmapFileHeader), 0);
   BF.bfType := $4D42;
@@ -3219,17 +3227,13 @@ begin
   FillChar(BI, SizeOf(TBitmapInfoHeader), 0);
   BI.biSize := SizeOf(TBitmapInfoHeader);
   BI.biWidth := FWidth;
-  BI.biHeight := FHeight;
+  BI.biHeight := -FHeight; // we have TTB bitmap on every platform
   BI.biPlanes := 1;
   BI.biBitCount := 32;
   BI.biCompression := BI_RGB;
   BI.biSizeImage := ByteSize;
   Stream.Write(BI, SizeOf(TBitmapInfoHeader));
   Stream.Write(FPixels^, ByteSize);
-{$IFnDEF MSWINDOWS}
-  if FAutoMirror then
-    MirrorVert;
-{$ENDIF}
 end;
 
 procedure TKAlphaBitmap.SetHeight(Value: Integer);
