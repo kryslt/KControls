@@ -231,6 +231,7 @@ type
     FImage: TLazIntfImage; // Lazarus only
     FMaskHandle: HBITMAP;
   {$ENDIF}
+    FLoadedAsBTT: Boolean;
     FOldBitmap: HBITMAP;
     FPixels: PKColorRecs;
     FPixelsChanged: Boolean;
@@ -390,6 +391,9 @@ type
     property Handle: HBITMAP read GetHandle;
     { Returns true if alpha channel is nonzero for at least one pixel. }
     property HasAlpha: Boolean read GetHasAlpha;
+    { Retains information that the bitmap was loaded as bottom to top (BTT) bitmap.
+      Kept for backward compatibility so that old DFM files do not modify. }
+    property LoadedAsBTT: Boolean read FLoadedAsBTT write FLoadedAsBTT default False;
   {$IFDEF DEBUG_ALPHABITMAP}
     { Specifies the log component for debug logging. }
     property Log: TKLog read FLog write FLog;
@@ -1935,7 +1939,7 @@ begin
   FCanvas := TCanvas.Create;
   FCanvas.Handle := CreateCompatibleDC(0);
   FUpdateLock := 0;
-  FAutoMirror := False;
+  FAutoMirror := True;
   FDescription := 'KControls alpha bitmap';
   FDirectCopy := False;
   FFileFilter := '*.bma;*.bmp;*.png;*.jpg';
@@ -1944,6 +1948,7 @@ begin
   FImage := TLazIntfImage.Create(0, 0);
 {$ENDIF}
   FHeight := 0;
+  FLoadedAsBTT := False;
 {$IFDEF DEBUG_ALPHABITMAP}
   FLog := nil;
 {$ENDIF}
@@ -2169,6 +2174,7 @@ begin
   begin
     AutoMirror := Self.AutoMirror;
     DirectCopy := Self.DirectCopy;
+    LoadedAsBTT := Self.LoadedAsBTT;
     CopyFrom(Self);
   end
 end;
@@ -2727,7 +2733,6 @@ procedure TKAlphaBitmap.LoadFromStream(Stream: TStream);
 var
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
-  TTB: Boolean;
 begin
   Stream.Read(BF, SizeOf(TBitmapFileHeader));
   if BF.bfType = $4D42 then
@@ -2737,13 +2742,14 @@ begin
     begin
       LockUpdate;
       try
-        TTB := BI.biHeight < 0;
         SetSize(BI.biWidth, Abs(BI.biHeight));
         Stream.Read(FPixels^, BI.biSizeImage);
+        // check if bitmap is stored as BTT bitmap and if so, convert to TTB bitmap
+        FLoadedAsBTT := BI.biHeight > 0;
+        if FLoadedAsBTT then
+          MirrorVert;
         // if bitmap has no alpha channel, create full opacity
         AlphaFill($FF, True);
-        if not TTB then
-          MirrorVert;
       finally
         UnlockUpdate;
       end;
@@ -3214,10 +3220,18 @@ end;
 
 procedure TKAlphaBitmap.SaveToStream(Stream: TStream);
 var
-  ByteSize: Integer;
+  ByteSize, H: Integer;
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
 begin
+  if FLoadedAsBTT then
+  begin
+    H := FHeight; // backward compatibility mode for old DFMs
+    MirrorVert;
+  end else
+  begin
+    H := -FHeight; // newly created bitmaps are TTB on every platform
+  end;
   ByteSize := Size * 4;
   FillChar(BF, SizeOf(TBitmapFileHeader), 0);
   BF.bfType := $4D42;
@@ -3227,13 +3241,15 @@ begin
   FillChar(BI, SizeOf(TBitmapInfoHeader), 0);
   BI.biSize := SizeOf(TBitmapInfoHeader);
   BI.biWidth := FWidth;
-  BI.biHeight := -FHeight; // we have TTB bitmap on every platform
+  BI.biHeight := H;
   BI.biPlanes := 1;
   BI.biBitCount := 32;
   BI.biCompression := BI_RGB;
   BI.biSizeImage := ByteSize;
   Stream.Write(BI, SizeOf(TBitmapInfoHeader));
   Stream.Write(FPixels^, ByteSize);
+  if FLoadedAsBTT then
+    MirrorVert;
 end;
 
 procedure TKAlphaBitmap.SetHeight(Value: Integer);
@@ -3302,6 +3318,7 @@ begin
         BI.biCompression := BI_RGB;
         FHandle := GDICheck(CreateDIBSection(FCanvas.Handle, PBitmapInfo(@BI)^, DIB_RGB_COLORS, Pointer(FPixels), 0, 0));
         FOldBitmap := SelectObject(FCanvas.Handle, FHandle);
+        FLoadedAsBTT := False;
       {$ENDIF}
       end;
     finally
