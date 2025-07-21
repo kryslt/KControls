@@ -13348,6 +13348,12 @@ begin
       Inc(BlockIndex);
     end;
   end;
+  if TmpFound and not Found then
+  begin
+    // this means AIndex is beyond last block (eg. last paragraph is selected)
+    // return the last known rectangle on the same line to prevent unwanted scrolling
+    Result := TmpRect;
+  end;
 end;
 
 procedure TKMemoBlocks.ListChanged(AList: TKMemoList; ALevel: TKMemoListLevel);
