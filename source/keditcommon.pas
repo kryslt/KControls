@@ -759,6 +759,7 @@ begin
   AddKey(ecCopy, ord('C'), [ssMeta]);
   AddKey(ecCut, ord('X'), [ssMeta]);
   AddKey(ecPaste, ord('V'), [ssMeta]);
+  AddKey(ecSelectAll, ord('A'), [ssMeta]);
 {$ENDIF}
 end;
 
