@@ -158,6 +158,8 @@ procedure TKLog.Clear;
 begin
   if FListBox <> nil then
     FListBox.Clear;
+  if FInternalStorage then
+    FEvents.Clear;
   FStatusText := '';
   ClearStatusBar;
 end;
