@@ -2270,7 +2270,7 @@ end;
 procedure TKAlphaBitmap.CopyFromJpeg(AJpegImage: TJPEGImage);
 {$IFDEF FPC}
 var
-  I, J: Integer;
+  I, J, Row: Integer;
   C: TKColorRec;
   IM: TLazIntfImage;
   FC: TFPColor;
@@ -2282,13 +2282,15 @@ begin
   {$IFDEF FPC}
     IM := AJpegImage.CreateIntfImage;
     try
-      for I := 0 to AJpegImage.Width - 1 do
+      for J := 0 to AJpegImage.Height - 1 do
       begin
-        for J := 0 to AJpegImage.Height - 1 do
+        Row := J * FWidth;
+        for I := 0 to AJpegImage.Width - 1 do
         begin
           FC := IM.Colors[I, J];
           C := FPColorToColorRec(FC);
-          Pixel[I, J] := C;
+          SwapBR(C);
+          FPixels[Row + I] := C;
         end;
       end;
     finally
@@ -2308,7 +2310,7 @@ end;
 {$IFDEF USE_PNG_SUPPORT}
 procedure TKAlphaBitmap.CopyFromPng(APngImage: TKPngImage);
 var
-  I, J: Integer;
+  I, J, Row: Integer;
   C: TKColorRec;
 {$IFDEF FPC}
   IM: TLazIntfImage;
@@ -2322,9 +2324,10 @@ begin
     IM := APngImage.CreateIntfImage;
     try
   {$ENDIF}
-      for I := 0 to APngImage.Width - 1 do
+      for J := 0 to APngImage.Height - 1 do
       begin
-        for J := 0 to APngImage.Height - 1 do
+        Row := J * FWidth;
+        for I := 0 to APngImage.Width - 1 do
         begin
         {$IFDEF FPC}
           FC := IM.Colors[I, J];
@@ -2336,7 +2339,8 @@ begin
           else
             C.A := 255;
         {$ENDIF}
-          Pixel[I, J] := C;
+          SwapBR(C);
+          FPixels[Row + I] := C;
         end;
       end;
   {$IFDEF FPC}
@@ -2495,7 +2499,7 @@ end;
 
 procedure TKAlphaBitmap.CopyToPng(APngImage: TKPngImage);
 var
-  I, J: Integer;
+  I, J, Row: Integer;
   C: TKColorRec;
 {$IFDEF FPC}
   IM: TLazIntfImage;
@@ -2514,11 +2518,13 @@ begin
   {$IFDEF FPC}
     IM.SetSize(FWidth, FHeight);
   {$ENDIF}
-    for I := 0 to FWidth - 1 do
+    for J := 0 to FHeight - 1 do
     begin
-      for J := 0 to FHeight - 1 do
+      Row := J * FWidth;
+      for I := 0 to FWidth - 1 do
       begin
-        C := Pixel[I, J];
+        C := FPixels[Row + I];
+        SwapBR(C);
       {$IFDEF FPC}
         FC := ColorRecToFPColor(C);
         IM.Colors[I, J] := FC;
