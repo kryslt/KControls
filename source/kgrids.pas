@@ -3986,6 +3986,10 @@ function IntersectGridRect(const GridRect1, GridRect2: TKGridRect; out GridRect:
   bottom-right cell. }
 function NormalizeGridRect(const ARect: TKGridRect): TKGridRect;
 
+{ Adds ADeltaCols to both column fields of ARect. Adds ADeltaRows to both row
+  fields of ARect. }
+procedure OffsetGridRect(var ARect: TKGridRect; ADeltaCols, ADeltaRows: Integer);
+
 { Determines if the grid rectangle contains a subset of cells belonging to the
   row specified by ARow. }
 function RowInGridRect(ARow: Integer; const R: TKGridRect): Boolean;
@@ -4190,6 +4194,14 @@ begin
   Result := ARect;
   if Result.Col1 > Result.Col2 then Exchange(Result.Col1, Result.Col2);
   if Result.Row1 > Result.Row2 then Exchange(Result.Row1, Result.Row2);
+end;
+
+procedure OffsetGridRect(var ARect: TKGridRect; ADeltaCols, ADeltaRows: Integer);
+begin
+  Inc(ARect.Col1, ADeltaCols);
+  Inc(ARect.Col2, ADeltaCols);
+  Inc(ARect.Row1, ADeltaRows);
+  Inc(ARect.Row2, ADeltaRows);
 end;
 
 function RowInGridRect(ARow: Integer; const R: TKGridRect): Boolean;
