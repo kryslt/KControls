@@ -3132,7 +3132,9 @@ type
     procedure SelectCol(ACol: Integer; AAddToSelection: Boolean = False); virtual;
     { Select more columns. }
     procedure SelectCols(FirstCol, Count: Integer); virtual;
-    { Normalize current selection. }
+    { Set new main selection with custom flags. }
+    procedure SelectMain(ASelection: TKGridRect; AFlags: TKGridSelectionFlags); virtual;
+    { Normalize current main selection. }
     procedure SelectionNormalize; virtual;
     { Selects a row. }
     procedure SelectRow(ARow: Integer; AAddToSelection: Boolean = False); virtual;
@@ -12485,6 +12487,23 @@ begin
     InternalGetCell(ACol, ARow).SelectionExpand(ACol, ARow, Result);
 end;
 
+procedure TKCustomGrid.SelectMain(ASelection: TKGridRect;
+  AFlags: TKGridSelectionFlags);
+var
+  GR: TKGridRect;
+begin
+  if GridRectSelectable(ASelection) and not GridRectEqual(ASelection, FSelections.ActiveSelection) then
+  begin
+    InternalFindBaseCell(ASelection.Col1, ASelection.Row1, GR.Col1, GR.Row1);
+    InternalFindBaseCell(ASelection.Col2, ASelection.Row2, GR.Col2, GR.Row2);
+    if InternalCheckSelection(GR) then
+    begin
+      ClearSelections;
+      InternalSetSelection(ASelection, AFlags);
+    end;
+  end;
+end;
+
 function TKCustomGrid.SelectionMove(ACol, ARow: Integer;
   Stage: TKGridSelectionStage;
   Flags: TKGridSelectionFlags): Boolean;
@@ -13085,19 +13104,8 @@ begin
 end;
 
 procedure TKCustomGrid.SetSelection(const Value: TKGridRect);
-var
-  GR: TKGridRect;
 begin
-  if GridRectSelectable(Value) and not GridRectEqual(Value, FSelections.ActiveSelection) then
-  begin
-    InternalFindBaseCell(Value.Col1, Value.Row1, GR.Col1, GR.Row1);
-    InternalFindBaseCell(Value.Col2, Value.Row2, GR.Col2, GR.Row2);
-    if InternalCheckSelection(GR) then
-    begin
-      ClearSelections;
-      InternalSetSelection(Value, [sfMustUpdate, sfClampInView]);
-    end;
-  end;
+  SelectMain(Value, [sfMustUpdate, sfClampInView]);
 end;
 
 procedure TKCustomGrid.SetSelections(Index: Integer; const Value: TKGridRect);
