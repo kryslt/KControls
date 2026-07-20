@@ -2393,9 +2393,26 @@ begin
 end;
 
 function StrNextCharIndex(const AText: TKString; Index: Integer): Integer;
-begin
 {$IFDEF FPC}
-  Result := Index + LazUTF8.UTF8CodepointSize(@AText[Index]);
+var
+  CharSize: Integer;
+{$ENDIF}
+begin
+  if Index < 1 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+  if Index > Length(AText) then
+  begin
+    Result := Length(AText) + 1;
+    Exit;
+  end;
+{$IFDEF FPC}
+  CharSize := LazUTF8.UTF8CodepointSize(@AText[Index]);
+  if CharSize <= 0 then
+    CharSize := 1;
+  Result := Index + CharSize;
 {$ELSE}
   if (Word(AText[Index]) >= cUTF16FirstSurrogateBegin) and (Word(AText[Index]) <= cUTF16FirstSurrogateEnd) then
     Result := Index + 2
@@ -2406,8 +2423,15 @@ end;
 
 function StrPreviousCharIndex(const AText: TKString; Index: Integer): Integer;
 begin
+  if Index <= 1 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+  if Index > Length(AText) + 1 then
+    Index := Length(AText) + 1;
 {$IFDEF FPC}
-  Result := Index - LazUTF8.UTF8CodepointSize(@AText[StringCharBegin(AText, Index - 1)]);
+  Result := StringCharBegin(AText, Index - 1);
 {$ELSE}
   if (Word(AText[Index - 1]) >= cUTF16SecondSurrogateBegin) and (Word(AText[Index - 1]) <= cUTF16SecondSurrogateEnd) then
     Result := Index - 2
@@ -2421,13 +2445,16 @@ var
   I: Integer;
 begin
   Result := 0;
+  if ByteIndex <= 1 then
+    Exit;
   I := 1;
-  while I < ByteIndex do
+  while (I < ByteIndex) and (I <= Length(AText)) do
   begin
   {$IFDEF FPC}
     Inc(I, LazUTF8.UTF8CodepointSize(@AText[I]));
   {$ELSE}
-    if (Word(AText[I]) >= cUTF16FirstSurrogateBegin) or (Word(AText[I]) > cUTF16FirstSurrogateEnd) then
+    if (I < Length(AText)) and
+      (Word(AText[I]) >= cUTF16FirstSurrogateBegin) and (Word(AText[I]) <= cUTF16FirstSurrogateEnd) then
       Inc(I, 2)
     else
       Inc(I);
@@ -2440,13 +2467,18 @@ function StrCPIndexToByteIndex(const AText: TKString; CPIndex: Integer): Integer
 var
   I: Integer;
 begin
-  Result := 0;
-  for I := 1 to CPIndex do
+  Result := 1;
+  if CPIndex <= 1 then
+    Exit;
+  for I := 1 to CPIndex - 1 do
   begin
 {$IFDEF FPC}
+    if Result > Length(AText) then
+      Break;
     Inc(Result, LazUTF8.UTF8CodepointSize(@AText[Result]));
 {$ELSE}
-    if (Word(AText[Result]) >= cUTF16FirstSurrogateBegin) and (Word(AText[Result]) <= cUTF16FirstSurrogateEnd) then
+    if (Result < Length(AText)) and
+      (Word(AText[Result]) >= cUTF16FirstSurrogateBegin) and (Word(AText[Result]) <= cUTF16FirstSurrogateEnd) then
       Inc(Result, 2)
     else
       Inc(Result);
@@ -2458,10 +2490,25 @@ end;
 
 function StringCharBegin(const AText: TKString; Index: Integer): Integer;
 begin
+  if AText = '' then
+  begin
+    Result := 1;
+    Exit;
+  end;
+  if Index < 1 then
+  begin
+    Result := 1;
+    Exit;
+  end;
+  if Index > Length(AText) then
+    Index := Length(AText);
 {$IFDEF FPC}
-  Result := LazUTF8.UTF8CodepointToByteIndex(PChar(AText), Length(AText), Index)
+  Result := Index;
+  while (Result > 1) and ((Ord(AText[Result]) and $C0) = $80) do
+    Dec(Result);
 {$ELSE}
-  if (Word(AText[Index - 1]) >= cUTF16SecondSurrogateBegin) and (Word(AText[Index - 1]) <= cUTF16SecondSurrogateEnd) then
+  if (Index > 1) and
+    (Word(AText[Index]) >= cUTF16SecondSurrogateBegin) and (Word(AText[Index]) <= cUTF16SecondSurrogateEnd) then
     Result := Index - 1
   else
     Result := Index
