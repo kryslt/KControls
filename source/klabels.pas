@@ -115,7 +115,11 @@ begin
   FDividerColor := clBlack;
   FDividerWidth := 2;
   Font.Color := clWhite;
+{$IF DEFINED(FPC) AND NOT DEFINED(MSWINDOWS)}
+  Font.Name := 'Sans';
+{$ELSE}
   Font.Name := 'Arial';
+{$IFEND}
   Font.Height := 20;
   Font.Style := [fsBold];
   FColorStep := 50;

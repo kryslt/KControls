@@ -27,7 +27,11 @@ unit kxml;
 
 interface
 
-uses Classes, Contnrs, SysUtils;
+uses Classes, Contnrs, SysUtils
+{$IFDEF FPC}
+  , LConvEncoding
+{$ENDIF}
+  ;
 
 resourcestring
   sParseNoOpenTag = 'XML parsing error: Open tag not found.';
@@ -296,6 +300,68 @@ begin
     Inc(I);
   end;
 end;
+
+{$IFDEF FPC}
+function XmlDeclaredEncoding(const ARawText: AnsiString): string;
+var
+  Header, LowerHeader: string;
+  P, Q: Integer;
+  Quote: Char;
+begin
+  Result := '';
+  Header := Copy(string(ARawText), 1, 512);
+  LowerHeader := LowerCase(Header);
+  P := Pos('<?xml', LowerHeader);
+  if P = 0 then
+    Exit;
+  Q := Pos('?>', LowerHeader);
+  if (Q > 0) and (Q < P) then
+    Exit;
+  P := Pos('encoding', LowerHeader);
+  if P = 0 then
+    Exit;
+  Inc(P, Length('encoding'));
+  while (P <= Length(Header)) and CharInSet(Header[P], [' ', #9, #10, #13]) do
+    Inc(P);
+  if (P > Length(Header)) or (Header[P] <> '=') then
+    Exit;
+  Inc(P);
+  while (P <= Length(Header)) and CharInSet(Header[P], [' ', #9, #10, #13]) do
+    Inc(P);
+  if (P > Length(Header)) or not CharInSet(Header[P], ['"', '''']) then
+    Exit;
+  Quote := Header[P];
+  Inc(P);
+  Q := P;
+  while (Q <= Length(Header)) and (Header[Q] <> Quote) do
+    Inc(Q);
+  if Q <= Length(Header) then
+    Result := Copy(Header, P, Q - P);
+end;
+
+function XmlTextFromEncodedStream(AStream: TStream): string;
+var
+  Raw: AnsiString;
+  Count: Int64;
+  Encoding: string;
+  Encoded: Boolean;
+begin
+  Result := '';
+  Count := AStream.Size - AStream.Position;
+  if Count <= 0 then
+    Exit;
+  if Count > MaxInt then
+    raise EStreamError.Create('XML stream is too large.');
+  SetLength(Raw, Count);
+  AStream.ReadBuffer(Raw[1], Count);
+  Encoding := XmlDeclaredEncoding(Raw);
+  if Encoding = '' then
+    Encoding := LConvEncoding.GuessEncoding(Raw);
+  Result := LConvEncoding.ConvertEncodingToUTF8(Raw, Encoding, Encoded);
+  if not Encoded then
+    Result := Raw;
+end;
+{$ENDIF}
 
 function StrToFloatDefLoc(const AValue: string; ADefault: Double; const AFormatSettings: TFormatSettings): Double;
 var
@@ -1050,12 +1116,18 @@ begin
 end;
 
 procedure TXml.LoadFromStream(Stream: TStream);
+{$IFNDEF FPC}
 var
   S: AnsiString;
+{$ENDIF}
 begin
+{$IFDEF FPC}
+  Text := XmlTextFromEncodedStream(Stream);
+{$ELSE}
   SetLength(S, Stream.Size);
   Stream.Read(S[1], Stream.Size);
   Text := UTF8ToString(S);
+{$ENDIF}
 end;
 
 procedure TXml.SaveToFile(AFilename: string);
@@ -1074,9 +1146,23 @@ end;
 procedure TXml.SaveToStream(Stream: TStream);
 var
   S: AnsiString;
+{$IFDEF FPC}
+  OldEncoding: string;
+{$ENDIF}
 begin
+{$IFDEF FPC}
+  OldEncoding := FEncoding;
+  try
+    FEncoding := 'UTF-8';
+    S := Text;
+  finally
+    FEncoding := OldEncoding;
+  end;
+{$ELSE}
   S := StringToUTF8(Text);
-  Stream.Write(S[1], Length(S));
+{$ENDIF}
+  if S <> '' then
+    Stream.Write(S[1], Length(S));
 end;
 
 end.
