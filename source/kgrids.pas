@@ -2914,6 +2914,12 @@ type
       inplace editor identified by AEditor. AEditor must be a descendant of TCustomEdit.
       See @link(TKGridEditorSelectEvent) for interpretation of another parameters. }
     procedure DefaultEditSelect(AEditor: TCustomEdit; SelectAll, CaretToLeft: Boolean); virtual;
+    { Returns inplace editor text length in the same character unit as editor SelStart. }
+    function EditorTextLength(AEditor: TWinControl): Integer; virtual;
+    { Returns clamped inplace editor selection start in character units. }
+    function EditorSelStart(AEditor: TWinControl): Integer; virtual;
+    { Returns normalized inplace editor selection length in character units. }
+    function EditorSelLength(AEditor: TWinControl): Integer; virtual;
     { Provides default cell hint behavior. }
     procedure DefaultMouseCellHint(ACol, ARow: Integer; AShow: Boolean); virtual;
     { Decides whether a key stroke should be handled by inplace editor identified by
@@ -7482,6 +7488,51 @@ begin
   UpdateAxes(True, cAll, False, cAll, [afCheckMinExtent]);
 end;
 
+function TKCustomGrid.EditorTextLength(AEditor: TWinControl): Integer;
+begin
+  if AEditor is TCustomEdit then
+    Result := StringLength(TCustomEdit(AEditor).Text)
+  else if AEditor is TComboBox then
+    Result := StringLength(TComboBox(AEditor).Text)
+  else
+    Result := StringLength(GetControlText(AEditor));
+end;
+
+function TKCustomGrid.EditorSelStart(AEditor: TWinControl): Integer;
+var
+  TextLen: Integer;
+begin
+  if AEditor is TCustomEdit then
+    Result := TCustomEdit(AEditor).SelStart
+  else if AEditor is TComboBox then
+    Result := TComboBox(AEditor).SelStart
+  else
+    Result := 0;
+  TextLen := EditorTextLength(AEditor);
+  if Result < 0 then
+    Result := 0
+  else if Result > TextLen then
+    Result := TextLen;
+end;
+
+function TKCustomGrid.EditorSelLength(AEditor: TWinControl): Integer;
+var
+  TextLen, SelStart: Integer;
+begin
+  if AEditor is TCustomEdit then
+    Result := TCustomEdit(AEditor).SelLength
+  else if AEditor is TComboBox then
+    Result := TComboBox(AEditor).SelLength
+  else
+    Result := 0;
+  if Result < 0 then
+    Result := -Result;
+  TextLen := EditorTextLength(AEditor);
+  SelStart := EditorSelStart(AEditor);
+  if Result > TextLen - SelStart then
+    Result := TextLen - SelStart;
+end;
+
 procedure TKCustomGrid.DefaultComboKeyPreview(AEditor: TComboBox;
   ACol, ARow: Integer; var Key: Word; ShiftState: TShiftState; var IsGridKey: Boolean);
 begin
@@ -7493,7 +7544,7 @@ begin
   else if AEditor.Style in [csSimple, csDropDown] then
   begin
     // we have a combo box with edit control
-    DoEditKeyPreview(StringLength(AEditor.Text), AEditor.SelStart, AEditor.SelLength, 1, False, True, True,
+    DoEditKeyPreview(EditorTextLength(AEditor), EditorSelStart(AEditor), EditorSelLength(AEditor), 1, False, True, True,
       Key, ShiftState, IsGridKey);
   end;
 end;
@@ -7512,7 +7563,7 @@ begin
       if CaretToLeft then
         AEditor.SelStart := 0
       else
-        AEditor.SelStart := StringLength(AEditor.Text);
+        AEditor.SelStart := EditorTextLength(AEditor);
     end;
   end;
 end;
@@ -7521,15 +7572,23 @@ procedure TKCustomGrid.DefaultEditKeyPreview(AEditor: TCustomEdit;
   ACol, ARow: Integer; var Key: Word; ShiftState: TShiftState; var IsGridKey: Boolean);
 var
   MultiLine, StartLine, EndLine: Boolean;
-  TextLen, LineCount: Integer;
+  TextLen, SelStart, LineCount: Integer;
 begin
-  TextLen := StringLength(AEditor.Text);
+  TextLen := EditorTextLength(AEditor);
+  SelStart := EditorSelStart(AEditor);
   if AEditor is TCustomMemo then
   begin
     MultiLine := True;
     LineCount := TCustomMemo(AEditor).Lines.Count;
-    StartLine := AEditor.SelStart < StringLength(TCustomMemo(AEditor).Lines[0]);
-    EndLine := AEditor.SelStart > TextLen - StringLength(TCustomMemo(AEditor).Lines[TCustomMemo(AEditor).Lines.Count - 1]);
+    if LineCount > 0 then
+    begin
+      StartLine := SelStart < StringLength(TCustomMemo(AEditor).Lines[0]);
+      EndLine := SelStart > TextLen - StringLength(TCustomMemo(AEditor).Lines[LineCount - 1]);
+    end else
+    begin
+      StartLine := True;
+      EndLine := True;
+    end;
   end else
   begin
     MultiLine := False;
@@ -7537,7 +7596,7 @@ begin
     EndLine := True;
     LineCount := 1;
   end;
-  DoEditKeyPreview(StringLength(AEditor.Text), AEditor.SelStart, AEditor.SelLength, LineCount, MultiLine, StartLine, EndLine,
+  DoEditKeyPreview(TextLen, SelStart, EditorSelLength(AEditor), LineCount, MultiLine, StartLine, EndLine,
     Key, ShiftState, IsGridKey);
 end;
 
@@ -7599,7 +7658,7 @@ begin
     if CaretToLeft then
       AEditor.SelStart := 0
     else
-      AEditor.SelStart := StringLength(AEditor.Text);
+      AEditor.SelStart := EditorTextLength(AEditor);
     AEditor.SelLength := 0;
   end;
 end;
