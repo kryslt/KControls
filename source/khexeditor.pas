@@ -2186,7 +2186,10 @@ begin
         Sel1 := GetRealSelStart;
         Sel2 := GetRealSelEnd;
       {$IFDEF FPC}
-        ClipBoard.AsText := string(BinaryToDigits(FBuffer, Sel1, Sel2))
+        if FEditArea = eaDigits then
+          ClipBoard.AsText := string(BinaryToDigits(FBuffer, Sel1, Sel2))
+        else if L.Index <> 0 then
+          ClipBoard.AsText := string(BinaryToText(FBuffer, Sel1.Index, Sel2.Index, @FCharMapping));
       {$ELSE}
         if FEditArea = eaDigits then
           ClipBoard.AsText := string(BinaryToDigits(FBuffer, Sel1, Sel2))
