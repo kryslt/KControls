@@ -9041,13 +9041,16 @@ begin
     if Merged then
     begin
       // InternalExpandGridRect is extremely slow for big grid rectangles.
-      // So, in case AVisibleOnly is True (when this function is called with the aim to paint cells), limit ARect to visible only area.
+      // So, in case VisibleOnly is True (when this function is called with the aim to paint cells), limit ARect to visible only area.
       // However, there might arise display problems in case of merged cells which are partially visible at the moment.
       // Better fix is welcome.
-      if VisibleOnly then
+      // Issue #79:
+      // This fix now applies to selectable (non-fixed) cells only,
+      // as for fixed cells there should not arise the situation which would cause significant performance degradation.
+      if VisibleOnly and GridRectSelectable(GR) then
       begin
         VR := VisibleGridRect;
-        if ContainsGridRect(VR, GR) then // limit for scrollable cells only
+        if ContainsGridRect(VR, GR) then
           if IntersectGridRect(GR, VR, GR) then
             GR := InternalExpandGridRect(GR);
       end else
