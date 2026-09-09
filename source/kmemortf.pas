@@ -325,6 +325,7 @@ type
     FIndexStack: TKMemoIndexObjectStack;
     FGraphicClass: TGraphicClass;
     FListTable: TKMemoRTFListTable;
+    FPendingHighSurrogate: Word;
     FStack: TKMemoRTFStack;
     procedure AddText(const APart: TKString); virtual;
     procedure AddTextToNumberingFormat(const APart: TKString); virtual;
@@ -456,6 +457,69 @@ uses
 
 const
   cRTFHyperlink = 'HYPERLINK';
+
+function RTFParamToUTF16CodeUnit(AParam: Integer): Word;
+begin
+  if AParam < 0 then
+    Result := Word(AParam + $10000)
+  else
+    Result := Word(AParam);
+end;
+
+function RTFUTF16CodeUnitParam(ACodeUnit: Word): Integer;
+begin
+  if ACodeUnit >= $8000 then
+    Result := Integer(ACodeUnit) - $10000
+  else
+    Result := ACodeUnit;
+end;
+
+function UnicodeCodePointToNativeUTF(ACodePoint: Cardinal): TKString;
+{$IFNDEF FPC}
+var
+  V: Cardinal;
+{$ENDIF}
+begin
+{$IFDEF FPC}
+  Result := LazUTF8.UnicodeToUTF8(ACodePoint);
+{$ELSE}
+  if ACodePoint <= $FFFF then
+    Result := WideChar(ACodePoint)
+  else
+  begin
+    V := ACodePoint - $10000;
+    Result := WideChar($D800 + (V shr 10)) + WideChar($DC00 + (V and $3FF));
+  end;
+{$ENDIF}
+end;
+
+function UTF16SurrogatePairToCodePoint(AHighSurrogate, ALowSurrogate: Word): Cardinal;
+begin
+  Result := $10000 + ((Cardinal(AHighSurrogate) - $D800) shl 10) + (Cardinal(ALowSurrogate) - $DC00);
+end;
+
+procedure AppendRTFUnicodeEscape(var ADest: AnsiString; ACodePoint: Cardinal);
+var
+  V: Cardinal;
+  HighSurrogate, LowSurrogate: Word;
+
+  procedure AppendCodeUnit(ACodeUnit: Word);
+  begin
+    ADest := AnsiString(Format('%s\u%d\''3F', [ADest, RTFUTF16CodeUnitParam(ACodeUnit)]));
+  end;
+
+begin
+  if ACodePoint <= $FFFF then
+    AppendCodeUnit(Word(ACodePoint))
+  else
+  begin
+    V := ACodePoint - $10000;
+    HighSurrogate := Word($D800 + (V shr 10));
+    LowSurrogate := Word($DC00 + (V and $3FF));
+    AppendCodeUnit(HighSurrogate);
+    AppendCodeUnit(LowSurrogate);
+  end;
+end;
 
 function CharSetToCP(ACharSet: TFontCharSet): Integer;
 begin
@@ -1137,7 +1201,11 @@ begin
             ListLevel.NumberingFont.Assign(Font);
             if ListLevel.NumberingFont.Name = 'Symbol' then
             begin
+            {$IF DEFINED(FPC) AND NOT DEFINED(MSWINDOWS)}
+              ListLevel.NumberingFont.Name := 'Sans';
+            {$ELSE}
               ListLevel.NumberingFont.Name := 'Arial';
+            {$IFEND}
               ListLevel.NumberingFont.Charset := 0;
               for K := 0 to ListLevel.NumberingFormat.Count - 1 do
               begin
@@ -1871,7 +1939,11 @@ begin
     end;
     if FActiveText.TextStyle.Font.Name = 'Symbol' then
     begin
+    {$IF DEFINED(FPC) AND NOT DEFINED(MSWINDOWS)}
+      FActiveText.TextStyle.Font.Name := 'Sans';
+    {$ELSE}
       FActiveText.TextStyle.Font.Name := 'Arial';
+    {$IFEND}
       FActiveText.TextStyle.Font.Charset := 0;
     end;
     if FActiveURL <> '' then
@@ -2028,6 +2100,7 @@ begin
         FColorTable.Clear;
         FDefaultFontIndex := 0;
         FIgnoreChars := 0;
+        FPendingHighSurrogate := 0;
         FStream := AStream;
         try
           ReadStream;
@@ -2656,6 +2729,7 @@ procedure TKMemoRTFReader.ReadSpecialCharacter(ACtrl: Integer; var AText: AnsiSt
 var
   S: TKString;
   CodePage: Integer;
+  CodeUnit: Word;
   SetIgnoreChars: Boolean;
 begin
   SetIgnoreChars := False;
@@ -2693,7 +2767,27 @@ begin
     end;
     rpscUnicodeChar:
     begin
-      S := UnicodeToNativeUTF(WideChar(AParam));
+      CodeUnit := RTFParamToUTF16CodeUnit(AParam);
+      if FPendingHighSurrogate <> 0 then
+      begin
+        if (CodeUnit >= $DC00) and (CodeUnit <= $DFFF) then
+        begin
+          S := UnicodeCodePointToNativeUTF(UTF16SurrogatePairToCodePoint(FPendingHighSurrogate, CodeUnit));
+          CodeUnit := 0;
+        end
+        else
+          S := UnicodeCodePointToNativeUTF($FFFD);
+        FPendingHighSurrogate := 0;
+      end;
+      if CodeUnit <> 0 then
+      begin
+        if (CodeUnit >= $D800) and (CodeUnit <= $DBFF) then
+          FPendingHighSurrogate := CodeUnit
+        else if (CodeUnit >= $DC00) and (CodeUnit <= $DFFF) then
+          S := S + UnicodeCodePointToNativeUTF($FFFD)
+        else
+          S := S + UnicodeCodePointToNativeUTF(CodeUnit);
+      end;
       SetIgnoreChars := True;
     end;
   end;
@@ -4059,10 +4153,13 @@ end;
 procedure TKMemoRTFWriter.WriteUnicodeString(const AText: TKString);
 var
   I: Integer;
-  UnicodeValue: SmallInt;
+  UnicodeValue: Cardinal;
   WasAnsi: Boolean;
   S, Ansi: AnsiString;
   C: TKChar;
+{$IFDEF FPC}
+  CharLen: Integer;
+{$ENDIF}
 begin
   S := '';
   for I := 1 to StringLength(AText) do
@@ -4097,8 +4194,12 @@ begin
       if not WasAnsi then
       begin
         // next store as Unicode character
+      {$IFDEF FPC}
+        UnicodeValue := LazUTF8.UTF8CodepointToUnicode(PChar(C), CharLen);
+      {$ELSE}
         UnicodeValue := Ord(NativeUTFToUnicode(C));
-        S := AnsiString(Format('%s\u%d\''3F', [S, UnicodeValue]));
+      {$ENDIF}
+        AppendRTFUnicodeEscape(S, UnicodeValue);
       end;
     end;
   end;

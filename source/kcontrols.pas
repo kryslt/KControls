@@ -2747,7 +2747,11 @@ begin
     FCanvas.Font.Color := clBlack;
     FCanvas.Font.Height := 1;
     FCanvas.Font.Height := VMap(16);
+  {$IF DEFINED(FPC) AND NOT DEFINED(MSWINDOWS)}
+    FCanvas.Font.Name := 'Sans';
+  {$ELSE}
     FCanvas.Font.Name := 'Arial';
+  {$IFEND}
     FCanvas.Font.Pitch := fpDefault;
     FCanvas.Font.Style := [fsBold];
     S := Format('- %d -', [Value]);
@@ -2765,7 +2769,11 @@ begin
     FCanvas.Font.Color := clBlack;
     FCanvas.Font.Height := 1;
     FCanvas.Font.Height := VMap(16);
+  {$IF DEFINED(FPC) AND NOT DEFINED(MSWINDOWS)}
+    FCanvas.Font.Name := 'Sans';
+  {$ELSE}
     FCanvas.Font.Name := 'Arial';
+  {$IFEND}
     FCanvas.Font.Pitch := fpDefault;
     FCanvas.Font.Style := [fsBold];
     FCanvas.TextOut(FPrinterMarginLeftMirrored, FPrinterMarginTop - VMap(36), Title);

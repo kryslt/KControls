@@ -345,7 +345,7 @@ const
   cAddressPrefixDef = '0x';
 
   { Default value for the @link(TKHexEditor.Font).Name property }
-  cFontNameDef = {$IFDEF MSWINDOWS}'Courier New'{$ELSE}'Courier'{$ENDIF};
+  cFontNameDef = {$IFDEF MSWINDOWS}'Courier New'{$ELSE}'Monospace'{$ENDIF};
 
   { Default value for the @link(TKHexEditor.Font).Style property }
   cFontStyleDef = [fsBold];
