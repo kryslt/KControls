@@ -16,7 +16,7 @@ interface
 
 uses
 {$IFDEF FPC}
-  LCLType, LCLIntf, LMessages, LCLProc, LResources,
+  LCLType, LCLIntf, LMessages, LCLProc, LResources, LConvEncoding, LazUTF8,
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
@@ -1732,6 +1732,12 @@ type
     FTopPos: Integer;
     FUndoList: TKMemoChangeList;
     FWordBreaks: TKSysCharSet;
+  {$IFDEF FPC}
+    FIMEActive: Boolean;
+    FIMEPreeditStart: TKMemoSelectionIndex;
+    FIMEPreeditLength: TKMemoSelectionIndex;
+    FIMEPendingCommit: TKString;
+  {$ENDIF}
     FOnBlockClick: TKMemoBlockNotifyEvent;
     FOnBlockDblClick: TKMemoBlockNotifyEvent;
     FOnBlockEdit: TKMemoBlockNotifyEvent;
@@ -1765,6 +1771,11 @@ type
     function GetSelText: TKString;
     function GetText: TKString;
     function GetUndoLimit: Integer;
+  {$IFDEF FPC}
+    function IMEIsPendingSeparator(const AText: TKString): Boolean;
+    procedure IMECommitText(const AText: TKString);
+    procedure IMEReplacePreedit(const AText: TKString; ASelectInserted: Boolean);
+  {$ENDIF}
     function IsOptionsStored: Boolean;
     procedure ScrollTimerHandler(Sender: TObject);
     procedure SetActiveBlocks(const Value: TKMemoBlocks);
@@ -1833,6 +1844,9 @@ type
     FVertExtent: Integer;
     FVertScrollExtent: Integer;
     FVertScrollStep: Integer;
+  {$IFDEF FPC}
+    procedure LMIMComposition(var Msg: TLMessage); message LM_IM_COMPOSITION;
+  {$ENDIF}
     { Inserts a single crCaretPos item into undo list. Unless Force is set to True,
       this change will be inserted only if previous undo item is not crCaretPos. }
     procedure AddUndoCaretPos(Force: Boolean = True); virtual;
@@ -2557,7 +2571,11 @@ end;
 
 procedure DefaultsToFont(AFont: TFont);
 begin
+{$IF DEFINED(FPC) AND NOT DEFINED(MSWINDOWS)}
+  AFont.Name := 'Sans';
+{$ELSE}
   AFont.Name := 'Arial';
+{$IFEND}
   AFont.Charset := DEFAULT_CHARSET;
   AFont.Color := clWindowText;
   AFont.Size := 10;
@@ -2588,6 +2606,36 @@ function TabChar: TKString;
 begin
   Result := UnicodeToNativeUTF(cTabChar);
 end;
+
+{$IFDEF FPC}
+function TextFromEncodedStream(AStream: TStream): TKString;
+var
+  Raw: AnsiString;
+  Count: Int64;
+  Encoded: Boolean;
+begin
+  Result := '';
+  Count := AStream.Size - AStream.Position;
+  if Count <= 0 then
+    Exit;
+  if Count > MaxInt then
+    raise EStreamError.Create('Text stream is too large.');
+  SetLength(Raw, Count);
+  AStream.ReadBuffer(Raw[1], Count);
+  Result := LConvEncoding.ConvertEncodingToUTF8(Raw, LConvEncoding.GuessEncoding(Raw), Encoded);
+  if not Encoded then
+    Result := UTF8ToString(Raw);
+end;
+
+procedure TextToUTF8Stream(AStream: TStream; const AText: TKString);
+var
+  Raw: AnsiString;
+begin
+  Raw := StringToUTF8(AText);
+  if Raw <> '' then
+    AStream.WriteBuffer(Raw[1], Length(Raw));
+end;
+{$ENDIF}
 
 { TKMemoIndexObject }
 
@@ -4586,6 +4634,158 @@ begin
   FColors.ClearBrightColors;
 end;
 
+{$IFDEF FPC}
+function TKCustomMemo.IMEIsPendingSeparator(const AText: TKString): Boolean;
+begin
+  Result := (Length(AText) = 1) and (AText[1] < #128) and not
+    CharInSetEx(AText[1], ['0'..'9', 'A'..'Z', 'a'..'z']);
+end;
+
+procedure TKCustomMemo.IMEReplacePreedit(const AText: TKString; ASelectInserted: Boolean);
+var
+  InsertEnd, InsertLen, MaxLen: TKMemoSelectionIndex;
+  Changed: Boolean;
+begin
+  MaxLen := ActiveBlocks.SelectableLength;
+  if FIMEPreeditStart < 0 then
+    FIMEPreeditStart := SelStart
+  else if FIMEPreeditStart > MaxLen then
+    FIMEPreeditStart := MaxLen;
+  if FIMEPreeditLength < 0 then
+    FIMEPreeditLength := 0
+  else if FIMEPreeditStart + FIMEPreeditLength > MaxLen then
+    FIMEPreeditLength := MaxLen - FIMEPreeditStart;
+
+  Select(FIMEPreeditStart, FIMEPreeditLength, False);
+  Changed := ActiveBlocks.SelLength <> 0;
+  if ActiveBlocks.SelLength <> 0 then
+    ActiveBlocks.ClearSelection;
+
+  if AText <> '' then
+  begin
+    ActiveBlocks.InsertString(FIMEPreeditStart, True, AText);
+    InsertLen := StringLength(AText);
+    Changed := True;
+  end else
+    InsertLen := 0;
+
+  InsertEnd := FIMEPreeditStart + InsertLen;
+  if ASelectInserted and (InsertLen > 0) then
+  begin
+    FIMEPreeditLength := InsertLen;
+    Select(FIMEPreeditStart, FIMEPreeditLength, True);
+  end else
+  begin
+    FIMEPreeditStart := InsertEnd;
+    FIMEPreeditLength := 0;
+    Select(InsertEnd, 0, True);
+  end;
+
+  if Changed then
+    Modified := True;
+end;
+
+procedure TKCustomMemo.IMECommitText(const AText: TKString);
+var
+  InsertPos: TKMemoSelectionIndex;
+  PendingCommit: TKString;
+begin
+  if AText = '' then
+    Exit;
+
+  PendingCommit := FIMEPendingCommit;
+  FIMEPendingCommit := '';
+  BeginUndoGroup(ckInsert);
+  try
+    IMEReplacePreedit(AText, False);
+    if PendingCommit <> '' then
+    begin
+      InsertPos := SelEnd;
+      ActiveBlocks.InsertString(InsertPos, True, PendingCommit);
+      Select(InsertPos + StringLength(PendingCommit), 0, True);
+      FIMEPreeditStart := SelEnd;
+      Modified := True;
+    end;
+  finally
+    EndUndoGroup;
+  end;
+end;
+
+procedure TKCustomMemo.LMIMComposition(var Msg: TLMessage);
+var
+  Flags: PtrInt;
+  IMText: TKString;
+  InsertPos: TKMemoSelectionIndex;
+begin
+  Msg.Result := 0;
+  Flags := Msg.WParam;
+  if Msg.LParam <> 0 then
+    IMText := PChar(Msg.LParam)
+  else
+    IMText := '';
+
+  if elReadOnly in FStates then
+  begin
+    Msg.Result := 1;
+    Exit;
+  end;
+
+  if Flags and GTK_IM_FLAG_START <> 0 then
+  begin
+    FIMEActive := True;
+    FIMEPreeditStart := SelStart;
+    FIMEPreeditLength := SelLength;
+    FIMEPendingCommit := '';
+    Msg.Result := 1;
+    Exit;
+  end;
+
+  if Flags and GTK_IM_FLAG_PREEDIT <> 0 then
+  begin
+    if not FIMEActive then
+    begin
+      FIMEActive := True;
+      FIMEPreeditStart := SelStart;
+      FIMEPreeditLength := SelLength;
+    end;
+    IMEReplacePreedit(IMText, IMText <> '');
+    Msg.Result := 1;
+    Exit;
+  end;
+
+  if Flags and GTK_IM_FLAG_COMMIT <> 0 then
+  begin
+    if FIMEActive or (FIMEPreeditLength <> 0) or (FIMEPendingCommit <> '') then
+    begin
+      if (FIMEPreeditLength > 0) and IMEIsPendingSeparator(IMText) then
+        FIMEPendingCommit := FIMEPendingCommit + IMText
+      else
+        IMECommitText(IMText);
+      Msg.Result := 1;
+    end;
+    Exit;
+  end;
+
+  if Flags and GTK_IM_FLAG_END <> 0 then
+  begin
+    if FIMEPendingCommit <> '' then
+    begin
+      InsertPos := FIMEPreeditStart + FIMEPreeditLength;
+      Select(InsertPos, 0, True);
+      ActiveBlocks.InsertString(InsertPos, True, FIMEPendingCommit);
+      Select(InsertPos + StringLength(FIMEPendingCommit), 0, True);
+      FIMEPendingCommit := '';
+      Modified := True;
+    end else if FIMEPreeditLength > 0 then
+      Select(FIMEPreeditStart + FIMEPreeditLength, 0, True);
+    FIMEActive := False;
+    FIMEPreeditStart := SelEnd;
+    FIMEPreeditLength := 0;
+    Msg.Result := 1;
+  end;
+end;
+{$ENDIF}
+
 function TKCustomMemo.CommandEnabled(Command: TKEditCommand): Boolean;
 var
   TmpSelEnd, TmpSelLength: TKMemoSelectionIndex;
@@ -5727,9 +5927,21 @@ begin
     {$ELSE}
       C := AnsiStringToString(Key)[1];
     {$IFEND}
-      ExecuteCommand(ecInsertChar, @C);
+      if ExecuteCommand(ecInsertChar, @C) then
+      {$IFDEF FPC}
+        Key := '';
+      {$ELSE}
+        Key := #0;
+      {$ENDIF}
     end else
+    begin
       Exclude(FStates, elIgnoreNextChar);
+    {$IFDEF FPC}
+      Key := '';
+    {$ELSE}
+      Key := #0;
+    {$ENDIF}
+    end;
   end;
 end;
 
@@ -5798,11 +6010,23 @@ end;
 
 procedure TKCustomMemo.LoadFromTXT(const AFileName: TKString);
 var
+{$IFDEF FPC}
+  Stream: TFileStream;
+{$ELSE}
   List: TStringList;
+{$ENDIF}
 begin
   if FileExists(AFileName) then
   begin
     Clear(False);
+{$IFDEF FPC}
+    Stream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
+    try
+      Text := TextFromEncodedStream(Stream);
+    finally
+      Stream.Free;
+    end;
+{$ELSE}
     List := TStringList.Create;
     try
       List.LoadFromFile(AFileName);
@@ -5810,15 +6034,24 @@ begin
     finally
       List.Free;
     end;
+{$ENDIF}
     FBlocks.FixEmptyBlocks(True);
   end;
 end;
 
 procedure TKCustomMemo.LoadFromTXTStream(AStream: TStream);
 var
+{$IFDEF FPC}
+  S: TKString;
+{$ELSE}
   List: TStringList;
+{$ENDIF}
 begin
   Clear(False);
+{$IFDEF FPC}
+  S := TextFromEncodedStream(AStream);
+  Text := S;
+{$ELSE}
   List := TStringList.Create;
   try
     List.LoadFromStream(AStream);
@@ -5826,6 +6059,7 @@ begin
   finally
     List.Free;
   end;
+{$ENDIF}
   FBlocks.FixEmptyBlocks(True);
 end;
 
@@ -6186,8 +6420,25 @@ end;
 procedure TKCustomMemo.SaveToTXT(const AFileName: TKString;
   ASelectedOnly: Boolean);
 var
+{$IFDEF FPC}
+  Stream: TFileStream;
+  S: TKString;
+{$ELSE}
   List: TStringList;
+{$ENDIF}
 begin
+{$IFDEF FPC}
+  if ASelectedOnly then
+    S := FBlocks.SelText
+  else
+    S := FBlocks.Text;
+  Stream := TFileStream.Create(AFileName, fmCreate);
+  try
+    TextToUTF8Stream(Stream, S);
+  finally
+    Stream.Free;
+  end;
+{$ELSE}
   List := TStringList.Create;
   try
     if ASelectedOnly then
@@ -6198,6 +6449,7 @@ begin
   finally
     List.Free;
   end;
+{$ENDIF}
 end;
 
 function TKCustomMemo.Scroll(CodeHorz, CodeVert, DeltaHorz, DeltaVert: Integer; ACallScrollWindow: Boolean): Boolean;
@@ -8243,7 +8495,7 @@ end;
 function TKMemoTextBlock.IndexToTextIndex(const AText: TKString; AIndex: Integer): Integer;
 begin
   AIndex := MinMax(AIndex, 0, ContentLength);
-  Result := StrCPIndexToByteIndex(AText, AIndex);
+  Result := StrCPIndexToByteIndex(AText, AIndex + 1);
 end;
 
 function TKMemoTextBlock.InsertString(const AText: TKString; AIndex: TKMemoSelectionIndex): Boolean;
@@ -8268,12 +8520,12 @@ end;
 
 function TKMemoTextBlock.InternalTextExtent(ACanvas: TCanvas; const AText: TKString): TSize;
 begin
-  Result := TKTextBox.TextExtent(ACanvas, AText, 1, Length(AText));
+  Result := TKTextBox.TextExtentBytes(ACanvas, AText, 1, Length(AText));
 end;
 
 procedure TKMemoTextBlock.InternalTextOutput(ACanvas: TCanvas; ALeft, ATop: Integer; const AText: TKString);
 begin
-  TKTextBox.TextOutput(ACanvas, ALeft, ATop, AText, 1, Length(AText));
+  TKTextBox.TextOutputBytes(ACanvas, ALeft, ATop, AText, 1, Length(AText));
 end;
 
 function TKMemoTextBlock.ModifiedTextExtent(ACanvas: TCanvas; const AText: TKString): TPoint;
@@ -8797,6 +9049,8 @@ begin
         if PtInRect(R, APoint) or (AOutOfArea and (APoint.X >= R.Left) and (APoint.X < R.Right)) then
         begin
           Result := I - Word.StartIndex;
+          if APoint.X >= R.Left + Size.X div 2 then
+            Inc(Result);
           Break;
         end;
         Inc(WPos, Size.X);
@@ -13347,6 +13601,11 @@ begin
       end;
       Inc(BlockIndex);
     end;
+    if not Found and TmpFound and ACaret then
+    begin
+      Result := Rect(TmpRect.Right, TmpRect.Top, TmpRect.Right + TmpRect.Right - TmpRect.Left, TmpRect.Bottom);
+      Found := True;
+    end;
   end;
   if TmpFound and not Found then
   begin
@@ -13951,8 +14210,182 @@ begin
 end;
 
 function TKMemoBlocks.NextIndexByCharCount(AIndex: TKMemoSelectionIndex; ACharCount: Integer): TKMemoSelectionIndex;
+var
+  I: Integer;
+
+  function TextCodePointAt(const AText: TKString; AIndex: Integer): Cardinal;
+  var
+    S: TKString;
+  {$IFDEF FPC}
+    CharLen: Integer;
+  {$ENDIF}
+  begin
+    Result := 0;
+    if (AIndex < 0) or (AIndex >= StringLength(AText)) then
+      Exit;
+    S := StringCopy(AText, AIndex + 1, 1);
+  {$IFDEF FPC}
+    Result := LazUTF8.UTF8CodepointToUnicode(PChar(S), CharLen);
+  {$ELSE}
+    Result := Ord(NativeUTFToUnicode(S));
+  {$ENDIF}
+  end;
+
+  function IsCombiningCodePoint(ACodePoint: Cardinal): Boolean;
+  begin
+    Result :=
+      ((ACodePoint >= $0300) and (ACodePoint <= $036F)) or
+      ((ACodePoint >= $1AB0) and (ACodePoint <= $1AFF)) or
+      ((ACodePoint >= $1DC0) and (ACodePoint <= $1DFF)) or
+      ((ACodePoint >= $20D0) and (ACodePoint <= $20FF)) or
+      ((ACodePoint >= $FE20) and (ACodePoint <= $FE2F)) or
+      ((ACodePoint >= $0591) and (ACodePoint <= $05BD)) or
+      (ACodePoint = $05BF) or
+      ((ACodePoint >= $05C1) and (ACodePoint <= $05C2)) or
+      ((ACodePoint >= $05C4) and (ACodePoint <= $05C5)) or
+      (ACodePoint = $05C7) or
+      ((ACodePoint >= $0610) and (ACodePoint <= $061A)) or
+      ((ACodePoint >= $064B) and (ACodePoint <= $065F)) or
+      (ACodePoint = $0670) or
+      ((ACodePoint >= $06D6) and (ACodePoint <= $06DC)) or
+      ((ACodePoint >= $06DF) and (ACodePoint <= $06E4)) or
+      ((ACodePoint >= $06E7) and (ACodePoint <= $06E8)) or
+      ((ACodePoint >= $06EA) and (ACodePoint <= $06ED));
+  end;
+
+  function IsVariationSelector(ACodePoint: Cardinal): Boolean;
+  begin
+    Result := ((ACodePoint >= $FE00) and (ACodePoint <= $FE0F)) or
+      ((ACodePoint >= $E0100) and (ACodePoint <= $E01EF));
+  end;
+
+  function IsEmojiModifier(ACodePoint: Cardinal): Boolean;
+  begin
+    Result := (ACodePoint >= $1F3FB) and (ACodePoint <= $1F3FF);
+  end;
+
+  function IsRegionalIndicator(ACodePoint: Cardinal): Boolean;
+  begin
+    Result := (ACodePoint >= $1F1E6) and (ACodePoint <= $1F1FF);
+  end;
+
+  function NextTextGraphemeBoundary(const AText: TKString; AIndex: Integer): Integer;
+  var
+    I, Len: Integer;
+    PrevCodePoint, CodePoint: Cardinal;
+    StartedWithRegionalIndicator: Boolean;
+  begin
+    Len := StringLength(AText);
+    Result := MinMax(AIndex, 0, Len);
+    if Result >= Len then
+      Exit;
+
+    StartedWithRegionalIndicator := IsRegionalIndicator(TextCodePointAt(AText, Result));
+    I := Result + 1;
+    while I < Len do
+    begin
+      PrevCodePoint := TextCodePointAt(AText, I - 1);
+      CodePoint := TextCodePointAt(AText, I);
+      if IsCombiningCodePoint(CodePoint) or IsVariationSelector(CodePoint) or IsEmojiModifier(CodePoint) then
+        Inc(I)
+      else if CodePoint = $200D then
+      begin
+        Inc(I);
+        if I < Len then
+          Inc(I);
+      end else if PrevCodePoint = $200D then
+        Inc(I)
+      else if StartedWithRegionalIndicator and (I = Result + 1) and IsRegionalIndicator(CodePoint) then
+        Inc(I)
+      else
+        Break;
+    end;
+    Result := I;
+  end;
+
+  function PrevTextGraphemeBoundary(const AText: TKString; AIndex: Integer): Integer;
+  var
+    CurIndex, PrevIndex, Len: Integer;
+  begin
+    Len := StringLength(AText);
+    AIndex := MinMax(AIndex, 0, Len);
+    CurIndex := 0;
+    PrevIndex := 0;
+    while CurIndex < AIndex do
+    begin
+      PrevIndex := CurIndex;
+      CurIndex := NextTextGraphemeBoundary(AText, CurIndex);
+      if CurIndex <= PrevIndex then
+        Break;
+    end;
+    Result := PrevIndex;
+  end;
+
+  function MoveForward(AIndex: TKMemoSelectionIndex): TKMemoSelectionIndex;
+  var
+    BlockIndex: TKMemoBlockIndex;
+    LocalIndex, NewLocalIndex, BlockStart: TKMemoSelectionIndex;
+    Block: TKMemoBlock;
+  begin
+    Result := MinMax(AIndex, 0, FSelectableLength);
+    if Result >= FSelectableLength then
+      Exit;
+
+    BlockIndex := IndexToBlockIndex(Result, LocalIndex);
+    if (BlockIndex >= 0) and (BlockIndex < Count) then
+    begin
+      Block := Items[BlockIndex];
+      if (Block is TKMemoTextBlock) and (LocalIndex < Block.ContentLength) then
+      begin
+        BlockStart := Result - LocalIndex;
+        NewLocalIndex := NextTextGraphemeBoundary(TKMemoTextBlock(Block).Text, LocalIndex);
+        if NewLocalIndex > LocalIndex then
+        begin
+          Result := BlockStart + NewLocalIndex;
+          Exit;
+        end;
+      end;
+    end;
+    Inc(Result);
+    Result := Min(Result, FSelectableLength);
+  end;
+
+  function MoveBackward(AIndex: TKMemoSelectionIndex): TKMemoSelectionIndex;
+  var
+    BlockIndex: TKMemoBlockIndex;
+    LocalIndex, NewLocalIndex, BlockStart: TKMemoSelectionIndex;
+    Block: TKMemoBlock;
+  begin
+    Result := MinMax(AIndex, 0, FSelectableLength);
+    if Result <= 0 then
+      Exit;
+
+    BlockIndex := IndexToBlockIndex(Result, LocalIndex);
+    if (BlockIndex >= 0) and (BlockIndex < Count) then
+    begin
+      Block := Items[BlockIndex];
+      if (Block is TKMemoTextBlock) and (LocalIndex > 0) then
+      begin
+        BlockStart := Result - LocalIndex;
+        NewLocalIndex := PrevTextGraphemeBoundary(TKMemoTextBlock(Block).Text, LocalIndex);
+        if NewLocalIndex < LocalIndex then
+        begin
+          Result := BlockStart + NewLocalIndex;
+          Exit;
+        end;
+      end;
+    end;
+    Dec(Result);
+    Result := Max(Result, 0);
+  end;
 begin
-  Result := AIndex + ACharCount;
+  Result := MinMax(AIndex, 0, FSelectableLength);
+  if ACharCount > 0 then
+    for I := 1 to ACharCount do
+      Result := MoveForward(Result)
+  else if ACharCount < 0 then
+    for I := -1 downto ACharCount do
+      Result := MoveBackward(Result);
 end;
 
 function TKMemoBlocks.NextIndexByHorzExtent(ACanvas: TCanvas; AIndex: TKMemoSelectionIndex; AWidth: Integer; out ALinePos: TKMemoLinePosition): TKMemoSelectionIndex;
@@ -14237,6 +14670,22 @@ var
   Index, LocalIndex: TKMemoSelectionIndex;
   X, XOld: Integer;
   Block: TKMemoBlock;
+
+  function SnapToGraphemeBoundary(AIndex: TKMemoSelectionIndex): TKMemoSelectionIndex;
+  var
+    PrevIndex, NextIndex: TKMemoSelectionIndex;
+  begin
+    Result := MinMax(AIndex, 0, FSelectableLength);
+    PrevIndex := NextIndexByCharCount(Result, -1);
+    NextIndex := NextIndexByCharCount(PrevIndex, 1);
+    if (Result > PrevIndex) and (Result < NextIndex) then
+    begin
+      if Result - PrevIndex < NextIndex - Result then
+        Result := PrevIndex
+      else
+        Result := NextIndex;
+    end;
+  end;
 begin
   Result := -1;
   ALinePos := eolInside;
@@ -14259,12 +14708,12 @@ begin
           LocalIndex := Block.WordPointToIndex(ACanvas, APoint, WordIndex, AOutOfArea, ASelectionExpanding, ALinePos);
           if LocalIndex >= 0 then
           begin
-            Result := Index + LocalIndex;
+            Result := SnapToGraphemeBoundary(Index + LocalIndex);
           end
           else if (XOld <= APoint.X) and (APoint.X < X) then
           begin
             // the point lies between words
-            Result := Index;
+            Result := SnapToGraphemeBoundary(Index);
           end;
           Inc(Index, Block.WordLength[WordIndex]);
           Inc(WordIndex);
@@ -14283,14 +14732,15 @@ begin
           ALinePos := eolEnd;
           Inc(Result);
         end;
+        Result := SnapToGraphemeBoundary(Result);
       end
       else if (APoint.X < LineLeft[ALineIndex]) then
       begin
-        Result := LineStartIndex[ALineIndex];
+        Result := SnapToGraphemeBoundary(LineStartIndex[ALineIndex]);
       end else
       begin
         // this should not happen but we must handle this case
-        Result := (LineStartIndex[ALineIndex] + LineEndIndex[ALineIndex]) div 2;
+        Result := SnapToGraphemeBoundary((LineStartIndex[ALineIndex] + LineEndIndex[ALineIndex]) div 2);
       end;
     end;
   end;

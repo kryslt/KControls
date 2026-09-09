@@ -497,8 +497,13 @@ type
     function IndexToRect(ACanvas: TCanvas; const ARect: TRect; AIndex: Integer): TRect; virtual;
     procedure Measure(ACanvas: TCanvas; const ARect: TRect; var AWidth, AHeight: Integer); virtual;
     function PointToIndex(ACanvas: TCanvas; const ARect: TRect; APoint: TPoint): Integer; virtual;
+    class function TextExtentBytes(ACanvas: TCanvas; const AText: TKString;
+       AByteStart, AByteLen: Integer; AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2): TSize;
     class function TextExtent(ACanvas: TCanvas; const AText: TKString;
        AStart, ALen: Integer; AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2): TSize;
+    class procedure TextOutputBytes(ACanvas: TCanvas; X, Y: Integer;
+      const AText: TKString; AByteStart, AByteLen: Integer;
+      AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2);
     class procedure TextOutput(ACanvas: TCanvas; X, Y: Integer;
       const AText: TKString; AStart, ALen: Integer;
       AExpandTabs: Boolean = False; ASpacesForTab: Integer = 2);
@@ -3728,7 +3733,7 @@ var
 
   procedure Measure(AStart, ALen: Integer);
   begin
-    FCalcRect.Left := Max(FCalcRect.Left, TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx);
+    FCalcRect.Left := Max(FCalcRect.Left, TextExtentBytes(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx);
   end;
 
   procedure GetIndex(Y: Integer; AStart, ALen: Integer);
@@ -3743,7 +3748,7 @@ var
           (AStart + ALen = Length(FText) + 1) and (Y <= FCalcRect.Top) and (FCalcRect.Top < FClipRect.Bottom)
         ) then
       begin
-        Width := TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
+        Width := TextExtentBytes(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
         X := GetHorzPos(Width);
         if not (taIncludePadding in Attributes) and (X <= FCalcRect.Left) and (FCalcRect.Left < X + Width) or
           (taIncludePadding in Attributes) and (FClipRect.Left <= FCalcRect.Left) and (FCalcRect.Left < FClipRect.Right) then
@@ -3752,7 +3757,7 @@ var
           while (FIndex < 0) and (Index <= AStart + ALen - 1) do
           begin
             NewIndex := StrNextCharIndex(FText, Index);
-            Inc(X, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+            Inc(X, TextExtentBytes(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
             if FCalcRect.Left < X then
               FIndex := Index;
             Index := NewIndex;
@@ -3768,19 +3773,19 @@ var
   var
     Index, NewIndex, X, Width: Integer;
   begin
-    if (FIndex >= AStart) and (FIndex <= ALen) then
+    if (FIndex >= AStart) and (FIndex <= AStart + ALen) then
     begin
       Index := AStart;
-      Width := TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
+      Width := TextExtentBytes(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
       X := GetHorzPos(Width);
       while Index < FIndex do
       begin
         NewIndex := StrNextCharIndex(FText, Index);
-        Inc(X, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+        Inc(X, TextExtentBytes(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
         Index := NewIndex;
       end;
       NewIndex := StrNextCharIndex(FText, Index);
-      FCalcRect := Rect(X, Y, X + TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx, Y + FFontHeight);
+      FCalcRect := Rect(X, Y, X + TextExtentBytes(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx, Y + FFontHeight);
     end
   end;
 
@@ -3798,7 +3803,7 @@ var
       FileNameLen := 0;
       if (StartEllipsis or EndEllipsis or PathEllipsis) and (ALen > 1) then
       begin
-        AWidth := TextExtent(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
+        AWidth := TextExtentBytes(FCanvas, FText, AStart, ALen, FHasTabs, FSpacesForTab).cx;
         if AWidth > Width then
         begin
           AWidth := 0;
@@ -3811,7 +3816,7 @@ var
               while Index <= AStart + ALen - 1 do
               begin
                 NewIndex := StrNextCharIndex(FText, Index);
-                Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+                Inc(AWidth, TextExtentBytes(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
                 if (AWidth >= EllipsisMaxX) and (Index > AStart) then
                   Break
                 else
@@ -3824,7 +3829,7 @@ var
               while Index > AStart do
               begin
                 NewIndex := StrPreviousCharIndex(FText, Index);
-                Inc(AWidth, TextExtent(FCanvas, FText, Index, Index - NewIndex, FHasTabs, FSpacesForTab).cx);
+                Inc(AWidth, TextExtentBytes(FCanvas, FText, Index, Index - NewIndex, FHasTabs, FSpacesForTab).cx);
                 if AWidth >= EllipsisMaxX then
                   Break
                 else
@@ -3853,11 +3858,11 @@ var
               DrawEllipsis := True;
               DrawFileName := True;
               FileNameLen := AStart + ALen - SlashPos;
-              EllipsisMaxX := Width - TextExtent(FCanvas, FText, SlashPos, FileNameLen, FHasTabs, FSpacesForTab).cx - EllipsisWidth;
+              EllipsisMaxX := Width - TextExtentBytes(FCanvas, FText, SlashPos, FileNameLen, FHasTabs, FSpacesForTab).cx - EllipsisWidth;
               while (Index <= SlashPos) do
               begin
                 NewIndex := StrNextCharIndex(FText, Index);
-                Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+                Inc(AWidth, TextExtentBytes(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
                 if AWidth >= EllipsisMaxX then
                   Break
                 else
@@ -3880,9 +3885,9 @@ var
         ALen := Length(S);
       end else
         S := FText;
-      X := GetHorzPos(TextExtent(FCanvas, S, AStart, ALen, FHasTabs, FSpacesForTab).cx);
+      X := GetHorzPos(TextExtentBytes(FCanvas, S, AStart, ALen, FHasTabs, FSpacesForTab).cx);
       if DrawEllipsis or (SelStart = SelEnd) then
-        TextOutput(FCanvas, X, Y, S, AStart, ALen, FHasTabs, FSpacesForTab)
+        TextOutputBytes(FCanvas, X, Y, S, AStart, ALen, FHasTabs, FSpacesForTab)
       else
       begin
         AWidth := 0;
@@ -3915,7 +3920,7 @@ var
                 DrawFilledRectangle(FCanvas, Rect(X, Y, X + AWidth, Y + FFontHeight), FBackColor);
               if not (taFillText in Attributes) then
                 SetBkMode(FCanvas.Handle, TRANSPARENT);
-              TextOutput(FCanvas, X, Y, S, SlashPos, Index - SlashPos, FHasTabs, FSpacesForTab);
+              TextOutputBytes(FCanvas, X, Y, S, SlashPos, Index - SlashPos, FHasTabs, FSpacesForTab);
             end;
             Inc(X, AWidth);
             AWidth := 0;
@@ -3924,7 +3929,7 @@ var
           if Index < AStart + ALen then
           begin
             NewIndex := StrNextCharIndex(FText, Index);
-            Inc(AWidth, TextExtent(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
+            Inc(AWidth, TextExtentBytes(FCanvas, FText, Index, NewIndex - Index, FHasTabs, FSpacesForTab).cx);
             Index := NewIndex;
           end else
             Inc(Index);
@@ -3970,7 +3975,7 @@ begin
       StartEllipsis := taStartEllipsis in Attributes;
       EndEllipsis := taEndEllipsis in Attributes;
       PathEllipsis := taPathEllipsis in Attributes;
-      EllipsisWidth := TextExtent(FCanvas, cEllipsis, 1, Length(cEllipsis)).cx;
+      EllipsisWidth := TextExtentBytes(FCanvas, cEllipsis, 1, Length(cEllipsis)).cx;
       NormalColor := FCanvas.Font.Color;
       NormalBkgnd := FCanvas.Brush.Color;
     end;
@@ -3993,7 +3998,7 @@ begin
             TrimStart := LineBegin;
             TrimLen := I - LineBegin;
             TextTrim(FText, TrimStart, TrimLen);
-            Size := TextExtent(FCanvas, FText, TrimStart, TrimLen, FHasTabs, FSpacesForTab);
+            Size := TextExtentBytes(FCanvas, FText, TrimStart, TrimLen, FHasTabs, FSpacesForTab);
             if Size.cx > Width then
               Inc(LineBreaks);
           end;
@@ -4083,70 +4088,102 @@ begin
   Result := FIndex;
 end;
 
-class function TKTextBox.TextExtent(ACanvas: TCanvas; const AText: TKString;
-  AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer): TSize;
+class function TKTextBox.TextExtentBytes(ACanvas: TCanvas; const AText: TKString;
+  AByteStart, AByteLen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer): TSize;
 var
   S: TKString;
   TextPtr: PKText;
 begin
+  Result.cx := 0;
+  Result.cy := 0;
+  if (AByteLen <= 0) or (AText = '') then
+    Exit;
+  AByteStart := MinMax(AByteStart, 1, Length(AText) + 1);
+  AByteLen := Min(AByteLen, Length(AText) - AByteStart + 1);
+  if AByteLen <= 0 then
+    Exit;
+
   S := '';
   if AExpandTabs then
   begin
-    S := Copy(AText, AStart, ALen);
+    S := Copy(AText, AByteStart, AByteLen);
     ConvertTabsToSpaces(S, ASpacesForTab);
+    if S = '' then
+      Exit;
     TextPtr := @S[1];
-    ALen := Length(S);
+    AByteLen := Length(S);
   end else
-    TextPtr := @AText[AStart];
+    TextPtr := @AText[AByteStart];
 {$IFDEF STRING_IS_UNICODE}
  {$IFDEF FPC}
   {$IFDEF USE_CANVAS_METHODS}
   if not AExpandTabs then
-    S := Copy(AText, AStart, ALen);
+    S := Copy(AText, AByteStart, AByteLen);
   Result := ACanvas.TextExtent(S); // little slower but more secure in Lazarus
   {$ELSE}
-  GetTextExtentPoint32(ACanvas.Handle, TextPtr, ALen, Result);
+  GetTextExtentPoint32(ACanvas.Handle, TextPtr, AByteLen, Result);
   {$ENDIF}
  {$ELSE}
-  GetTextExtentPoint32(ACanvas.Handle, TextPtr, ALen, Result);
+  GetTextExtentPoint32(ACanvas.Handle, TextPtr, AByteLen, Result);
  {$ENDIF}
 {$ELSE}
-  GetTextExtentPoint32W(ACanvas.Handle, TextPtr, ALen, Result);
+  GetTextExtentPoint32W(ACanvas.Handle, TextPtr, AByteLen, Result);
 {$ENDIF}
 end;
 
-class procedure TKTextBox.TextOutput(ACanvas: TCanvas; X, Y: Integer;
-  const AText: TKString; AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer);
+class function TKTextBox.TextExtent(ACanvas: TCanvas; const AText: TKString;
+  AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer): TSize;
+begin
+  Result := TextExtentBytes(ACanvas, AText, AStart, ALen, AExpandTabs, ASpacesForTab);
+end;
+
+class procedure TKTextBox.TextOutputBytes(ACanvas: TCanvas; X, Y: Integer;
+  const AText: TKString; AByteStart, AByteLen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer);
 var
   S: TKString;
   TextPtr: PKText;
 begin
+  if (AByteLen <= 0) or (AText = '') then
+    Exit;
+  AByteStart := MinMax(AByteStart, 1, Length(AText) + 1);
+  AByteLen := Min(AByteLen, Length(AText) - AByteStart + 1);
+  if AByteLen <= 0 then
+    Exit;
+
   if AExpandTabs then
   begin
-    S := Copy(AText, AStart, ALen);
+    S := Copy(AText, AByteStart, AByteLen);
     ConvertTabsToSpaces(S, ASpacesForTab);
+    if S = '' then
+      Exit;
     TextPtr := @S[1];
-    ALen := Length(S);
+    AByteLen := Length(S);
   end else
   begin
-    TextPtr := @AText[AStart];
+    TextPtr := @AText[AByteStart];
     S := AText;
   end;
 {$IFDEF STRING_IS_UNICODE}
  {$IFDEF FPC}
   {$IFDEF USE_CANVAS_METHODS}
   if not AExpandTabs then
-    S := Copy(S, AStart, ALen);
+    S := Copy(S, AByteStart, AByteLen);
   ACanvas.TextOut(X, Y, S); // little slower but more secure in Lazarus
   {$ELSE}
-  TextOut(ACanvas.Handle, X, Y, TextPtr, ALen);
+  TextOut(ACanvas.Handle, X, Y, TextPtr, AByteLen);
   {$ENDIF}
  {$ELSE}
-  TextOut(ACanvas.Handle, X, Y, TextPtr, ALen);
+  TextOut(ACanvas.Handle, X, Y, TextPtr, AByteLen);
  {$ENDIF}
 {$ELSE}
-  TextOutW(ACanvas.Handle, X, Y, TextPtr, ALen);
+  TextOutW(ACanvas.Handle, X, Y, TextPtr, AByteLen);
 {$ENDIF}
+end;
+
+class procedure TKTextBox.TextOutput(ACanvas: TCanvas; X, Y: Integer;
+  const AText: TKString; AStart, ALen: Integer; AExpandTabs: Boolean; ASpacesForTab: Integer);
+begin
+  TextOutputBytes(ACanvas, X, Y, AText, AStart, ALen, AExpandTabs, ASpacesForTab);
 end;
 
 procedure TKTextBox.TextTrim(const AText: TKString; var AStart, ALen: Integer);
