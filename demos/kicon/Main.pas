@@ -4,12 +4,19 @@ interface
 
 {$include KControls.inc}
 
+{$IFDEF MSWINDOWS}
+  {$DEFINE KICON_DEMO_ICON_SUPPORT}
+{$ENDIF}
+
 uses
 {$IFDEF FPC}
   LResources,
 {$ENDIF}
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, ActnList, KIcon, ComCtrls, Buttons, KGraphics,
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
+  Windows, KIcon,
+{$ENDIF}
+  SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, ExtCtrls, ActnList, ComCtrls, Buttons, KGraphics,
   kedits;
 
 type
@@ -66,7 +73,11 @@ type
     procedure PBAlphaPaint(Sender: TObject);
   private
     { Private declarations }
+  {$IFDEF KICON_DEMO_ICON_SUPPORT}
     KIcon: TKIcon;
+  {$ELSE}
+    FGraphicLoaded: Boolean;
+  {$ENDIF}
     KAlphaBitmap: TKAlphaBitmap;
     procedure UpdateIcon;
     procedure UpdateSpeedButton;
@@ -118,15 +129,31 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   RegisterKIcon;
   KIcon := nil;
+{$ELSE}
+  FGraphicLoaded := False;
+  BULoadMain.Enabled := False;
+  BUExtract.Enabled := False;
+  BUExtractBitmap.Enabled := False;
+  RGDrawStyle.Enabled := False;
+  CBDisplayAll.Enabled := False;
+  CBDisplayHorz.Enabled := False;
+  LVMain.Enabled := False;
+  EDPNGThreshold.Enabled := False;
+  SBIcon.Enabled := False;
+{$ENDIF}
 end;
 
 procedure TMainForm.UpdateIcon;
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
 var
   I: Integer;
+{$ENDIF}
 begin
   LVMain.Clear;
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   if KIcon <> nil then
   begin
     KIcon.IconDrawStyle := TKIconDrawStyle(RGDrawStyle.ItemIndex);
@@ -154,12 +181,19 @@ begin
     end;
     UpdateSpeedButton;
   end;
+{$ELSE}
+  SBIcon.Glyph := nil;
+  PBAlpha.Invalidate;
+{$ENDIF}
 end;
 
 procedure TMainForm.UpdateSpeedButton;
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
 var
   BM: TBitmap;
+{$ENDIF}
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   BM := TBitmap.Create;
   try
     KIcon.CopyToBitmap(KIcon.CurrentIndex, BM);
@@ -169,10 +203,15 @@ begin
   end;
   KIcon.CopyToAlphaBitmap(KIcon.CurrentIndex, KAlphaBitmap);
   PBAlpha.Invalidate;
+{$ELSE}
+  SBIcon.Glyph := nil;
+  PBAlpha.Invalidate;
+{$ENDIF}
 end;
 
 procedure TMainForm.BULoadClick(Sender: TObject);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   ODMain.Filter := cFilterIcons;
   if ODMain.Execute then
   begin
@@ -181,12 +220,24 @@ begin
     KIcon.OptimalIcon := True;
     UpdateIcon;
   end;
+{$ELSE}
+  ODMain.Filter := cFilterImages;
+  if ODMain.Execute then
+  begin
+    IMMain.Picture.LoadFromFile(ODMain.FileName);
+    FGraphicLoaded := not IMMain.Picture.Graphic.Empty;
+    UpdateIcon;
+  end;
+{$ENDIF}
 end;
 
 procedure TMainForm.BULoadMainClick(Sender: TObject);
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
 var
   KIcon1: TKIcon;
+{$ENDIF}
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   KIcon1 := TKIcon.Create;
   try
     KIcon1.LoadFromResource(HInstance, 'MAINICON');
@@ -198,12 +249,16 @@ begin
   finally
     KIcon1.Free;
   end;
+{$ENDIF}
 end;
 
 procedure TMainForm.BUExtractClick(Sender: TObject);
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
 var
   KIcon1: TKIcon;
+{$ENDIF}
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   ODMain.Filter := cFilterExecutables;
   if ODMain.Execute then
   begin
@@ -218,19 +273,29 @@ begin
       KIcon1.Free;
     end;
   end;
+{$ENDIF}
 end;
 
 procedure TMainForm.ACSaveExecute(Sender: TObject);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   SDMain.Filter := cFilterIcons;
   SDMain.DefaultExt := 'ico';
+{$ELSE}
+  SDMain.Filter := cFilterImages;
+  SDMain.DefaultExt := '';
+{$ENDIF}
   if SDMain.Execute then
     IMMain.Picture.SaveToFile(SDMain.FileName);
 end;
 
 procedure TMainForm.ACSaveUpdate(Sender: TObject);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   TAction(Sender).Enabled := KIcon <> nil;
+{$ELSE}
+  TAction(Sender).Enabled := (Sender = ACSave) and FGraphicLoaded;
+{$ENDIF}
 end;
 
 procedure TMainForm.CBStretchClick(Sender: TObject);
@@ -244,10 +309,13 @@ begin
 end;
 
 procedure TMainForm.ACAddImageExecute(Sender: TObject);
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
 var
   Picture:TPicture;
   BM: TBitmap;
+{$ENDIF}
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   ODMain.Filter := cFilterImages;
   if ODMain.Execute then
   begin
@@ -286,18 +354,25 @@ begin
       Picture.Free;
     end;
   end;
+{$ENDIF}
 end;
 
 procedure TMainForm.ACRemoveImageExecute(Sender: TObject);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   KIcon.Delete(KIcon.CurrentIndex);
   KIcon.OptimalIcon := True;
   UpdateIcon;
+{$ENDIF}
 end;
 
 procedure TMainForm.ACRemoveImageUpdate(Sender: TObject);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   TAction(Sender).Enabled := (KIcon <> nil) and (KIcon.IconCount > 1);
+{$ELSE}
+  TAction(Sender).Enabled := False;
+{$ENDIF}
 end;
 
 procedure TMainForm.CBDisplayAllClick(Sender: TObject);
@@ -315,6 +390,7 @@ end;
 procedure TMainForm.LVMainSelectItem(Sender: TObject; Item: TListItem;
   Selected: Boolean);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   if KIcon <> nil then
   begin
     KIcon.OptimalIcon := False;
@@ -325,14 +401,16 @@ begin
   {$ENDIF}
     UpdateSpeedButton;
   end;
+{$ENDIF}
 end;
 
 procedure TMainForm.PBAlphaPaint(Sender: TObject);
 begin
-  PBAlpha.Canvas.Draw(
-    (PBAlpha.ClientWidth - KAlphaBitmap.Width) div 2,
-    (PBAlpha.ClientHeight - KAlphaBitmap.Height) div 2,
-    KAlphaBitmap);
+  if not KAlphaBitmap.Empty then
+    PBAlpha.Canvas.Draw(
+      (PBAlpha.ClientWidth - KAlphaBitmap.Width) div 2,
+      (PBAlpha.ClientHeight - KAlphaBitmap.Height) div 2,
+      KAlphaBitmap);
 end;
 
 procedure TMainForm.ACDisplayHorzExecute(Sender: TObject);
@@ -342,16 +420,23 @@ end;
 
 procedure TMainForm.ACDisplayHorzUpdate(Sender: TObject);
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
   TAction(Sender).Enabled := CBDisplayAll.Checked;
+{$ELSE}
+  TAction(Sender).Enabled := False;
+{$ENDIF}
 end;
 
 procedure TMainForm.ACExtractBitmapExecute(Sender: TObject);
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
 var
   BM: TBitmap;
 {$IFDEF USE_PNG_SUPPORT}
   Png: TKPngImage;
 {$ENDIF}
+{$ENDIF}
 begin
+{$IFDEF KICON_DEMO_ICON_SUPPORT}
 {$IFDEF USE_PNG_SUPPORT}
   SDMain.Filter := cFilterPngsBitmaps;
   SDMain.DefaultExt := 'png';
@@ -383,6 +468,7 @@ begin
       end;
     end;
   end;
+{$ENDIF}
 end;
 
 end.

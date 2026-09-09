@@ -179,6 +179,9 @@ type
     function GetValueAsUInt: UInt64; virtual;
     function GetValueAsText: string; virtual;
     function InspectInputChar(Key: Char): Char; virtual;
+  {$IFDEF FPC}
+    function InspectInputUTF8Key(const UTF8Key: TUTF8Char): TUTF8Char; virtual;
+  {$ENDIF}
     function IsCaptionStored: Boolean; virtual;
     function IsCustomSuffixStored: Boolean; virtual;
     function IsMaxStored: Boolean; virtual;
@@ -186,6 +189,9 @@ type
     function IsUpDownStepStored: Boolean; virtual;
     function IsValueStored: Boolean; virtual;
     procedure KeyPress(var Key: Char); override;
+  {$IFDEF FPC}
+    procedure UTF8KeyPress(var UTF8Key: TUTF8Char); override;
+  {$ENDIF}
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure SafeSetFocus; virtual;
     procedure SetAcceptedFormats(AValue: TKNumberEditAcceptedFormats); virtual;
@@ -1317,6 +1323,18 @@ begin
   end;
 end;
 
+{$IFDEF FPC}
+function TKCustomNumberEdit.InspectInputUTF8Key(const UTF8Key: TUTF8Char): TUTF8Char;
+begin
+  if neafAscii in FAcceptedFormats then
+    Result := UTF8Key
+  else if (FCustomSuffix <> '') and (Pos(UTF8Key, FCustomSuffix) <> 0) then
+    Result := UTF8Key
+  else
+    Result := '';
+end;
+{$ENDIF}
+
 function TKCustomNumberEdit.IsCaptionStored: Boolean;
 begin
   Result := FLabel.Caption <> Name;
@@ -1357,6 +1375,19 @@ begin
       Font.Color := clWindowText;
   end
 end;
+
+{$IFDEF FPC}
+procedure TKCustomNumberEdit.UTF8KeyPress(var UTF8Key: TUTF8Char);
+begin
+  inherited UTF8KeyPress(UTF8Key);
+  if Length(UTF8Key) > 1 then
+  begin
+    UTF8Key := InspectInputUTF8Key(UTF8Key);
+    if UTF8Key <> '' then
+      Font.Color := clWindowText;
+  end;
+end;
+{$ENDIF}
 
 procedure TKCustomNumberEdit.Notification(AComponent: TComponent;
   Operation: TOperation);
@@ -1805,8 +1836,6 @@ begin
           FMax.Assign(FMin);
       end else
       begin
-        FMin.UIVal := KFunctions.MinMax(FMin.UIVal, 0, High(UInt64));
-        FMax.UIVal := KFunctions.MinMax(FMax.UIVal, 0, High(UInt64));
         if FMax.LowerThan(FMin, False) then
           FMax.Assign(FMin);
       end;
